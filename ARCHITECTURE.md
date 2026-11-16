@@ -34,7 +34,7 @@ rasterizer, ffmpeg encoder → MP4 checked with ffprobe — and skips without ff
 | Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService`; `MediaCacheLocation` / `ThumbnailCacheLocation` / `WaveformCacheLocation` (Phase 9) | Implemented (Phase 6; format v2 since Phase 7, D022; v3 since Phase 10, D025; v4 since Phase 17, D032; v5 since Phase 19, D034; v6 since Phase 21, D036; v7 since Phase 27, D043) |
 | Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping; clip properties, text clips, speed), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands; the playback engine (`Playback/`) | Implemented (Phases 4, 5, 7) |
 | Audio | `WasapiAudioOutput` (NAudio.Wasapi 2.2.1, WASAPI shared mode) | Playback output |
-| Vision | The AI hold segmentation (Phase 19, D034): `OnnxHoldSegmentationService` over ONNX Runtime with DirectML (CPU fallback), `HoldModelVerifier` (size + SHA-256 of the pinned files), SAM 2 pre- / postprocessing. References Core only | Implemented |
+| Vision | The AI hold segmentation (Phase 19, D034): `OnnxHoldSegmentationService` over ONNX Runtime with DirectML (CPU fallback), `HoldModelVerifier` (size + SHA-256 of the pinned files), SAM 2 pre- / postprocessing. The people models (Phase 42, D061): `People/OnnxPeopleVision` — RF-DETR-M + RTMPose-m (`PersonDetectorSessions`), the SAM 2.1 tiny video segmenter (`Sam2VideoSegmenter`, the memory loop in C#). References Core only | Implemented |
 | Export | Offline export orchestration (Phase 8, D023): renders an `ExportJob` with the Core rules and hands frames/audio to an encoder. References Core only; no FFmpeg or UI types | `ExportService` over `ExportFrameSource` / `ExportPictureReader`, `ExportAudioSource` / `ExportAudioReader`; `ExportMediaLease` holds the job's source files while it runs (D060) |
 
 The Phase 10 fades and cross dissolve live in Core (`FadeRule`, `TransitionRules`, the snapshot), Timeline (edits) and UI;
@@ -491,6 +491,39 @@ The product's main AI function: the route's holds outlined on a video clip, one 
   opacity-mask layer per opacity group, the combined hold × layer opacity) — the same path for the Preview and the export.
   `ITimelineEditService.SetHoldAnimation` (`HoldMarkupFields.Animation*`, one setting merges); the Inspector's "Animation"
   block in `HoldMarkupViewModel`; the markup overlay outlines every contour dashed while the route is animated. Format v6.
+
+## Follow and Occlusion — the people in the video (Phase 42, D061)
+
+```
+IVideoDecoder (1024 px, hardware decoding) ─► PeopleAnalyzer (Core/People)
+   pass 1 every 0.1 s:  IPeopleVision.Detect (RF-DETR-M + RTMPose-m + appearance) ─► PersonTracker ─► PersonTracks
+   pass 2 every 1/15 s: IPeopleVision.CreateSegmenter (SAM 2.1 tiny video, one memory per person) ─► PersonMaskTrack
+        └─ PeopleAnalysisCoordinator (UI: one analysis at a time, progress, cancel / retry, IPeopleAnalysisCache)
+              └─ PeopleAnalyses (by asset) ─► PlaybackSnapshotBuilder ─► PictureSpan.Follow (FollowResolution → FollowPath)
+                                                                         PictureSpan.PeopleMasks (clips hiding their outlines)
+                    └─ CompositionDrawPlan by the shown frame's PTS: GeometryAt (frame, outline, blurred background move together)
+                                                                     OutlineDraw.Occlusion (the frame's union mask)
+                          └─ CompositionPainter: OutlineOcclusion.Groups (pieces of a mask cell, visibility × D036 opacity)
+                                └─ Preview (CompositionView) = export (AvaloniaCompositionRasterizer, D059's parallel rasterizers)
+```
+
+- **Space**: every analysis is in normalized coordinates of the display-oriented source frame and source time — the hold
+  contours' space; crop, scale, canvas, Split, Trim, Slip and Speed never invalidate it. One analysis per video file over the
+  whole file.
+- **Core/People** (pure, no ML dependency): `PersonDetection` / `NormalizedBox`, `PersonAppearance` (colour histogram),
+  `PersonTracker` (ByteTrack-like, appearance veto), `PersonTracks`, `FollowTarget` (the picked or only person, extended across
+  losses, no silent switch), `FollowCamera` / `FollowPath` (losses filled, the anchor at the canvas centre, clamped to cover,
+  non-causal Gaussian), `FollowResolution` (the one computation of the snapshot, the preflight and the Inspector),
+  `PersonMaskTrack` / `MaskCodec` / `OcclusionMask` (separate per-person masks, deflated, blended between analysed frames),
+  `OutlineOcclusion` (the visibility of the outline's pieces), `PeopleAnalyzer` (the two passes), `PeopleAnalyses`.
+- **Interfaces**: `IPeopleVision` / `IPersonSegmenter` (Vision), `IPeopleAnalysisCache` (Media: `PeopleAnalysisCacheStore`,
+  `%LOCALAPPDATA%\AiVideoEditor\cache\people`, the camera-motion cache's rules, LRU 2 GB).
+- **Project** (v20): `VideoClip.Follow` (`FollowSettings`: the pick, the smoothness) and `VideoClip.HidesOutlinesBehindPeople`;
+  `ITimelineEditService.SetClipFollow` / `SetClipHidesOutlinesBehindPeople` (one undo step each).
+- **Export**: `ExportPreflightEnvironment.People` (`ExportPeople`): the Preview's analyses; `PeopleAnalysisPending` blocks,
+  `FollowUnavailable` / `OcclusionUnavailable` warn.
+- **UI**: the Inspector's «Слежение и люди» (`InspectorViewModel.People`), the Preview's notice, pick and masks
+  (`PreviewViewModel.People`, `Rendering/PeopleOverlay`), wired in `MainWindowViewModel.WirePeople`.
 
 ## Telemetry — COROS trainings (Phase 35, D050, D049)
 

@@ -358,6 +358,14 @@ internal sealed class VideoClipDto : MediaBackedClipDto
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Background { get; set; }
 
+    /// <summary>Format v20 (D061): the clip's automatic Follow; written only when on.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public FollowDto? Follow { get; set; }
+
+    /// <summary>Format v20 (D061): the hold outlines hidden behind people; written only when true.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool HidesOutlinesBehindPeople { get; set; }
+
     /// <summary>Format v4 (D032 R2): the clip's sound was unlinked into an audio clip; written only when true.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool IsAudioDetached { get; set; }
@@ -623,4 +631,21 @@ internal sealed class RecoveryFileDto
     public int ProcessId { get; set; }
     public DateTimeOffset? ProcessStartTime { get; set; }
     public ProjectFileDto? Project { get; set; }
+}
+
+/// <summary>Format v20 (D061): a video clip's Follow — where the user picked the person (a source time in 100 ns ticks and a
+/// point in normalized coordinates of the display-oriented frame; all three or none) and the smoothness.</summary>
+internal sealed class FollowDto
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? TargetTicks { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? TargetX { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? TargetY { get; set; }
+
+    /// <summary>«soft», «normal» or «fast».</summary>
+    public string? Smoothness { get; set; }
 }

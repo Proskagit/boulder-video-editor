@@ -120,6 +120,26 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
     private int _history;
     private int UndoSteps() => _history;
 
+    /// <summary>D061: on a clip with Follow, a click on the markup frame is mapped through the picture where the composition
+    /// draws that frame — the Follow position on the frame's source time — so a hold is saved on the hold it was marked on.</summary>
+    [Fact]
+    public async Task On_a_Follow_clip_the_markup_maps_clicks_where_the_frame_is_drawn()
+    {
+        var clip = await StartOnClip();
+        var before = Markup.Geometry!;
+        MediaTime? asked = null;
+        clip.Follow = new FollowSettings();
+        Markup.FollowPositionAt = (c, time) => { asked = time; return (120, -30); };
+        Markup.RefreshGeometry();
+        var after = Markup.Geometry!;
+        Assert.Equal(before.Center.X + 120, after.Center.X, 6);
+        Assert.Equal(before.Center.Y - 30, after.Center.Y, 6);
+        Assert.Equal(MediaTime.FromSeconds(1), asked);   // the markup frame's own source time
+        clip.Follow = null;                                // no Follow: the clip's own layout, as before
+        Markup.RefreshGeometry();
+        Assert.Equal(before.Center, Markup.Geometry!.Center);
+    }
+
     // --- FU-22.1 (D040 §3): the mode stays on while the frame is prepared ------------------------------------------------
 
     /// <summary>The Step 22.6 observation, replayed with the Preview's timer running: the playhead put on 00:00:10:00 by a

@@ -46,13 +46,21 @@ public sealed class HoldModelVerifier
     }
 
     /// <summary>For tests: other expected files (small fakes with their own SHA-256).</summary>
-    internal HoldModelVerifier(string folder, IReadOnlyList<HoldModelFile> files)
+    internal HoldModelVerifier(string folder, IReadOnlyList<HoldModelFile> files) : this(folder, files, HoldModel.Id)
+    {
+    }
+
+    /// <summary>Another pinned model set (D061: the people models), named <paramref name="modelId"/> in the messages.</summary>
+    public HoldModelVerifier(string folder, IReadOnlyList<HoldModelFile> files, string modelId)
     {
         // Always a full path, so the messages name the real folder (with an unset profile LocalApplicationData can be
         // empty and the app's folders relative — found in the Step 19.8 real-app run, as for the LUTs in 18.8).
         Folder = Path.GetFullPath(folder);
         _files = files;
+        _modelId = modelId;
     }
+
+    private readonly string _modelId;
 
     public string Folder { get; }
 
@@ -68,7 +76,7 @@ public sealed class HoldModelVerifier
             var path = PathOf(file);
             if (!File.Exists(path))
                 return new HoldModelStatus(HoldModelState.Missing,
-                    string.Format(Messages.Model_NotInstalled, HoldModel.Id, file.Name, Folder));
+                    string.Format(Messages.Model_NotInstalled, _modelId, file.Name, Folder));
         }
 
         long total = files.Sum(f => f.Length), done = 0;
@@ -96,5 +104,5 @@ public sealed class HoldModelVerifier
     }
 
     private HoldModelStatus Mismatch(HoldModelFile file) => new(HoldModelState.Mismatch,
-        string.Format(Messages.Model_Mismatch, file.Name, Folder, HoldModel.Id, file.Sha256));
+        string.Format(Messages.Model_Mismatch, file.Name, Folder, _modelId, file.Sha256));
 }

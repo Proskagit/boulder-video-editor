@@ -1559,15 +1559,27 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         return inside;
     }
 
+    /// <summary>D061: the clip's Follow position (canvas pixels) on its video's source time, or null (no Follow, or it does
+    /// not move the picture) — the position the composition draws that frame at. Set by the main window.</summary>
+    public Func<VideoClip, MediaTime, (double X, double Y)?>? FollowPositionAt { get; set; }
+
+    /// <summary>D061: the people analysis changed — the markup frame's Follow position may have.</summary>
+    public void RefreshGeometry() => UpdateOverlay();
+
     /// <summary>Where the clip's picture lies on the canvas now (D018) — for the overlay's mapping of clicks — and the
-    /// selected hold's contour after an undo / redo.</summary>
+    /// selected hold's contour after an undo / redo. With Follow (D061) the picture of the markup frame is where the
+    /// composition draws it: the clip's position on that frame's source time, so a click lands on the hold it is on.</summary>
     private void UpdateOverlay()
     {
         var settings = _projects.Current.Settings;
         Canvas = new FrameSize(settings.FrameWidth, settings.FrameHeight);
         var size = MarkupFrame is { } frame ? new FrameSize(frame.Width, frame.Height) : _pickSize;
-        Geometry = _clip is not null && size is { } frameSize && VisualProperties.Of(_clip) is { } visual
-            ? CompositionMath.Layout(Canvas, frameSize, visual)
+        var visual = _clip is not null ? VisualProperties.Of(_clip) : null;
+        if (visual is { } v && _clip is VideoClip { Follow: not null } video && MarkupFrame is { } markupFrame && FollowPositionAt is { } follow &&
+            follow(video, Core.Motion.CameraMotionMath.SourceTimeOf(markupFrame.Timestamp, Asset(video)?.Metadata?.StartTime ?? MediaTime.Zero)) is { } at)
+            visual = v with { PositionX = at.X, PositionY = at.Y };
+        Geometry = _clip is not null && size is { } frameSize && visual is { } placed
+            ? CompositionMath.Layout(Canvas, frameSize, placed)
             : null;
         if (SelectedHoldId is not { } id) return;
         if (Markup?.Holds.FirstOrDefault(h => h.Id == id) is not { } hold)

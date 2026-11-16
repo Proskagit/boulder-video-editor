@@ -49,6 +49,9 @@ public static class ServiceCollectionExtensions
         // Hold tracking (R2 → E, D4): the analysed camera-motion tracks kept between sessions, keyed by the video's content.
         services.AddSingleton<ICameraMotionCache>(sp => new CameraMotionCacheStore(AppPaths.CameraMotionCacheFolder,
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<CameraMotionCacheStore>>()));
+        // D061: the people analyses (Follow, Occlusion) kept between sessions, keyed by the video's content and the model.
+        services.AddSingleton<IPeopleAnalysisCache>(sp => new PeopleAnalysisCacheStore(AppPaths.PeopleCacheFolder,
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<PeopleAnalysisCacheStore>>()));
         services.AddSingleton<IHdrLutStore>(sp => new HdrLutStore(AppPaths.ColorLutFolder,
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<HdrLutStore>>()));
         services.AddSingleton<IVideoDecoder, FfmpegVideoDecoder>();
@@ -122,6 +125,10 @@ public static class ServiceCollectionExtensions
             Path.Combine(AppPaths.ModelsFolder, HoldModel.FolderName),
             sp.GetService<Microsoft.Extensions.Logging.ILogger<OnnxHoldSegmentationService>>()));
         services.AddSingleton<IHoldMarkupFrameSource, HoldMarkupFrameSource>();
+        // D061: the people models (Follow, Occlusion) from the user's models folder, verified before the first use.
+        services.AddSingleton<IPeopleVision>(sp => new AiVideoEditor.Vision.People.OnnxPeopleVision(
+            Path.Combine(AppPaths.ModelsFolder, AiVideoEditor.Vision.People.PeopleModel.FolderName),
+            sp.GetService<Microsoft.Extensions.Logging.ILogger<AiVideoEditor.Vision.People.OnnxPeopleVision>>()));
         // Phase 31 (D047): automatic hold proposals at 1920×1080 and full-resolution refinement of accepted proposals.
         services.AddSingleton<IHoldProposalService, HoldProposalService>();
         services.AddSingleton<IHoldProposalGenerator, HoldProposalGenerator>();
@@ -138,6 +145,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<MediaAnalysisCoordinator>();
         services.AddSingleton<ThumbnailCoordinator>();
         services.AddSingleton<CameraMotionCoordinator>();   // hold tracking (R2 → E): camera motion of clips with holds
+        services.AddSingleton<PeopleAnalysisCoordinator>();   // D061: the people of videos with Follow / Occlusion
         services.AddSingleton<WaveformCoordinator>();
         services.AddSingleton<MediaAvailabilityMonitor>();
         services.AddSingleton<MediaImportWorkflow>();

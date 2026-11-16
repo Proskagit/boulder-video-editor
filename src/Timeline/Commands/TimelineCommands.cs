@@ -744,3 +744,23 @@ public sealed class SetClipBackgroundCommand(VideoClip clip, ClipBackground befo
 
     public void Undo() => clip.Background = before;
 }
+
+/// <summary>D061: a video clip's Follow (null — off).</summary>
+public sealed class SetClipFollowCommand(VideoClip clip, FollowSettings? before, FollowSettings? after) : IUndoableCommand
+{
+    public string Description => after is null ? "Follow Off" : before is null ? "Follow On" : "Change Follow";
+
+    public void Execute() => clip.Follow = after;
+
+    public void Undo() => clip.Follow = before;
+}
+
+/// <summary>D061: a video clip's hold outlines hidden behind people.</summary>
+public sealed class SetClipOcclusionCommand(VideoClip clip, bool after) : IUndoableCommand
+{
+    public string Description => after ? "Hide Outlines Behind People" : "Show Outlines Over People";
+
+    public void Execute() => clip.HidesOutlinesBehindPeople = after;
+
+    public void Undo() => clip.HidesOutlinesBehindPeople = !after;
+}

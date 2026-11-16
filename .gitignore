@@ -34,3 +34,7 @@ Thumbs.db
 
 ## Portable builds (tools/portable/Publish-Portable.ps1)
 artifacts/
+
+# Python bytecode of the tools (D061)
+__pycache__/
+*.pyc

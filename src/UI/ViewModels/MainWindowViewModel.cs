@@ -78,7 +78,8 @@ public sealed class MainWindowViewModel : ViewModelBase
         PreviewTransformViewModel? previewTransform = null,
         TrainingSessionService? training = null,
         ExportWorkflow? export = null,
-        IDialogService? dialogs = null)
+        IDialogService? dialogs = null,
+        PeopleAnalysisCoordinator? people = null)
     {
         _export = export;
         _dialogs = dialogs;
@@ -179,6 +180,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         Inspector.Playhead = () => Timeline.Playhead;
         // Phase 35 (D050 amendment B4): the clip's training readout follows the playhead.
         Inspector.Training = training;
+        WirePeople(people);
         Timeline.PlayheadChanged += (_, _) => Inspector.OnPlayheadMoved();
         Timeline.SeekRequested += (_, position) => Preview.Seek(position);
         Preview.PlaybackPositionChanged += (_, position) => Timeline.ShowPlaybackPosition(position);
@@ -243,6 +245,38 @@ public sealed class MainWindowViewModel : ViewModelBase
         if (_waveforms is not null)
             await _waveforms.ShutdownAsync();  // never throws
         return true;
+    }
+
+    /// <summary>D061: the Inspector's people section, the Preview's pick of the climber and masks, the hold markup's Follow
+    /// position.</summary>
+    private void WirePeople(PeopleAnalysisCoordinator? people)
+    {
+        Inspector.People = people;
+        if (people is null) return;
+        if (Inspector.HoldMarkup is { } markup)
+        {
+            markup.FollowPositionAt = (clip, sourceTime) =>
+            {
+                var project = _projectService.Current;
+                if (clip.Follow is not { } follow || !people.Analyses.Tracks.TryGetValue(clip.MediaAssetId, out var tracks) ||
+                    Core.Playback.PlaybackSnapshotBuilder.DisplaySize(project.MediaAssets.FirstOrDefault(a => a.Id == clip.MediaAssetId)?.Metadata) is not { } source)
+                    return null;
+                var canvas = new Core.Composition.FrameSize(project.Settings.FrameWidth, project.Settings.FrameHeight);
+                return Core.People.FollowResolution.For(clip, follow, tracks, canvas, source).Path?.At(sourceTime);
+            };
+            people.AnalysesChanged += (_, _) => markup.RefreshGeometry();
+        }
+        Inspector.PersonPickRequested += (_, clipId) => Preview.StartPersonPick(clipId);
+        Inspector.PersonPickCancelRequested += (_, _) => Preview.CancelPersonPick();
+        Inspector.ShowPeopleMasksChanged += (_, show) => Preview.ShowPeopleMasks = show;
+        Preview.PersonPicked += (_, pick) => Inspector.OnPersonPicked(pick.ClipId, pick.SourceTime, pick.Point);
+        Preview.PersonPickEnded += (_, _) => Inspector.OnPersonPickEnded();
+        // A pick belongs to the shown clip and frame: another selection, Play or a seek ends it.
+        Timeline.SelectionChanged += (_, _) => Preview.CancelPersonPick();
+        Preview.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(PreviewViewModel.IsPlaying) && Preview.IsPlaying) Preview.CancelPersonPick();
+        };
     }
 
     /// <summary>D034: the markup follows the selected video clip and the playhead; seek, Play, the Source mode or

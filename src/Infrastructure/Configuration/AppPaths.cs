@@ -49,6 +49,9 @@ public static class AppPaths
     /// video's content. Not created here (the store creates it on its first write).</summary>
     public static string CameraMotionCacheFolder => Path.Combine(AppDataRoot, "cache", "camera-motion");
 
+    /// <summary>D061: the people analyses (tracks, masks) kept between sessions, keyed by the video's content.</summary>
+    public static string PeopleCacheFolder => Path.Combine(AppDataRoot, "cache", "people");
+
     public static string ProjectMediaFolder(string projectFolderPath) =>
         EnsureExists(Path.Combine(projectFolderPath, "media"));
 

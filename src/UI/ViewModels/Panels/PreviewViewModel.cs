@@ -94,8 +94,10 @@ public sealed partial class PreviewViewModel : ViewModelBase
 
     public PreviewViewModel(StatusService status, IPlaybackService playback, IProjectService projectService,
         ILogger<PreviewViewModel> logger, InOutRangeService? inOut = null, SourceViewerService? source = null,
-        CameraMotionCoordinator? cameraMotion = null, TrainingSessionService? training = null, IUserSettingsService? settings = null)
+        CameraMotionCoordinator? cameraMotion = null, TrainingSessionService? training = null, IUserSettingsService? settings = null,
+        PeopleAnalysisCoordinator? people = null)
     {
+        InitPeople(people);
         _inOut = inOut;
         // D057 §3.8: the heart rate's display offset; a change shows at once (the export takes the same value).
         _settings = settings;
@@ -237,6 +239,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
             _cameraMotion.StatusChanged -= OnCameraMotionStatusChanged;
         }
         if (_training is not null) _training.Changed -= OnTrainingChanged;
+        ReleasePeople();
         await _playback.DisposeAsync();
     }
 
@@ -317,6 +320,8 @@ public sealed partial class PreviewViewModel : ViewModelBase
         Layers = frame.Layers;
         AreLayersCurrent = frame.Layers.All(l => l.IsCurrent && l.State != LayerPictureState.Pending);
         UpdateTrackingNotice();
+        if (_pickClipId is not null || ShowPeopleMasks) UpdatePeopleOverlay();
+        else UpdatePeopleNotice();
     }
 
     private FrameSize ProjectCanvas()
@@ -329,7 +334,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
     {
         _assetStates = PlaybackSnapshotBuilder.CaptureAssetStates(_projectService.Current);
         _playback.UpdateSnapshot(PlaybackSnapshotBuilder.Build(_projectService.Current, ++_snapshotVersion, _cameraMotion?.Tracks,
-            _settings?.Current.HeartRateDisplayOffset ?? MediaTime.Zero));
+            _settings?.Current.HeartRateDisplayOffset ?? MediaTime.Zero, _people?.Analyses));
         _needsTick = true;
     }
 

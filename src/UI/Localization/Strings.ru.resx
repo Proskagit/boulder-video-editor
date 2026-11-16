@@ -3221,4 +3221,100 @@
   <data name="Export_ClosingCancelling" xml:space="preserve">
     <value>Отмена экспорта перед закрытием…</value>
   </data>
+  <data name="Preview_PickPerson" xml:space="preserve">
+    <value>Щёлкните по скалолазу, за которым следить (Esc — отмена).</value>
+  </data>
+  <data name="Preview_PeopleAnalysing" xml:space="preserve">
+    <value>Анализ людей в видео… {0} %</value>
+  </data>
+  <data name="Preview_FollowLostHere" xml:space="preserve">
+    <value>Скалолаз здесь не виден — кадр удерживается на месте.</value>
+  </data>
+  <data name="Follow_Soft" xml:space="preserve">
+    <value>Мягкая</value>
+  </data>
+  <data name="Follow_Normal" xml:space="preserve">
+    <value>Обычная</value>
+  </data>
+  <data name="Follow_Fast" xml:space="preserve">
+    <value>Быстрая</value>
+  </data>
+  <data name="Follow_Picked" xml:space="preserve">
+    <value>Скалолаз выбран: кадр следует за ним.</value>
+  </data>
+  <data name="People_Waiting" xml:space="preserve">
+    <value>Ожидает анализа людей…</value>
+  </data>
+  <data name="People_Analysing" xml:space="preserve">
+    <value>Поиск людей… {0} %</value>
+  </data>
+  <data name="People_Segmenting" xml:space="preserve">
+    <value>Сегментация людей… {0} %</value>
+  </data>
+  <data name="People_Cancelled" xml:space="preserve">
+    <value>Анализ остановлен. «Повторить анализ» запустит его снова.</value>
+  </data>
+  <data name="People_Failed" xml:space="preserve">
+    <value>Анализ не удался.</value>
+  </data>
+  <data name="Follow_NeedsTarget" xml:space="preserve">
+    <value>В клипе несколько человек: выберите скалолаза («Выбрать скалолаза»). До выбора кадр не двигается.</value>
+  </data>
+  <data name="Follow_TargetNotFound" xml:space="preserve">
+    <value>Выбранный скалолаз не найден в этом клипе: выберите его снова на кадре, где он виден.</value>
+  </data>
+  <data name="Follow_NoRoom" xml:space="preserve">
+    <value>Кадру некуда двигаться: увеличьте масштаб больше «Заполнить кадр» — тогда кадр сможет следовать.</value>
+  </data>
+  <data name="Follow_Rotation" xml:space="preserve">
+    <value>Слежение работает только при повороте 0°, 90°, 180° или 270°.</value>
+  </data>
+  <data name="Follow_Following" xml:space="preserve">
+    <value>Слежение: скалолаз виден в {0} % клипа.</value>
+  </data>
+  <data name="Follow_FollowingWithGaps" xml:space="preserve">
+    <value>Слежение: скалолаз виден в {0} % клипа; потерян {1} раз ({2}) — там кадр удерживается, затем плавно продолжает.</value>
+  </data>
+  <data name="Occlusion_Ready" xml:space="preserve">
+    <value>Люди сегментированы: контуры скрываются там, где перед зацепкой человек.</value>
+  </data>
+  <data name="Occlusion_ReadyNoRoutes" xml:space="preserve">
+    <value>Люди сегментированы. У клипа пока нет контуров зацепок — после разметки они будут скрываться за людьми.</value>
+  </data>
+  <data name="Inspector_PeopleHeading" xml:space="preserve">
+    <value>Слежение и люди</value>
+  </data>
+  <data name="Inspector_Follow" xml:space="preserve">
+    <value>Следить за скалолазом</value>
+  </data>
+  <data name="Inspector_FollowTip" xml:space="preserve">
+    <value>Видимая часть кадра движется за выбранным человеком при собственном масштабе клипа (увеличьте масштаб больше «Заполнить», чтобы был запас). Preview = экспорт.</value>
+  </data>
+  <data name="Inspector_FollowSmoothness" xml:space="preserve">
+    <value>Плавность</value>
+  </data>
+  <data name="Inspector_PickPerson" xml:space="preserve">
+    <value>Выбрать скалолаза</value>
+  </data>
+  <data name="Inspector_PickPersonTip" xml:space="preserve">
+    <value>Показывает людей на кадре под плейхедом в Preview; щёлкните того, за кем следить.</value>
+  </data>
+  <data name="Inspector_CancelPick" xml:space="preserve">
+    <value>Отменить выбор</value>
+  </data>
+  <data name="Inspector_HideOutlinesBehindPeople" xml:space="preserve">
+    <value>Скрывать контуры за людьми</value>
+  </data>
+  <data name="Inspector_HideOutlinesTip" xml:space="preserve">
+    <value>Каждый человек в кадре сегментируется отдельно; контур зацепки скрывается там, где перед ней человек. Нужна видеокарта с DirectML.</value>
+  </data>
+  <data name="Inspector_ShowPeopleMasks" xml:space="preserve">
+    <value>Показывать маски людей в Preview</value>
+  </data>
+  <data name="Inspector_CancelPeopleAnalysis" xml:space="preserve">
+    <value>Остановить анализ</value>
+  </data>
+  <data name="Inspector_RetryPeopleAnalysis" xml:space="preserve">
+    <value>Повторить анализ</value>
+  </data>
 </root>

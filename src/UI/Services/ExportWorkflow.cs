@@ -63,6 +63,9 @@ public sealed class ExportWorkflow
     private readonly ILogger<ExportWorkflow> _logger;
     private readonly InOutRangeService? _inOut;
     private readonly CameraMotionCoordinator? _cameraMotion;
+
+    /// <summary>D061: the Preview's own people analyses (Follow, Occlusion), so the export draws what the Preview draws.</summary>
+    private readonly PeopleAnalysisCoordinator? _people;
     private bool _running;
     private readonly Func<Task<bool>>? _saveProject;
     private CancellationTokenSource? _exportCts;
@@ -91,8 +94,10 @@ public sealed class ExportWorkflow
         IExportEncoderCapabilities? encoders = null,
         ITimelineEditService? edit = null,
         ProjectFileWorkflow? projectFiles = null,
-        Func<Task<bool>>? saveProject = null)
+        Func<Task<bool>>? saveProject = null,
+        PeopleAnalysisCoordinator? people = null)
     {
+        _people = people;
         // Save as the toolbar's Save does it (Save As for a project never saved); a test may give its own.
         _saveProject = saveProject ?? (projectFiles is null ? null : projectFiles.SaveAsync);
         _exportDialog = exportDialog;
@@ -220,7 +225,8 @@ public sealed class ExportWorkflow
         var environment = ExportPreflightEnvironment.Default(await _export.IsAvailableAsync(), IsFontInstalled) with
         {
             CameraMotion = _cameraMotion?.ForExport() ?? ExportCameraMotion.None,
-            HeartRateDisplayOffset = _settings?.Current.HeartRateDisplayOffset ?? MediaTime.Zero
+            HeartRateDisplayOffset = _settings?.Current.HeartRateDisplayOffset ?? MediaTime.Zero,
+            People = _people?.ForExport() ?? ExportPeople.None
         };
 
         // 1. Everything but the output file, which is chosen next.

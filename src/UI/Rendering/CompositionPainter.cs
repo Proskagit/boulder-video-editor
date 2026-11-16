@@ -241,6 +241,29 @@ public static class CompositionPainter
         var fullWidth = Math.Max(op.StrokeWidth * op.CanvasScale, op.MinTargetStroke) / localScale;
 
         var bounds = RenderConversions.ToRect(op.LocalRect);
+        if (op.Occlusion is not null)
+        {
+            // D061: people in front of the holds — the contours' pieces grouped by the hold's opacity × their visibility.
+            using (context.PushClip(bounds))
+            {
+                foreach (var (groupOpacity, segments) in Core.People.OutlineOcclusion.Groups(op))
+                {
+                    var opacity = groupOpacity * op.Opacity;
+                    if (!(opacity > 0)) continue;
+                    using (opacity < 1 ? context.PushOpacityMask(new ImmutableSolidColorBrush(Colors.White, opacity), bounds) : default(DrawingContext.PushedState?))
+                    {
+                        var width = fullWidth;
+                        if (op.KeylineHex is { } keyline)
+                        {
+                            StrokeSegments(context, segments, Pen(keyline, width));
+                            width *= OutlineDraw.CoreShare;
+                        }
+                        StrokeSegments(context, segments, Pen(op.CoreHex, width));
+                    }
+                }
+            }
+            return;
+        }
         using (context.PushClip(bounds))
         {
             foreach (var (holdOpacity, polygons) in op.OpacityGroups())
@@ -273,6 +296,11 @@ public static class CompositionPainter
                 context.DrawLine(pen, new Point(a.X, a.Y), new Point(b.X, b.Y));
             }
         }
+    }
+
+    private static void StrokeSegments(DrawingContext context, ImmutableArray<Core.People.OutlineSegment> segments, ImmutablePen pen)
+    {
+        foreach (var s in segments) context.DrawLine(pen, new Point(s.A.X, s.A.Y), new Point(s.B.X, s.B.Y));
     }
 
     private static ImmutablePen Pen(string hex, double width) =>

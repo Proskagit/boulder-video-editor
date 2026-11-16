@@ -135,3 +135,114 @@ reference environment is kept with the E1 reference data (`env/requirements-lock
   `dotnet test tests/Vision.ModelTests/Vision.ModelTests.csproj -c Release` — environment `AIVE_AI_MODEL_DIR` (default:
   the folder above) and `AIVE_AI_E1_DIR` (default `%USERPROFILE%\Desktop\AiVideoEditor-E1-Reference`); ffmpeg on PATH. It
   writes its report to `<E1>\results\<timestamp>\`.
+
+---
+
+# People models (D061, Phase 42: Follow and Occlusion)
+
+A second pinned model set, independent of the hold model. Without it only Follow and the outlines hidden behind people are
+unavailable (the Inspector and the export say so); everything else works. The application never downloads, writes,
+replaces or repairs it.
+
+## The models
+
+| | |
+|---|---|
+| Id | `people-v1` (part of every cached people analysis's key) |
+| Folder | `%LOCALAPPDATA%\AiVideoEditor\models\people-v1\` (one copy per machine; never in the repository or a project) |
+| Verified | size and SHA-256 of every file, once per session, before the first use (`HoldModelVerifier`) |
+
+| File | Network | Bytes | SHA-256 |
+|---|---|---|---|
+| `rfdetr_m_576.onnx` | RF-DETR-M (Roboflow), COCO, 576 × 576 — the person detector; the ONNX conversion distributed with rtmlib 0.0.16 (`rfdetr_m_v142_576x576.onnx`) | 126 347 989 | `7fc5834e2fc7205e399a77d29dd0e89b694b075eeb496d5c8464d25137cad788` |
+| `rtmpose_m_body7_256x192.onnx` | RTMPose-m body7 (OpenMMLab) — 17 COCO keypoints, the torso centre (`rtmpose-m_simcc-body7_pt-body7_420e-256x192-e48f03d0_20230504.onnx`) | 54 330 655 | `5c0a4bf67953e6d2ac43ce15e77dc9d5d354ae18430a47d2c5963a7bc5683e3c` |
+| `sam2.1_tiny_video.encoder.onnx` | SAM 2.1 Hiera tiny — the image encoder (+ the high-resolution projections) | 109 408 012 | `8bd43ed78fb7c56eebec730592003a8b795604a61c22f9a68229c3da770016cf` |
+| `sam2.1_tiny_video.memory_attention.onnx` | the memory attention, RoPE without complex numbers, **float16** inside (float32 inputs / outputs) | 16 238 215 | `5b3e99ecba4374f0b7e3adfafa956909a874673a14852ae2853c4c571f40b7df` |
+| `sam2.1_tiny_video.decoder_multi.onnx` | prompt encoder + mask decoder, 3 masks (tracking frames) | 17 884 116 | `136f739f10fc44b79bb09bdb6a207577625711a4186175d2b6bf978bfbb31cc1` |
+| `sam2.1_tiny_video.decoder_single.onnx` | the same, 1 mask with the stability fallback (a box prompt) | 17 893 385 | `a63a960ae5a23c9509605f2425727065d20caad2ac2677ef87e4cf3689eaa4f1` |
+| `sam2.1_tiny_video.memory_encoder.onnx` | a frame's mask → its memory | 5 591 772 | `0be6bdbea360072de1fa6a3b042f5415fbe2bff4618670f5846e82c852c0236c` |
+| `sam2.1_tiny_video.pointer_pos.onnx` | the object pointers' temporal encoding | 67 131 | `b8db9c1ddc26c967caa7cf2d49b1528d2e0ff55dfef0e689d99c9a2caf06c1da` |
+| `sam2.1_tiny_video.constants.bin` | `no_mem_embed` [256], `maskmem_tpos_enc` [7 × 64] (float32 LE, `SAM2CST1`) | 2 832 | `3ffeae7ff4579e5913f8fbf4de1a6ae0e1ccc7a09157052d7d14da19736ab61b` |
+
+Total ≈ 348 MB. Messages (the Inspector, the export's warnings):
+- *The people models people-v1 are not installed in `<folder>`: Follow and the outlines hidden behind people are
+  unavailable. See docs/AI_MODEL.md.*
+- *A file of the people models people-v1 in `<folder>` is damaged or another version. It was not loaded.*
+- *Hiding the outlines behind people needs a DirectML graphics card; on this computer only Follow is available.*
+
+## Runtime
+
+- The same ONNX Runtime 1.24.4 with DirectML as the hold model (the system's `DirectML.dll`, see above).
+- **Detector and pose**: DirectML; on a DirectML failure (session or a known device error in a run) the CPU for the rest of
+  the session — Follow keeps working, slower (RF-DETR-M ≈ 150 ms per frame on the CPU, research B.6).
+- **The video segmentation needs DirectML**: on the CPU the encoder alone takes ≈ 0.8 s per frame (research C.2); without a
+  usable GPU Occlusion is refused with the message above, the outlines are drawn as before.
+- Pre- and postprocessing: the detector's input is the frame stretched to 576² (bilinear), RGB / 255 ImageNet-normalized
+  (rtmlib's reference feeds BGR — on the checked frames RGB scores the climber at least as well, and RGB is what the network
+  was trained on); class 1 through a sigmoid, boxes already normalized. The pose crop: the box × 1.25 at 192 : 256, RGB
+  normalized by the mmpose mean / deviation, SimCC by arg-max (split ratio 2); the torso centre = the mean of the confident
+  shoulders and hips (≥ 0.3, at least two, at least one shoulder), else the box centre. SAM: the frame stretched to 1024² by
+  the antialiased bilinear of `SamImageProcessing` (the hold model's), the logits upsampled bilinearly (align corners false)
+  to the mask grid.
+- The streaming loop of the video mode is C# (`Sam2VideoSegmenter`): per person the prompted frames (at most 3) and the last
+  six frames as spatial memories with their temporal encodings, the object pointers of up to 16 frames (signed distance /
+  15); a person starts with its detector box (single mask, binarized for the memory), then without prompts (3 masks, the best
+  by IoU). The memory is bounded (feature maps for 6 frames, pointers for 16): ≈ 15 MB per person.
+
+## Validation (2026-11-16, RTX 4070 SUPER, driver 621.24)
+
+| Check | Result |
+|---|---|
+| The ONNX graphs + the streaming loop (Python, ORT DirectML) against the official `SAM2VideoPredictor` (PyTorch CUDA, float32), `VID_20251223_195009.mp4` 0–10 s at 30 Hz (301 frames), the climber prompted by its RF-DETR box | mean IoU of the masks **0.995** (min 0.976, p5 0.989), pixel agreement 99.97 %, 0 empty frames on either side (`tools/people-models/validate_sam2_video.py`) |
+| The same with the float16 memory attention | mean IoU 0.995 (min 0.976) — unchanged |
+| The C# port end to end (the app's decoder, `SamImageProcessing`, the C# loop) against the PyTorch predictor on the same segment (300 frames, 360 × 640 grid) | mean IoU **0.989**, median 0.994, p5 0.929, min 0.883 (the two decoders scale differently; `tools/people-models/compare_sam.py`) |
+| Speed of one person, C# loop | 8.3 frames / s (encoder 43 ms, memory attention 33–56 ms, decoder 6.5 ms, memory encoder 2 ms) |
+
+## Licences (checked 2026-11-16)
+
+| Component | Licence | Conclusion |
+|---|---|---|
+| RF-DETR (Roboflow) — code and the N–L weights | Apache-2.0 | the detector; the conversion distributed with rtmlib (Apache-2.0) |
+| RTMPose (OpenMMLab mmpose) — code and weights | Apache-2.0 | the pose |
+| SAM 2.1 (Meta) — `sam2` 1.1.0 and the checkpoint `sam2.1_hiera_tiny.pt` | Apache-2.0 | the source of the six graphs |
+| PyTorch 2.11 / onnx 1.19.1 | BSD-3-Clause / Apache-2.0 | export only |
+| ONNX Runtime 1.24.4 | MIT | shipped (as for the hold model) |
+
+Not used (licence): Ultralytics YOLO (AGPL-3.0), RVM (GPL-3.0), the YOLOX HumanArt weights (dataset terms unverified) —
+research B.3. The weights are not distributed by this project; should they be: the Apache-2.0 texts and a statement of the
+conversions.
+
+**RF-DETR-M, confirmed 2026-11-16 from the primary sources:** the repository's `LICENSE` (github.com/roboflow/rf-detr, branch
+`develop`) is the plain Apache License 2.0 ("Copyright 2025 Roboflow, Inc.", no NOTICE file); its README lists «RF-DETR Nano,
+Small, Medium and Large detection» under Apache 2.0 (the table row «RF-DETR-M … 576x576 | Apache 2.0») and says they may be shipped
+in closed-source commercial products, self-hosted included; roboflow.com/model-licenses/rf-detr gives the same. The Platform
+Model License 1.0 (usage tracking, no extraction of the base weights, an enterprise licence for commercial self-hosting) covers
+only Atto, Femto, Pico, XL, 2XL and the NAS models — not Medium. **So RF-DETR-M may be distributed with the application**, with
+the Apache-2.0 text and the Roboflow copyright notice in the third-party notices. **Caveat:** the pinned ONNX is a third-party
+conversion (rtmlib's download from the Hugging Face repository `saifkhichi96/opendetect`, declared Apache-2.0, an empty model
+card): its descent from Roboflow's official Medium checkpoint is consistent with what the file is (COCO, 91 classes with the
+background, 300 queries, 576 × 576 — the README's RF-DETR-M) but not documented. Before a distribution (S1), re-export it from
+the official `rfdetr` package (`model.export()`), check the people boxes against this file on the benchmark clips, and pin the
+new file — a step for S1, not needed for development.
+
+## Export recipe (gives the SHA-256s above)
+
+The research environment (Windows 11, Python 3.12): `torch==2.11.0+cu128`, `sam2==1.1.0`, `hydra-core==1.3.8`,
+`numpy==2.5.4`, `onnx==1.19.1`, `onnxruntime-directml==1.24.4`, `rtmlib==0.0.16`. The checkpoint `sam2.1_hiera_tiny.pt`:
+156 008 466 bytes, SHA-256 `7402e0d864fa82708a20fbd15bc84245c2f26dff0eb43a4b5b93452deb34be69` (Meta's
+`dl.fbaipublicfiles.com/segment_anything_2/092824/`). Then:
+
+```
+python -I tools/people-models/export_sam2_video.py <sam2.1_hiera_tiny.pt> <out folder>
+```
+
+writes the six graphs and the constants (a repeated export was byte-identical here). The detector and the pose are rtmlib's
+files (its download cache `%USERPROFILE%\.cache\rtmlib\hub\checkpoints\`), copied under the names above.
+
+## Testing
+
+- CI (`dotnet test AiVideoEditor.sln`) needs neither the models nor a GPU: the analysis is tested with fakes of the decoder
+  and the models (`PeopleAnalyzerTests`, `PeopleAnalysisCoordinatorTests`), the composition and the painter with synthetic
+  tracks and masks.
+- On the target machine with the models: `tools/people-bench` (the product's analyzer on real clips, timings, Follow's
+  metrics), `tools/people-models/compare_sam.py` (the C# segmenter against PyTorch) and `people_sheet.py` (contact sheets).

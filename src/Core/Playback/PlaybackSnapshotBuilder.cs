@@ -23,9 +23,12 @@ public static class PlaybackSnapshotBuilder
     /// <param name="motion">The camera's motion per video clip (hold tracking), by clip id — derived from the video, not part
     /// of the project; null or a missing clip: its contours stay where they were marked, exactly as before.</param>
     /// <param name="heartRateDisplayOffset">D057 §3.8: the user's display offset of the heart rate (zero: none).</param>
+    /// <param name="people">D061: the people analyses by asset (Follow, Occlusion); null or a missing asset — the clip keeps
+    /// its own framing and its outlines are drawn over everything, exactly as before.</param>
     public static PlaybackSnapshot Build(Project project, long version, IReadOnlyDictionary<RouteKey, CameraMotionTrack>? motion = null,
-        MediaTime heartRateDisplayOffset = default)
+        MediaTime heartRateDisplayOffset = default, People.PeopleAnalyses? people = null)
     {
+        var canvas = new FrameSize(project.Settings.FrameWidth, project.Settings.FrameHeight);
         var sequence = project.Timeline;
         var assets = project.MediaAssets.ToDictionary(a => a.Id);
         var used = new Dictionary<Guid, PlaybackAsset>();
@@ -100,7 +103,11 @@ public static class PlaybackSnapshotBuilder
                                     new RouteKey(clip.Id, route.Id), asset, motion))
                                 .OfType<HoldOutline>().ToImmutableArray()
                             : ImmutableArray<HoldOutline>.Empty,
-                        HeartRate = media is VideoClip && status == SpanStatus.Video ? HeartRateOf(training, asset!, heartRateDisplayOffset) : null
+                        HeartRate = media is VideoClip && status == SpanStatus.Video ? HeartRateOf(training, asset!, heartRateDisplayOffset) : null,
+                        SourceStartTime = asset?.Metadata?.StartTime ?? MediaTime.Zero,
+                        Follow = FollowOf(media, asset, people, canvas),
+                        PeopleMasks = media is VideoClip { HidesOutlinesBehindPeople: true } && people is not null &&
+                                      people.Masks.TryGetValue(media.MediaAssetId, out var masks) ? masks : null
                     });
 
                 // An unlinked video clip's sound is its audio clip's (D032 R10).
@@ -248,6 +255,14 @@ public static class PlaybackSnapshotBuilder
     private static HeartRateBinding? HeartRateOf(TrainingReference? training, MediaAsset asset, MediaTime displayOffset) =>
         training?.Workout is { } workout && FitRouteBinding.FileTimeOf(asset, workout) is { Zero: var start }
             ? new HeartRateBinding(workout, start, training.ClockCorrection) { DisplayOffset = displayOffset }
+            : null;
+
+    /// <summary>D061: the camera path of a video clip with Follow, its video's people known and its source size known; null
+    /// otherwise (or while Follow cannot move the picture).</summary>
+    private static People.FollowPath? FollowOf(MediaBackedClip clip, MediaAsset? asset, People.PeopleAnalyses? people, FrameSize canvas) =>
+        clip is VideoClip { Follow: { } follow } video && people is not null && people.Tracks.TryGetValue(clip.MediaAssetId, out var tracks) &&
+        DisplaySize(asset?.Metadata) is { } source
+            ? People.FollowResolution.For(video, follow, tracks, canvas, source).Path
             : null;
 
     private static HoldOutline? WithMotion(HoldOutline? outline, RouteKey key, MediaAsset? asset, IReadOnlyDictionary<RouteKey, CameraMotionTrack>? motion) =>

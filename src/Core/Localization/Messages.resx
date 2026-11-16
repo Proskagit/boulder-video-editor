@@ -1336,4 +1336,43 @@
   <data name="Encoding_Resolution" xml:space="preserve">
     <value>The export resolution is unknown.</value>
   </data>
+  <data name="People_ModelMissing" xml:space="preserve">
+    <value>The people models {0} are not installed in {1}: Follow and the outlines hidden behind people are unavailable. See docs/AI_MODEL.md.</value>
+  </data>
+  <data name="People_ModelDamaged" xml:space="preserve">
+    <value>A file of the people models {0} in {1} is damaged or another version. It was not loaded. See docs/AI_MODEL.md.</value>
+  </data>
+  <data name="People_ModelLoadFailed" xml:space="preserve">
+    <value>The people models could not be loaded: {0}</value>
+  </data>
+  <data name="People_NeedsGpu" xml:space="preserve">
+    <value>Hiding the outlines behind people needs a DirectML graphics card; on this computer only Follow is available.</value>
+  </data>
+  <data name="Preflight_PeoplePending" xml:space="preserve">
+    <value>«{0}» ({1}, from {2:hh\:mm\:ss}): the people are still being analysed — the export waits for it, so it shows what the Preview shows.</value>
+  </data>
+  <data name="Preflight_FollowUnavailable" xml:space="preserve">
+    <value>«{0}» ({1}, from {2:hh\:mm\:ss}): Follow does not work here ({3}) — the clip is exported with its own framing.</value>
+  </data>
+  <data name="Preflight_OcclusionUnavailable" xml:space="preserve">
+    <value>«{0}» ({1}, from {2:hh\:mm\:ss}): the outlines are not hidden behind people ({3}) — they are exported drawn over the people.</value>
+  </data>
+  <data name="People_FollowNoTarget" xml:space="preserve">
+    <value>the climber is not chosen</value>
+  </data>
+  <data name="People_FollowNotFound" xml:space="preserve">
+    <value>the chosen climber is not found</value>
+  </data>
+  <data name="People_FollowNoRoom" xml:space="preserve">
+    <value>no room to move the picture — zoom in above «Fill»</value>
+  </data>
+  <data name="People_FollowRotation" xml:space="preserve">
+    <value>the clip is rotated by an angle other than 90°</value>
+  </data>
+  <data name="People_AnalysisFailed" xml:space="preserve">
+    <value>the analysis failed: {0}</value>
+  </data>
+  <data name="People_MasksUnavailable" xml:space="preserve">
+    <value>the people's masks are not available</value>
+  </data>
 </root>
