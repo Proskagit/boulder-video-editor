@@ -6,7 +6,8 @@ using Avalonia.Platform;
 namespace AiVideoEditor.UI.Rendering;
 
 /// <summary>
-/// The export's rasterizer (D023, Phase 8 Step 3): paints a canvas-size <see cref="CompositionDrawPlan"/>
+/// The export's rasterizer (D023, Phase 8 Step 3): paints a canvas-size <see cref="CompositionDrawPlan"/> (or, D060 §3, one
+/// stretched onto the chosen output size, <see cref="CompositionDrawPlan.TargetSize"/>)
 /// with <see cref="CompositionPainter"/> — the Preview's own drawing routine — into an offscreen
 /// <see cref="RenderTargetBitmap"/> and copies the BGRA pixels out. Measured with Avalonia 11.1.3: it runs
 /// on any thread once the Avalonia platform is initialised (the app's or a test's), produces the same bytes
@@ -71,12 +72,15 @@ public sealed class AvaloniaCompositionRasterizer : ICompositionRasterizer
     public void Render(CompositionDrawPlan plan, Span<byte> target, int stride, CancellationToken ct)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        var canvas = plan.Canvas;
-        if (!canvas.IsValid) throw new ArgumentException("The plan has no canvas.", nameof(plan));
-        if (plan.CanvasToTarget != Affine2D.Identity)
-            throw new ArgumentException("The export draws at the canvas size (identity canvas → target).", nameof(plan));
+        if (!plan.Canvas.IsValid) throw new ArgumentException("The plan has no canvas.", nameof(plan));
+        // The export draws at the canvas size (identity), or (D060 §3) at a chosen resolution: the canvas stretched onto
+        // TargetSize, exactly filling it — never another mapping (the Preview's viewport has its own control).
+        var canvas = plan.TargetSize ?? plan.Canvas;
+        if (!canvas.IsValid) throw new ArgumentException("The plan's target has no size.", nameof(plan));
+        if (plan.CanvasToTarget != CompositionDrawPlan.Stretch(plan.Canvas, canvas))
+            throw new ArgumentException("The export draws the canvas exactly onto its target (identity, or the stretch onto TargetSize).", nameof(plan));
         if (stride < canvas.Width * 4 || target.Length < (long)stride * canvas.Height)
-            throw new ArgumentException("The target is smaller than the canvas.", nameof(target));
+            throw new ArgumentException("The target is smaller than the output.", nameof(target));
 
         if (_target is null || _target.PixelSize.Width != canvas.Width || _target.PixelSize.Height != canvas.Height)
         {

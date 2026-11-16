@@ -54,6 +54,9 @@ internal sealed class FfmpegProcess : IAsyncDisposable
 
     public int ExitCode => _process.ExitCode;
 
+    /// <summary>The ffmpeg process (tests).</summary>
+    internal Process Process => _process;
+
     /// <summary>Starts ffmpeg. <paramref name="onLine"/> returns true for lines it consumed;
     /// <paramref name="onStderrEnd"/> runs once when stderr closes (with the failure, if any).
     /// Throws the underlying exception if the process cannot be started.</summary>
@@ -87,6 +90,9 @@ internal sealed class FfmpegProcess : IAsyncDisposable
             throw;
         }
 
+        // D060 §5: ended with the app's process however it ends — never an ffmpeg left behind.
+        if (!ChildProcessJob.Add(process))
+            logger.LogDebug("ffmpeg (process {ProcessId}) is not in the app's job object.", process.Id);
         logger.LogDebug("ffmpeg started (process {ProcessId}): {CommandLine}", process.Id, commandLine);
         Interlocked.Increment(ref _liveProcesses);
         return new FfmpegProcess(process, commandLine, onLine, onStderrEnd, logger);

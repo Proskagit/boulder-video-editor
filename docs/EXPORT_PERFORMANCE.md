@@ -142,3 +142,15 @@ the quality (half the bits every 4 CRF / 4.5 CQ), the canvas (libx264 1080p ≈ 
 
 So the estimate is honest only as a range for ordinary footage; the dialog says «оценка» and, at constant quality, that the
 size depends on the picture. An average bitrate («Пользовательский») is the way to get a predictable size (±7 %).
+
+## 7. Phase 41 (D060): the resolution and the export in the background
+
+- **Resolution presets.** 4K UHD / Full HD / HD / SD by the short side (2160 / 1080 / 720 / 480) at the canvas's aspect ratio,
+  even sides, within the H.264 level 5.1 / 4096 px limits (`ExportResolutions`). The frame is drawn directly at the output size
+  by the same rasterizer (the canvas stretched onto the output) — a 4K project exported at Full HD rasterizes and encodes a
+  quarter of the pixels, so it runs at about the speed of a 1080p export (the decoding stays at full resolution). The
+  canvas's own size is the identity mapping — the export path and its bytes are those of Phase 40.
+- **Background export.** Nothing on the export's path changed: the job, the pipeline, K, the encoders. Editing while it runs
+  uses the UI thread and the CPU the user's work needs; the export's numbers in §1 were measured with an idle editor.
+- **Source files** are held open read-only (sharing reads) for the export's duration — no copies, no cost.
+- **ffmpeg processes** are in a kill-on-close job object — no cost; no orphan ffmpeg even if the app is killed.

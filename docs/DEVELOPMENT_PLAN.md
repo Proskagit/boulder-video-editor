@@ -246,13 +246,19 @@ phase's record prevail.
       five groups of properties edited on several clips in one undo step; marker labels; draggable Position / Scale /
       Rotation labels and 5 % percent sliders; «Готово» only on the Preview bar. Deferred items: D058 §7. Manual plan:
       `docs/PHASE39_MANUAL_TEST_PLAN.md`.
-- [ ] **Phase 40 — Export Performance (DECISIONS.md D059, 2026-11-10) — implemented, awaiting the owner's check.** E0 the
+- [x] **Phase 40 — Export Performance (DECISIONS.md D059, 2026-11-10) — the owner's manual check passed 2026-11-16 (PR #66).** E0 the
       benchmark harness `tools/export-bench`; E1 the export's frames over a named pipe (64 MB) instead of stdout; E2 a
       bounded pipeline with K parallel rasterizers and ordered writing; E3 one encoder plan for libx264 and NVIDIA NVENC H.264
       (detected by a trial encoding, libx264 the fallback, a failed NVENC export restarted with libx264); E4 the profiles
       «Быстрый» / «Сбалансированный» (default, the old output) / «Высокое качество» / «Пользовательский», the encoder chooser,
       the expected file size, speed and encoder in the progress window. HEVC / AV1 (E5) not done; NVENC in the minimal
       FFmpeg build S1 left to S1. Results: `docs/EXPORT_PERFORMANCE.md`. Manual plan: `docs/PHASE40_MANUAL_TEST_PLAN.md`.
+- [ ] **Phase 41 — Export UX, Resolution Presets & Project Snapshot Isolation (DECISIONS.md D060, 2026-11-16) — implemented,
+      awaiting the owner's check.** The job as the export's independent snapshot (no editing lock), the source files held
+      during the export (`ExportMediaLease`), unsaved changes saved first, the version exported named in the progress window;
+      the resolution presets 4K UHD / Full HD / HD / SD at the canvas's aspect ratio (drawn at the output size by the same
+      rasterizer); the non-modal progress window, the compact indicator in the status bar, the close guard, every ffmpeg in a
+      kill-on-close job object. «Кодек и пресет» deferred (FU-EX.1). Manual plan: `docs/PHASE41_MANUAL_TEST_PLAN.md`.
 
 ## Phase and step numbering (product owner, 2026-10-28)
 
@@ -705,7 +711,22 @@ F — implementation (after R3's go and A):
 - Out: other devices; a sports-telemetry editor; maps, GPS, pace and other fields unless R3 justifies one; a direct
   device or cloud connection.
 
-### Phase 40 — Export Performance *(D059, 2026-11-10; implemented, the owner's check open)*
+### Phase 41 — Export UX, Resolution Presets & Project Snapshot Isolation *(D060, 2026-11-16; implemented, the owner's check open)*
+
+The owner's task of 2026-11-16 after Phase 40's manual check. One pull request (branch `feat/phase-41-export-ux`):
+1. Snapshot isolation (D060 §2): the pre-flight showed the job's `PlaybackSnapshot` already holds only immutable values; the
+   editing lock is removed; `ExportMediaLease` holds the source files; «Сохранить и экспортировать» / «Отмена» for unsaved
+   changes; the exported version in the progress window. Tests: `ExportSnapshotIsolationTests`, `ExportMediaLeaseTests`,
+   `ExportWorkflowTests`.
+2. Resolution (D060 §3): `ExportResolution` in `ExportEncoding` (`settings.export.resolution`, optional), `ExportResolutions`
+   (the short side, the aspect ratio, even sides, the H.264 limits), `ExportOutput.Size` the output's, the draw plan stretched
+   onto `TargetSize`, the dialog's «Разрешение». Tests: `ExportResolutionsTests`, `ExportResolutionRenderingTests`,
+   `ExportResolutionDialogTests`, `ExportResolutionEndToEndTests`, persistence.
+3. Background (D060 §5): the non-modal window with «Свернуть», the status bar's indicator, «Экспорт» shows the running export,
+   the close guard with cancel-and-wait, `ChildProcessJob`. Tests: `ExportBackgroundCloseTests`, `ChildProcessJobTests`.
+4. Not done: «Кодек и пресет» (D060 §4, FU-EX.1).
+
+### Phase 40 — Export Performance *(D059, 2026-11-10; the owner's manual check passed 2026-11-16)*
 
 The owner's task of 2026-11-10 on the basis of the research «Export Performance Optimization» (base `07252bf`). Steps, one
 pull request (branch `feat/export-performance`):

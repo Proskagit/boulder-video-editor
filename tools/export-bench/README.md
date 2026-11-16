@@ -25,7 +25,8 @@ $bench = "tools/export-bench/bin/Release/net8.0/ExportBench.exe"
   export, `ExportPipelineSettings`). `--reference PATH` also writes the canvases losslessly (yuv420p after the export's
   BT.709 conversion, x264 QP 0) — the reference for VMAF.
 - `--encoding`: `default` (Balanced, libx264), `x264:QUALITY:PRESET` (Custom, the D028 names), `profile:Fast|Balanced|HighQuality[:nvenc]`,
-  `custom:x264|nvenc:QUALITY:PRESET`, `bitrate:x264|nvenc:MBPS`.
+  `custom:x264|nvenc:QUALITY:PRESET`, `bitrate:x264|nvenc:MBPS`; any of them with `@Uhd4K|FullHd|Hd|Sd` exports at that
+  resolution preset (D060 §3), e.g. `default@FullHd`.
 
 ## Calibration (D059 §5)
 

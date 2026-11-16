@@ -357,4 +357,42 @@ public class ExportEncodingPersistenceTests
 
         Assert.Throws<ProjectFileException>(() => Load(root.ToJsonString()));
     }
+
+    // --- D060 §3: the export resolution ---------------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData(ExportResolution.Uhd4K, "Uhd4K")]
+    [InlineData(ExportResolution.FullHd, "FullHd")]
+    [InlineData(ExportResolution.Hd, "Hd")]
+    [InlineData(ExportResolution.Sd, "Sd")]
+    public void A_resolution_preset_is_written_by_name_and_survives_save_and_reopen(ExportResolution resolution, string name)
+    {
+        var export = ExportEncoding.Default with { Resolution = resolution };
+        var json = ProjectSerializer.Serialize(Sample(export), Folder);
+
+        Assert.Equal(name, Settings(JsonNode.Parse(json)!.AsObject())["export"]!["resolution"]!.GetValue<string>());
+        var loaded = Load(json);
+        Assert.Equal(export, loaded.Settings.Export);
+        Assert.Equal(json, ProjectSerializer.Serialize(loaded, Folder));
+        Assert.Equal(19, Json(loaded)["formatVersion"]!.GetValue<int>());   // no format version change
+    }
+
+    [Fact]
+    public void The_canvas_resolution_writes_nothing_so_earlier_files_stay_byte_for_byte()
+    {
+        Assert.False(Settings(Json(Sample(ExportEncoding.Default))).ContainsKey("export"));
+        var custom = Settings(Json(Sample(Custom)))["export"]!.AsObject();
+        Assert.False(custom.ContainsKey("resolution"));
+        var json = ProjectSerializer.Serialize(Sample(Custom), Folder);
+        Assert.Equal(ExportResolution.Project, Load(json).Settings.Export.Resolution);
+    }
+
+    [Fact]
+    public void An_unknown_resolution_makes_the_project_damaged()
+    {
+        var root = Json(Sample(Custom));
+        Settings(root)["export"]!.AsObject()["resolution"] = "8K";
+
+        Assert.Throws<ProjectFileException>(() => Load(root.ToJsonString()));
+    }
 }

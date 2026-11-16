@@ -49,6 +49,25 @@ public enum ExportVideoEncoder
     Nvenc
 }
 
+/// <summary>
+/// The size of the exported video (D060 §3): the project's canvas, or a standard preset scaled to the canvas's aspect ratio
+/// (<see cref="Export.ExportResolutions"/>). Only the output's pixel size — never the canvas, the composition's geometry or
+/// the overlays' places, which stay in canvas coordinates.
+/// </summary>
+public enum ExportResolution
+{
+    /// <summary>The canvas itself (the output of Phases 8–40).</summary>
+    Project,
+    /// <summary>4K UHD: the short side 2160 (3840 × 2160 at 16:9).</summary>
+    Uhd4K,
+    /// <summary>Full HD: the short side 1080 (1920 × 1080; 1080 × 1920 vertical).</summary>
+    FullHd,
+    /// <summary>HD: the short side 720 (1280 × 720).</summary>
+    Hd,
+    /// <summary>SD: the short side 480 (854 × 480).</summary>
+    Sd
+}
+
 /// <summary>How the «Пользовательский» profile spends bits (D059 §4).</summary>
 public enum ExportRateControl
 {
@@ -65,7 +84,8 @@ public enum ExportRateControl
 /// from <see cref="Default"/>; a file without it reads as <see cref="Default"/>; a file of D028 — quality, preset, bitrate
 /// only — reads as <see cref="ExportProfile.Custom"/> with exactly those values, so it exports as before). The container,
 /// the codec (H.264), the pixel format, the colour tags and the audio format stay fixed (<see cref="Export.ExportFormat"/>);
-/// the output size and frame rate are always the project's.
+/// the frame rate is always the project's, the output size the canvas or a preset of its aspect ratio (D060 §3,
+/// <see cref="Resolution"/>).
 /// <para>
 /// The positional constructor makes a <see cref="ExportProfile.Custom"/> encoding with libx264 (the D028 meaning of the
 /// three values); <see cref="Default"/> is <see cref="ExportProfile.Balanced"/>, which with libx264 gives exactly the command
@@ -97,6 +117,10 @@ public sealed record ExportEncoding(ExportQuality Quality, ExportSpeedPreset Pre
 
     /// <summary>«Пользовательский» with <see cref="ExportRateControl.Bitrate"/>: the average video bitrate, Mbit/s.</summary>
     public int VideoBitrateMbps { get; init; } = DefaultVideoBitrateMbps;
+
+    /// <summary>The output's size (D060 §3): <see cref="ExportResolution.Project"/> — the canvas — unless a preset was chosen
+    /// that differs from it. Independent of the profile; saved only when not <see cref="ExportResolution.Project"/>.</summary>
+    public ExportResolution Resolution { get; init; } = ExportResolution.Project;
 
     /// <summary>The libx264 <c>-crf</c> value of <see cref="Quality"/> (the «Пользовательский» level).</summary>
     public int Crf => CrfOf(Quality);
@@ -135,6 +159,7 @@ public sealed record ExportEncoding(ExportQuality Quality, ExportSpeedPreset Pre
         if (!Enum.IsDefined(Encoder)) return Messages.Encoding_Encoder;
         if (!Enum.IsDefined(RateControl)) return Messages.Encoding_RateControl;
         if (!VideoBitratesMbps.Contains(VideoBitrateMbps)) return string.Format(Messages.Encoding_VideoBitrate, VideoBitrateMbps);
+        if (!Enum.IsDefined(Resolution)) return Messages.Encoding_Resolution;
         return null;
     }
 }

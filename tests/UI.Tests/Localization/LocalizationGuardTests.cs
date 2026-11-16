@@ -89,7 +89,8 @@ public sealed partial class LocalizationGuardTests
     {
         "Template_Rec", "Template_Vhs", "TemplateType_Rec", "TemplateType_Vhs",   // D045: the formats' own abbreviations
         "TemplateStatus_Top",  // D045 §1.3: the climbers' word for a done route, written so in Russian too
-        "ExportEncoder_Nvenc", "ExportEncoder_X264"   // D059: the encoders' own names
+        "ExportEncoder_Nvenc", "ExportEncoder_X264",  // D059: the encoders' own names
+        "ExportResolution_Uhd4K", "ExportResolution_FullHd", "ExportResolution_Hd", "ExportResolution_Sd"   // D060: the standards' names
     };
 
     [Fact]

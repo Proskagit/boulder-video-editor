@@ -85,9 +85,10 @@ public static class Render
             var r = rasterizer ?? new AvaloniaCompositionRasterizer();
             try
             {
-                var pixels = new byte[plan.Canvas.Width * plan.Canvas.Height * 4];
-                r.Render(plan, pixels, plan.Canvas.Width * 4);
-                return new Image(plan.Canvas.Width, plan.Canvas.Height, pixels);
+                var size = plan.TargetSize ?? plan.Canvas;   // D060 §3: a plan stretched onto the output's size
+                var pixels = new byte[size.Width * size.Height * 4];
+                r.Render(plan, pixels, size.Width * 4);
+                return new Image(size.Width, size.Height, pixels);
             }
             finally
             {

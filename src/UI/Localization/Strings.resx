@@ -3127,4 +3127,94 @@ If you don't save, your changes will be lost.</value>
   <data name="Export_SucceededFallback" xml:space="preserve">
     <value>Exported to {0}. NVENC failed ({1}); the video was encoded with libx264.</value>
   </data>
+  <data name="ExportResolution_Label" xml:space="preserve">
+    <value>Resolution</value>
+  </data>
+  <data name="ExportResolution_Project" xml:space="preserve">
+    <value>As in the project</value>
+  </data>
+  <data name="ExportResolution_Uhd4K" xml:space="preserve">
+    <value>4K UHD</value>
+  </data>
+  <data name="ExportResolution_FullHd" xml:space="preserve">
+    <value>Full HD</value>
+  </data>
+  <data name="ExportResolution_Hd" xml:space="preserve">
+    <value>HD</value>
+  </data>
+  <data name="ExportResolution_Sd" xml:space="preserve">
+    <value>SD</value>
+  </data>
+  <data name="ExportResolution_Size" xml:space="preserve">
+    <value>{0} × {1}</value>
+  </data>
+  <data name="ExportResolution_AsProject" xml:space="preserve">
+    <value>the project's size</value>
+  </data>
+  <data name="ExportResolution_Hint" xml:space="preserve">
+    <value>The size of the exported file. The project's canvas and the layout of the composition stay as they are; the picture is drawn at this size, keeping the project's aspect ratio.</value>
+  </data>
+  <data name="Export_CompactStarting" xml:space="preserve">
+    <value>Export…</value>
+  </data>
+  <data name="Export_CompactProgress" xml:space="preserve">
+    <value>Export {0} %</value>
+  </data>
+  <data name="Export_CompactTip" xml:space="preserve">
+    <value>The export runs in the background. Click to show its window.</value>
+  </data>
+  <data name="Export_CompactCancelTip" xml:space="preserve">
+    <value>Cancel the export</value>
+  </data>
+  <data name="Export_Hide" xml:space="preserve">
+    <value>Hide</value>
+  </data>
+  <data name="Export_HideTip" xml:space="preserve">
+    <value>Hide this window; the export goes on and its progress stays in the status bar.</value>
+  </data>
+  <data name="Export_CancelExport" xml:space="preserve">
+    <value>Cancel export</value>
+  </data>
+  <data name="Export_BackgroundNote" xml:space="preserve">
+    <value>You can keep editing: the export uses the project as it was when it started, later changes don't reach it.</value>
+  </data>
+  <data name="Export_SnapshotLine" xml:space="preserve">
+    <value>Exporting «{0}» as it was at {1} ({2}) · {3} × {4}</value>
+  </data>
+  <data name="Export_SnapshotSaved" xml:space="preserve">
+    <value>saved</value>
+  </data>
+  <data name="Export_SnapshotExportSettingsChanged" xml:space="preserve">
+    <value>saved; export settings changed</value>
+  </data>
+  <data name="Export_UnsavedTitle" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+  <data name="Export_UnsavedQuestion" xml:space="preserve">
+    <value>The project «{0}» has unsaved changes. To export exactly what you see, it is saved first.</value>
+  </data>
+  <data name="Export_SaveAndExport" xml:space="preserve">
+    <value>Save and export</value>
+  </data>
+  <data name="Export_CancelQuestionTitle" xml:space="preserve">
+    <value>Cancel the export?</value>
+  </data>
+  <data name="Export_CancelQuestion" xml:space="preserve">
+    <value>The export to {0} is {1} % done. Cancel it? The unfinished file is deleted; an existing file stays as it was.</value>
+  </data>
+  <data name="Export_KeepExporting" xml:space="preserve">
+    <value>Continue export</value>
+  </data>
+  <data name="Export_CloseTitle" xml:space="preserve">
+    <value>Export in progress</value>
+  </data>
+  <data name="Export_CloseQuestion" xml:space="preserve">
+    <value>An export to {0} is running ({1} %). Closing the application cancels it: the unfinished file is deleted, an existing file stays as it was.</value>
+  </data>
+  <data name="Export_CancelAndClose" xml:space="preserve">
+    <value>Cancel export and close</value>
+  </data>
+  <data name="Export_ClosingCancelling" xml:space="preserve">
+    <value>Cancelling the export before closing…</value>
+  </data>
 </root>

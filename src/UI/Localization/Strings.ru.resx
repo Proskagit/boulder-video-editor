@@ -3131,4 +3131,94 @@
   <data name="Export_SucceededFallback" xml:space="preserve">
     <value>Экспортировано в {0}. NVENC дал сбой ({1}); видео закодировано через libx264.</value>
   </data>
+  <data name="ExportResolution_Label" xml:space="preserve">
+    <value>Разрешение</value>
+  </data>
+  <data name="ExportResolution_Project" xml:space="preserve">
+    <value>Как в проекте</value>
+  </data>
+  <data name="ExportResolution_Uhd4K" xml:space="preserve">
+    <value>4K UHD</value>
+  </data>
+  <data name="ExportResolution_FullHd" xml:space="preserve">
+    <value>Full HD</value>
+  </data>
+  <data name="ExportResolution_Hd" xml:space="preserve">
+    <value>HD</value>
+  </data>
+  <data name="ExportResolution_Sd" xml:space="preserve">
+    <value>SD</value>
+  </data>
+  <data name="ExportResolution_Size" xml:space="preserve">
+    <value>{0} × {1}</value>
+  </data>
+  <data name="ExportResolution_AsProject" xml:space="preserve">
+    <value>как в проекте</value>
+  </data>
+  <data name="ExportResolution_Hint" xml:space="preserve">
+    <value>Размер экспортируемого файла. Холст проекта и расположение элементов не меняются: кадр рисуется в этом размере с сохранением пропорций проекта.</value>
+  </data>
+  <data name="Export_CompactStarting" xml:space="preserve">
+    <value>Экспорт…</value>
+  </data>
+  <data name="Export_CompactProgress" xml:space="preserve">
+    <value>Экспорт {0} %</value>
+  </data>
+  <data name="Export_CompactTip" xml:space="preserve">
+    <value>Экспорт идёт в фоне. Нажмите, чтобы открыть его окно.</value>
+  </data>
+  <data name="Export_CompactCancelTip" xml:space="preserve">
+    <value>Отменить экспорт</value>
+  </data>
+  <data name="Export_Hide" xml:space="preserve">
+    <value>Свернуть</value>
+  </data>
+  <data name="Export_HideTip" xml:space="preserve">
+    <value>Скрыть окно; экспорт продолжится, его ход виден в строке состояния.</value>
+  </data>
+  <data name="Export_CancelExport" xml:space="preserve">
+    <value>Отменить экспорт</value>
+  </data>
+  <data name="Export_BackgroundNote" xml:space="preserve">
+    <value>Можно продолжать работу: экспорт использует проект в состоянии на момент запуска, дальнейшие изменения в него не попадут.</value>
+  </data>
+  <data name="Export_SnapshotLine" xml:space="preserve">
+    <value>Экспортируется «{0}» в состоянии на {1} ({2}) · {3} × {4}</value>
+  </data>
+  <data name="Export_SnapshotSaved" xml:space="preserve">
+    <value>сохранён</value>
+  </data>
+  <data name="Export_SnapshotExportSettingsChanged" xml:space="preserve">
+    <value>сохранён; изменены параметры экспорта</value>
+  </data>
+  <data name="Export_UnsavedTitle" xml:space="preserve">
+    <value>Несохранённые изменения</value>
+  </data>
+  <data name="Export_UnsavedQuestion" xml:space="preserve">
+    <value>В проекте «{0}» есть несохранённые изменения. Чтобы экспортировать именно то, что вы видите, проект будет сначала сохранён.</value>
+  </data>
+  <data name="Export_SaveAndExport" xml:space="preserve">
+    <value>Сохранить и экспортировать</value>
+  </data>
+  <data name="Export_CancelQuestionTitle" xml:space="preserve">
+    <value>Отменить экспорт?</value>
+  </data>
+  <data name="Export_CancelQuestion" xml:space="preserve">
+    <value>Экспорт в {0} выполнен на {1} %. Отменить его? Незаконченный файл будет удалён, существующий файл останется без изменений.</value>
+  </data>
+  <data name="Export_KeepExporting" xml:space="preserve">
+    <value>Продолжить экспорт</value>
+  </data>
+  <data name="Export_CloseTitle" xml:space="preserve">
+    <value>Идёт экспорт</value>
+  </data>
+  <data name="Export_CloseQuestion" xml:space="preserve">
+    <value>Идёт экспорт в {0} ({1} %). Если закрыть приложение, экспорт будет отменён: незаконченный файл удалится, существующий файл останется без изменений.</value>
+  </data>
+  <data name="Export_CancelAndClose" xml:space="preserve">
+    <value>Отменить экспорт и закрыть</value>
+  </data>
+  <data name="Export_ClosingCancelling" xml:space="preserve">
+    <value>Отмена экспорта перед закрытием…</value>
+  </data>
 </root>

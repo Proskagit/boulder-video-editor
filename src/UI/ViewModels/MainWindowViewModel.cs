@@ -1,6 +1,8 @@
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.UI.Services;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.ViewModels.Panels;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 
 namespace AiVideoEditor.UI.ViewModels;
@@ -26,6 +28,20 @@ public sealed class MainWindowViewModel : ViewModelBase
     private readonly ThumbnailCoordinator? _thumbnails;
     private readonly WaveformCoordinator? _waveforms;
     private readonly MediaAvailabilityMonitor? _mediaAvailability;
+    private readonly ExportWorkflow? _export;
+    private readonly IDialogService? _dialogs;
+
+    /// <summary>D060 §5: the export running in the background (its progress), or null — the status bar's compact indicator.</summary>
+    public ExportProgressViewModel? ExportProgress => _export?.Progress;
+
+    /// <summary>The compact indicator is shown.</summary>
+    public bool IsExportActive => ExportProgress is not null;
+
+    /// <summary>Opens the detailed window of the running export.</summary>
+    public IRelayCommand ShowExportCommand { get; }
+
+    /// <summary>Asks, then cancels the running export.</summary>
+    public IAsyncRelayCommand CancelExportCommand { get; }
 
     /// <summary>"Name — AI Video Editor", with a "*" after the name while there are unsaved changes.</summary>
     public string Title => $"{_projectService.Current.Name}{(_projectService.Current.IsDirty ? "*" : "")} — AI Video Editor";
@@ -60,8 +76,20 @@ public sealed class MainWindowViewModel : ViewModelBase
         IMediaRelinkService? relink = null,
         HoldMarkupViewModel? holdMarkup = null,
         PreviewTransformViewModel? previewTransform = null,
-        TrainingSessionService? training = null)
+        TrainingSessionService? training = null,
+        ExportWorkflow? export = null,
+        IDialogService? dialogs = null)
     {
+        _export = export;
+        _dialogs = dialogs;
+        ShowExportCommand = new RelayCommand(() => _export?.ShowDetails());
+        CancelExportCommand = new AsyncRelayCommand(CancelExportAsync);
+        if (_export is not null)
+            _export.ProgressChanged += (_, _) =>
+            {
+                OnPropertyChanged(nameof(ExportProgress));
+                OnPropertyChanged(nameof(IsExportActive));
+            };
         // A file found not to fit its clips after a later analysis (D026 §3, Step 11.4): said, never undone by itself.
         if (relink is not null)
             relink.RelinkedMediaFoundIncompatible += (_, e) => status.Report(e.Message);
@@ -176,7 +204,30 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// closes and the dispatcher stops.</summary>
     public async Task<bool> PrepareToCloseAsync()
     {
+        // D060 §5: a running export is never ended silently — the user keeps it (the window stays open) or cancels it; then
+        // the unsaved-changes question; only after both the export is cancelled and waited for (ffmpeg ended, temporary files
+        // deleted), so answering Cancel to the second question still leaves the export running.
+        var cancelExport = false;
+        if (_export?.Progress is { } progress)
+        {
+            if (_dialogs is null) return false;
+            var choice = await _dialogs.AskAsync(new DialogRequest
+            {
+                Title = Strings.Export_CloseTitle,
+                Message = string.Format(Strings.Export_CloseQuestion, progress.OutputPath, progress.OverallPercent.ToString("0")),
+                Buttons = new[] { Strings.Export_KeepExporting, Strings.Export_CancelAndClose }
+            });
+            if (choice != 1) return false;
+            cancelExport = true;
+        }
+
         if (!await _projectFiles.PrepareToCloseAsync()) return false;
+
+        if (cancelExport && _export is not null)
+        {
+            Status.Report(Strings.Export_ClosingCancelling);
+            await _export.CancelAndWaitAsync();
+        }
 
         _mediaAvailability?.Stop(); // no new media re-check while closing
         try
@@ -249,4 +300,23 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     private void UpdatePreviewPosition() =>
         Preview.SetPosition(Timeline.Playhead, Timeline.SequenceDuration, Timeline.FrameRate);
+
+    /// <summary>The compact indicator's ✕ (D060 §5): a small target, so it asks first; «Отмена» in the detailed window
+    /// cancels at once as before.</summary>
+    private async Task CancelExportAsync()
+    {
+        if (_export?.Progress is not { IsCancelling: false } progress) return;
+        if (_dialogs is not null)
+        {
+            var choice = await _dialogs.AskAsync(new DialogRequest
+            {
+                Title = Strings.Export_CancelQuestionTitle,
+                Message = string.Format(Strings.Export_CancelQuestion, progress.OutputPath, progress.OverallPercent.ToString("0")),
+                Buttons = new[] { Strings.Export_CancelExport, Strings.Export_KeepExporting }
+            });
+            if (choice != 0) return;
+        }
+        // The export may have ended while the question was open: only the same, still running export is cancelled.
+        if (ReferenceEquals(_export?.Progress, progress)) progress.Cancel();
+    }
 }

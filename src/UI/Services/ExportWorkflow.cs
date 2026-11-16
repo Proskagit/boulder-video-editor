@@ -39,13 +39,16 @@ public sealed record ExportOutcome(ExportOutcomeKind Kind, string Message, strin
 /// <item>The preflight again with that file — it builds the <see cref="ExportJob"/> and its snapshot, which the
 /// export alone uses from then on. An existing file is replaced only after the user confirms it (the encoder
 /// replaces it atomically, on success only).</item>
-/// <item><see cref="IExportService.ExportAsync"/> behind the modal progress window, with editing locked
-/// (<see cref="EditingLock"/>) until the export — including a cancelled one — has finished. Cancel only cancels the
-/// token.</item>
+/// <item><see cref="IExportService.ExportAsync"/> in the background (D060 §5): the detailed window is not modal and can be
+/// hidden into the main window's compact indicator; the editor stays fully usable — the job's snapshot is the export's own
+/// independent copy of the project (D060 §2), so edits, saves and even another project never reach it. Cancel only cancels
+/// the token; <see cref="CancelAndWaitAsync"/> also waits for the cleanup (closing the app).</item>
 /// <item>The result: success (path, <c>LastExportSettings.OutputPath</c> updated without making the project dirty),
 /// cancellation (a status message, not an error), or a failure by its <see cref="ExportFailure"/> — anything else
 /// (e.g. from the rasterizer) as an unexpected error, logged with the exception.</item>
 /// </list>
+/// D060 §2: before anything else, a project with unsaved changes is saved — «Сохранить и экспортировать» or «Отмена» —, so
+/// what is exported is exactly what the editor shows and the project file holds.
 /// </summary>
 public sealed class ExportWorkflow
 {
@@ -61,6 +64,10 @@ public sealed class ExportWorkflow
     private readonly InOutRangeService? _inOut;
     private readonly CameraMotionCoordinator? _cameraMotion;
     private bool _running;
+    private readonly Func<Task<bool>>? _saveProject;
+    private CancellationTokenSource? _exportCts;
+    private Task? _exportTask;
+    private bool _closingApp;
 
     private readonly IUserSettingsService? _settings;
     private readonly IExportDialog? _exportDialog;
@@ -82,8 +89,12 @@ public sealed class ExportWorkflow
         IUserSettingsService? settings = null,
         IExportDialog? exportDialog = null,
         IExportEncoderCapabilities? encoders = null,
-        ITimelineEditService? edit = null)
+        ITimelineEditService? edit = null,
+        ProjectFileWorkflow? projectFiles = null,
+        Func<Task<bool>>? saveProject = null)
     {
+        // Save as the toolbar's Save does it (Save As for a project never saved); a test may give its own.
+        _saveProject = saveProject ?? (projectFiles is null ? null : projectFiles.SaveAsync);
         _exportDialog = exportDialog;
         _encoders = encoders;
         _edit = edit;
@@ -105,9 +116,50 @@ public sealed class ExportWorkflow
     public bool IsRunning => _running;
 
     /// <summary>The progress of the export currently running (null otherwise).</summary>
-    public ExportProgressViewModel? Progress { get; private set; }
+    public ExportProgressViewModel? Progress
+    {
+        get => _progress;
+        private set
+        {
+            _progress = value;
+            ProgressChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private ExportProgressViewModel? _progress;
+
+    /// <summary>True while a job is being encoded (from the start of the export until it has finished, cleanup included).</summary>
+    public bool IsExporting => _progress is not null;
 
     public event EventHandler? IsRunningChanged;
+
+    /// <summary>Raised when an export starts or has finished (<see cref="Progress"/> set or cleared).</summary>
+    public event EventHandler? ProgressChanged;
+
+    /// <summary>Shows the detailed window of the running export (D060 §5); nothing without one.</summary>
+    public void ShowDetails()
+    {
+        if (IsExporting) _progressDialog.Activate();
+    }
+
+    /// <summary>Cancels the running export and waits until it has ended — ffmpeg ended, temporary files deleted, an existing
+    /// output file untouched (closing the app, D060 §5). Returns at once without one.</summary>
+    public async Task CancelAndWaitAsync()
+    {
+        var task = _exportTask;
+        if (task is null) return;
+        _closingApp = true;     // the app is closing: no result dialog for this export
+        if (Progress is { } progress) progress.Cancel();
+        else _exportCts?.Cancel();
+        try
+        {
+            await task;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "The cancelled export ended with an error.");
+        }
+    }
 
     public async Task<ExportOutcome> RunAsync()
     {
@@ -140,6 +192,10 @@ public sealed class ExportWorkflow
         var project = _projects.Current;
         if (project is null)
             return Report(new ExportOutcome(ExportOutcomeKind.NotStarted, Strings.Export_NoProject));
+
+        // D060 §2: unsaved changes are saved first, so the export is exactly the saved project the editor shows.
+        if (!await SaveUnsavedChangesAsync(project))
+            return Report(new ExportOutcome(ExportOutcomeKind.NotStarted, Strings.Export_Cancelled));
 
         // 0. With an In / Out range: the range or the entire sequence (D030 §8, Q10). The range is the session's — the
         //    export copies it now; later changes of it don't reach this export.
@@ -185,7 +241,8 @@ public sealed class ExportWorkflow
 
         // D059 §4: export settings changed in the dialog are the project's from now on (one undoable step, as in the project
         // settings dialog); the job takes them either way.
-        var encoding = chosen.Encoding ?? project.Settings.Export;
+        var encoding = Core.Export.ExportResolutions.Normalize(chosen.Encoding ?? project.Settings.Export,
+            new Core.Composition.FrameSize(project.Settings.FrameWidth, project.Settings.FrameHeight));
         if (encoding != project.Settings.Export && _edit is not null) _edit.SetExportSettings(encoding);
 
         // 3. The job: the preflight again, now with the file (it takes the snapshot the export uses).
@@ -197,20 +254,42 @@ public sealed class ExportWorkflow
         if (File.Exists(job.OutputPath) && !await ConfirmReplaceAsync(job.OutputPath))
             return Report(new ExportOutcome(ExportOutcomeKind.NotStarted, Strings.Export_Cancelled));
 
-        // 4. The export.
-        var outcome = await ExportAsync(job, project);
+        // 4. The export — in the background; the job is the project as it is now (D060 §2).
+        var snapshotText = string.Format(Strings.Export_SnapshotLine, project.Name, DateTime.Now.ToString("HH:mm:ss"),
+            project.IsDirty ? Strings.Export_SnapshotExportSettingsChanged : Strings.Export_SnapshotSaved,
+            job.Output.Size.Width, job.Output.Size.Height);
+        // The names a failure message uses, taken now: the project may be edited or replaced while the export runs.
+        var names = ExportNames.Of(project);
+        var running = ExportAsync(job, names, snapshotText);
+        _exportTask = running;
+        ExportOutcome outcome;
+        try
+        {
+            outcome = await running;
+        }
+        finally
+        {
+            _exportTask = null;
+        }
         if (outcome.Kind == ExportOutcomeKind.Succeeded)
             project.LastExportSettings.OutputPath = job.OutputPath; // session state: never dirty, never undoable (D023)
         Report(outcome);
-        await ShowOutcomeAsync(outcome);
+        if (!_closingApp) await ShowOutcomeAsync(outcome);
+        _closingApp = false;
         return outcome;
     }
 
-    private async Task<ExportOutcome> ExportAsync(ExportJob job, Core.Entities.Project project)
+    private async Task<ExportOutcome> ExportAsync(ExportJob job, ExportNames names, string snapshotText)
     {
         using var cts = new CancellationTokenSource();
-        using var locked = _editingLock.Acquire();
-        var progress = new ExportProgressViewModel(job.OutputPath, cts.Cancel);
+        _exportCts = cts;
+        // D060 §5: no editing lock — the editor stays usable; the job never reads the live project. A cancel that arrives
+        // after the export ended (the indicator's question still open) does nothing.
+        var progress = new ExportProgressViewModel(job.OutputPath, () =>
+        {
+            try { cts.Cancel(); }
+            catch (ObjectDisposedException) { }
+        }) { SnapshotText = snapshotText };
         Progress = progress;
         _progressDialog.Show(progress);
         try
@@ -229,7 +308,7 @@ public sealed class ExportWorkflow
         catch (ExportException ex)
         {
             _logger.LogWarning(ex, "Export to {Path} failed ({Failure}).", job.OutputPath, ex.Failure);
-            return new ExportOutcome(ExportOutcomeKind.Failed, FailureMessage(ex, project), job.OutputPath, ex.Failure);
+            return new ExportOutcome(ExportOutcomeKind.Failed, FailureMessage(ex, names), job.OutputPath, ex.Failure);
         }
         catch (Exception ex)
         {
@@ -239,10 +318,30 @@ public sealed class ExportWorkflow
         }
         finally
         {
-            // Only now — the export has finished, also after a cancel — the window closes and editing resumes.
+            // Only now — the export has finished, also after a cancel — the window and the indicator go.
             _progressDialog.Close();
             Progress = null;
+            _exportCts = null;
         }
+    }
+
+    /// <summary>D060 §2: a project with unsaved changes — «Сохранить и экспортировать» saves it (a project never saved goes
+    /// through Save As), «Отмена» stops; true when there is nothing unsaved now. Edited again while saving: asked again.</summary>
+    private async Task<bool> SaveUnsavedChangesAsync(Core.Entities.Project project)
+    {
+        while (_projects.Current is { IsDirty: true } current && ReferenceEquals(current, project))
+        {
+            var choice = await _dialogs.AskAsync(new DialogRequest
+            {
+                Title = Strings.Export_UnsavedTitle,
+                Message = string.Format(Strings.Export_UnsavedQuestion, project.Name),
+                Buttons = new[] { Strings.Export_SaveAndExport, Strings.Common_Cancel }
+            });
+            if (choice != 0) return false;
+            if (_saveProject is null) return false;     // no way to save here: nothing is exported unsaved
+            if (!await _saveProject()) return false;
+        }
+        return ReferenceEquals(_projects.Current, project);
     }
 
     // The exception's own message (ffmpeg's detail) stays as it is, in parentheses (D039 §2).
@@ -262,23 +361,17 @@ public sealed class ExportWorkflow
     /// transition by its type, its two clips, its track and its cut — before rendering "not started", while rendering
     /// "stopped"; either way no file was written and an existing one was left unchanged.
     /// </summary>
-    public static string FailureMessage(ExportException ex, Core.Entities.Project project)
+    public static string FailureMessage(ExportException ex, Core.Entities.Project project) => FailureMessage(ex, ExportNames.Of(project));
+
+    /// <summary>As <see cref="FailureMessage(ExportException, Core.Entities.Project)"/> with the names taken when the export
+    /// started (D060 §2: the project may have changed since).</summary>
+    public static string FailureMessage(ExportException ex, ExportNames names)
     {
         if (ex.MissingSource is not { } missing) return FailureMessage(ex);
-        var tracks = project.Timeline.VideoTracks;
-        var track = tracks.FirstOrDefault(t => t.Id == missing.TrackId);
-        var clips = tracks.SelectMany(t => t.Clips).ToList();
-        string NameOf(Guid id) => clips.FirstOrDefault(c => c.Id == id) switch
-        {
-            Core.Entities.MediaBackedClip media => project.MediaAssets.FirstOrDefault(a => a.Id == media.MediaAssetId)?.FileName ?? "?",
-            Core.Entities.TextClip text => text.Text.Split('\n')[0].Trim(),
-            { } other => other.GetType().Name,
-            null => "?"
-        };
         return string.Format(Strings.Export_NoFileWritten, string.Format(
             missing.BeforeRendering ? Strings.Export_FailTransitionSourceBefore : Strings.Export_FailTransitionSourceDuring,
-            ViewModels.Panels.TransitionNames.Name(missing.TypeId), NameOf(missing.LeftClipId), NameOf(missing.RightClipId),
-            track?.Name ?? "?", TimeFormat.ToTimecode(missing.Cut, project.Settings.FrameRate)));
+            ViewModels.Panels.TransitionNames.Name(missing.TypeId), names.Clip(missing.LeftClipId), names.Clip(missing.RightClipId),
+            names.Track(missing.TrackId), TimeFormat.ToTimecode(missing.Cut, names.FrameRate)));
     }
 
     private static bool IsAboutOutputFile(ExportIssueKind kind) =>
@@ -387,5 +480,41 @@ public sealed class ExportWorkflow
     {
         _status.Report(outcome.Message);
         return outcome;
+    }
+}
+
+/// <summary>The names of the video clips and tracks of a project at one moment (D060 §2), for the failure messages of an export
+/// that runs while the project is edited: a clip by its media's file name or its text's first line, a track by its name.</summary>
+public sealed class ExportNames
+{
+    private readonly Dictionary<Guid, string> _clips;
+    private readonly Dictionary<Guid, string> _tracks;
+
+    private ExportNames(Dictionary<Guid, string> clips, Dictionary<Guid, string> tracks, Core.Common.FrameRate rate)
+    {
+        _clips = clips;
+        _tracks = tracks;
+        FrameRate = rate;
+    }
+
+    public Core.Common.FrameRate FrameRate { get; }
+
+    public string Clip(Guid id) => _clips.GetValueOrDefault(id, "?");
+
+    public string Track(Guid id) => _tracks.GetValueOrDefault(id, "?");
+
+    public static ExportNames Of(Core.Entities.Project project)
+    {
+        var assets = project.MediaAssets.GroupBy(a => a.Id).ToDictionary(g => g.Key, g => g.First().FileName);
+        var tracks = project.Timeline.VideoTracks;
+        var clips = new Dictionary<Guid, string>();
+        foreach (var clip in tracks.SelectMany(t => t.Clips))
+            clips[clip.Id] = clip switch
+            {
+                Core.Entities.MediaBackedClip media => assets.GetValueOrDefault(media.MediaAssetId, "?"),
+                Core.Entities.TextClip text => text.Text.Split('\n')[0].Trim(),
+                _ => clip.GetType().Name
+            };
+        return new ExportNames(clips, tracks.GroupBy(t => t.Id).ToDictionary(g => g.Key, g => g.First().Name), project.Settings.FrameRate);
     }
 }

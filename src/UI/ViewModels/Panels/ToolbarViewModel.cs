@@ -79,7 +79,10 @@ public sealed partial class ToolbarViewModel : ViewModelBase
         _undoRedoService.StateChanged += OnUndoRedoStateChanged;
         _editingLock.PropertyChanged += (_, _) => NotifyAllCommands();
         if (_exportWorkflow is not null)
+        {
             _exportWorkflow.IsRunningChanged += (_, _) => ExportCommand.NotifyCanExecuteChanged();
+            _exportWorkflow.ProgressChanged += (_, _) => ExportCommand.NotifyCanExecuteChanged();
+        }
     }
 
     /// <summary>The <c>Recent ▾</c> drop-down, or null.</summary>
@@ -251,8 +254,9 @@ public sealed partial class ToolbarViewModel : ViewModelBase
     }
 
     /// <summary>Export (Phase 8 Step 7): preflight, output file, progress window — see <see cref="ExportWorkflow"/>.
-    /// Not available while an export runs or unwinds.</summary>
-    [RelayCommand(CanExecute = nameof(CanExport))]
+    /// D060 §5: while an export runs in the background it shows that export's window — never a second export; not available
+    /// while the export's own dialogs are open.</summary>
+    [RelayCommand(CanExecute = nameof(CanExport), AllowConcurrentExecutions = true)]
     private async Task Export()
     {
         if (_exportWorkflow is null)
@@ -260,10 +264,16 @@ public sealed partial class ToolbarViewModel : ViewModelBase
             _status.Report(Strings.Toolbar_ExportUnavailable);
             return;
         }
+        if (_exportWorkflow.IsExporting)
+        {
+            _exportWorkflow.ShowDetails();
+            return;
+        }
+        if (_exportWorkflow.IsRunning) return;
         await _exportWorkflow.RunAsync();
     }
 
-    private bool CanExport() => CanEdit() && _exportWorkflow is not { IsRunning: true };
+    private bool CanExport() => CanEdit() && (_exportWorkflow is not { IsRunning: true } || _exportWorkflow.IsExporting);
 }
 
 /// <summary>A declined FIT climb in the COROS menu with its «Вернуть».</summary>

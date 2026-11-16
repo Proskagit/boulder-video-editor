@@ -35,7 +35,7 @@ rasterizer, ffmpeg encoder → MP4 checked with ffprobe — and skips without ff
 | Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping; clip properties, text clips, speed), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands; the playback engine (`Playback/`) | Implemented (Phases 4, 5, 7) |
 | Audio | `WasapiAudioOutput` (NAudio.Wasapi 2.2.1, WASAPI shared mode) | Playback output |
 | Vision | The AI hold segmentation (Phase 19, D034): `OnnxHoldSegmentationService` over ONNX Runtime with DirectML (CPU fallback), `HoldModelVerifier` (size + SHA-256 of the pinned files), SAM 2 pre- / postprocessing. References Core only | Implemented |
-| Export | Offline export orchestration (Phase 8, D023): renders an `ExportJob` with the Core rules and hands frames/audio to an encoder. References Core only; no FFmpeg or UI types | `ExportService` over `ExportFrameSource` / `ExportPictureReader`, `ExportAudioSource` / `ExportAudioReader` |
+| Export | Offline export orchestration (Phase 8, D023): renders an `ExportJob` with the Core rules and hands frames/audio to an encoder. References Core only; no FFmpeg or UI types | `ExportService` over `ExportFrameSource` / `ExportPictureReader`, `ExportAudioSource` / `ExportAudioReader`; `ExportMediaLease` holds the job's source files while it runs (D060) |
 
 The Phase 10 fades and cross dissolve live in Core (`FadeRule`, `TransitionRules`, the snapshot), Timeline (edits) and UI;
 `Effect` / `Clip.Effects` (Core) are only persisted (Project) and copied with a clip (Timeline). An empty `Effects`
@@ -956,7 +956,7 @@ Routine refactoring needed to implement a feature does not.
   success, `ExportException` / cancellation leave nothing behind.
 - UI (Step 7): Toolbar Export → `ExportWorkflow` (UI/Services): preflight (without the output file) → errors stop,
   warnings may be accepted → save-file picker → preflight with the file (the job) → replace confirmation → `EditingLock`
-  + modal `AvaloniaExportProgressDialog` (`ExportProgressViewModel`, pulled by a timer; Cancel = the token) →
+  + modal `AvaloniaExportProgressDialog` (both changed by D060, below) (`ExportProgressViewModel`, pulled by a timer; Cancel = the token) →
   `IExportService.ExportAsync` → outcome message per `ExportFailure` / cancelled / unexpected. D059 §4: the export dialog
   (and «Параметры проекта») holds `ExportEncodingEditorViewModel` / `ExportEncodingEditorView` — profile, encoder (NVENC
   only when confirmed), the «Пользовательский» fields, the expected size (`ExportSizeEstimate`, a range); a changed choice
@@ -964,6 +964,18 @@ Routine refactoring needed to implement a feature does not.
   the last 5 s), the time elapsed / left and the encoder actually used (with a fallback's reason). `EditingLock` is shared
   by Toolbar, Timeline, Inspector and Media Browser (`CanExecute` / edit guards). `LastExportSettings` is session-only
   state (not dirty, not undoable, not serialized), updated after a successful export. Manual plan: `docs/EXPORT_MANUAL_TEST_PLAN.md`.
+- Export UX (Phase 41, D060) — **amends the above**: no `EditingLock` during an export any more (it stays for the panels, but
+  only an export ever held it); the job is the export's independent snapshot (immutable values only, guarded by
+  `ExportSnapshotIsolationTests`) and `ExportService` holds the job's source files open (`ExportMediaLease`: read, sharing
+  reads — no delete / move / overwrite while exporting). `ExportWorkflow` first asks «Сохранить и экспортировать» / «Отмена» for
+  unsaved changes (`ProjectFileWorkflow.SaveAsync`); runs the export in the background (`IsExporting`, `Progress`,
+  `ProgressChanged`, `ShowDetails`, `CancelAndWaitAsync`); `AvaloniaExportProgressDialog` is non-modal (close / «Свернуть»
+  hide it, `IExportProgressDialog.Activate` shows it again); `MainWindowViewModel` exposes the status bar's compact indicator
+  (`ExportProgress`, `IsExportActive`, `ShowExportCommand`, `CancelExportCommand`) and guards `PrepareToCloseAsync` (keep the
+  export, or cancel it — after the unsaved question — and wait). Resolution: `ExportEncoding.Resolution`,
+  `Core.Export.ExportResolutions` (sizes), `ExportOutput.Size` = the output's size; `ExportFrame.Target` →
+  `CompositionDrawPlan.Stretch` + `TargetSize`, honoured by `AvaloniaCompositionRasterizer` (identity at the canvas's size).
+  Video: `ChildProcessJob` puts every `FfmpegProcess` into a kill-on-close job object.
 - Codec leg (Phase 13 Step 13.8, L1-c, tests only): `ExportCodecLegTests` / `CodecLegMetrics` measure the MP4 against
   the export canvases and against a lossless reference of them at every quality level and preset; per-level bounds on
   the codec's own error, the level order and flat colour (D028 "Refined in Step 13.8").

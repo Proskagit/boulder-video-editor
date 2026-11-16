@@ -54,18 +54,31 @@ public sealed class ExportWorkflowTests : IDisposable
     {
         _dialogs = new ScriptedDialogs(answers);
         return new ExportWorkflow(_projects, _export, new Fonts("Segoe UI"), _picker, _dialogs, _progressDialog, _lock, _status, _log, inOut,
-            exportDialog: _exportDialog);
+            exportDialog: _exportDialog, saveProject: SaveProject);
     }
+
+    /// <summary>What «Сохранить и экспортировать» does here (D060 §2): the project counts as saved, or the save fails.</summary>
+    private Task<bool> SaveProject()
+    {
+        Saves++;
+        if (!SaveSucceeds) return Task.FromResult(false);
+        _projects.Current.IsDirty = false;
+        return Task.FromResult(true);
+    }
+
+    private int Saves { get; set; }
+    private bool SaveSucceeds { get; set; } = true;
 
     private ScriptedExportDialog? _exportDialog;
 
     private string Output(string name = "out.mp4") => Path.Combine(_root, name);
 
-    /// <summary>A project that can be exported: one text clip (no media).</summary>
-    private void ExportableProject()
+    /// <summary>A project that can be exported: one text clip (no media); saved (D060 §2 asks about unsaved changes).</summary>
+    private void ExportableProject(bool saved = true)
     {
         Assert.True(_edit.AddTrack(TrackType.Video).Success);
         Assert.True(_edit.AddTextClip(MediaTime.Zero).Success);
+        if (saved) _projects.Current.IsDirty = false;
     }
 
     private TextClip TextClip => _projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<TextClip>().First();
@@ -583,12 +596,14 @@ public sealed class ExportWorkflowTests : IDisposable
         _progressDialog.Current!.CancelCommand.Execute(null);
         await WaitUntil(() => _export.Token.IsCancellationRequested);
 
-        // Still unwinding: the window stays, editing stays locked, no second export.
+        // Still unwinding: the window stays, no second export — «Экспорт» shows the running one's window (D060 §5).
         Assert.True(_progressDialog.IsOpen);
         Assert.Equal("Cancelling…", _progressDialog.Current!.StageText);
         Assert.False(_progressDialog.Current.CancelCommand.CanExecute(null));
-        Assert.True(_lock.IsLocked);
-        Assert.False(toolbar.ExportCommand.CanExecute(null));
+        Assert.False(_lock.IsLocked);
+        Assert.True(toolbar.ExportCommand.CanExecute(null));
+        toolbar.ExportCommand.Execute(null);
+        Assert.Equal(1, _progressDialog.Activated);
         Assert.Equal(ExportOutcomeKind.NotStarted, (await workflow.RunAsync()).Kind);
         Assert.False(run.IsCompleted);
 
@@ -607,8 +622,9 @@ public sealed class ExportWorkflowTests : IDisposable
         Assert.Single(_export.Jobs);
     }
 
+    /// <summary>«Отменить экспорт» in the window (its command) cancels the export.</summary>
     [Fact]
-    public async Task Closing_the_progress_window_requests_cancellation()
+    public async Task Cancel_in_the_progress_window_cancels_the_export()
     {
         ExportableProject();
         _picker.SaveFiles.Enqueue(Output());
@@ -616,58 +632,201 @@ public sealed class ExportWorkflowTests : IDisposable
         var run = Workflow().RunAsync();
         await _export.Started;
 
-        _progressDialog.Current!.Cancel();                                         // what the window's Closing does
+        _progressDialog.Current!.Cancel();
         unwind.SetResult();
 
         Assert.Equal(ExportOutcomeKind.Cancelled, (await run).Kind);
     }
 
-    // --- Editing lock -------------------------------------------------------------------------------
+    // --- Background export (D060 §5) ---------------------------------------------------------------------
 
     [Fact]
-    public async Task Editing_is_locked_while_exporting_and_restored_afterwards()
+    public async Task Editing_stays_available_while_exporting_in_the_background_and_does_not_reach_the_export()
     {
         ExportableProject();
-        var toolbar = new ToolbarViewModel(_undo, null!, null!, _status, Workflow(Ok), _lock);
+        var workflow = Workflow(Ok);
+        var toolbar = new ToolbarViewModel(_undo, null!, null!, _status, workflow, _lock);
         var timeline = new TimelineViewModel(_projects, _edit, _status, NullLogger<TimelineViewModel>.Instance, _lock);
         var inspector = new InspectorViewModel(_edit, _status, null, _lock);
-        var media = new MediaBrowserViewModel(_projects, null!, NullLogger<MediaBrowserViewModel>.Instance, _lock);
         inspector.ShowClip(new TimelineClipSelection(TextClip, "Text", null, _projects.Current.Settings.FrameRate));
         _picker.SaveFiles.Enqueue(Output());
         var steps = _export.Stepwise();
-        var workflow = Workflow(Ok);
         var run = workflow.RunAsync();
         await steps.Started;
 
-        var mutating = new System.Windows.Input.ICommand[]
-        {
-            toolbar.NewProjectCommand, toolbar.OpenCommand, toolbar.SaveCommand, toolbar.SaveAsCommand, toolbar.UndoCommand,
-            toolbar.ImportMediaCommand, toolbar.ExportCommand, timeline.SplitAtPlayheadCommand, timeline.AddVideoTrackCommand,
-            timeline.AddAudioTrackCommand, timeline.AddTextCommand, media.ImportCommand
-        };
-        Assert.All(mutating, c => Assert.False(c.CanExecute(null)));
-        Assert.False(timeline.IsEditingAllowed);
-        Assert.False(inspector.IsEditingAllowed);
-        // Viewing stays available.
-        Assert.True(timeline.ZoomInCommand.CanExecute(null));
-        Assert.True(timeline.StepForwardCommand.CanExecute(null));
-
-        // A field changed anyway (e.g. focused before) is not applied.
-        var opacity = TextClip.Opacity;
-        var clips = _projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips).Count();
-        inspector.OpacityPercent = 10;
-        Assert.Equal(opacity, TextClip.Opacity);
-        Assert.Equal(100m, inspector.OpacityPercent);
-        timeline.AddMedia(new MediaAsset { FilePath = "x.mp4", Kind = MediaKind.Video });
-        Assert.Equal(clips, _projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips).Count());
-
-        steps.Complete();
-        await run;
-
-        Assert.All(mutating, c => Assert.True(c.CanExecute(null), c.GetType().Name));
+        Assert.True(workflow.IsExporting);
+        Assert.False(_lock.IsLocked);
         Assert.True(timeline.IsEditingAllowed);
         Assert.True(inspector.IsEditingAllowed);
+        Assert.True(timeline.AddTextCommand.CanExecute(null));
+        Assert.True(toolbar.SaveCommand.CanExecute(null));
+        var exported = steps.Job.Snapshot.VideoLayers.SelectMany(l => l.Texts).Single().Visual.Opacity;
+
+        inspector.OpacityPercent = 10;                                              // applied to the project…
+        Assert.Equal(0.1, TextClip.Opacity, 3);
+        Assert.True(_edit.AddTextClip(MediaTime.FromSeconds(30)).Success);
+        // …never to the running export's snapshot.
+        Assert.Equal(exported, steps.Job.Snapshot.VideoLayers.SelectMany(l => l.Texts).Single().Visual.Opacity);
+        Assert.Single(steps.Job.Snapshot.VideoLayers.SelectMany(l => l.Texts));
+
+        // «Экспорт» during the export opens its window — no second export.
+        toolbar.ExportCommand.Execute(null);
+        Assert.Equal(1, _progressDialog.Activated);
+        Assert.Single(_export.Jobs);
+
+        steps.Complete();
+        Assert.Equal(ExportOutcomeKind.Succeeded, (await run).Kind);
+        Assert.False(workflow.IsExporting);
+        Assert.Null(workflow.Progress);
     }
+
+    [Fact]
+    public async Task Progress_changes_are_announced_for_the_compact_indicator()
+    {
+        ExportableProject();
+        var workflow = Workflow(Ok);
+        var changes = new List<bool>();
+        workflow.ProgressChanged += (_, _) => changes.Add(workflow.IsExporting);
+        _picker.SaveFiles.Enqueue(Output());
+        var steps = _export.Stepwise();
+        var run = workflow.RunAsync();
+        await steps.Started;
+        await steps.Next(new ExportProgress(ExportStage.Video, 50, 100));
+        workflow.Progress!.Refresh();
+        Assert.Equal(51, workflow.Progress.OverallPercent, 0);
+        Assert.Equal("Export 51 %", workflow.Progress.CompactText);
+        Assert.Contains("as it was at", workflow.Progress.SnapshotText);
+        steps.Complete();
+        await run;
+        Assert.Equal(new[] { true, false }, changes);
+    }
+
+    [Fact]
+    public async Task Cancel_and_wait_ends_the_export_before_returning()
+    {
+        ExportableProject();
+        _picker.SaveFiles.Enqueue(Output());
+        var unwind = _export.WaitForCancellation();
+        var workflow = Workflow();
+        var run = workflow.RunAsync();
+        await _export.Started;
+
+        var waiting = workflow.CancelAndWaitAsync();
+        await WaitUntil(() => _export.Token.IsCancellationRequested);
+        Assert.False(waiting.IsCompleted);                                          // still unwinding
+        unwind.SetResult();
+        await waiting;
+        Assert.False(workflow.IsExporting);
+        Assert.Equal(ExportOutcomeKind.Cancelled, (await run).Kind);
+        await workflow.CancelAndWaitAsync();                                        // nothing running: returns at once
+    }
+
+    // --- Unsaved changes (D060 §2) -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Unsaved_changes_are_saved_first_with_Save_and_export()
+    {
+        ExportableProject(saved: false);
+        _picker.SaveFiles.Enqueue(Output());
+        var outcome = await Workflow(0).RunAsync();
+
+        Assert.Equal(ExportOutcomeKind.Succeeded, outcome.Kind);
+        var question = _dialogs.Asked[0];
+        Assert.Equal("Unsaved changes", question.Title);
+        Assert.Equal(new[] { "Save and export", "Cancel" }, question.Buttons);
+        Assert.Equal(1, Saves);
+        Assert.Single(_export.Jobs);
+    }
+
+    [Fact]
+    public async Task Cancel_at_the_unsaved_question_exports_nothing_and_saves_nothing()
+    {
+        ExportableProject(saved: false);
+        var outcome = await Workflow(Cancel).RunAsync();
+
+        Assert.Equal(ExportOutcomeKind.NotStarted, outcome.Kind);
+        Assert.Equal(0, Saves);
+        Assert.True(_projects.Current.IsDirty);
+        Assert.Empty(_picker.SaveRequests);
+        Assert.Empty(_export.Jobs);
+    }
+
+    [Fact]
+    public async Task A_save_that_fails_or_is_cancelled_exports_nothing()
+    {
+        ExportableProject(saved: false);
+        SaveSucceeds = false;
+        var outcome = await Workflow(0).RunAsync();
+
+        Assert.Equal(ExportOutcomeKind.NotStarted, outcome.Kind);
+        Assert.Equal(1, Saves);
+        Assert.Empty(_export.Jobs);
+    }
+
+    [Fact]
+    public async Task A_saved_project_is_exported_without_the_question()
+    {
+        ExportableProject();
+        _picker.SaveFiles.Enqueue(Output());
+        await Workflow().RunAsync();
+
+        Assert.DoesNotContain(_dialogs.Asked, d => d.Title == "Unsaved changes");
+        Assert.Equal(0, Saves);
+        Assert.Single(_export.Jobs);
+    }
+
+    // --- Resolution (D060 §3) ------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task The_chosen_resolution_reaches_the_job_and_the_canvas_stays()
+    {
+        ExportableProject();
+        _projects.Current.Settings.FrameWidth = 3840;
+        _projects.Current.Settings.FrameHeight = 2160;
+        _projects.Current.IsDirty = false;
+        _exportDialog = new ScriptedExportDialog(dialog =>
+        {
+            Assert.Equal(ExportResolution.Uhd4K, dialog.SelectedResolution.Value);      // the canvas's preset
+            dialog.SelectedResolution = dialog.Resolutions.Single(r => r.Value == ExportResolution.FullHd);
+            Assert.StartsWith("1920 × 1080", dialog.Info);
+            dialog.FileName = "fhd.mp4";
+            dialog.Folder = _root;
+            ExportDialogResult? result = null;
+            dialog.Closed += (_, r) => result = r;
+            dialog.ExportCommand.Execute(null);
+            return Task.FromResult(result);
+        });
+        await Workflow().RunAsync();
+
+        var job = Assert.Single(_export.Jobs);
+        Assert.Equal(new Core.Composition.FrameSize(1920, 1080), job.Output.Size);
+        Assert.Equal(new Core.Composition.FrameSize(3840, 2160), job.Snapshot.Canvas);
+        Assert.Equal(3840, _projects.Current.Settings.FrameWidth);
+        Assert.Equal(ExportResolution.FullHd, job.Encoding.Resolution);
+    }
+
+    [Fact]
+    public async Task The_canvas_s_own_preset_keeps_the_project_file_unchanged()
+    {
+        ExportableProject();                                                       // 1920 × 1080
+        _exportDialog = new ScriptedExportDialog(dialog =>
+        {
+            Assert.Equal(ExportResolution.FullHd, dialog.SelectedResolution.Value);
+            Assert.DoesNotContain(dialog.Resolutions, r => r.Value == ExportResolution.Project);
+            dialog.Folder = _root;
+            ExportDialogResult? result = null;
+            dialog.Closed += (_, r) => result = r;
+            dialog.ExportCommand.Execute(null);
+            return Task.FromResult(result);
+        });
+        await Workflow().RunAsync();
+
+        Assert.Equal(new Core.Composition.FrameSize(1920, 1080), Assert.Single(_export.Jobs).Output.Size);
+        Assert.Equal(ExportEncoding.Default, _projects.Current.Settings.Export);
+        Assert.False(_projects.Current.IsDirty);
+    }
+
+
 
     // --- Failures -----------------------------------------------------------------------------------
 
@@ -774,6 +933,13 @@ public sealed class ExportWorkflowTests : IDisposable
             Assert.Null(Current);
             Current = progress;
             Shown++;
+        }
+
+        public int Activated { get; private set; }
+
+        public void Activate()
+        {
+            if (Current is not null) Activated++;
         }
 
         public void Close()

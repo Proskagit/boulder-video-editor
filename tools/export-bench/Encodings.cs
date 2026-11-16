@@ -17,6 +17,7 @@ namespace AiVideoEditor.ExportBench;
 /// <item><c>x264:QUALITY:PRESET</c> — «Пользовательский» with libx264 (D028 names, e.g. <c>x264:High:Medium</c>);</item>
 /// <item><c>profile:PROFILE[:nvenc]</c> — <c>Fast</c>, <c>Balanced</c>, <c>HighQuality</c>, optionally with NVENC;</item>
 /// <item><c>custom:ENCODER:QUALITY:PRESET</c>, <c>bitrate:ENCODER:MBPS</c> — «Пользовательский».</item>
+/// <item>any of them with <c>@RESOLUTION</c> (D060 §3: <c>Uhd4K</c>, <c>FullHd</c>, <c>Hd</c>, <c>Sd</c>), e.g. <c>default@FullHd</c>.</item>
 /// </list></summary>
 internal static class Encodings
 {
@@ -38,6 +39,9 @@ internal static class Encodings
 #else
     public static ExportEncoding Parse(string? spec)
     {
+        // D060 §3: "SPEC@RESOLUTION" exports at a resolution preset.
+        if (spec is not null && spec.IndexOf('@') is var at and > 0)
+            return Parse(spec[..at]) with { Resolution = Enum.Parse<ExportResolution>(spec[(at + 1)..]) };
         if (spec is null or "default") return ExportEncoding.Default;
         var p = spec.Split(':');
         ExportVideoEncoder Encoder(string s) => s == "nvenc" ? ExportVideoEncoder.Nvenc : ExportVideoEncoder.Libx264;
