@@ -8,7 +8,7 @@ vertical 1080 × 1920 project and, if possible, one with a canvas of no preset's
 
 Build and start: `pwsh -File tools\manual\Start-Phase41Check.ps1 [-Tests] [-Project <project folder>]` — publishes the portable
 build `artifacts\portable\AiVideoEditor-0.41.0-win-x64` (FFmpeg from PATH), copies the project (without its media, which stay
-where they are) to `%TEMP%ive-phase41-check`, opens this plan and the app; open the copy with «Открыть».
+where they are) to `%TEMP%\aive-phase41-check`, opens this plan and the app; open the copy with «Открыть».
 
 ## A. Unsaved changes and the exported version (D060 §2)
 
