@@ -10077,3 +10077,131 @@ When a major architectural decision is made, add:
 - Status
 
 Do not rewrite old decisions merely because a newer approach is preferred. Supersede them explicitly.
+
+## D061 — Phase 42: Follow and Occlusion — the frame follows the chosen climber; every person in the frame segmented separately, the hold outlines hidden behind people *(set by the owner's task of 2026-11-16; implemented 2026-11-16)*
+
+Date: 2026-11-16. **Status: the scope set by the product owner on 2026-11-16** (the Phase 42 task) on the basis of the research
+`docs/drafts/TRACKING_OCCLUSION_RESEARCH.md` (branch `docs/tracking-occlusion-research`, `991ce89`) and the owner's decisions of
+2026-11-11 recorded there (§G): **automatic Follow without Auto Zoom, no general Virtual Camera with motion paths (D042 §3 stays),
+Occlusion for every person in the frame**. Implemented in Phase 42 (branch `feat/phase-42-follow-occlusion`). `project.json`
+**v20**. Feature documentation and the benchmark: `docs/PHASE42_FOLLOW_OCCLUSION.md`; the models: `docs/AI_MODEL.md`, "People
+models"; the manual plan: `docs/PHASE42_MANUAL_TEST_PLAN.md`.
+
+### 1. What was checked before building (the research's open risks)
+
+- **T-8 — SAM 2's video mode through ONNX Runtime DirectML from C#** (the research measured only the image encoders). Exported
+  to six graphs from the official checkpoint (`tools/people-models/export_sam2_video.py`; RoPE rewritten without complex
+  numbers, the memory given as spatial memories + object pointers of any number), the memory loop rewritten (Python reference,
+  then C#). Against the official PyTorch predictor on a real clip (301 frames): mean IoU **0.995**, pixel agreement 99.97 %, no
+  empty frame; the C# port end to end (the app's decoder, its preprocessing, the C# loop): mean IoU **0.989**, median 0.994. The
+  memory attention in float16: unchanged masks, 73 → 33 ms with a full memory bank. **The risk is closed**; no fallback model
+  (EdgeTAM, Cutie) was needed.
+- **T-17 — memory of the loop**: own streaming loop, bounded (6 frames of feature maps, 16 pointers, 3 prompted frames per
+  person; ≈ 15 MB a person) — the official predictor's whole-clip preload is not used.
+- **T-2 / T-3 — the detector**: RF-DETR-M as recommended (research B.2: 0–7 % misses on the climbing footage at a low
+  threshold); the existing ONNX conversion of rtmlib (Apache-2.0) is used and pinned; RGB input (rtmlib feeds BGR — checked on
+  the owner's frames, RGB scores the climber at least as well).
+- **The decoder was the bottleneck** of the detection pass: the app's software decoding of 4K HEVC to 1024 px runs at 74 fps
+  (1.2× real time), its hardware decoding at 337 fps (5.6×). The analysis decodes with `HardwareDecoding.Auto` (software
+  fallback inside the decoder), so detection runs at 2–2.9× real time.
+
+### 2. Data space and lifetime (research D.2, D.5)
+
+- Every analysis result lives in **normalized coordinates of the display-oriented source frame and source time** (100 ns ticks
+  from the file's start) — the space of the hold contours. Crop, scale, canvas, Split, Trim, Slip, Speed never invalidate it.
+- **One analysis per video file, over the whole file**: the people's tracks (Follow, the masks' prompts) and, when a clip hides
+  its outlines behind people, every person's masks. Derived data, never in the project, never an undo step: kept in memory by
+  the file (path, size, last write time) and between sessions in `%LOCALAPPDATA%\AiVideoEditor\cache\people` by the file's
+  content fingerprint + the model id + the analysis version + its parameters (atomic writes, SHA-256 of every file, a damaged
+  file deleted and analysed again, LRU at 2 GB). An edited, replaced or relinked file is a new analysis; a new model or
+  analysis version too.
+- **In the project (v20)** only the user's choices, on the video clip: `follow` (`targetTicks`, `targetX`, `targetY` — where
+  the user picked the climber; absent — not picked; `smoothness`: soft / normal / fast) and `hidesOutlinesBehindPeople`. Each
+  change one undo step; Split / Duplicate / Paste copy both. A v19 file opens with neither and is saved as v20; an older build
+  refuses v20 as newer.
+
+### 3. Follow
+
+- **The people** (`PeopleAnalyzer` pass 1): every 0.1 s RF-DETR-M (score ≥ 0.25, NMS 0.7), RTMPose-m on each box (the torso
+  centre — the middle of the confident shoulders and hips — is the camera's anchor, else the box centre), a colour histogram of
+  the torso region (hue × saturation, grey levels) for re-identification. `PersonTracker`: ByteTrack-like, greedy one-to-one —
+  confident detections (≥ 0.5) matched to the predicted boxes by overlap, distance and appearance; a pair across the frame is
+  never allowed; an appearance below 0.35 (or below 0.5 with little overlap) vetoes a match — **somebody else in the climber's
+  place (a passer-by in front of them) never continues the climber's track**; weak detections only continue a track; a track
+  unseen for 1 s ends.
+- **The followed person** (`FollowTarget`): the user picks a person on the shown frame («Выбрать скалолаза» → a click in the
+  Preview); without a pick the **only** person of the clip is taken — the one track lasting at least a third of the clip while
+  every other person **of comparable size** (median box at least half as high) is seen at most a fifth as long; otherwise
+  Follow waits for the pick and the clip keeps its framing. The person's track is extended across losses by later and earlier
+  tracks of the same person: never one that coexists with the person (that is somebody else), the appearance must match
+  (≥ 0.62), the reappearance must be near where the person was last seen (the allowed distance grows with the loss) or, after a
+  long loss, the appearance must match clearly (≥ 0.8); **two equally likely candidates leave the person lost** — no silent
+  switch.
+- **The camera** (`FollowCamera`, pure Core): short misses (≤ 1.5 s) are interpolated (the camera glides); a longer loss holds
+  the last seen point and moves to the reappearance over its last second (never a jump); before the first and after the last
+  sighting the camera holds. The anchor is put **at the canvas centre** by the clip's own position (the clip's scale, rotation,
+  crop and opacity stay — **no Auto Zoom**); the position is clamped so the picture always covers the canvas on every axis where
+  it is larger than the canvas (the clip's own position on an axis without room); then a **non-causal Gaussian** (σ 1 / 0.5 /
+  0.25 s for soft / normal / fast) — the trajectory is known in advance, so the camera neither lags nor shakes; a weighted mean
+  of clamped positions stays clamped. Rotations other than multiples of 90° — no Follow (stated). **No room** (the picture not
+  larger than the canvas, e.g. a vertical video «Заполнить кадр» on a vertical canvas) — no Follow, the Inspector says to zoom
+  in above «Заполнить кадр» (the user's Scale is the room Follow has).
+- **Applied by the shown frame's timestamp** (`CompositionDrawPlan.GeometryAt`), exactly like the hold contours' camera motion:
+  the frame, its outline, its blurred background and its masks move together, the Preview and the export draw the same frame
+  the same. `OccludesBelow` still uses the clip's own geometry; the clamp guarantees that a covering clip keeps covering.
+- Not in Phase 42 (owner's decisions): Auto Zoom, an editable or keyframed camera path, manual trajectories, following objects.
+
+### 4. Occlusion
+
+- **Every person** (`PeopleAnalyzer` pass 2, every 1/15 s): each tracked person at least 12 % of the frame high (a person far
+  behind the filmed wall is never in front of its holds; each person costs a model pass per frame) is started in the SAM 2.1
+  video segmenter at its first confident detection with its box, followed by the model's memory, re-prompted with its detector
+  box when the segmenter lost it for three steps while the detector still sees it, stopped a second after its track ended once
+  gone; at most 6 at once (the largest). **Separate masks**: at every cell only the person with the highest positive logit
+  keeps it — the one in front; masks never overlap and never merge; a mask is only the visible part of its person (nothing is
+  invented for hidden parts).
+- **Stored** per analysed frame, per person: its id, its bounding rectangle on the grid (long side 640, the frame's aspect) and
+  the 8-bit coverage inside, deflated. Read back with linear blending between analysed frames at most two intervals apart
+  (no jumps), none where nothing was analysed.
+- **Applied to the hold outlines** of a clip that asks for it («Скрывать контуры за людьми»): `OutlineDraw.Occlusion` carries the
+  shown frame's union mask; the painter cuts every contour edge into pieces of one mask cell, each takes the visibility of the
+  coverage at its middle through a smooth ramp (visible below 35 %, hidden above 65 %), quantized to thirds and grouped with the
+  hold's own D036 opacity — pixel by pixel along the line, thread-safe, no bitmaps; the Preview and the export run the same code
+  (an image opacity mask was tried first: Avalonia 11.1.3's immutable image brush is internal, the mutable one is UI-thread
+  only — the export's rasterizers draw on their own threads).
+- **The masks are shown** in the Preview on demand («Показывать маски людей в Preview»: each person in its colour; a check of
+  the segmentation; never exported).
+- **Needs a DirectML GPU** (Q10 answered as the research proposed — degradation): without one the analysis fails with the
+  message, the outlines are drawn as before, the export warns; Follow keeps working on the CPU.
+
+### 5. Background work, preview, export
+
+- `PeopleAnalysisCoordinator` (UI): one analysis at a time (tracks first, the masks once their tracks are there), on the thread
+  pool, progress, the user's «Остановить анализ» / «Повторить анализ», failures with their message (no model, damaged model, no
+  GPU, a decoder error), a project change cancels everything, switching the feature off stops an analysis nobody needs. Results
+  reach the Preview's snapshot (`PlaybackSnapshotBuilder` → `PictureSpan.Follow`, `PictureSpan.PeopleMasks`, presentation only —
+  no decoder restarts) and the export's preflight (`ExportPreflightEnvironment.People`): the same instances.
+- **Preflight**: a people analysis waiting, running or stopped for a clip that reaches the output **blocks** (one issue per file)
+  — the export never draws something else than the Preview; Follow that cannot move (no climber chosen / found, no room, odd
+  rotation, the analysis failed) and outlines that cannot be hidden (no GPU, no model, failed) are **warnings**.
+- **Preview**: a notice when the climber is not seen on the shown frame («кадр удерживается на месте»), while the analysis runs
+  (with its percent), during the pick; the people overlay (boxes with ids while picking, the followed one green; the masks).
+
+### 6. UX («Слежение и люди» in the Inspector of a video clip)
+
+«Следить за скалолазом» (on / off), «Плавность» (Мягкая / Обычная / Быстрая), «Выбрать скалолаза» (the Preview shows the people of
+the shown frame; Esc cancels), the state in one line («Слежение: скалолаз виден в 97 % клипа; потерян 2 раза (0:12–0:15, 1:03–1:05)»,
+«В клипе несколько человек: выберите скалолаза», «Кадру некуда двигаться: увеличьте масштаб…», the analysis's progress or
+failure); «Скрывать контуры за людьми» with its state and «Показывать маски людей в Preview»; a progress bar with «Остановить
+анализ» while analysing, «Повторить анализ» after a stop or failure. No model parameters in the interface.
+
+### 7. Limits (stated, measured where possible — `docs/PHASE42_FOLLOW_OCCLUSION.md`)
+
+- Follow without zoom has no room on a vertical video at «Заполнить кадр» on a vertical canvas: the user zooms in.
+- Move / Position: while Follow moves an axis, the clip's Position X / Y on that axis has no effect (the Move tool still edits
+  the stored value).
+- A person smaller than 12 % of the frame is not segmented; a person the detector never sees is not segmented (the research's
+  0–15 % misses of the best detectors on the wall).
+- The analysis's cost: masks ≈ 0.3–0.6× real time with one or two people, slower with more; it runs once per file and is cached.
+- The speed of the clip (D022): the path is in source time, so at 2× the camera moves twice as fast on the timeline.
+- 120 / 240 fps material, strong shake, low light: not in the test set (research decision 4).
