@@ -2,6 +2,10 @@
 
 ## Current phase
 
+**Phase 43 — amendment 1, second round (2026-11-17).** The settings window gets its left column of sections (the FIT section
+was unreachable once «Настройки FIT…» left the training menu); a selected orange shows the «Зацепки» section alone, opened.
+Rows G14 (revised), G16.
+
 **Phase 43 — amendment 1 after the owner's check (D062 amendment 1, 2026-11-17) — on `feat/fit-import-garmin`.** The heart
 rate's offset per maker (COROS −70 s, Garmin −20 s, others −20 s); the clock correction and the FIT settings only in
 «Настройки» → «FIT-тренировки» (gone from the training drop-down); a selected orange keeps the Inspector on its video and

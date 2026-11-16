@@ -204,6 +204,24 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
     // --- the Inspector section ---------------------------------------------------------------------------------------
 
     [Fact]
+    public void A_selected_orange_shows_the_holds_section_alone_and_any_other_selection_shows_everything_again()
+    {
+        // D062 amendment 1 (owner, 2026-11-17): the orange is the route's holds — only «Зацепки» in the Inspector.
+        var clip = AddVideo();
+        Assert.False(_vm.Inspector.IsHoldsOnly);
+
+        _vm.Inspector.ShowClip(new TimelineClipSelection(clip, "v", null, FrameRate.Fps25) { OrangeRouteId = Guid.NewGuid() });
+        Assert.True(_vm.Inspector.IsHoldsOnly);
+
+        _vm.Inspector.ShowClip(new TimelineClipSelection(clip, "v", null, FrameRate.Fps25));
+        Assert.False(_vm.Inspector.IsHoldsOnly);
+
+        _vm.Inspector.ShowClip(new TimelineClipSelection(clip, "v", null, FrameRate.Fps25) { OrangeRouteId = Guid.NewGuid() });
+        _vm.Inspector.ClearSelection();
+        Assert.False(_vm.Inspector.IsHoldsOnly);
+    }
+
+    [Fact]
     public void The_colour_list_is_auto_then_the_palette_and_a_pick_sets_the_mode_and_the_colour_in_one_step()
     {
         // D062 amendment 1 (owner, 2026-11-17): no separate «Авто» / «Вручную» step.

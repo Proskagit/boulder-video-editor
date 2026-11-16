@@ -10427,3 +10427,9 @@ The owner's check of the portable build: the import, the route layout, Occlusion
    orange's route (pinned whatever the playhead); Delete still removes the markup; the Preview's move handles stay off.
 4. **One «Цвет» list for the holds**: «Авто» first, then the palette's colours (each a manual colour at once) — no separate
    «Авто» / «Вручную» step; a typed `#RRGGBB` stays possible beside it.
+
+**Second round (owner, 2026-11-17).** (a) The settings window had no list of its sections (Phase 38 hid the sections but never
+added the left column; the FIT section was reached only through «Настройки FIT…», removed by item 2) — the left column is
+added, «Общие» / «FFmpeg» / «Таймлайн и разметка» / «FIT-тренировки», one shown at a time. (b) Item 3 refined: the orange is
+the route's holds only — the Inspector shows **the «Зацепки» section alone** (opened), none of the video's other sections
+(transform, crop, people, fades, training, audio, …).

@@ -173,5 +173,14 @@ public sealed class SettingsWindowTests
         Assert.Contains("OtherHeartRateOffsetBox", names);
         Assert.Contains("ClockCorrectionBox", names);
         Assert.False(vm.HasTraining);
+
+        // The left column of the sections (D062 amendment 1: the only way to the FIT section now).
+        var list = view.GetLogicalDescendants().OfType<ListBox>().Single(c => c.Name == "SectionList");
+        Assert.Equal(4, vm.SectionNames.Count);
+        Assert.Same(vm.SectionNames, list.ItemsSource);
+        Assert.True(vm.ShowsGeneral);
+        vm.SelectedSectionIndex = 3;
+        Assert.True(vm.ShowsCorosFit);
+        Assert.False(vm.ShowsGeneral);
     }
 }
