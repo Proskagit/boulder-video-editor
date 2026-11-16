@@ -2,6 +2,17 @@
 
 ## Current phase
 
+**Phase 43 — amendment 1 after the owner's check (D062 amendment 1, 2026-11-17) — on `feat/fit-import-garmin`.** The heart
+rate's offset per maker (COROS −70 s, Garmin −20 s, others −20 s); the clock correction and the FIT settings only in
+«Настройки» → «FIT-тренировки» (gone from the training drop-down); a selected orange keeps the Inspector on its video and
+route's «Зацепки»; the holds' «Цвет» list «Авто» + the palette. Manual rows G10–G15 in `docs/PHASE43_FIT_IMPORT.md`. Phase
+review: FAIL (an orange kept after another panel took the Inspector came back on the next timeline refresh) — fixed with tests
+(the orange ends on a clip, a dissolve or another panel's selection; a lane click on the orange clears the clips' selection;
+the settings window stops following the toolbar on close; an old settings file keeps its COROS value). Gates (2026-11-17):
+Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check` clean; Debug every suite green; Release +
+`AIVE_HEAVY_TESTS=1` green (ExportEndToEnd 187 / 0 / 0) apart from the known timing tests `ExportServiceTests` (`src/Export`
+untouched; the suite alone 141 / 141 in Release); UI 1 239 / 1 239 after the last fix (the localization guard).
+
 **Phase 43 — FIT import from any watch (D062, 2026-11-16) — on `feat/fit-import-garmin`.** `CorosWorkoutParser` →
 `FitWorkoutParser`: any maker's activity by the FIT standard (COROS, Garmin recognised; «не часами COROS» refusal removed,
 `NoHeartRate` → `NoTrainingData`); Garmin's session stamped with its start → the end is start + elapsed; a recording without

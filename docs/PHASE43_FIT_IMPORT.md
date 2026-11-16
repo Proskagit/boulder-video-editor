@@ -77,3 +77,14 @@ their enums — on a synthetic `GarminFixture` shaped like the real file), `Clim
 | G7 | Change a FIT area's grade / status by hand, run «Распознать…» again | Nothing changes (areas made earlier are never touched) |
 | G8 | A FIT of another sport without splits but with heart rate | Accepted, 0 подъёмов; a FIT with neither: «в тренировке нет ни пульса, ни подъёмов.» |
 | G9 | Settings → «FIT-тренировки» | The section's title and the heart-rate offset work as before |
+
+### Amendment 1 (D062 amendment 1, 2026-11-17) — rows after the owner's check
+
+| # | Steps | Expected |
+|---|---|---|
+| G10 | Settings → «FIT-тренировки» | Offsets COROS −70, Garmin −20, «Другие часы» −20; «Сбросить» restores all three |
+| G11 | A Garmin project with a heart-rate overlay; change the Garmin offset | The BPM moves by that offset; the COROS value has no effect on it |
+| G12 | Toolbar «Импорт FIT-тренировки…» | Only import / «Указать файл…» / «Удалить» / declined climbs — no clock correction, no «Настройки FIT…» |
+| G13 | Settings → «FIT-тренировки» with a training in the project | «Поправка часов тренировки, кадры» is there; a change is one Ctrl+Z; without a training it is hidden |
+| G14 | Click a route's orange on the timeline | The Inspector shows the video with «Зацепки» of that route (colour, width, …); Delete removes the markup only |
+| G15 | «Зацепки» → «Цвет» | The list: «Авто», then the colours; a colour applies at once; «Авто» returns to automatic |

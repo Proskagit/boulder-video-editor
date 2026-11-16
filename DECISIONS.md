@@ -10408,3 +10408,22 @@ header, the settings' section, the replace question and the export warning. The 
 Falls and sends shown in the overlay (the template has only «Топ» / «Попытка»); a Garmin product-name table (the summary says
 «Garmin»; product 4603 is `venuX1` in the SDK); a FIT with several sessions (the first is read, as before); grades in
 British / Brazilian / Saxon / YDS ± scales.
+
+### D062 amendment 1 — after the owner's manual check (2026-11-17)
+
+The owner's check of the portable build: the import, the route layout, Occlusion and the holds work. Four changes asked:
+
+1. **The heart rate's display offset per watch maker** — COROS **−70 s** (the existing setting, its saved value kept),
+   Garmin **−20 s**, any other watch **−20 s** (`UserSettings.GarminHeartRateDisplayOffsetTicks` / `OtherHeartRateDisplayOffsetTicks`,
+   `HeartRateDisplayOffsetFor`); the Preview and the export take the one of the project training's maker; each is editable in
+   the settings, «Сбросить» restores all three. Still display only (D057 §3.8).
+2. **The FIT settings live in «Настройки» → «FIT-тренировки» only**: the «Импорт FIT-тренировки…» drop-down keeps import,
+   «Указать файл…», «Удалить» and the declined climbs; «Настройки FIT…» is gone from it, and **the training's clock correction**
+   moved into the settings' FIT section (shown while the project has a training). It stays the project's value (D049 §2): the
+   window edits the toolbar's value (`ITrainingClockCorrection`), one Undo step per change. This supersedes D057 §3.8's «project
+   settings are never here» for the clock correction.
+3. **A selected orange keeps the Inspector**: a click on a route's orange used to empty the Inspector (the clips' selection is
+   cleared so Delete means the markup, D048 §3.9). Now the Inspector shows that video with the «Зацепки» section on the
+   orange's route (pinned whatever the playhead); Delete still removes the markup; the Preview's move handles stay off.
+4. **One «Цвет» list for the holds**: «Авто» first, then the palette's colours (each a manual colour at once) — no separate
+   «Авто» / «Вручную» step; a typed `#RRGGBB` stays possible beside it.
