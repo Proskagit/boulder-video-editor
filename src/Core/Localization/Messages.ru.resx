@@ -1408,4 +1408,16 @@
   <data name="Ducking_SpeechTrack" xml:space="preserve">
     <value>Выберите другую дорожку с речью: дорожка не может приглушаться от самой себя.</value>
   </data>
+  <data name="Audio_VoiceModelUnavailable" xml:space="preserve">
+    <value>Улучшение речи недоступно: модель речи не подключена на этом компьютере.</value>
+  </data>
+  <data name="Audio_SpeechModelUnavailable" xml:space="preserve">
+    <value>Определение речи для приглушения недоступно: модель речи не подключена на этом компьютере.</value>
+  </data>
+  <data name="Audio_TooLong" xml:space="preserve">
+    <value>Звук слишком длинный для очистки (больше примерно 3 часов).</value>
+  </data>
+  <data name="Audio_ModelFailed" xml:space="preserve">
+    <value>Аудиомодель {0} не удалось загрузить: {1}</value>
+  </data>
 </root>

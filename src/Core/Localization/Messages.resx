@@ -1408,4 +1408,16 @@
   <data name="Ducking_SpeechTrack" xml:space="preserve">
     <value>Choose another track with the speech: a track can&apos;t duck under itself.</value>
   </data>
+  <data name="Audio_VoiceModelUnavailable" xml:space="preserve">
+    <value>Voice enhancement is unavailable: the voice model is not set up on this computer.</value>
+  </data>
+  <data name="Audio_SpeechModelUnavailable" xml:space="preserve">
+    <value>Speech detection for ducking is unavailable: the speech model is not set up on this computer.</value>
+  </data>
+  <data name="Audio_TooLong" xml:space="preserve">
+    <value>The sound is too long to clean (more than about 3 hours).</value>
+  </data>
+  <data name="Audio_ModelFailed" xml:space="preserve">
+    <value>The audio model {0} could not be loaded: {1}</value>
+  </data>
 </root>
