@@ -10888,6 +10888,15 @@ before it the owner's legal review of the notices and of the source offer (the w
 the 1.0 package — its generated `ffmpeg\THIRD-PARTY-NOTICES.txt` and `ffmpeg\licenses\` (with nv-codec-headers) and the
 portable folder's notices; the drafts in `docs/drafts/ffmpeg-minimal-9.0.2-1` describe the build before NVENC and are history.
 
+### 7. Acceptance (the product owner, 2026-11-18)
+
+Windows Sandbox could not start on the owner's PC (system PnP root buses disabled — not repaired here); the clean-machine
+check was run in a new Windows account of the same PC (no settings, models, cache or user-installed FFmpeg of the owner's
+account; a GPU present): A1–A5, A7–A10 PASS, **A6 not confirmed** (with a GPU Occlusion works instead of reporting the CPU-only
+case — the CPU fallback is covered only by the CI's FFmpeg check on a runner without a GPU); B1–B3 PASS. The notices accepted
+as they are (no separate legal review). **Phase 47 and Phase 46 accepted; S1 — the MVP — closed.** A few defects of the
+editor's behaviour noted by the owner are left for later (backlog); the release `v1.0.0` is published by the owner.
+
 ### Out of scope
 
 An installer; code signing; automatic updates; models downloaded by the application; HEVC / AV1 encoding (FU-EX.1).

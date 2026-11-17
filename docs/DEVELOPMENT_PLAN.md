@@ -303,7 +303,7 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 | Phase | Decision | State | Merged |
 |---|---|---|---|
 | 0–29 | … D045 | complete: merged and accepted | Phase 29 — PR #30, `e28a9d3` |
-| 30 — stabilisation (D042 G) | D046 | technically complete 2026-10-24; full acceptance (S1) open | in PR #31 (`024f3fb`), no PR of its own |
+| 30 — stabilisation (D042 G) | D046, D066 | **S1 completed by Phase 47 (accepted 2026-11-18)**; technically complete 2026-10-24; full acceptance (S1) open | in PR #31 (`024f3fb`), no PR of its own |
 | 31 — automatic hold proposals (D042 D) | D047 | technically complete 2026-10-26; A / B / E, C1–C4, D1, D1a, D2, D4, D5 PASS (2026-11-04: automated + the owner by hand); D3 and C5 DEFERRED by the owner; **accepted by the product owner 2026-11-04 with these two deferred checks**; D065 §5 (2026-11-17): D3 closed without a check (10–20 holds per clip), C5 dropped; the route-from-the-first-hold idea is a future research with Phase 32 | in PR #31 (`024f3fb`), no PR of its own |
 | — R2 → E, hold tracking | D048 §1.17, D052 | accepted for continued development (D048 §1.17); completion E-1…E-7 implemented 2026-11-08 (D052: K1 deferred, K2 WARN, K3 PERSIST, D4 cache); accuracy bound 3 px approved 2026-11-08; merged into `main` on 2026-11-08 (PR #42, `2a8a2f9`) and **technically accepted by the product owner on 2026-11-08**; the manual plan `docs/R2E_MANUAL_TEST_PLAN.md` closed as not needed by the product owner on 2026-11-17 (its checks covered by the Phase 42 manual checks) | PR #31, `024f3fb`; completion — PR #42, `2a8a2f9` |
 | 32 — route selection at `T` (D048 stage 1) | D048, D065 §5 | implemented, paused («Авторазметка» hidden); **closed as deferred on 2026-11-17** (D065 §5): with Phase 31 folded into a future research — the user points at a route's first hold, the editor proposes the route by its colour; code and research kept | PR #32, `1e58885` |
@@ -320,15 +320,15 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 | 43 — FIT import from any watch (COROS, Garmin, others) | D062 + amendment 1 | implemented 2026-11-16 / 17 (no format change); **accepted by the product owner on 2026-11-17** | PR #70, `69db078` |
 | 44 — Transform keyframes & canvas snapping | D063 + amendment 1 | implemented 2026-11-17 (`project.json` v24); **accepted by the product owner on 2026-11-17** | PR #71, `9d87140` |
 | 45 — Audio editing, mixing and clean-up | D064 + amendment 1 | implemented 2026-11-17 (`project.json` v25); **accepted by the product owner on 2026-11-17**; the merge by the product owner after CI | PR #72 |
-| 46 — Smooth hold outlines | D065 | implemented 2026-11-17 (no format change, v25); a new contour smoothed (the slider «Сглаживание», default 50), every contour drawn as a smooth curve, corners kept; merged by the owner after CI; the owner's acceptance not recorded | PR #73, `f15b1cd` |
-| 47 — S1, the release 1.0 | D066 | in work on `feat/s1-release-1.0`: the minimal FFmpeg with NVENC and the noise reduction, the models archive (people-v2), the portable 1.0.0 with FFmpeg, the Phase 45 leftovers, the local test baseline, the Windows Sandbox check; the owner's clean-machine check, legal review and the GitHub Release open | — |
+| 46 — Smooth hold outlines | D065 | implemented 2026-11-17 (no format change, v25); a new contour smoothed (the slider «Сглаживание», default 50), every contour drawn as a smooth curve, corners kept; merged by the owner after CI; **accepted by the product owner on 2026-11-18** | PR #73, `f15b1cd` |
+| 47 — S1, the release 1.0 | D066 | implemented 2026-11-17 / 18: the minimal FFmpeg with NVENC and the noise reduction, the models archive (people-v2), the portable 1.0.0 with FFmpeg, the Phase 45 leftovers, the local test baseline; the clean-machine check passed on 2026-11-18 in a new Windows account of the owner's PC (Windows Sandbox could not start there: system PnP buses disabled) — A1–A5, A7–A10 and B1–B3 PASS, A6 not confirmed (a GPU present, Occlusion worked instead of its CPU message); the notices accepted as they are; **accepted by the product owner on 2026-11-18**; the GitHub Release `v1.0.0` drafted, published by the owner | PR #74, `d287c16` |
 | H — Final UX Pass | D042 §7, D057 | its goal covered by Phase 38 (D057); the former scope not restored | — |
 
-**State on 2026-11-18 (after D066):** the **highest phase number in use is 47** (in work, S1 = Phase 30's open part); the
-**complete phases** (merged and accepted) are **1–29, 31, 33–35 and 37–45**; Phase 46 merged (PR #73), its acceptance not
-recorded; Phase 32 closed as deferred, Phase 36 done in its chapters with 36.3 / 36.4 in the backlog, Phase 31's D3 closed and
-C5 dropped (D065 §5). Not complete: Phase 30 / 47 (S1).
-**Next:** Phase 46 is in `main` (PR #73); **Phase 47 = S1, the release 1.0** (D066) in work — the last step before the MVP;
+**State on 2026-11-18 (after the acceptance of Phases 46 and 47):** **the MVP is closed** — S1, the release 1.0, accepted by
+the product owner. The highest phase number in use is **47**; the **complete phases** (merged and accepted) are **1–31, 33–35
+and 37–47** (Phase 30's open part, S1, completed by Phase 47); Phase 32 closed as deferred, Phase 36 done in its chapters with
+36.3 / 36.4 in the backlog, Phase 31's D3 closed and C5 dropped (D065 §5).
+**Next:** the owner's fixes of the editor's behaviour before publishing `v1.0.0` (or as 1.0.1), then development — UX first (1.1);
 everything after it is development.
 
 *Before D065 (2026-11-17):* the highest phase number in use was 45; the complete phases were 1–29, 31, 33, 34 and 37–45; not

@@ -1,5 +1,9 @@
 # Phase 47 — manual test plan (D066: S1, the release 1.0)
 
+**Result (the owner, 2026-11-18):** run in a new Windows account of the owner's PC (Windows Sandbox could not start there:
+system PnP buses disabled). A1–A5, A7–A10 PASS; A6 NOT CONFIRMED (a GPU present: Occlusion works); B1–B3 PASS; C1 — the notices
+accepted as they are; C2 — the draft release made, published by the owner.
+
 Build: `artifacts/release/AiVideoEditor-1.0.0-win-x64.zip` (with FFmpeg) and `AiVideoEditor-1.0.0-models.zip` from
 `feat/s1-release-1.0`. Media: **copies** of a few bouldering videos (4K and 1080p) and their FIT. Each row: steps → expected.
 
