@@ -34,6 +34,8 @@ decoder rawvideo
 # Encoders — the export (libx264, aac) and the decoders' outputs to the application (rawvideo BGRA, f32le); nothing else.
 encoder libx264
 encoder aac
+# S1 (D066): NVIDIA's hardware H.264 encoder of the export (Phase 40, D059); nv-codec-headers only, the driver loaded at run time.
+encoder h264_nvenc
 encoder rawvideo
 encoder pcm_f32le
 
@@ -57,6 +59,8 @@ demuxer pcm_f32le
 muxer mp4
 muxer rawvideo
 muxer pcm_f32le
+# S1 (D066): the NVENC availability check encodes a test picture into nothing (FfmpegEncoderCapabilities).
+muxer null
 
 # Parsers for the decoders above.
 parser h264
@@ -92,6 +96,13 @@ filter ashowinfo
 filter apad
 filter atempo
 filter anull
+# S1 (D066): the noise reduction of Phase 45 (D064): highpass + afftdn; the NVENC check's test picture.
+filter highpass
+filter afftdn
+filter testsrc2
+
+# S1 (D066): the NVENC check's input (-f lavfi).
+indev lavfi
 
 # Protocols.
 protocol file

@@ -5,7 +5,7 @@ tests and `ci.yml` keep using the pinned gyan.dev 9.0.1; nothing here is release
 
 | File | Purpose |
 |---|---|
-| `sources.lock` | Every source: FFmpeg 9.0.2, x264 `0480cb05fa`, zimg `67e0603271` + graphengine `cb5b2ce133`, zlib 1.3.2, dav1d 1.5.4 — pinned by SHA-256 (tarballs) or full commit (git), with the licence |
+| `sources.lock` | Every source: FFmpeg 9.0.2, x264 `0480cb05fa`, zimg `67e0603271` + graphengine `cb5b2ce133`, zlib 1.3.2, dav1d 1.5.4, nv-codec-headers 12.2.72.0 (S1, D066: NVENC — headers only, the NVIDIA driver loaded at run time) — pinned by SHA-256 (tarballs) or full commit (git), with the licence |
 | `components.txt` | The FFmpeg components enabled after `--disable-everything` |
 | `Dockerfile` | The toolchain: `debian:trixie-20261020` by digest, packages from `snapshot.debian.org` at `20261020T000000Z`, every version pinned (mingw-w64 GCC 14.2.0 win32 threads, mingw-w64 12.0.0, binutils 2.44, nasm, meson, ninja, autotools) |
 | `fetch-sources.sh` | The only step with network: fetches and verifies the sources (SHA-256, FFmpeg's GPG signature by `FCF986EA…58D8`, commits), keeps git components as bundles, fetches the Debian sources of the statically linked toolchain runtime (`mingw-w64`, `gcc-mingw-w64`, `gcc-14`), writes `SHA256SUMS` |

@@ -2,7 +2,8 @@
 # Builds the minimal FFmpeg (DECISIONS.md D046 §13) for win64 from SOURCES (fetch-sources.sh) into OUT, without network:
 # run it with `docker run --network=none`. zlib, x264, zimg (with graphengine) and dav1d are built as static libraries,
 # then ffmpeg.exe / ffprobe.exe with --disable-everything and only components.txt enabled. The build fails if configure
-# enables any external library beyond zlib, libx264, libzimg and libdav1d.
+# enables any external library beyond zlib, libx264, libzimg, libdav1d and NVENC (ffnvcodec: nv-codec-headers, headers
+# only — the NVIDIA driver is loaded at run time; S1, D066).
 set -euo pipefail
 
 RECIPE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -89,6 +90,13 @@ EOF
     ninja -C build -j"$JOBS" && ninja -C build install
 )
 
+# --- nv-codec-headers (NVENC; headers and ffnvcodec.pc only, nothing compiled) -------------------------------------
+checkout nv-codec-headers "$WORK/src/nv-codec-headers"
+(
+    cd "$WORK/src/nv-codec-headers"
+    make install PREFIX="$DEPS"
+)
+
 # --- FFmpeg --------------------------------------------------------------------------------------------------------
 tar -xJf "$SOURCES/tarballs/ffmpeg-9.0.2.tar.xz" -C "$WORK/src"
 mapfile -t components < <(awk '!/^#/ && NF == 2 { print "--enable-" $1 "=" $2 }' "$RECIPE/components.txt")
@@ -101,6 +109,7 @@ configure_args=(
     --enable-static --disable-shared
     --disable-ffplay --disable-doc --disable-network --disable-debug
     --enable-w32threads --enable-zlib --enable-libx264 --enable-libzimg --enable-libdav1d --enable-d3d11va --enable-dxva2
+    --enable-ffnvcodec --enable-nvenc
     --extra-cflags="-I$DEPS/include"
     --extra-ldflags="-L$DEPS/lib -static -Wl,--no-insert-timestamp"
     --extra-libs="-lstdc++"
@@ -128,7 +137,7 @@ enabled_external="$(
       done | sort -u | tr '\n' ' '
 )"
 echo "Enabled external / hardware libraries: $enabled_external"
-expected="d3d11va dxva2 libdav1d libx264 libzimg zlib "
+expected="d3d11va dxva2 ffnvcodec libdav1d libx264 libzimg nvenc zlib "
 [[ "$enabled_external" == "$expected" ]] || {
     echo "Unexpected external libraries: got '$enabled_external', expected '$expected'" >&2
     exit 1
@@ -164,6 +173,7 @@ copy_licence zimg     "$WORK/src/zimg" COPYING
 copy_licence graphengine "$WORK/src/zimg/graphengine" COPYING
 copy_licence zlib     "$WORK/src/zlib-1.3.2" LICENSE
 copy_licence dav1d    "$WORK/src/dav1d-1.5.4" COPYING
+copy_licence nv-codec-headers "$WORK/src/nv-codec-headers" LICENSE
 
 # The toolchain runtime linked statically: mingw-w64's notices (its licence asks for them with binaries) and GCC's runtime
 # library exception with the GPL version 3 it refers to — read from the Debian source packages in SOURCES, the same ones

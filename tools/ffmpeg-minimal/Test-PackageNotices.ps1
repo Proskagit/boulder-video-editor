@@ -24,7 +24,7 @@ try {
         'THIRD-PARTY-NOTICES.txt',
         'licenses/ffmpeg/COPYING.GPLv2', 'licenses/ffmpeg/COPYING.LGPLv2.1', 'licenses/ffmpeg/LICENSE.md',
         'licenses/x264/COPYING', 'licenses/zimg/COPYING', 'licenses/graphengine/COPYING', 'licenses/zlib/LICENSE',
-        'licenses/dav1d/COPYING', 'licenses/mingw-w64-runtime/COPYING.MinGW-w64-runtime.txt',
+        'licenses/dav1d/COPYING', 'licenses/nv-codec-headers/LICENSE', 'licenses/mingw-w64-runtime/COPYING.MinGW-w64-runtime.txt',
         'licenses/gcc-runtime/COPYING.RUNTIME', 'licenses/gcc-runtime/COPYING3',
         'licenses/dav1d/AOM-PATENT-LICENSE-1.0.txt',
         'licenses/ffmpeg/ijg/jrevdct.c.header.txt', 'licenses/ffmpeg/ijg/jfdctfst.c.header.txt',

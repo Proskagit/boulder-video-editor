@@ -123,6 +123,7 @@ $protocols = @(Get-Lines $cand.ffmpeg @('-hide_banner', '-protocols') | ForEach-
 $hwaccels = @(Get-Lines $cand.ffmpeg @('-hide_banner', '-hwaccels') | ForEach-Object { $_.Trim() })
 $demuxers = (Get-Lines $cand.ffmpeg @('-hide_banner', '-demuxers')) -join "`n"
 $muxers = (Get-Lines $cand.ffmpeg @('-hide_banner', '-muxers')) -join "`n"
+$devices = (Get-Lines $cand.ffmpeg @('-hide_banner', '-devices')) -join "`n"
 $listName = @{ 'demuxer:mov' = 'mov,mp4,m4a'; 'demuxer:matroska' = 'matroska,webm'; 'demuxer:pcm_f32le' = 'f32le'
     'demuxer:image_png_pipe' = 'png_pipe'; 'demuxer:image_jpeg_pipe' = 'jpeg_pipe'; 'demuxer:image_webp_pipe' = 'webp_pipe'
     'demuxer:image_bmp_pipe' = 'bmp_pipe'; 'muxer:pcm_f32le' = 'f32le' }
@@ -131,7 +132,7 @@ $absent = foreach ($w in $wanted) {
     $name = if ($listName.ContainsKey($key)) { $listName[$key] } else { $w.Name }
     $found = switch ($w.Kind) {
         'decoder' { $name -in $decoders } 'encoder' { $name -in $encoders } 'filter' { $name -in $filters }
-        'protocol' { $name -in $protocols } 'demuxer' { $demuxers -match "(?m)^\s*D\S*\s+$([regex]::Escape($name))[\s,]" }
+        'protocol' { $name -in $protocols } 'indev' { $devices -match "(?m)^\s*D\S*\s+$([regex]::Escape($name))\s" } 'demuxer' { $demuxers -match "(?m)^\s*D\S*\s+$([regex]::Escape($name))[\s,]" }
         'muxer' { $muxers -match "(?m)^\s*\S*E\s+$([regex]::Escape($name))[\s,]" }
         'hwaccel' { (($w.Name -split '_')[1] -replace '^d3d11va2$', 'd3d11va') -in $hwaccels }
         'parser' { $true }   # not listed by the CLI; covered by the build config and the decode checks
@@ -140,8 +141,8 @@ $absent = foreach ($w in $wanted) {
     if (-not $found) { $key }
 }
 Add-Result 'components present (binaries)' $(if (-not $absent) { 'PASS' } else { 'FAIL' }) $(if ($absent) { $absent -join ' ' } else { 'decoders, encoders, filters, protocols, demuxers, muxers, hwaccels' })
-$extraEncoders = @($encoders | Where-Object { $_ -notin @('libx264', 'aac', 'rawvideo', 'pcm_f32le') })
-Add-Result 'no other encoders' $(if (-not $extraEncoders) { 'PASS' } else { 'FAIL' }) $(if ($extraEncoders) { $extraEncoders -join ' ' } else { 'libx264, aac, rawvideo, pcm_f32le only' })
+$extraEncoders = @($encoders | Where-Object { $_ -notin @('libx264', 'h264_nvenc', 'aac', 'rawvideo', 'pcm_f32le') })
+Add-Result 'no other encoders' $(if (-not $extraEncoders) { 'PASS' } else { 'FAIL' }) $(if ($extraEncoders) { $extraEncoders -join ' ' } else { 'libx264, h264_nvenc, aac, rawvideo, pcm_f32le only' })
 $denied = @('libx265', 'libaom-av1', 'libopenh264', 'liblcevc_dec', 'librubberband', 'libdvdnav', 'libdvdread')
 $deniedFound = @(($decoders + $encoders + $filters) | Where-Object { $_ -in $denied })
 $bytes = [System.IO.File]::ReadAllBytes($cand.ffmpeg)
@@ -288,6 +289,19 @@ if (Test-Path $av1) {
 }
 $hwH264 = Invoke-Tool $cand.ffmpeg (Get-VideoArgs (Join-Path $fx 'h264-aac.mp4') 'auto') $null (Join-Path $wk 'h264-hwauto.bgra')
 Add-Result 'H.264 with -hwaccel auto' $(if ($hwH264.Code -eq 0) { 'PASS' } else { 'INFO' }) "exit $($hwH264.Code) (the application falls back to software on failure)"
+
+# --- 6a. S1 (D066): the noise reduction of Phase 45 and the NVENC check of Phase 40, by the application's own lines ---------
+$nrOut = Join-Path $wk 'noise-reduction.f32'
+$nr = Invoke-Tool $cand.ffmpeg @('-hide_banner', '-nostdin', '-nostats', '-loglevel', 'error', '-i', (Join-Path $fx 's16.wav'),
+    '-map', '0:a:0', '-vn', '-af', 'aresample=48000:async=1,aformat=sample_fmts=flt:channel_layouts=stereo,ashowinfo,apad=pad_len=1200,highpass=f=80,afftdn=nr=14:nf=-50:tn=1',
+    '-f', 'f32le', 'pipe:1') $null $nrOut
+Add-Result 'noise reduction (highpass + afftdn)' $(if ($nr.Code -eq 0 -and (Get-Item $nrOut).Length -gt 0) { 'PASS' } else { 'FAIL' }) "exit $($nr.Code)"
+$nvenc = Invoke-Tool $cand.ffmpeg @('-hide_banner', '-nostats', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc2=s=640x360:r=30',
+    '-frames:v', '10', '-c:v', 'h264_nvenc', '-f', 'null', '-') $null $null
+if ($nvenc.Code -eq 0) { Add-Result 'NVENC trial encoding' 'PASS' 'h264_nvenc works here' }
+elseif ($nvenc.Err -match 'Cannot load nvcuda|Cannot load nvEncodeAPI|No capable devices|No NVENC capable|OpenEncodeSessionEx failed|Driver does not support|minimum required Nvidia driver') {
+    Add-Result 'NVENC trial encoding' 'SKIP' 'no NVIDIA encoder or driver here (the application falls back to libx264)'
+} else { Add-Result 'NVENC trial encoding' 'FAIL' "exit $($nvenc.Code): $(($nvenc.Err -split "`r?`n" | Select-Object -Last 2) -join ' | ')" }
 
 # --- 7. Sizes and checksums --------------------------------------------------------------------------------------------
 foreach ($exe in $cand.ffmpeg, $cand.ffprobe) {
