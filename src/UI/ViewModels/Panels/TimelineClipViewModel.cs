@@ -163,6 +163,14 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
 
     public bool HasFollowStrip => FollowSegments.Count > 0;
 
+    /// <summary>D063 §2: the clip's keyframe diamonds (its own on the clip, a followed part's on its strip), in pixels from its
+    /// left edge.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasKeyframes))]
+    private IReadOnlyList<KeyframeMarker> _keyframeMarkers = Array.Empty<KeyframeMarker>();
+
+    public bool HasKeyframes => KeyframeMarkers.Count > 0;
+
     /// <summary>The template's status may have changed: the mark's colour follows it.</summary>
     public void OnStatusChanged() => OnPropertyChanged(nameof(StatusMarkColorHex));
 

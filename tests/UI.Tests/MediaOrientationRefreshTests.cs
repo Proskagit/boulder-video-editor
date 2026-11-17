@@ -288,7 +288,7 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult SetHoldStyle(Guid clipId, HoldStyle style, Guid? routeId = null) => No;
         public TimelineEditResult SetHoldAnimation(Guid clipId, HoldAnimation? animation, Guid? routeId = null) => No;
         public TimelineEditResult SetHoldFollowsCamera(Guid clipId, bool follows, Guid? routeId = null) => No;
-        public TimelineEditResult FrameClip(Guid clipId, ClipFraming framing) => No;
+        public TimelineEditResult FrameClip(Guid clipId, ClipFraming framing, MediaTime? at = null) => No;
         public TimelineEditResult SetCanvasSize(int width, int height) => No;
         public TimelineEditResult SetFrameRate(FrameRate rate) => No;
         public TimelineEditResult SetProjectSettings(int width, int height, FrameRate? rate, ExportEncoding? export = null) => No;

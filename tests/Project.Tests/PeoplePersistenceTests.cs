@@ -55,7 +55,7 @@ public class PeoplePersistenceTests
     {
         var first = Save(Build());
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(23, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(24, root["formatVersion"]!.GetValue<int>());
         Assert.Equal(12_500_000, Part(root, 0)["targetTicks"]!.GetValue<long>());
         Assert.Equal("soft", Clip(root, 0)["follow"]!["smoothness"]!.GetValue<string>());
         Assert.True(Clip(root, 0)["hidesOutlinesBehindPeople"]!.GetValue<bool>());
@@ -85,7 +85,7 @@ public class PeoplePersistenceTests
             Assert.Null(c.Follow);
             Assert.False(c.HidesOutlinesBehindPeople);
         });
-        Assert.Equal(23, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(24, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
     }
 
     [Fact]

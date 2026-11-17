@@ -3398,4 +3398,79 @@
   <data name="Transform_CropOnFollow" xml:space="preserve">
     <value>Обрезка — не на кадре участка слежения (там картинку двигает слежение): поставьте указатель вне участков</value>
   </data>
+  <data name="Inspector_PlateCorner" xml:space="preserve">
+    <value>Угол плашки</value>
+  </data>
+  <data name="Keyframe_Added" xml:space="preserve">
+    <value>Ключевой кадр добавлен.</value>
+  </data>
+  <data name="Keyframe_AddedFollow" xml:space="preserve">
+    <value>Ключевой кадр слежения добавлен (место скалолаза и масштаб на этом участке).</value>
+  </data>
+  <data name="Keyframe_Removed" xml:space="preserve">
+    <value>Ключевой кадр удалён.</value>
+  </data>
+  <data name="Keyframe_Tip" xml:space="preserve">
+    <value>Ключевой кадр {0}: X {1}, Y {2}, масштаб {3} %; к следующему: {4}</value>
+  </data>
+  <data name="Keyframe_TipFollow" xml:space="preserve">
+    <value>Ключевой кадр слежения {0}: скалолаз X {1}, Y {2}, масштаб {3} %; к следующему: {4}</value>
+  </data>
+  <data name="Keyframe_Moving" xml:space="preserve">
+    <value>Ключевой кадр → {0}</value>
+  </data>
+  <data name="Timeline_KeyframeTip" xml:space="preserve">
+    <value>Добавить или удалить ключевой кадр на указателе (позиция X / Y и масштаб выбранного клипа; на участке слежения — место скалолаза и масштаб)</value>
+  </data>
+  <data name="Easing_Linear" xml:space="preserve">
+    <value>Линейно</value>
+  </data>
+  <data name="Easing_In" xml:space="preserve">
+    <value>Плавный старт</value>
+  </data>
+  <data name="Easing_Out" xml:space="preserve">
+    <value>Плавная остановка</value>
+  </data>
+  <data name="Easing_InOut" xml:space="preserve">
+    <value>Плавно с обеих сторон</value>
+  </data>
+  <data name="Inspector_Keyframes" xml:space="preserve">
+    <value>Ключевые кадры</value>
+  </data>
+  <data name="Keyframe_OwnerClip" xml:space="preserve">
+    <value>трансформация клипа · {0}</value>
+  </data>
+  <data name="Keyframe_OwnerFollow" xml:space="preserve">
+    <value>кадрирование слежения, участок {0} · {1}</value>
+  </data>
+  <data name="Keyframe_Add" xml:space="preserve">
+    <value>◆ Добавить кадр</value>
+  </data>
+  <data name="Keyframe_Remove" xml:space="preserve">
+    <value>◇ Удалить кадр</value>
+  </data>
+  <data name="Keyframe_PreviousTip" xml:space="preserve">
+    <value>Предыдущий ключевой кадр клипа</value>
+  </data>
+  <data name="Keyframe_NextTip" xml:space="preserve">
+    <value>Следующий ключевой кадр клипа</value>
+  </data>
+  <data name="Keyframe_Easing" xml:space="preserve">
+    <value>К следующему</value>
+  </data>
+  <data name="Keyframe_EasingTip" xml:space="preserve">
+    <value>Как значения меняются от этого ключевого кадра к следующему; переход длится ровно время между ними</value>
+  </data>
+  <data name="AppSettings_CanvasSnap" xml:space="preserve">
+    <value>Прилипание к краям кадра</value>
+  </data>
+  <data name="AppSettings_CanvasSnapNote" xml:space="preserve">
+    <value>В Preview изображение, перемещённое или растянутое к краю кадра, прилипает к нему точно (без тонкой чёрной полосы). Расстояние — в пикселях экрана, независимо от разрешения видео; 0 — выключено.</value>
+  </data>
+  <data name="Transform_Snapped" xml:space="preserve">
+    <value>прилипло к краю</value>
+  </data>
+  <data name="Timeline_Keyframe" xml:space="preserve">
+    <value>Ключ. кадр</value>
+  </data>
 </root>

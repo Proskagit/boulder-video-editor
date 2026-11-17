@@ -157,18 +157,19 @@ public sealed partial class PreviewViewModel
         return (at is { } time ? resolution.TrajectoryAt(time) : null)?.TrackIds ?? resolution.Trajectory?.TrackIds;
     }
 
-    private (VideoClip Clip, FollowSettings Follow, VisualProperties? Visual, MediaTime In, MediaTime Out, PersonTracks Tracks, FrameSize Canvas,
-        FrameSize Source, FollowResolution Result)? _resolution;
+    private (VideoClip Clip, FollowSettings Follow, VisualProperties? Visual, TransformKeyframes? Keyframes, MediaTime In, MediaTime Out, PersonTracks Tracks,
+        FrameSize Canvas, FrameSize Source, FollowResolution Result)? _resolution;
 
     /// <summary>The clip's Follow resolved (the last one cached: the notice asks on every shown frame).</summary>
     private FollowResolution Resolution(VideoClip clip, FollowSettings follow, PersonTracks tracks, FrameSize source)
     {
         var visual = VisualProperties.Of(clip);
-        if (_resolution is { } r && ReferenceEquals(r.Clip, clip) && r.Follow == follow && r.Visual == visual && r.In == clip.SourceIn &&
+        if (_resolution is { } r && ReferenceEquals(r.Clip, clip) && r.Follow == follow && r.Visual == visual && Equals(r.Keyframes, clip.Keyframes) &&
+            r.In == clip.SourceIn &&
             r.Out == clip.SourceOut && ReferenceEquals(r.Tracks, tracks) && r.Canvas == Canvas && r.Source == source)
             return r.Result;
         var result = FollowResolution.For(clip, follow, tracks, Canvas, source);
-        _resolution = (clip, follow, visual, clip.SourceIn, clip.SourceOut, tracks, Canvas, source, result);
+        _resolution = (clip, follow, visual, clip.Keyframes, clip.SourceIn, clip.SourceOut, tracks, Canvas, source, result);
         return result;
     }
 

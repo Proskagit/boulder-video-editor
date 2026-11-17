@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Composition;
 
 namespace AiVideoEditor.Core.Entities;
 
@@ -79,6 +80,12 @@ public sealed class VideoClip : MediaBackedClip
     /// <summary>D061 (format v20): the automatic Follow of a person — the picture's visible part moves with the person at the
     /// clip's own scale; null — off. Immutable, replaced as a whole by each edit.</summary>
     public FollowSettings? Follow { get; set; }
+
+    /// <summary>D063 (format v24): the clip's transform keyframes — its Position X / Y and Scale per source time, the
+    /// rotation, opacity and crop staying the static values above; null — none (the static values). When set, the static
+    /// Position X / Y and Scale are not used for the picture. Immutable, replaced as a whole by each edit; Split, Duplicate and
+    /// Paste copy them (kept in source time, so Trim, Slip, Speed and a move keep them on the same frames).</summary>
+    public TransformKeyframes? Keyframes { get; set; }
 
     /// <summary>D061 (format v20): the hold outlines of the clip's routes are hidden where a person is in front of them
     /// (Occlusion — every person in the frame, each segmented separately).</summary>
@@ -192,6 +199,11 @@ public sealed class TemplateClip : Clip
 
     /// <summary>The heart-rate overlay: the corner of the canvas it stands in.</summary>
     public OverlayCorner Corner { get; set; } = OverlayCorner.BottomRight;
+
+    /// <summary>D063 §C (format v24): the corner of «Боулдер»'s route plate (with its status block); bottom left — as before —
+    /// for a new template and an older project's. When the area's heart rate stands in the same corner it is placed beside
+    /// the plate, nearer the canvas centre (<see cref="Composition.CornerOverlayLayout"/>).</summary>
+    public OverlayCorner PlateCorner { get; set; } = OverlayCorner.BottomLeft;
 
     /// <summary>D055 §5 (format v16): whether a «Боулдер» shows the heart rate of its anchored clip on its span — on by
     /// default, also for an older project's areas. With <see cref="Look"/>, <see cref="Corner"/> and

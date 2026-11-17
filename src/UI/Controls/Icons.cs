@@ -16,6 +16,9 @@ public static class Icons
     public const string Loop = "M2.5,9 V7.5 A3.5,3.5 0 0 1 6,4 H13 M10.5,1.5 L13,4 L10.5,6.5 M13.5,7 V8.5 A3.5,3.5 0 0 1 10,12 H3 M5.5,9.5 L3,12 L5.5,14.5";
     public const string Undo = "M5.5,3 L2.5,6 L5.5,9 M2.5,6 H10 A3.5,3.5 0 0 1 10,13 H6";
     public const string Redo = "M10.5,3 L13.5,6 L10.5,9 M13.5,6 H6 A3.5,3.5 0 0 0 6,13 H10";
+    /// <summary>D063: a keyframe — a diamond.</summary>
+    public const string Keyframe = "M8,1.5 L14.5,8 L8,14.5 L1.5,8 Z";
+
     public const string Split = "M3,12 A2,2 0 1 0 7,12 A2,2 0 1 0 3,12 Z M9,12 A2,2 0 1 0 13,12 A2,2 0 1 0 9,12 Z M6.3,10.4 L12,2 M9.7,10.4 L4,2";
     public const string Delete = "M2.5,4 H13.5 M6,4 V2.5 H10 V4 M4,4 L4.8,14 H11.2 L12,4 M6.8,6.5 V11.5 M9.2,6.5 V11.5";
     public const string Snap = "M3,2.5 V8 A5,5 0 0 0 13,8 V2.5 H10 V8 A2,2 0 0 1 6,8 V2.5 Z M3,5.5 H6 M10,5.5 H13";

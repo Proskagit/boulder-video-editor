@@ -59,6 +59,10 @@ public sealed record TemplateDraw(Guid ClipId, Affine2D Transform, double Opacit
 
     /// <summary>The heart-rate overlay's BPM (Phase 35.5); null — nothing drawn.</summary>
     public int? HeartRate { get; init; }
+
+    /// <summary>D063 §C: the corner of a «Боулдер» route plate shown in the heart-rate overlay's corner on this frame (the
+    /// overlay stands beside it); null otherwise. A «Боулдер»'s own heart rate uses its <see cref="TemplateProperties.PlateCorner"/>.</summary>
+    public OverlayCorner? PlateCorner { get; init; }
 }
 
 /// <summary>
@@ -247,18 +251,16 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
 
     /// <summary>
     /// The D018 geometry of <paramref name="picture"/> on the frame with <paramref name="frameTimestamp"/>: with a Follow camera
-    /// (D061) the clip's position on that very source frame — the frame, its outline, its blurred background and its masks
-    /// all moved together, in the Preview and the export alike; otherwise the layer's own geometry (from the source size, or —
-    /// unknown — from <paramref name="decodedSize"/>).
+    /// (D061) the clip's framing on that very source frame (D063: its position and scale, the keyframes of the clip and of the
+    /// followed parts included) — the frame, its outline, its blurred background and its masks all moved together, in the
+    /// Preview and the export alike; otherwise the layer's own geometry (its keyframes evaluated on the frame; from the source
+    /// size, or — unknown — from <paramref name="decodedSize"/>).
     /// </summary>
     public static LayerGeometry GeometryAt(FrameSize canvas, PictureLayer picture, FrameSize decodedSize, SourceTimestamp? frameTimestamp)
     {
         if (picture.Span.Follow is { } follow && frameTimestamp is { } timestamp && picture.Span.SourceSize is { } source)
-        {
-            var (x, y) = follow.At(CameraMotionMath.SourceTimeOf(timestamp, picture.Span.SourceStartTime));
-            return CompositionMath.Layout(canvas, source, picture.Span.Visual with { PositionX = x, PositionY = y });
-        }
-        return picture.Geometry ?? CompositionMath.Layout(canvas, decodedSize, picture.Span.Visual);
+            return CompositionMath.Layout(canvas, source, follow.At(CameraMotionMath.SourceTimeOf(timestamp, picture.Span.SourceStartTime)));
+        return picture.Geometry ?? CompositionMath.Layout(canvas, decodedSize, picture.Visual);
     }
 
     /// <summary>
@@ -303,7 +305,8 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
             case TemplateLayer template:
                 return new TemplateDraw(template.ClipId, canvasToTarget, 1.0, canvas, template.Kind, template.Span.Fields, template.Clock)
                 {
-                    HeartRate = template.HeartRate
+                    HeartRate = template.HeartRate,
+                    PlateCorner = template.PlateCorner
                 };
 
             case PictureLayer picture:

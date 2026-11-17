@@ -129,6 +129,38 @@ public static class PreviewTransformMath
     }
 
     /// <summary>
+    /// D063 amendment 1 (owner, 2026-11-17): scale from a corner with the opposite corner held — the picture grows towards the
+    /// dragged corner, proportionally (the aspect kept). The factor is the projection of <paramref name="corner"/> (the
+    /// grabbed corner's new place) on the <paramref name="anchor"/> → <paramref name="startCorner"/> diagonal, divided by
+    /// the diagonal's length; the scale is rounded to 0.01 % and clamped to the limits, and the position moves so the anchor
+    /// (the opposite corner of the frame, canvas pixels) stays where it was. A corner at or past the anchor gives the minimum.
+    /// </summary>
+    public static VisualProperties ScaleFromAnchor(VisualProperties start, PointD anchor, PointD startCorner, PointD corner)
+    {
+        var ux = startCorner.X - anchor.X;
+        var uy = startCorner.Y - anchor.Y;
+        var length2 = ux * ux + uy * uy;
+        if (!(length2 > 0) || !double.IsFinite(length2)) return start;
+
+        var t = ((corner.X - anchor.X) * ux + (corner.Y - anchor.Y) * uy) / length2;
+        if (t == 1) return start;
+        var scale = t > 0 ? Math.Round(start.Scale * t, ScaleDecimals, MidpointRounding.AwayFromZero) : ClipPropertyLimits.MinScale;
+        if (!double.IsFinite(scale)) return start;
+        scale = Math.Clamp(scale, ClipPropertyLimits.MinScale, ClipPropertyLimits.MaxScale);
+        return AboutAnchor(start, scale, anchor, new PointD((anchor.X + startCorner.X) / 2, (anchor.Y + startCorner.Y) / 2));
+    }
+
+    /// <summary><paramref name="start"/> at <paramref name="scale"/> with <paramref name="anchor"/> held: the frame's centre
+    /// (<paramref name="centre"/> at the start) moves along the anchor → centre line by the scale's ratio.</summary>
+    public static VisualProperties AboutAnchor(VisualProperties start, double scale, PointD anchor, PointD centre)
+    {
+        var k = scale / start.Scale;
+        var dx = (centre.X - anchor.X) * (k - 1);
+        var dy = (centre.Y - anchor.Y) * (k - 1);
+        return start with { Scale = scale, PositionX = ClampPosition(start.PositionX + dx), PositionY = ClampPosition(start.PositionY + dy) };
+    }
+
+    /// <summary>
     /// The anchored crop (D038 §3): the <paramref name="edges"/> dragged to <paramref name="sourcePoint"/> (pixels of the
     /// source <paramref name="source"/>; only the coordinate of each dragged edge's axis is used), rounded to whole source
     /// pixels; the edges not dragged keep their exact values. The scale and position compensate so the picture that stays

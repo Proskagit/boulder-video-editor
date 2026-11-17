@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Composition;
 
 namespace AiVideoEditor.Project.Persistence;
 
@@ -362,6 +363,10 @@ internal sealed class VideoClipDto : MediaBackedClipDto
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public FollowDto? Follow { get; set; }
 
+    /// <summary>Format v24 (D063): the clip's transform keyframes, sorted; written only when it has some.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<KeyframeDto>? Keyframes { get; set; }
+
     /// <summary>Format v20 (D061): the hold outlines hidden behind people; written only when true.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool HidesOutlinesBehindPeople { get; set; }
@@ -512,6 +517,10 @@ internal sealed class TemplateClipDto : ClipDto
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OverlayCorner? Corner { get; set; }
+
+    /// <summary>Format v24 (D063 §C): «Боулдер»'s route plate corner; written only when not bottom left.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public OverlayCorner? PlateCorner { get; set; }
 
     /// <summary>Format v16 (D055 §5): a «Боулдер»'s heart rate shown or not and its heart's colour (with its look and
     /// corner above); written (and required) only on it.</summary>
@@ -688,4 +697,22 @@ internal sealed class FollowPartDto
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? OffsetY { get; set; }
+
+    /// <summary>Format v24 (D063 §4): the part's framing keyframes (the offset and the scale); written only when it has some.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<KeyframeDto>? Keyframes { get; set; }
+}
+
+/// <summary>Format v24 (D063): one transform keyframe — its id, its source time (100 ns ticks), its values and the easing of
+/// its outgoing segment (absent: linear).</summary>
+internal sealed class KeyframeDto
+{
+    public Guid Id { get; set; }
+    public long TimeTicks { get; set; }
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Scale { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public KeyframeEasing? Easing { get; set; }
 }

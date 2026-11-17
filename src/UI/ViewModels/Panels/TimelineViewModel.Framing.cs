@@ -88,7 +88,8 @@ public sealed partial class TimelineViewModel
     private void FrameClip(TimelineClipViewModel? clip, ClipFraming framing)
     {
         if (clip is null || !CanEdit()) return;
-        var result = _edit.FrameClip(clip.Id, framing);
+        // D063 §5: a keyframed clip gets the scale in its keyframe on the playhead's frame.
+        var result = _edit.FrameClip(clip.Id, framing, Keyframes.FramingTimeAt(clip.Clip, EditPlayhead.ToFrameFloor(FrameRate)));
         _status.Report(ClipFramingStatus.Text(result, framing, clip.Clip));
     }
 }

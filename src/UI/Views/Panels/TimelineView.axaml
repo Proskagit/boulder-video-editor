@@ -183,6 +183,13 @@
               </StackPanel>
             </Button>
             <Rectangle Width="1" Fill="#444444" Margin="4,2"/>
+            <!-- D063 §1: the keyframe of the selected clip at the playhead (its transform, or on a followed part its framing). -->
+            <Button x:Name="KeyframeButton" Command="{Binding ToggleKeyframeCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_KeyframeTip}" FontSize="11">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.Keyframe}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_Keyframe}"/>
+              </StackPanel>
+            </Button>
             <Button Command="{Binding SplitAtPlayheadCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_SplitTip}" FontSize="11">
               <StackPanel Orientation="Horizontal" Spacing="4">
                 <controls:IconPath Glyph="{x:Static controls:Icons.Split}" Width="12" Height="12"/>
@@ -489,7 +496,27 @@
                               </DataTemplate>
                             </ItemsControl.ItemTemplate>
                           </ItemsControl>
-                          <!-- Variant B: the parts of the anchored clip's segments outside the plate (an orange before its start or after
+                          <!-- D063 §2: the keyframe diamonds — the clip's own along its top, a followed part's on its cyan strip; a press selects
+               one (the playhead goes to it), a drag moves it along the frames. -->
+          <ItemsControl x:Name="KeyframeLane" Tag="KeyframeLane" Classes="canvasItems" ItemsSource="{Binding KeyframeMarkers}"
+                        IsVisible="{Binding HasKeyframes}" Height="44" VerticalAlignment="Top" HorizontalAlignment="Left"
+                        Width="{Binding Width}" ClipToBounds="True" Background="{x:Null}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <Canvas/>
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Canvas Width="0" Height="44">
+                  <Border Tag="Keyframe" Canvas.Left="-5" Canvas.Top="{Binding Top}" Width="10" Height="10" Background="{Binding Fill}"
+                          BorderBrush="#1A1A1A" BorderThickness="1" Cursor="SizeWestEast" ToolTip.Tip="{Binding Tip}"
+                          RenderTransform="rotate(45deg)"/>
+                </Canvas>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <!-- Variant B: the parts of the anchored clip's segments outside the plate (an orange before its start or after
                                its end), beside it, translucent and dashed — nothing of the animation is hidden by the plate's bounds. -->
                           <ItemsControl x:Name="PlateOverflow" Tag="PlateOverflow" Classes="canvasItems" ItemsSource="{Binding TemplateOverflow}"
                                         IsVisible="{Binding HasTemplateOverflow}" Height="36" Margin="0,4,0,0" VerticalAlignment="Top" ClipToBounds="False">

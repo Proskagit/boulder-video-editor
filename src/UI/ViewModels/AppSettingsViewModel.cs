@@ -51,6 +51,7 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
         _otherHeartRateOffsetSeconds = Seconds(current.OtherHeartRateDisplayOffsetTicks);
         _holdProposalsEnabled = current.HoldProposalsEnabled;
         _timelineFollowsPlayhead = current.TimelineFollowsPlayhead;
+        _canvasSnapPixels = (decimal)current.CanvasSnapPixels;
         _showPeopleMasks = current.ShowPeopleMasks;
         _languageIndex = current.Language switch { "en" => 2, "ru" => 1, _ => 0 };
         _ffmpegPath = current.FfmpegPath ?? "";
@@ -179,6 +180,19 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
     [ObservableProperty] private bool _timelineFollowsPlayhead;
 
     partial void OnTimelineFollowsPlayheadChanged(bool value) => _settings.Update(s => s with { TimelineFollowsPlayhead = value });
+
+    /// <summary>D063 §B: the Preview's snap to the canvas edges, screen pixels (0: off).</summary>
+    [ObservableProperty] private decimal? _canvasSnapPixels;
+
+    public decimal MinCanvasSnapPixels => (decimal)Core.Composition.CanvasSnap.MinThresholdPixels;
+    public decimal MaxCanvasSnapPixels => (decimal)Core.Composition.CanvasSnap.MaxThresholdPixels;
+
+    partial void OnCanvasSnapPixelsChanged(decimal? value)
+    {
+        if (value is not { } pixels) return;
+        _settings.Update(s => s with { CanvasSnapPixels = Math.Clamp((double)Math.Round(pixels), Core.Composition.CanvasSnap.MinThresholdPixels,
+            Core.Composition.CanvasSnap.MaxThresholdPixels) });
+    }
 
     /// <summary>D061 amendment 1: the people's masks in the Preview (diagnostics).</summary>
     [ObservableProperty] private bool _showPeopleMasks;

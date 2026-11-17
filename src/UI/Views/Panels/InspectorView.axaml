@@ -337,6 +337,19 @@
                       </DataTemplate>
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
+                  <!-- D063 §C: the route plate's corner (the heart rate in the same corner stands beside it, nearer the centre). -->
+                  <Grid ColumnDefinitions="124,*">
+                    <TextBlock Text="{x:Static l:Strings.Inspector_PlateCorner}" Classes="label" VerticalAlignment="Top" Margin="0,4,0,0"/>
+                    <ItemsControl x:Name="PlateCornersButtons" Grid.Column="1" ItemsSource="{Binding PlateCorners}">
+                      <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <ToggleButton Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=TwoWay}" CommandParameter="{Binding Value}"
+                                        FontSize="11" Margin="0,0,4,4" Command="{Binding $parent[UserControl].DataContext.SetPlateCornerCommand}"/>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </Grid>
                   <!-- D055 §5: the area's own heart rate — shown or not; its look, corner and colour below. -->
                   <CheckBox x:Name="TemplateShowHeartRateBox" Content="{x:Static l:Strings.Inspector_AreaShowHeartRate}"
                             IsChecked="{Binding TemplateShowHeartRate, Mode=TwoWay}" ToolTip.Tip="{x:Static l:Strings.Inspector_AreaShowHeartRateTip}"/>
@@ -591,6 +604,28 @@
                       <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Bottom,Centre" ToolTip.Tip="{x:Static l:Strings.Grid_BottomCentre}"/>
                       <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Bottom,Right" ToolTip.Tip="{x:Static l:Strings.Grid_BottomRight}"/>
                     </UniformGrid>
+                  </StackPanel>
+                  <!-- D063 §2: the keyframes at the playhead — whose, how many; add / remove on the frame; previous / next; the
+                       easing to the next keyframe. -->
+                  <StackPanel x:Name="KeyframeSection" Spacing="4" IsVisible="{Binding HasKeyframeSection}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <TextBlock Text="{x:Static l:Strings.Inspector_Keyframes}" Classes="label"/>
+                      <TextBlock x:Name="KeyframeOwnerText" Text="{Binding KeyframeOwnerText}" FontSize="11" Foreground="#A0A0A0"
+                                 VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="200"/>
+                    </StackPanel>
+                    <WrapPanel Orientation="Horizontal" Margin="124,0,0,0">
+                      <Button Content="◀" Command="{Binding PreviousKeyframeCommand}" FontSize="11" Margin="0,0,4,4"
+                              ToolTip.Tip="{x:Static l:Strings.Keyframe_PreviousTip}"/>
+                      <Button x:Name="KeyframeToggleButton" Content="{Binding KeyframeButtonText}" Command="{Binding ToggleKeyframeHereCommand}"
+                              IsEnabled="{Binding IsEditingAllowed}" FontSize="11" Margin="0,0,4,4" ToolTip.Tip="{x:Static l:Strings.Timeline_KeyframeTip}"/>
+                      <Button Content="▶" Command="{Binding NextKeyframeCommand}" FontSize="11" Margin="0,0,4,4"
+                              ToolTip.Tip="{x:Static l:Strings.Keyframe_NextTip}"/>
+                    </WrapPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsOnKeyframe}">
+                      <TextBlock Text="{x:Static l:Strings.Keyframe_Easing}" Classes="label"/>
+                      <ComboBox x:Name="KeyframeEasingBox" ItemsSource="{Binding KeyframeEasings}" SelectedIndex="{Binding KeyframeEasingIndex, Mode=TwoWay}"
+                                IsEnabled="{Binding IsEditingAllowed}" ToolTip.Tip="{x:Static l:Strings.Keyframe_EasingTip}"/>
+                    </StackPanel>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_PositionX}" Classes="label" Target="{Binding #PositionXBox}" StepPerPixel="1"

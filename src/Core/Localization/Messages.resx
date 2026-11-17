@@ -1378,4 +1378,19 @@
   <data name="Follow_InvalidParts" xml:space="preserve">
     <value>The followed parts would overlap: a part ends before the next one starts.</value>
   </data>
+  <data name="Prop_KeyframesOnlyVideo" xml:space="preserve">
+    <value>Only video clips have transform keyframes.</value>
+  </data>
+  <data name="Prop_KeyframesInvalid" xml:space="preserve">
+    <value>The keyframes are not valid: two at one moment, or a value out of range.</value>
+  </data>
+  <data name="Keyframe_Exists" xml:space="preserve">
+    <value>A keyframe already lies on that frame.</value>
+  </data>
+  <data name="Keyframe_NotUnderPlayhead" xml:space="preserve">
+    <value>Put the playhead on the selected clip to add a keyframe.</value>
+  </data>
+  <data name="Keyframe_NoClip" xml:space="preserve">
+    <value>Select a video clip to add a keyframe.</value>
+  </data>
 </root>

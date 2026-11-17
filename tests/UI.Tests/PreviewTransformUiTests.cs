@@ -440,7 +440,7 @@ public sealed class PreviewTransformUiTests : IAsyncLifetime
     [Theory]
     [InlineData(0)]
     [InlineData(30)]
-    public void A_corner_drag_scales_around_the_centre_and_never_moves_it(double rotation)
+    public void A_corner_drag_scales_towards_the_corner_and_holds_the_opposite_corner(double rotation)
     {
         var clip = AddVideo();
         _vm.Inspector.Rotation = (decimal)rotation;
@@ -456,15 +456,18 @@ public sealed class PreviewTransformUiTests : IAsyncLifetime
             PreviewTransformOverlay.HandleAt(Viewport, frame, ViewOf(press), cornersOnly: true));
 
         Assert.True(Tool.BeginScale(CropEdges.Right | CropEdges.Bottom, press));
-        var center = frame.Center;
-        var target = new PointD(center.X + 1.5 * (corner.X - center.X), center.Y + 1.5 * (corner.Y - center.Y));
+        // D063 amendment 1: the opposite (top-left) corner is held; the picture grows towards the dragged corner.
+        var anchor = frame.HandlePoint(CropEdges.Left | CropEdges.Top);
+        var target = new PointD(anchor.X + 1.5 * (corner.X - anchor.X), anchor.Y + 1.5 * (corner.Y - anchor.Y));
         Tool.UpdateGesture(new PointD(target.X + (press.X - corner.X), target.Y + (press.Y - corner.Y)), keepAxis: false);
         Tool.EndGesture();
 
         var v = Visual(clip);
         Assert.Equal(0.75, v.Scale, 4);
-        Assert.Equal(200, v.PositionX);
-        Assert.Equal(0, v.PositionY);
+        var held = Tool.Target!.Frame.HandlePoint(CropEdges.Left | CropEdges.Top);
+        Assert.Equal(anchor.X, held.X, 6);
+        Assert.Equal(anchor.Y, held.Y, 6);
+        Assert.Equal(target.X, Tool.Target.Frame.HandlePoint(CropEdges.Right | CropEdges.Bottom).X, 6);
         Assert.Equal(rotation, v.RotationDegrees);
         Assert.Equal(75m, Math.Round(_vm.Inspector.ScalePercent!.Value, 2));
         Assert.Equal("Scale Clip", _undo.NextUndo!.Description);
@@ -477,13 +480,16 @@ public sealed class PreviewTransformUiTests : IAsyncLifetime
         Tool.IsMoveOn = true;
         var frame = Tool.Target!.Frame;
         var corner = frame.HandlePoint(CropEdges.Left | CropEdges.Top);
+        var anchor = frame.HandlePoint(CropEdges.Right | CropEdges.Bottom);
         Tool.BeginScale(CropEdges.Left | CropEdges.Top, corner);
         Tool.UpdateGesture(new PointD(-50_000, -30_000), keepAxis: false);
         Assert.Equal(ClipPropertyLimits.MaxScale, Visual(clip).Scale);
         Tool.UpdateGesture(new PointD(3000, 2000), keepAxis: false);   // past the centre
         Assert.Equal(ClipPropertyLimits.MinScale, Visual(clip).Scale);
         Tool.EndGesture();
-        Assert.Equal(0, Visual(clip).PositionX);
+        var held = Tool.Target!.Frame.HandlePoint(CropEdges.Right | CropEdges.Bottom);   // the opposite corner held at the limit too
+        Assert.Equal(anchor.X, held.X, 6);
+        Assert.Equal(anchor.Y, held.Y, 6);
     }
 
     [Fact]
@@ -703,24 +709,24 @@ public sealed class PreviewTransformUiTests : IAsyncLifetime
         Tool.EndGesture();
         Assert.Equal((-60, 60), (Visual(text).PositionX, Visual(text).PositionY));
 
-        // Scale by the bottom-right corner, dragged to twice its distance from the centre (900, 600): the text doubles
-        // around its centre, the position stays; one undo step; no crop appears.
+        // Scale by the bottom-right corner, dragged to twice its distance from the held top-left corner (860, 575): the text
+        // doubles towards the dragged corner (D063 amendment 1); one undo step; no crop appears.
         var steps = Steps();
         var frame = Tool.Target!.Frame;
         Assert.Equal(new PointD(900, 600), frame.Center);
         var corner = frame.HandlePoint(CropEdges.Right | CropEdges.Bottom);
         Assert.Equal(new PointD(940, 625), corner);
         Assert.True(Tool.BeginScale(CropEdges.Right | CropEdges.Bottom, corner));
-        Tool.UpdateGesture(new PointD(960, 637.5), keepAxis: false);   // ×1.5 on the way
+        Tool.UpdateGesture(new PointD(980, 650), keepAxis: false);     // ×1.5 on the way
         Assert.Equal(1.5, Visual(text).Scale);
-        Tool.UpdateGesture(new PointD(980, 650), keepAxis: false);     // ×2
+        Tool.UpdateGesture(new PointD(1020, 675), keepAxis: false);    // ×2
         Tool.EndGesture();
 
         var scaled = Visual(text);
-        Assert.Equal(VisualProperties.Default with { PositionX = -60, PositionY = 60, Scale = 2 }, scaled);
+        Assert.Equal(VisualProperties.Default with { PositionX = -20, PositionY = 85, Scale = 2 }, scaled);
         Assert.Equal(CropRect.None, scaled.Crop);
-        Assert.Equal(new PointD(980, 650), Tool.Target!.Frame.HandlePoint(CropEdges.Right | CropEdges.Bottom));
-        Assert.Equal(new PointD(900, 600), Tool.Target.Frame.Center);
+        Assert.Equal(new PointD(1020, 675), Tool.Target!.Frame.HandlePoint(CropEdges.Right | CropEdges.Bottom));
+        Assert.Equal(new PointD(860, 575), Tool.Target.Frame.HandlePoint(CropEdges.Left | CropEdges.Top));
         Assert.Equal(200m, _vm.Inspector.ScalePercent);
         Assert.Equal(steps + 1, Steps());
         Assert.Equal("Scale Clip", _undo.NextUndo!.Description);
@@ -866,7 +872,7 @@ public sealed class PreviewTransformUiTests : IAsyncLifetime
         var clip = AddVideo();
         Assert.True(_edit.SetClipFollow(clip.Id, FollowSettings.Of(new FollowPart(MediaTime.Zero, MediaTime.FromSeconds(5)))).Success);
         // Follow puts the picture 100 px right on this frame (the analysis stubbed); outside the part — nothing.
-        Tool.FollowAt = (c, t) => t < MediaTime.FromSeconds(5) ? (0, 100, 0) : null;
+        Tool.FollowAt = (c, t) => t < MediaTime.FromSeconds(5) ? (0, VisualProperties.Of(c)!.Value with { PositionX = 100, PositionY = 0 }) : null;
         var steps = Steps();
         Assert.True(Tool.ActivateFor(clip.Id));
         Assert.Equal(0, Tool.Target!.FollowPart);
@@ -916,7 +922,7 @@ public sealed class PreviewTransformUiTests : IAsyncLifetime
     {
         var clip = AddVideo();
         Assert.True(_edit.SetClipFollow(clip.Id, FollowSettings.Whole()).Success);
-        Tool.FollowAt = (c, t) => (0, 100, 0);
+        Tool.FollowAt = (c, t) => (0, VisualProperties.Of(c)!.Value with { PositionX = 100, PositionY = 0 });
         Tool.IsCropOn = true;
         Assert.Equal(0, Tool.Target!.FollowPart);
         Assert.False(Tool.HasCropHandles);

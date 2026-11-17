@@ -1,3 +1,5 @@
 # InspectorView.axaml is CRLF in the repository; disable trailing-space checks
 # for it until the file is renormalized to LF.
 src/UI/Views/Panels/InspectorView.axaml whitespace=-trailing-space
+# MainWindow.axaml.cs is CRLF in the repository too (its CR is not trailing whitespace).
+src/UI/Views/MainWindow.axaml.cs whitespace=-trailing-space

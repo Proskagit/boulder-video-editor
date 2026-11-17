@@ -418,6 +418,8 @@ public sealed class SetClipPropertiesCommand(Clip clip, ClipPropertyValues befor
         _ when (fields & ~(ClipPropertyFields.MotionIn | ClipPropertyFields.FadeIn)) == 0 => "Change Appearance",
         _ when (fields & ~(ClipPropertyFields.MotionOut | ClipPropertyFields.FadeOut)) == 0 => "Change Disappearance",
         _ when (fields & ~ClipPropertyFields.Template) == 0 => "Change Template",
+        ClipPropertyFields.Keyframes => "Change Keyframes",
+        _ when (fields & ~ClipPropertyFields.KeyframeValues) == 0 => "Change Keyframe",
         _ => "Change Clip Properties"
     };
 }

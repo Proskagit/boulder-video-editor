@@ -13,10 +13,13 @@ public readonly record struct TemplateProperties(
     HeartRateLook Look = HeartRateLook.Plate, OverlayCorner Corner = OverlayCorner.BottomRight, bool ShowHeartRate = true,
     string HeartHex = TemplateRules.HeartRateAccentHex)
 {
+    /// <summary>D063 §C: «Боулдер»'s route plate corner (bottom left by default, as before).</summary>
+    public OverlayCorner PlateCorner { get; init; } = OverlayCorner.BottomLeft;
+
     /// <summary>The clip's current values, or null for clips that aren't templates.</summary>
     public static TemplateProperties? Of(Clip clip) => clip is TemplateClip t
         ? new TemplateProperties(t.Date, t.Route, t.Grade, t.Status, t.AccentHex, t.Title, t.Subtitle, t.StatusAt, t.Look, t.Corner,
-            t.ShowHeartRate, t.HeartHex)
+            t.ShowHeartRate, t.HeartHex) { PlateCorner = t.PlateCorner }
         : null;
 
     /// <summary>The heart's colour as drawn: the overlay's accent, a «Боулдер»'s own heart colour (D055 §5).</summary>

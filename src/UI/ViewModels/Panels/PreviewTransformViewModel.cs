@@ -42,6 +42,21 @@ public sealed record TransformTarget(Clip Clip, Track Track, VisualProperties Vi
     /// <summary>D061 amendment 1: the followed part the camera follows on the shown frame (its index in the clip's Follow) —
     /// the frame is then where Follow puts the picture, and a drag moves the person in the frame; null otherwise.</summary>
     public int? FollowPart { get; init; }
+
+    /// <summary>D063: the timeline frame the target is shown on (the playhead's) — the frame its keyframes are edited on.</summary>
+    public long TimelineFrame { get; init; }
+
+    private readonly VisualProperties? _placed;
+
+    /// <summary>Where the picture is drawn on the frame: <see cref="Visual"/>, or with Follow the framing there.</summary>
+    public VisualProperties Placed
+    {
+        get => _placed ?? Visual;
+        init => _placed = value;
+    }
+
+    /// <summary>The picture's source size (null for a text).</summary>
+    public FrameSize? Source { get; init; }
 }
 
 /// <summary>
@@ -67,13 +82,16 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
     private Gesture? _gesture;
 
     public PreviewTransformViewModel(ITimelineEditService edit, IProjectService projects, StatusService status,
-        EditingLock? editingLock = null, Func<TextProperties, (double Width, double Height)>? measureText = null)
+        EditingLock? editingLock = null, Func<TextProperties, (double Width, double Height)>? measureText = null,
+        IUserSettingsService? userSettings = null)
     {
         _edit = edit;
         _projects = projects;
         _status = status;
         _lock = editingLock ?? new EditingLock();
         _measureText = measureText ?? MeasureWithPainter;
+        _keyframes = new TransformKeyframeEditor(edit, projects);
+        if (userSettings is not null) SnapThresholdPixels = () => userSettings.Current.CanvasSnapPixels;
 
         _projects.TimelineChanged += (_, _) => Refresh();
         _projects.ProjectChanged += (_, _) => { DropGesture(); _clipId = null; Refresh(); };
@@ -101,8 +119,20 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
     public Action<Guid>? SelectClip { get; set; }
 
     /// <summary>D061 amendment 1: the followed part the camera follows on source time of a clip and where Follow puts the
-    /// picture there (Position X / Y); null — no Follow there (set by the main window).</summary>
-    public Func<VideoClip, MediaTime, (int Part, double X, double Y)?>? FollowAt { get; set; }
+    /// picture there (D063: its position and scale); null — no Follow there (set by the main window).</summary>
+    public Func<VideoClip, MediaTime, (int Part, VisualProperties Visual)?>? FollowAt { get; set; }
+
+    /// <summary>D063 §B: the snap threshold in screen pixels (the user's setting).</summary>
+    public Func<double> SnapThresholdPixels { get; set; } = () => CanvasSnap.DefaultThresholdPixels;
+
+    /// <summary>D063 §B: screen pixels per canvas pixel of the Preview now (set by the overlay as it draws), so the threshold
+    /// stays the same on the screen at any Preview size.</summary>
+    public double ScreenPixelsPerCanvasPixel { get; set; } = 1;
+
+    /// <summary>D063 §B: the canvas edges the running gesture snapped the picture to (the overlay highlights them).</summary>
+    [ObservableProperty] private CropEdges _snappedEdges;
+
+    private readonly TransformKeyframeEditor _keyframes;
 
     /// <summary>Another mode of the Preview takes its clicks now (the hold markup, the climber's pick); set by the main window.</summary>
     public Func<bool> OtherModeActive { get; set; } = () => false;
@@ -288,7 +318,8 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
     /// </summary>
     public bool WheelScale(double factor)
     {
-        if (!CanEdit || _gesture is not null || Target is not { } target || VisualProperties.Of(target.Clip) is not { } visual) return false;
+        if (!CanEdit || _gesture is not null || Target is not { } target) return false;
+        var visual = target.Placed;
         var now = Now();
         if (_wheelUndo is null || _wheelClip != target.Clip.Id || now - _wheelLast > WheelStepWindow) _wheelUndo = new ClipPropertyGesture("Scale Clip");
         _wheelClip = target.Clip.Id;
@@ -296,7 +327,7 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         var scale = Math.Clamp(Math.Round(visual.Scale * factor, PreviewTransformMath.ScaleDecimals, MidpointRounding.AwayFromZero),
             ClipPropertyLimits.MinScale, ClipPropertyLimits.MaxScale);
         if (scale == visual.Scale) return false;
-        var result = _edit.SetClipProperties(target.Clip.Id, new ClipPropertyChange { Visual = visual with { Scale = scale }, Gesture = _wheelUndo });
+        var result = WriteScale(target, scale, _wheelUndo);
         if (!result.Success)
         {
             _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
@@ -325,12 +356,15 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         }
         var playhead = Playhead();
         if (playhead < clip.TimelineStart || playhead >= clip.TimelineEnd) { reason = NotUnderPlayheadText; return null; }
+        var frame = playhead.ToFrameFloor(project.Settings.FrameRate);
+        // D063: a keyframed clip is where its keyframes put it on this frame.
+        if (clip is VideoClip { Keyframes: not null } keyed) visual = VisualProperties.At(keyed, _keyframes.SourceAt(keyed, frame))!.Value;
 
         var canvas = Canvas;
         if (clip is TextClip text)
         {
             var (w, h) = _measureText(TextProperties.Of(text)!.Value);
-            return new TransformTarget(clip, track, visual, PreviewTransformMath.TextFrame(canvas, visual, w, h), null);
+            return new TransformTarget(clip, track, visual, PreviewTransformMath.TextFrame(canvas, visual, w, h), null) { TimelineFrame = frame };
         }
         var asset = clip is MediaBackedClip m ? project.MediaAssets.FirstOrDefault(a => a.Id == m.MediaAssetId) : null;
         if (PlaybackSnapshotBuilder.DisplaySize(asset?.Metadata) is not { } size) { reason = UnknownSizeText; return null; }
@@ -344,11 +378,14 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
             if (followAt(video, source) is { } follow)
             {
                 followPart = follow.Part;
-                placed = visual with { PositionX = follow.X, PositionY = follow.Y };
+                placed = follow.Visual;
             }
         }
         var geometry = CompositionMath.Layout(canvas, size, placed);
-        return new TransformTarget(clip, track, visual, PreviewTransformMath.PictureFrame(geometry), geometry) { FollowPart = followPart };
+        return new TransformTarget(clip, track, visual, PreviewTransformMath.PictureFrame(geometry), geometry)
+        {
+            FollowPart = followPart, TimelineFrame = frame, Placed = placed, Source = size
+        };
     }
 
     private static (double, double) MeasureWithPainter(TextProperties text)
@@ -390,6 +427,12 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         public FollowSettings? StartFollow { get; init; }
         public int FollowPart { get; init; }
 
+        /// <summary>D063: the clip's stored values at the start (its static picture properties, its keyframes, its Follow) —
+        /// what a cancel writes back.</summary>
+        public VisualProperties? StartStatic { get; init; }
+        public KeyframeValues? StartKeyframes { get; init; }
+        public FollowSettings? StartFollowAll { get; init; }
+
         /// <summary>Scale: the grabbed corner minus the pointer (canvas); Crop: the dragged edges minus the pointer (source
         /// pixels).</summary>
         public PointD Offset { get; init; }
@@ -422,7 +465,7 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         var c = target.Frame.HandlePoint(corner);
         return Start(new Gesture
         {
-            Kind = TransformGestureKind.Scale, Undo = new ClipPropertyGesture("Scale Clip"), Clip = target.Clip, Start = target.Visual,
+            Kind = TransformGestureKind.Scale, Undo = new ClipPropertyGesture("Scale Clip"), Clip = target.Clip, Start = target.Placed,
             Target = target, Pointer = pointer, Handle = corner, Offset = new PointD(c.X - pointer.X, c.Y - pointer.Y)
         });
     }
@@ -448,7 +491,16 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
 
     private bool Start(Gesture gesture)
     {
+        gesture = new Gesture
+        {
+            Kind = gesture.Kind, Undo = gesture.Undo, Clip = gesture.Clip, Start = gesture.Start, Target = gesture.Target, Pointer = gesture.Pointer,
+            Handle = gesture.Handle, StartFollow = gesture.StartFollow, FollowPart = gesture.FollowPart, Offset = gesture.Offset,
+            CanvasToSource = gesture.CanvasToSource,
+            StartStatic = VisualProperties.Of(gesture.Clip), StartKeyframes = KeyframeValues.Of(gesture.Clip),
+            StartFollowAll = (gesture.Clip as VideoClip)?.Follow
+        };
         _gesture = gesture;
+        SnappedEdges = CropEdges.None;
         ShowGestureValues(gesture.Start);
         OnPropertyChanged(nameof(IsGestureActive));
         OnPropertyChanged(nameof(GestureKind));
@@ -468,11 +520,70 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         var next = g.Kind switch
         {
             TransformGestureKind.Move => PreviewTransformMath.Move(g.Start, pointer.X - g.Pointer.X, pointer.Y - g.Pointer.Y, keepAxis),
+            // D063 amendment 1: the opposite corner held — the picture grows towards the dragged corner. On a followed part the
+            // camera places the picture, so there the scale keeps the centre (only the scale is written).
+            TransformGestureKind.Scale when g.Target.FollowPart is null => PreviewTransformMath.ScaleFromAnchor(g.Start,
+                g.Target.Frame.HandlePoint(Opposite(g.Handle)), g.Target.Frame.HandlePoint(g.Handle), new PointD(pointer.X + g.Offset.X, pointer.Y + g.Offset.Y)),
             TransformGestureKind.Scale => PreviewTransformMath.ScaleFromCorner(g.Start, g.Target.Frame.Center, g.Target.Frame.HandlePoint(g.Handle),
                 new PointD(pointer.X + g.Offset.X, pointer.Y + g.Offset.Y)),
             _ => Crop(g, pointer)
         };
+        next = Snap(g, next);
+        if (g.Kind == TransformGestureKind.Scale && g.Target.FollowPart is not null)
+        {
+            var result = WriteScale(g.Target, next.Scale, g.Undo);
+            if (!result.Success)
+            {
+                _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
+                CancelGesture();
+                return;
+            }
+            if (_gesture == g) ShowGestureValues(next);
+            return;
+        }
         Apply(g, next);
+    }
+
+    /// <summary>The corner opposite <paramref name="corner"/>.</summary>
+    private static CropEdges Opposite(CropEdges corner) =>
+        (corner.HasFlag(CropEdges.Left) ? CropEdges.Right : CropEdges.Left) | (corner.HasFlag(CropEdges.Top) ? CropEdges.Bottom : CropEdges.Top);
+
+    /// <summary>D063 §B: the threshold in canvas pixels — the user's screen pixels at the Preview's zoom now.</summary>
+    private double SnapThresholdCanvas() =>
+        Math.Max(0, SnapThresholdPixels()) / Math.Max(1e-6, ScreenPixelsPerCanvasPixel);
+
+    /// <summary>D063 §B: Move and Scale of a picture snap its edges to the canvas edges (not a text, not a frame Follow
+    /// places — the camera keeps covering the canvas there).</summary>
+    private VisualProperties Snap(Gesture g, VisualProperties raw)
+    {
+        var edges = CropEdges.None;
+        if (g.Target is { Source: { } source, IsText: false, FollowPart: null } && g.Kind is TransformGestureKind.Move or TransformGestureKind.Scale)
+        {
+            var snapped = g.Kind == TransformGestureKind.Move
+                ? CanvasSnap.Move(Canvas, source, raw, SnapThresholdCanvas())
+                : CanvasSnap.ScaleFromAnchor(Canvas, source, g.Start, raw, SnapThresholdCanvas());
+            raw = snapped.Visual;
+            edges = snapped.Edges;
+        }
+        if (_gesture == g) SnappedEdges = edges;
+        return raw;
+    }
+
+    /// <summary>D063: the target's scale written where it belongs on its frame — a followed part with framing keyframes: its
+    /// keyframe; otherwise the clip's (its keyframe on the frame when it has keyframes, else its static Scale).</summary>
+    private TimelineEditResult WriteScale(TransformTarget target, double scale, ClipPropertyGesture gesture)
+    {
+        if (target.Clip is VideoClip video)
+        {
+            var owner = target.FollowPart is { } p && video.Follow is { } follow && p < follow.Parts.Length && follow.Parts[p].Keyframes is not null
+                ? new KeyframeOwner(video.Id, p)
+                : new KeyframeOwner(video.Id, null);
+            var value = _keyframes.ValueAt(video, owner, target.TimelineFrame);
+            if (value.Scale == scale) return TimelineEditResult.Unchanged();
+            return _keyframes.SetValue(video, owner, target.TimelineFrame, value with { Scale = scale }, gesture);
+        }
+        if (VisualProperties.Of(target.Clip) is not { } visual || visual.Scale == scale) return TimelineEditResult.Unchanged();
+        return _edit.SetClipProperties(target.Clip.Id, new ClipPropertyChange { Visual = visual with { Scale = scale }, Gesture = gesture });
     }
 
     /// <summary>The person moves in the frame with the picture: the part's offset grows by the drag (canvas pixels).</summary>
@@ -485,6 +596,14 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
             else dx = 0;
         }
         var part = g.StartFollow!.Parts[g.FollowPart];
+        // D063 §4: with framing keyframes the climber's place on this frame (its keyframe there, or a new one).
+        var owner = new KeyframeOwner(g.Clip.Id, g.FollowPart);
+        // The part's framing on the frame at the gesture's start (never the live keyframe, which already holds the drag).
+        var framed = part.Keyframes is not null && g.Clip is VideoClip start
+            ? part.FramingAt(_keyframes.EditTimeAt(start, owner, g.Target.TimelineFrame),
+                VisualProperties.At(start, _keyframes.SourceAt(start, g.Target.TimelineFrame))!.Value.Scale)
+            : (TransformValue?)null;
+        if (framed is { } f) part = part with { OffsetX = f.X, OffsetY = f.Y };
         var limit = ClipPropertyLimits.MaxPositionMagnitude;
         var moved = part with
         {
@@ -492,6 +611,18 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
             OffsetY = Math.Round(Math.Clamp(part.OffsetY + dy, -limit, limit), 2)
         };
         if (g.Clip is not VideoClip { Follow: { } current } video) return;
+        if (framed is { } shown)
+        {
+            var keyed = _keyframes.SetValue(video, owner, g.Target.TimelineFrame, shown with { X = moved.OffsetX, Y = moved.OffsetY }, g.Undo);
+            if (!keyed.Success)
+            {
+                _status.Report(keyed.Message ?? Strings.Inspector_ClipNotChanged);
+                CancelGesture();
+                return;
+            }
+            if (_gesture == g) ModeText = string.Format(Strings.Transform_FollowValue, Num(moved.OffsetX), Num(moved.OffsetY));
+            return;
+        }
         var next = g.StartFollow.WithPart(g.FollowPart, moved)!;
         if (!Equals(next, current))
         {
@@ -515,6 +646,31 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
     private void Apply(Gesture g, VisualProperties next)
     {
         if (VisualProperties.Of(g.Clip) is not { } current) return;
+        // D063: a keyframed clip — the position and scale go to its keyframe on the frame, the crop and the rest stay static;
+        // one change, so the gesture stays one undo step.
+        if (g.Clip is VideoClip { Keyframes: not null } keyed)
+        {
+            var owner = new KeyframeOwner(keyed.Id, null);
+            var shown = _keyframes.ValueAt(keyed, owner, g.Target.TimelineFrame);
+            var value = new TransformValue(next.PositionX, next.PositionY, next.Scale);
+            var stat = current with { RotationDegrees = next.RotationDegrees, Opacity = next.Opacity, Crop = next.Crop };
+            if (value != shown || stat != current)
+            {
+                var keys = _keyframes.KeysWithValue(keyed, owner, g.Target.TimelineFrame, value);
+                var keyedResult = _edit.SetClipProperties(keyed.Id, new ClipPropertyChange
+                {
+                    Visual = stat, Keyframes = new KeyframeValues(keys), Gesture = g.Undo
+                });
+                if (!keyedResult.Success)
+                {
+                    _status.Report(keyedResult.Message ?? Strings.Inspector_ClipNotChanged);
+                    CancelGesture();
+                    return;
+                }
+            }
+            if (_gesture == g) ShowGestureValues(next);
+            return;
+        }
         if (next != current)
         {
             var result = _edit.SetClipProperties(g.Clip.Id, new ClipPropertyChange { Visual = next, Gesture = g.Undo });
@@ -540,13 +696,12 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
     public void CancelGesture()
     {
         if (_gesture is not { } g) return;
-        if (g.Kind == TransformGestureKind.FollowOffset)
-        {
-            if (g.Clip is VideoClip video && !Equals(video.Follow, g.StartFollow))
-                _edit.SetClipFollow(video.Id, g.StartFollow, gesture: g.Undo);
-        }
-        else if (VisualProperties.Of(g.Clip) is { } current && current != g.Start)
-            _edit.SetClipProperties(g.Clip.Id, new ClipPropertyChange { Visual = g.Start, Gesture = g.Undo });
+        // D063: every stored value the gesture may have changed goes back — the static properties, the keyframes, the Follow.
+        if (g.Clip is VideoClip video && !Equals(video.Follow, g.StartFollowAll))
+            _edit.SetClipFollow(video.Id, g.StartFollowAll, gesture: g.Undo);
+        if (g.StartStatic is { } startStatic &&
+            (VisualProperties.Of(g.Clip) != startStatic || KeyframeValues.Of(g.Clip) != g.StartKeyframes))
+            _edit.SetClipProperties(g.Clip.Id, new ClipPropertyChange { Visual = startStatic, Keyframes = g.StartKeyframes, Gesture = g.Undo });
         DropGesture();
     }
 
@@ -554,6 +709,7 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
     {
         if (_gesture is null) return;
         _gesture = null;
+        SnappedEdges = CropEdges.None;
         OnPropertyChanged(nameof(IsGestureActive));
         OnPropertyChanged(nameof(GestureKind));
         OnPropertyChanged(nameof(GestureHandle));
@@ -569,10 +725,11 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
             ModeText = string.Format(Strings.Transform_FollowValue, Num(part.OffsetX), Num(part.OffsetY));
             return;
         }
+        var snapped = SnappedEdges != CropEdges.None ? " · " + Strings.Transform_Snapped : "";
         ModeText = g.Kind switch
         {
-            TransformGestureKind.Move => string.Format(Strings.Transform_MoveValue, Num(v.PositionX), Num(v.PositionY)),
-            TransformGestureKind.Scale => string.Format(Strings.Transform_ScaleValue, Num(v.Scale * 100)),
+            TransformGestureKind.Move => string.Format(Strings.Transform_MoveValue, Num(v.PositionX), Num(v.PositionY)) + snapped,
+            TransformGestureKind.Scale => string.Format(Strings.Transform_ScaleValue, Num(v.Scale * 100)) + snapped,
             _ => string.Format(Strings.Transform_CropValue, Num(v.Crop.Left * 100), Num(v.Crop.Top * 100), Num(v.Crop.Right * 100), Num(v.Crop.Bottom * 100))
         };
     }

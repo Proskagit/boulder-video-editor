@@ -3394,4 +3394,79 @@ If you don't save, your changes will be lost.</value>
   <data name="Transform_CropOnFollow" xml:space="preserve">
     <value>Crop — not on a frame of a followed part (Follow moves the picture there): put the playhead outside the parts</value>
   </data>
+  <data name="Inspector_PlateCorner" xml:space="preserve">
+    <value>Plate corner</value>
+  </data>
+  <data name="Keyframe_Added" xml:space="preserve">
+    <value>Keyframe added.</value>
+  </data>
+  <data name="Keyframe_AddedFollow" xml:space="preserve">
+    <value>Follow keyframe added (the climber's place and the scale in this followed part).</value>
+  </data>
+  <data name="Keyframe_Removed" xml:space="preserve">
+    <value>Keyframe removed.</value>
+  </data>
+  <data name="Keyframe_Tip" xml:space="preserve">
+    <value>Keyframe {0}: X {1}, Y {2}, scale {3} %; to the next: {4}</value>
+  </data>
+  <data name="Keyframe_TipFollow" xml:space="preserve">
+    <value>Follow keyframe {0}: climber X {1}, Y {2}, scale {3} %; to the next: {4}</value>
+  </data>
+  <data name="Keyframe_Moving" xml:space="preserve">
+    <value>Keyframe → {0}</value>
+  </data>
+  <data name="Timeline_KeyframeTip" xml:space="preserve">
+    <value>Add or remove a keyframe at the playhead (Position X / Y and Scale of the selected clip; on a followed part — the climber's place and the scale)</value>
+  </data>
+  <data name="Easing_Linear" xml:space="preserve">
+    <value>Linear</value>
+  </data>
+  <data name="Easing_In" xml:space="preserve">
+    <value>Ease in</value>
+  </data>
+  <data name="Easing_Out" xml:space="preserve">
+    <value>Ease out</value>
+  </data>
+  <data name="Easing_InOut" xml:space="preserve">
+    <value>Ease in and out</value>
+  </data>
+  <data name="Inspector_Keyframes" xml:space="preserve">
+    <value>Keyframes</value>
+  </data>
+  <data name="Keyframe_OwnerClip" xml:space="preserve">
+    <value>clip transform · {0}</value>
+  </data>
+  <data name="Keyframe_OwnerFollow" xml:space="preserve">
+    <value>Follow framing, part {0} · {1}</value>
+  </data>
+  <data name="Keyframe_Add" xml:space="preserve">
+    <value>◆ Add keyframe</value>
+  </data>
+  <data name="Keyframe_Remove" xml:space="preserve">
+    <value>◇ Remove keyframe</value>
+  </data>
+  <data name="Keyframe_PreviousTip" xml:space="preserve">
+    <value>The previous keyframe of the clip</value>
+  </data>
+  <data name="Keyframe_NextTip" xml:space="preserve">
+    <value>The next keyframe of the clip</value>
+  </data>
+  <data name="Keyframe_Easing" xml:space="preserve">
+    <value>To the next</value>
+  </data>
+  <data name="Keyframe_EasingTip" xml:space="preserve">
+    <value>How the values move from this keyframe to the next one; the transition lasts exactly the time between them</value>
+  </data>
+  <data name="AppSettings_CanvasSnap" xml:space="preserve">
+    <value>Snap to canvas edges</value>
+  </data>
+  <data name="AppSettings_CanvasSnapNote" xml:space="preserve">
+    <value>In the Preview a picture moved or resized near a canvas edge snaps exactly onto it (no thin black line). The distance is in screen pixels, whatever the video's resolution; 0 turns it off.</value>
+  </data>
+  <data name="Transform_Snapped" xml:space="preserve">
+    <value>snapped to the edge</value>
+  </data>
+  <data name="Timeline_Keyframe" xml:space="preserve">
+    <value>Keyframe</value>
+  </data>
 </root>

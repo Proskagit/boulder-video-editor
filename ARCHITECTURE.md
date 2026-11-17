@@ -705,6 +705,34 @@ on the project grid (D006).
   `TimelineViewModel.SelectClipFromPreview`); `ShortcutRouter` gives a running gesture Esc and swallows every other key; the
   tools and the hold markup mode exclude each other (`MainWindowViewModel`). The frame and handles never reach the export.
 
+## Transform keyframes, canvas snapping, the corner plates (Phase 44, D063)
+
+- Core model: `Composition/TransformKeyframes` — `TransformKeyframe` (id, **source time**, X, Y, Scale, the easing of its
+  outgoing segment) and `TransformKeyframes` (immutable, sorted, equal by value; `At` is the one interpolation — held outside,
+  `a + (b − a)·ease(f)` between). Two owners: `VideoClip.Keyframes` (the clip's Position X / Y and Scale) and
+  `FollowPart.Keyframes` (the part's climber offset and scale, `FollowPart.FramingAt`). `VisualProperties.At(clip, source)` is
+  a clip's values on a source frame. Edits: `ClipPropertyChange.Keyframes` / `KeyframeValues` (a property group of
+  `ClipPropertyValues`, so Undo / Redo, gestures and the canvas rescale treat it as every property) and `SetClipFollow` for a
+  part's. `project.json` v24 (`keyframes`, `plateCorner`).
+- Composition (Preview = export): `PictureSpan.Keyframes` → `PlaybackSnapshot.LayersAt` evaluates them on each timeline frame
+  (`PictureSpan.VisualAt`, the exact D009 / D022 source time) into `PictureLayer.Visual` and its `Geometry`; with Follow
+  `PictureSpan.Follow` is a `People.FollowFraming` (the clip's own transform outside the parts, the camera clamped per frame at
+  the part's scale inside, both blended by `FollowBlend`'s D061 weights at the edges) evaluated by
+  `CompositionDrawPlan.GeometryAt` from the shown frame's timestamp. `FollowCamera.Solve(…, framingAt)` solves a part's path
+  with the animated framing (`FollowExtent` keeps the coverage limits at any scale); without keyframes it is D061's path.
+- Snapping: `Composition/CanvasSnap` (Move / Scale of a picture; threshold in canvas pixels; exact rational arithmetic for
+  quarter turns, rounded to the covering side) ← `PreviewTransformViewModel.Snap` (the user's screen-pixel threshold
+  `UserSettings.CanvasSnapPixels` ÷ `ScreenPixelsPerCanvasPixel`, set by `PreviewTransformOverlay` from its viewport;
+  `SnappedEdges` drawn by the overlay).
+- UI: `Services/TransformKeyframeEditor` — the owner at a frame, the values shown, add / remove / set / move / easing / delete
+  as edit-service calls; used by `TimelineViewModel.Keyframes` (the tool-bar button, `KeyframeMarker` diamonds on
+  `TimelineClipViewModel.KeyframeMarkers`, drag, Delete, the playhead snap, previous / next), `InspectorViewModel.Keyframes`
+  (the section, the fields on the playhead's frame, the easing) and `PreviewTransformViewModel` (gestures write the frame's
+  keyframe; `TransformTarget.TimelineFrame`, `Placed`).
+- Corner plates: `Composition/CornerOverlayLayout` — the size factors by the canvas's shape, the route plate's row in its
+  corner, the heart rate beside a plate in its corner; `TemplatePainter` draws through it; `TemplateLayer` / `TemplateDraw
+  .PlateCorner` tell a heart-rate overlay about a «Боулдер» plate in its corner on the same frame.
+
 ## Vertical video and framing (Phase 26, D041)
 
 - Core: `ProjectSettingsRules.SuggestedCanvas(displayWidth, displayHeight)` — the source's shape at the default canvas's

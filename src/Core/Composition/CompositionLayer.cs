@@ -56,7 +56,18 @@ public sealed record PictureLayer(Guid TrackId, PictureSpan Span, LayerGeometry?
     /// transformed picture provably contains the whole canvas. Images may carry alpha and text never
     /// covers the canvas, so neither hides what is below; placeholders are decided by the renderer.
     /// </summary>
-    public bool OccludesBelow => Span.Status == SpanStatus.Video && Opacity == 1 && Geometry is { CoversCanvas: true } && Motion.KeepsCoverage;
+    public bool OccludesBelow => Span.Status == SpanStatus.Video && Opacity == 1 && Geometry is { CoversCanvas: true } && Motion.KeepsCoverage &&
+                                 Span.Follow is not { HasPartScale: true };   // D063: a part's own scale may draw it smaller
+
+    private readonly VisualProperties? _visual;
+
+    /// <summary>D063: the picture's properties on this frame — the span's with its keyframes evaluated on the frame
+    /// (<see cref="Geometry"/> is laid out from them); the span's own by default.</summary>
+    public VisualProperties Visual
+    {
+        get => _visual ?? Span.Visual;
+        init => _visual = value;
+    }
 
     /// <summary>The opacity of each contour of <see cref="PictureSpan.Outline"/> on this frame (D036), by hold index, on
     /// top of the layer's <see cref="CompositionLayer.Opacity"/>; default (not set): every contour fully shown — an outline
@@ -95,6 +106,10 @@ public sealed record TemplateLayer(Guid TrackId, TemplateSpan Span, TemplateCloc
     /// <summary>The heart-rate overlay's BPM on this frame (Phase 35.5, <c>PlaybackSnapshot.LayersAt</c>); null — no value
     /// there, the overlay draws nothing. Always null for the other kinds.</summary>
     public int? HeartRate { get; init; }
+
+    /// <summary>D063 §C: a heart-rate overlay's corner when a «Боулдер» route plate stands in it on this frame — the heart
+    /// rate is then placed beside the plate; null otherwise.</summary>
+    public OverlayCorner? PlateCorner { get; init; }
 }
 
 /// <summary>

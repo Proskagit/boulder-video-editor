@@ -88,6 +88,8 @@ public static class PlaybackSnapshotBuilder
                     {
                         Visual = VisualProperties.Of(media) ?? VisualProperties.Default,
                         Background = media is VideoClip { Background: var background } ? background : ClipBackground.Black,
+                        // D063: the clip's transform keyframes, evaluated per frame (the Preview and the export alike).
+                        Keyframes = (media as VideoClip)?.Keyframes,
                         Speed = media.Speed,
                         // The decoder delivers display-oriented frames (automatic rotation), so the
                         // composition works with the display size, never the coded one.
@@ -259,10 +261,10 @@ public static class PlaybackSnapshotBuilder
 
     /// <summary>D061: the camera path of a video clip with Follow, its video's people known and its source size known; null
     /// otherwise (or while Follow cannot move the picture).</summary>
-    private static People.FollowPath? FollowOf(MediaBackedClip clip, MediaAsset? asset, People.PeopleAnalyses? people, FrameSize canvas) =>
+    private static People.FollowFraming? FollowOf(MediaBackedClip clip, MediaAsset? asset, People.PeopleAnalyses? people, FrameSize canvas) =>
         clip is VideoClip { Follow: { } follow } video && people is not null && people.Tracks.TryGetValue(clip.MediaAssetId, out var tracks) &&
         DisplaySize(asset?.Metadata) is { } source
-            ? People.FollowResolution.For(video, follow, tracks, canvas, source).Path
+            ? People.FollowResolution.For(video, follow, tracks, canvas, source).Framing
             : null;
 
     private static HoldOutline? WithMotion(HoldOutline? outline, RouteKey key, MediaAsset? asset, IReadOnlyDictionary<RouteKey, CameraMotionTrack>? motion) =>

@@ -7,6 +7,7 @@ using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Localization;
 using AiVideoEditor.Core.Telemetry;
+using AiVideoEditor.Core.Composition;
 
 namespace AiVideoEditor.Project.Persistence;
 
@@ -40,7 +41,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 23;
+    public const int CurrentFormatVersion = 24;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -121,6 +122,11 @@ public static class ProjectSerializer
     /// <summary>The first version with a followed part's offset — where the person stands in the frame (D061 amendment 1). A
     /// v22 file's parts have none (the centre) and are saved as v23; an older build refuses a v23 file as newer.</summary>
     private const int FollowOffsetVersion = 23;
+
+    /// <summary>The first version with transform keyframes (D063): a video clip's and a followed part's, and «Боулдер»'s
+    /// route plate corner. A v23 file has none (the static values; the plate bottom left) and is saved as v24; an older build
+    /// refuses a v24 file as newer.</summary>
+    private const int KeyframesVersion = 24;
 
     /// <summary>Whether a template of <paramref name="kind"/> in a file of <paramref name="formatVersion"/> carries the
     /// heart-rate look and corner: the overlay (v13), a «Боулдер» from v16 (D055 §5).</summary>
@@ -463,7 +469,8 @@ public static class ProjectSerializer
         {
             FromTicks = p.From?.Ticks, ToTicks = p.To?.Ticks,
             TargetTicks = p.TargetTime?.Ticks, TargetX = p.TargetPoint?.X, TargetY = p.TargetPoint?.Y,
-            OffsetX = p.OffsetX == 0 ? null : p.OffsetX, OffsetY = p.OffsetY == 0 ? null : p.OffsetY
+            OffsetX = p.OffsetX == 0 ? null : p.OffsetX, OffsetY = p.OffsetY == 0 ? null : p.OffsetY,
+            Keyframes = p.Keyframes is { } keyframes ? ToDto(keyframes) : null
         }).ToList(),
         Smoothness = follow.Smoothness switch { FollowSmoothness.Soft => "soft", FollowSmoothness.Fast => "fast", _ => "normal" }
     };
@@ -481,13 +488,33 @@ public static class ProjectSerializer
         if (formatVersion >= FollowPartsVersion)
         {
             var parts = (dto.Parts ?? new List<FollowPartDto>()).Select(p => Part(p.FromTicks, p.ToTicks, p.TargetTicks, p.TargetX, p.TargetY, ranged: true)
-                    with { OffsetX = Offset(p.OffsetX, formatVersion), OffsetY = Offset(p.OffsetY, formatVersion) })
+                    with
+                    {
+                        OffsetX = Offset(p.OffsetX, formatVersion), OffsetY = Offset(p.OffsetY, formatVersion),
+                        Keyframes = formatVersion < KeyframesVersion || p.Keyframes is null ? null : FromDto(p.Keyframes)
+                    })
                 .ToImmutableArray();
             if (parts.IsEmpty || !FollowSettings.AreValid(parts)) throw Damaged("Follow parts that overlap or are out of order");
             return new FollowSettings(parts, smoothness);
         }
         var ranged = formatVersion >= FollowRangeVersion;
         return FollowSettings.Of(Part(dto.FromTicks, dto.ToTicks, dto.TargetTicks, dto.TargetX, dto.TargetY, ranged), smoothness);
+    }
+
+    private static List<KeyframeDto> ToDto(TransformKeyframes keyframes) => keyframes.Keys.Select(k => new KeyframeDto
+    {
+        Id = k.Id, TimeTicks = k.Time.Ticks, X = k.X, Y = k.Y, Scale = k.Scale,
+        Easing = k.Easing == KeyframeEasing.Linear ? null : k.Easing
+    }).ToList();
+
+    /// <summary>v24 (D063): keyframes as the edits allow them — at least one, sorted, distinct times and ids, values within the
+    /// limits; anything else is a damaged file (never a project that draws something else than it was saved with).</summary>
+    private static TransformKeyframes FromDto(List<KeyframeDto> dto)
+    {
+        var keys = dto.Select(k => new TransformKeyframe(k.Id, new MediaTime(k.TimeTicks), k.X, k.Y, k.Scale,
+            k.Easing is not { } easing ? KeyframeEasing.Linear : Enum.IsDefined(easing) ? easing : throw Damaged("unknown keyframe easing"))).ToImmutableArray();
+        if (!TransformKeyframes.AreValid(keys)) throw Damaged("transform keyframes out of order or out of range");
+        return new TransformKeyframes(keys);
     }
 
     /// <summary>A part's offset from a v23 file (a v22 file has none); like a Position, within its limits.</summary>
@@ -526,6 +553,7 @@ public static class ProjectSerializer
                 IsAudioDetached = v.IsAudioDetached,
                 Background = v.Background == ClipBackground.Blur ? "blur" : null,
                 Follow = v.Follow is { } follow ? ToDto(follow) : null,
+                Keyframes = v.Keyframes is { } keyframes ? ToDto(keyframes) : null,
                 HidesOutlinesBehindPeople = v.HidesOutlinesBehindPeople,
                 Routes = v.Routes.IsDefaultOrEmpty ? null : v.Routes.Select(r => (HoldMarkupDto?)ToDto(r)).ToList()
             },
@@ -561,7 +589,8 @@ public static class ProjectSerializer
                 Look = p.Kind is TemplateKind.HeartRate or TemplateKind.Boulder ? p.Look : null,
                 Corner = p.Kind is TemplateKind.HeartRate or TemplateKind.Boulder ? p.Corner : null,
                 ShowHeartRate = p.Kind == TemplateKind.Boulder ? p.ShowHeartRate : null,
-                HeartColorHex = p.Kind == TemplateKind.Boulder ? p.HeartHex : null
+                HeartColorHex = p.Kind == TemplateKind.Boulder ? p.HeartHex : null,
+                PlateCorner = p.Kind == TemplateKind.Boulder && p.PlateCorner != OverlayCorner.BottomLeft ? p.PlateCorner : null
             },
             _ => throw new NotSupportedException($"Clip type {clip.GetType().Name} can't be saved.")
         };
@@ -1069,6 +1098,8 @@ public static class ProjectSerializer
                     : v.Background == "blur" ? ClipBackground.Blur : throw Damaged("unknown clip background"),
                 // v1–v19: neither (D061).
                 Follow = formatVersion < PeopleVersion || v.Follow is null ? null : FromDto(v.Follow, formatVersion),
+                // v1–v23: none (D063).
+                Keyframes = formatVersion < KeyframesVersion || v.Keyframes is null ? null : FromDto(v.Keyframes),
                 HidesOutlinesBehindPeople = formatVersion >= PeopleVersion && v.HidesOutlinesBehindPeople
             },
             AudioClipDto a => new AudioClip { Id = a.Id, MediaAssetId = a.MediaAssetId, Volume = a.Volume, IsMuted = a.IsMuted },
@@ -1114,7 +1145,10 @@ public static class ProjectSerializer
                 ShowHeartRate = p.Template != TemplateKind.Boulder || formatVersion < HeartRateAreaVersion ||
                     (p.ShowHeartRate ?? throw Damaged("a route area's heart rate is missing")),
                 HeartHex = p.Template != TemplateKind.Boulder || formatVersion < HeartRateAreaVersion ? TemplateRules.HeartRateAccentHex
-                    : p.HeartColorHex ?? throw Damaged("a route area's heart colour is missing")
+                    : p.HeartColorHex ?? throw Damaged("a route area's heart colour is missing"),
+                // D063 §C: absent — bottom left (an older file's plate, and the default).
+                PlateCorner = p.Template != TemplateKind.Boulder || formatVersion < KeyframesVersion || p.PlateCorner is null ? OverlayCorner.BottomLeft
+                    : Enum.IsDefined(p.PlateCorner.Value) ? p.PlateCorner.Value : throw Damaged("unknown route plate corner")
             },
             _ => throw Damaged("unknown clip type")
         };
