@@ -7,22 +7,25 @@ namespace AiVideoEditor.Core.Composition;
 /// the Preview and the export (the template painter draws through it).
 /// <list type="bullet">
 /// <item><b>Sizes.</b> Every size is in 1080-units (× the canvas's short side / 1080, as before) times a factor of the
-/// canvas's shape: 1 on a landscape or square canvas (the look of before), on a portrait canvas the route plate up to
-/// <see cref="PortraitPlateFactor"/> and the heart rate down to <see cref="PortraitHeartFactor"/> — a continuous function of
+/// canvas's shape: the route plate 1 on a landscape or square canvas (the look of before) up to <see cref="PortraitPlateFactor"/>
+/// on a portrait one; the heart rate <see cref="LandscapeHeartFactor"/> (D063 amendment 1) up to <see cref="PortraitHeartFactor"/> — a continuous function of
 /// the aspect ratio (<see cref="Portraitness"/>: 0 at 1 : 1 and wider, 1 at 9 : 16 and taller), never of a resolution.</item>
 /// <item><b>The route plate</b> stands in its own corner (<see cref="TemplateClip.PlateCorner"/>) at the margins of before
-/// — left / right <c>60 → 48</c>, bottom <c>64 → 260</c> (above a phone's controls), top <c>64 → 200</c> units, landscape →
+/// — left / right <c>60 → 48</c>, bottom <c>64 → 176</c> (above a phone's controls; 260 before D063 amendment 1), top <c>64 → 200</c> units, landscape →
 /// portrait.</item>
-/// <item><b>The heart rate</b> stands in its corner at the placement grid's safe margin (D043 §3, as before). When the route
+/// <item><b>The heart rate</b> stands in its corner on the plate's line: centred on the row a plate has there, at the plate's
+/// side margin (D063 amendment 1 — a plate bottom left and the heart rate bottom right on one line). When the route
 /// plate is in the same corner, the heart rate is beside it nearer the canvas centre — above the plate in a bottom corner,
-/// below it in a top one, aligned with the plate's outer edge — so it never covers the plate or its text; in another corner
-/// neither moves.</item>
+/// below it in a top one, aligned with the plate's outer edge — so it never covers the plate or its text.</item>
 /// </list>
 /// </summary>
 public static class CornerOverlayLayout
 {
     public const double PortraitPlateFactor = 1.35;
     public const double PortraitHeartFactor = 0.85;
+
+    /// <summary>D063 amendment 1 (owner, 2026-11-17): the heart rate on a landscape canvas, 1.5 times smaller than before.</summary>
+    public const double LandscapeHeartFactor = 1 / 1.5;
 
     /// <summary>The route plate's height in 1080-units (× <see cref="PlateFactor"/>).</summary>
     public const double PlateHeightUnits = 62;
@@ -44,7 +47,7 @@ public static class CornerOverlayLayout
     public static double PlateFactor(FrameSize canvas) => 1 + (PortraitPlateFactor - 1) * Portraitness(canvas);
 
     /// <summary>The heart rate's size factor (on top of the 1080-unit).</summary>
-    public static double HeartFactor(FrameSize canvas) => 1 + (PortraitHeartFactor - 1) * Portraitness(canvas);
+    public static double HeartFactor(FrameSize canvas) => LandscapeHeartFactor + (PortraitHeartFactor - LandscapeHeartFactor) * Portraitness(canvas);
 
     public static bool IsLeft(OverlayCorner corner) => corner is OverlayCorner.TopLeft or OverlayCorner.BottomLeft;
     public static bool IsTop(OverlayCorner corner) => corner is OverlayCorner.TopLeft or OverlayCorner.TopRight;
@@ -59,7 +62,8 @@ public static class CornerOverlayLayout
         var height = PlateHeightUnits * u * PlateFactor(canvas);
         var side = Lerp(60, 48, p) * u;
         var outerX = IsLeft(corner) ? side : canvas.Width - side;
-        var top = IsTop(corner) ? Lerp(64, 200, p) * u : canvas.Height - Lerp(64, 260, p) * u - height;
+        // D063 amendment 1: on a portrait canvas one plate's height nearer the bottom than before (176 instead of 260).
+        var top = IsTop(corner) ? Lerp(64, 200, p) * u : canvas.Height - Lerp(64, 176, p) * u - height;
         return (outerX, top, height);
     }
 
@@ -77,8 +81,9 @@ public static class CornerOverlayLayout
             var y = IsTop(corner) ? top + plateHeight + gap : top - gap - height;
             return new RectD(x, y, width, height);
         }
-        var margin = TextPlacement.MarginFactor * Math.Min(canvas.Width, canvas.Height);
-        return new RectD(IsLeft(corner) ? margin : canvas.Width - margin - width,
-            IsTop(corner) ? margin : canvas.Height - margin - height, width, height);
+        // D063 amendment 1: in another corner on the plate's line — centred on the row a plate has in this corner, at the
+        // plate's side margin — so a plate bottom left and the heart rate bottom right stand on one line.
+        var (x0, rowTop, rowHeight) = PlateRow(canvas, corner);
+        return new RectD(IsLeft(corner) ? x0 : x0 - width, rowTop + rowHeight / 2 - height / 2, width, height);
     }
 }

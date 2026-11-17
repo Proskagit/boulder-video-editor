@@ -148,7 +148,7 @@ public sealed class KeyframeSnapRenderTests
     }
 
     [Fact]
-    public void A_portrait_plate_is_larger_than_the_landscape_one_relative_to_the_short_side_and_its_heart_rate_smaller()
+    public void A_portrait_plate_is_larger_than_the_landscape_one_relative_to_the_short_side_and_the_landscape_heart_rate_smaller()
     {
         var landscape = DrawBoulder(new FrameSize(960, 540), OverlayCorner.BottomLeft, OverlayCorner.TopRight);
         var portrait = DrawBoulder(new FrameSize(540, 960), OverlayCorner.BottomLeft, OverlayCorner.TopRight);
@@ -156,6 +156,7 @@ public sealed class KeyframeSnapRenderTests
         var navy = new Func<byte, byte, byte, bool>((r, g, b) => r < 30 && g < 45 && b > 30 && b < 70);
         var red = new Func<byte, byte, byte, bool>((r, g, b) => r > 200 && g < 80 && b < 110 && b > 30);
         Assert.True(Height(Box(portrait, navy)!.Value) > Height(Box(landscape, navy)!.Value) * 1.25);
-        Assert.True(Height(Box(portrait, red)!.Value) < Height(Box(landscape, red)!.Value));
+        // The heart: 1/1.5 of before on landscape (D063 amendment 1), 0.85 on portrait, relative to the short side.
+        Assert.InRange(Height(Box(portrait, red)!.Value) / (double)Height(Box(landscape, red)!.Value), 0.85 * 1.5 - 0.15, 0.85 * 1.5 + 0.15);
     }
 }

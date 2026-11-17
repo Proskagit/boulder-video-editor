@@ -296,53 +296,103 @@ public class TransformKeyframesTests
     // --- The corner overlays (D063 §C) ---------------------------------------------------------------------------------
 
     [Fact]
-    public void The_sizes_follow_the_canvas_shape_landscape_as_before_portrait_plate_larger_and_heart_smaller()
+    public void The_sizes_follow_the_canvas_shape_the_landscape_heart_rate_one_and_a_half_times_smaller()
     {
-        Assert.Equal(1, CornerOverlayLayout.PlateFactor(new FrameSize(1920, 1080)));
-        Assert.Equal(1, CornerOverlayLayout.HeartFactor(new FrameSize(3840, 2160)));
-        Assert.Equal(1, CornerOverlayLayout.PlateFactor(new FrameSize(1080, 1080)));
+        Assert.Equal(1, CornerOverlayLayout.PlateFactor(new FrameSize(1920, 1080)));                       // the plate as before
+        Assert.Equal(1 / 1.5, CornerOverlayLayout.HeartFactor(new FrameSize(3840, 2160)), 12);             // amendment 1
         Assert.Equal(CornerOverlayLayout.PortraitPlateFactor, CornerOverlayLayout.PlateFactor(new FrameSize(1080, 1920)), 12);
         Assert.Equal(CornerOverlayLayout.PortraitHeartFactor, CornerOverlayLayout.HeartFactor(new FrameSize(2160, 3840)), 12);
         var fourFive = new FrameSize(1080, 1350);                               // between: in proportion to the shape
         Assert.InRange(CornerOverlayLayout.PlateFactor(fourFive), 1.01, CornerOverlayLayout.PortraitPlateFactor - 0.01);
-        // The same shape at another resolution: the same relative size.
         Assert.Equal(CornerOverlayLayout.PlateFactor(new FrameSize(720, 1280)), CornerOverlayLayout.PlateFactor(new FrameSize(2160, 3840)), 12);
     }
 
     [Fact]
-    public void The_landscape_plate_stays_where_it_was_bottom_left()
+    public void The_landscape_plate_stays_where_it_was_and_the_portrait_one_a_plate_height_nearer_the_bottom()
     {
         var (x, top, height) = CornerOverlayLayout.PlateRow(new FrameSize(1920, 1080), OverlayCorner.BottomLeft);
         Assert.Equal((60.0, 1080 - 64 - 62.0, 62.0), (x, top, height));
-        var (vx, vtop, _) = CornerOverlayLayout.PlateRow(new FrameSize(1080, 1920), OverlayCorner.BottomLeft);
+        var (vx, vtop, vheight) = CornerOverlayLayout.PlateRow(new FrameSize(1080, 1920), OverlayCorner.BottomLeft);
         Assert.Equal(48, vx, 9);
-        Assert.Equal(1920 - 260 - 62 * CornerOverlayLayout.PortraitPlateFactor, vtop, 9);
+        Assert.Equal(1920 - 176 - 62 * CornerOverlayLayout.PortraitPlateFactor, vtop, 9);
+        Assert.InRange(260 - 176 - vheight, -3, 3);                              // about one plate's height lower than before
     }
 
     [Theory]
     [InlineData(1920, 1080)]
     [InlineData(1080, 1920)]
     [InlineData(1080, 1080)]
-    public void In_one_corner_the_heart_rate_stands_beside_the_plate_nearer_the_centre_in_every_corner(int width, int height)
+    public void In_one_corner_the_heart_rate_stands_beside_the_plate_and_in_another_on_the_plates_line(int width, int height)
     {
         var canvas = new FrameSize(width, height);
         foreach (var corner in Enum.GetValues<OverlayCorner>())
         {
             var (outerX, top, plateHeight) = CornerOverlayLayout.PlateRow(canvas, corner);
             var heart = CornerOverlayLayout.HeartRate(canvas, corner, 300, 98, plateCorner: corner);
-            // Never over the plate's row, inside the canvas, on the centre's side of the plate.
             Assert.True(heart.Bottom <= top || heart.Y >= top + plateHeight, $"{corner}: over the plate");
             Assert.True(heart.X >= 0 && heart.Right <= width && heart.Y >= 0 && heart.Bottom <= height, $"{corner}: outside");
             var plateCentreY = top + plateHeight / 2;
             Assert.True(Math.Abs(heart.Y + heart.Height / 2 - height / 2.0) < Math.Abs(plateCentreY - height / 2.0), $"{corner}: not nearer the centre");
-            Assert.Equal(CornerOverlayLayout.IsLeft(corner) ? outerX : outerX - 300, heart.X, 9);     // aligned with the plate's outer edge
+            Assert.Equal(CornerOverlayLayout.IsLeft(corner) ? outerX : outerX - 300, heart.X, 9);
 
-            // In another corner: the heart rate's own place of before.
-            var other = Enum.GetValues<OverlayCorner>().First(c => c != corner);
-            var alone = CornerOverlayLayout.HeartRate(canvas, corner, 300, 98, plateCorner: other);
+            // The plate in the other corner of the same side (bottom left / bottom right …): both on one line.
+            var neighbour = corner switch
+            {
+                OverlayCorner.BottomLeft => OverlayCorner.BottomRight,
+                OverlayCorner.BottomRight => OverlayCorner.BottomLeft,
+                OverlayCorner.TopLeft => OverlayCorner.TopRight,
+                _ => OverlayCorner.TopLeft
+            };
+            var alone = CornerOverlayLayout.HeartRate(canvas, corner, 300, 98, plateCorner: neighbour);
             Assert.Equal(CornerOverlayLayout.HeartRate(canvas, corner, 300, 98, plateCorner: null), alone);
-            var margin = TextPlacement.MarginFactor * Math.Min(width, height);
-            Assert.Equal(CornerOverlayLayout.IsLeft(corner) ? margin : width - margin - 300, alone.X, 9);
+            var (_, neighbourTop, neighbourHeight) = CornerOverlayLayout.PlateRow(canvas, neighbour);
+            Assert.Equal(neighbourTop + neighbourHeight / 2, alone.Y + alone.Height / 2, 9);
+            Assert.Equal(CornerOverlayLayout.IsLeft(corner) ? outerX : outerX - 300, alone.X, 9);
         }
+    }
+
+    // --- The corner scale (D063 amendment 1) ---------------------------------------------------------------------------
+
+    [Fact]
+    public void A_corner_scale_holds_the_opposite_corner_and_grows_towards_the_dragged_one()
+    {
+        // A half-size picture put bottom left; its top-right corner dragged up and right.
+        var visual = new VisualProperties(-480, 270, 0.5, 0, 1, CropRect.None);
+        var frame = PreviewTransformMath.PictureFrame(CompositionMath.Layout(Landscape, Landscape, visual));
+        var anchor = frame.HandlePoint(CropEdges.Left | CropEdges.Bottom);
+        Assert.Equal(new PointD(0, 1080), anchor);
+        var corner = frame.HandlePoint(CropEdges.Right | CropEdges.Top);
+        var dragged = PreviewTransformMath.ScaleFromAnchor(visual, anchor, corner,
+            new PointD(anchor.X + 1.5 * (corner.X - anchor.X), anchor.Y + 1.5 * (corner.Y - anchor.Y)));
+        Assert.Equal(0.75, dragged.Scale, 9);
+        var b = CompositionMath.Layout(Landscape, Landscape, dragged).Bounds;
+        Assert.Equal(0, b.X, 9);                                               // the bottom-left corner held
+        Assert.Equal(1080, b.Bottom, 9);
+        Assert.Equal(1440, b.Right, 9);                                        // grown up and right
+        Assert.Equal(270, b.Y, 9);
+    }
+
+    [Fact]
+    public void A_picture_in_a_corner_stretched_to_the_opposite_corner_snaps_to_fill_the_canvas_exactly()
+    {
+        var source = new FrameSize(3840, 2160);
+        var start = new VisualProperties(-480, 270, 0.5, 0, 1, CropRect.None);   // bottom left, exactly on the edges
+        var frame = PreviewTransformMath.PictureFrame(CompositionMath.Layout(Landscape, source, start));
+        var anchor = frame.HandlePoint(CropEdges.Left | CropEdges.Bottom);
+        var corner = frame.HandlePoint(CropEdges.Right | CropEdges.Top);
+        var raw = PreviewTransformMath.ScaleFromAnchor(start, anchor, corner, new PointD(1913.7, 4.6));   // a hair short of the top right
+        var snapped = CanvasSnap.ScaleFromAnchor(Landscape, source, start, raw, threshold: 8);
+        Assert.True(snapped.Snapped);
+        var geometry = CompositionMath.Layout(Landscape, source, snapped.Visual);
+        Assert.True(geometry.CoversCanvas);                                    // no black line at any edge
+        Assert.InRange(geometry.Bounds.X, -1e-9, 0);
+        Assert.InRange(geometry.Bounds.Bottom - 1080, 0, 1e-9);
+
+        // Beyond the threshold: the picture grows freely, the held corner still exactly on the canvas corner.
+        var free = CanvasSnap.ScaleFromAnchor(Landscape, source, start, PreviewTransformMath.ScaleFromAnchor(start, anchor, corner, new PointD(1500, 300)), 8);
+        Assert.False(free.Snapped);
+        var fb = CompositionMath.Layout(Landscape, source, free.Visual).Bounds;
+        Assert.InRange(fb.X, -1e-9, 0);
+        Assert.InRange(fb.Bottom - 1080, 0, 1e-9);
     }
 }

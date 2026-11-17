@@ -53,6 +53,8 @@ Mark each row: ✅ passed / ❌ failed (what happened, the time code) / ⏭ not 
 | D2 | Keep dragging slowly past it | The picture stays stuck while within the threshold, then leaves it smoothly — no jitter |
 | D3 | The same at the right, top and bottom edges | The same |
 | D4 | Corner-scale the picture down to just under the canvas size and back | Near the canvas size it snaps so the edges coincide exactly |
+| D4a | (amendment 1) A small picture moved into the bottom-left corner (it snaps); drag its top-right corner handle up and right | It grows towards the top right; the bottom-left corner stays exactly in the canvas corner; at the top-right canvas corner it snaps and fills the canvas — no black line |
+| D4b | The same from each other corner (bottom right → top left, top left → bottom right, top right → bottom left) | It always grows towards the dragged corner, the opposite one held |
 | D5 | Zoom the Preview window large and small, repeat D1 | The snap distance feels the same on the screen |
 | D6 | «Настройки» → «Таймлайн и разметка» → «Прилипание к краям кадра»: 20, then 0 | 20: from farther away; 0: no snapping |
 | D7 | Export a clip snapped to the edges (D1–D4) and look at the edges of the file in a player at 100 % | No thin black line at any edge |
@@ -61,11 +63,11 @@ Mark each row: ✅ passed / ❌ failed (what happened, the time code) / ⏭ not 
 
 | # | Steps | Expected |
 |---|---|---|
-| E1 | Landscape canvas: a «Боулдер» area with a route and TOP, the heart rate shown | Plate and heart rate look as before Phase 44 |
+| E1 | Landscape canvas: a «Боулдер» area with a route and TOP, the heart rate shown | The plate as before Phase 44; the heart rate about 1.5 times smaller than before (amendment 1) |
 | E2 | Inspector → «Угол плашки»: each of the four corners | The plate (with its TOP / ПОПЫТКА block) stands in that corner inside the canvas, the text and the plate never past the edges; in a right corner the route block is at the edge and the status block on the centre's side |
 | E3 | Put the heart rate in the plate's corner, for each of the four corners | The heart rate stands beside the plate on the centre's side (above it in a bottom corner, below in a top one), never over the plate or its text |
-| E4 | Heart rate and plate in different corners | Neither moves from its usual place |
-| E5 | Vertical canvas (1080 × 1920): E1–E4 again | The plate is clearly larger than before, the heart rate a little smaller; they look like one composition |
+| E4 | Heart rate and plate in different corners | The plate stays in its place; the heart rate stands on the plate's line (plate bottom left, heart rate bottom right: one line) |
+| E5 | Vertical canvas (1080 × 1920): E1–E4 again | The plate is clearly larger than before, the heart rate a little smaller; the plates stand about one plate's height lower than in 0.44.0 (amendment 1); they look like one composition |
 | E6 | Export a short piece with E3 and E5 | The file shows exactly what the Preview showed |
 
 ## F. A real project

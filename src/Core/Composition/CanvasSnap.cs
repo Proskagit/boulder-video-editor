@@ -80,6 +80,66 @@ public static class CanvasSnap
         return new CanvasSnapResult(raw, CropEdges.None);
     }
 
+    /// <summary>
+    /// D063 amendment 1: the snap of a corner scale with the opposite corner held (<see cref="PreviewTransformMath.ScaleFromAnchor"/>).
+    /// <paramref name="start"/> is the picture at the gesture's start, <paramref name="raw"/> the gesture's result. On each axis
+    /// the edge that moves (the dragged corner's side) snaps onto its canvas edge within <paramref name="threshold"/> — the
+    /// nearer of the two axes sets the scale, the held edge stays put. Exact for a quarter-turned picture: the snapped edge
+    /// lies on the canvas edge (the covering side), and a held edge that lay on a canvas edge at the start stays exactly on it,
+    /// so a picture put in a corner and stretched to the opposite one fills the canvas with no black line.
+    /// </summary>
+    public static CanvasSnapResult ScaleFromAnchor(FrameSize canvas, FrameSize source, VisualProperties start, VisualProperties raw, double threshold)
+    {
+        if (!canvas.IsValid || !source.IsValid) return new CanvasSnapResult(raw, CropEdges.None);
+        var startBounds = CompositionMath.Layout(canvas, source, start).Bounds;
+        var bounds = CompositionMath.Layout(canvas, source, raw).Bounds;
+        // The held side on each axis: the edge that moved less.
+        var heldLeft = Math.Abs(bounds.X - startBounds.X) <= Math.Abs(bounds.Right - startBounds.Right);
+        var heldTop = Math.Abs(bounds.Y - startBounds.Y) <= Math.Abs(bounds.Bottom - startBounds.Bottom);
+        var result = raw;
+        var edges = CropEdges.None;
+
+        if (threshold > 0)
+        {
+            var candidates = new List<(CropEdges Edge, double Distance, bool Horizontal)>
+            {
+                heldLeft ? (CropEdges.Right, Math.Abs(bounds.Right - canvas.Width), true) : (CropEdges.Left, Math.Abs(bounds.X), true),
+                heldTop ? (CropEdges.Bottom, Math.Abs(bounds.Bottom - canvas.Height), false) : (CropEdges.Top, Math.Abs(bounds.Y), false)
+            };
+            foreach (var (edge, distance, horizontal) in candidates.Where(c => c.Distance <= threshold).OrderBy(c => c.Distance))
+            {
+                // The held edge's coordinate and the moving edge's target: the extent between them sets the scale.
+                var held = horizontal ? (heldLeft ? startBounds.X : startBounds.Right) : (heldTop ? startBounds.Y : startBounds.Bottom);
+                var target = edge switch { CropEdges.Left => 0.0, CropEdges.Top => 0.0, CropEdges.Right => canvas.Width, _ => canvas.Height };
+                var extentAtStart = horizontal ? startBounds.Width : startBounds.Height;
+                var scale = ExactHalfExtentsAtOne(canvas, source, start) is { } half
+                    ? (ExactRational.FromDouble(Math.Abs(target - held)) / (((ExactRational)2) * (horizontal ? half.HalfWidth : half.HalfHeight))).ToDoubleAtLeast()
+                    : start.Scale * Math.Abs(target - held) / extentAtStart;
+                if (!double.IsFinite(scale) || scale < ClipPropertyLimits.MinScale || scale > ClipPropertyLimits.MaxScale) continue;
+                var anchor = new PointD(heldLeft ? startBounds.X : startBounds.Right, heldTop ? startBounds.Y : startBounds.Bottom);
+                var centre = new PointD(startBounds.X + startBounds.Width / 2, startBounds.Y + startBounds.Height / 2);
+                result = PreviewTransformMath.AboutAnchor(start, scale, anchor, centre);
+                edges = edge;
+                break;
+            }
+        }
+
+        // Exact edges: the snapped one onto its canvas edge; a held one that lay on a canvas edge at the start stays on it.
+        bool OnEdge(double value, double edge) => Math.Abs(value - edge) <= 1e-6;
+        var b = CompositionMath.Layout(canvas, source, result).Bounds;
+        if (edges is CropEdges.Left or CropEdges.Right)
+            result = result with { PositionX = SnappedPosition(canvas, source, result, horizontal: true, nearStart: edges == CropEdges.Left, b) };
+        else if (heldLeft ? OnEdge(startBounds.X, 0) : OnEdge(startBounds.Right, canvas.Width))
+            result = result with { PositionX = SnappedPosition(canvas, source, result, horizontal: true, nearStart: heldLeft, b) };
+        if (edges is CropEdges.Top or CropEdges.Bottom)
+            result = result with { PositionY = SnappedPosition(canvas, source, result, horizontal: false, nearStart: edges == CropEdges.Top, b) };
+        else if (heldTop ? OnEdge(startBounds.Y, 0) : OnEdge(startBounds.Bottom, canvas.Height))
+            result = result with { PositionY = SnappedPosition(canvas, source, result, horizontal: false, nearStart: heldTop, b) };
+        if (Math.Abs(result.PositionX) > ClipPropertyLimits.MaxPositionMagnitude || Math.Abs(result.PositionY) > ClipPropertyLimits.MaxPositionMagnitude)
+            return new CanvasSnapResult(raw, CropEdges.None);
+        return new CanvasSnapResult(result, edges);
+    }
+
     /// <summary>The picture's half extents on the canvas at scale 1 (centred), exactly, for a quarter-turned picture.</summary>
     private static (ExactRational HalfWidth, ExactRational HalfHeight)? ExactHalfExtentsAtOne(FrameSize canvas, FrameSize source, VisualProperties v)
     {

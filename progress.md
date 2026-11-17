@@ -2,6 +2,12 @@
 
 ## Current phase
 
+**Phase 44 — amendment 1 after the owner's first check (D063 §10, 2026-11-17) — on `feat/phase-44-transform-keyframes`,
+PR #71.** The Preview's corner scale holds the opposite corner (the picture grows towards the dragged corner; snapping keeps
+a held canvas edge exact, so corner → opposite corner fills the canvas); the heart rate on a landscape canvas 1.5 times
+smaller; the heart rate in another corner on the plate's line; the portrait plate one plate's height lower (176 units). Manual
+rows D4a, D4b, E1, E4, E5 revised. Gates (2026-11-17): Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check` clean; Debug and Release (+ `AIVE_HEAVY_TESTS=1`) every suite green — Core 1 899, Timeline 1 172, Project 735, Rendering 251, UI 1 258, Export 141, Vision 24, Video 405 + 1 skipped, ExportEndToEnd 189 / 0 / 0 (Release).
+
 **Phase 44 — Transform keyframes & canvas snapping (D063, 2026-11-17) — on `feat/phase-44-transform-keyframes`.** Keyframes
 of Position X / Y and Scale (source time; Linear / Ease In / Ease Out / Ease In-Out) for a video clip and, independently, for
 each followed part (the climber's place and the scale while following); the tool-bar button «Ключ. кадр» (add / remove at the

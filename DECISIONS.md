@@ -10563,3 +10563,18 @@ refuses a v24 file as newer.
 Keyframes of the rotation, opacity, crop, text, audio or templates; Bézier curves or per-value easings; a keyframe graph
 editor; copying / pasting keyframes; a second timeline lane per value; snapping to the canvas centre or to other clips;
 snapping during a crop; the heart-rate overlay avoiding a plate of another clip's area by anything but its corner.
+
+### 10. Amendment 1 — after the owner's first check (2026-11-17)
+
+- **The corner scale holds the opposite corner.** A drag of a corner handle in the Preview scales the picture (or a text)
+  towards that corner, proportionally, the opposite corner staying where it was (`PreviewTransformMath.ScaleFromAnchor`) — a
+  picture put bottom left and dragged by its top-right corner grows up and right. Snapping (`CanvasSnap.ScaleFromAnchor`):
+  the moving edges snap onto their canvas edges, exactly; a held edge that lay on a canvas edge stays exactly on it, so a
+  picture in one corner stretched to the opposite one fills the canvas with no black line. On a followed part the camera
+  places the picture: there the corner scale keeps the centre (only the scale changes), as before. Ctrl + the wheel keeps
+  the centre.
+- **The heart rate on a landscape canvas 1.5 times smaller** (factor 1 / 1.5; the portrait 0.85 and the plate unchanged).
+- **One line**: the heart rate in another corner than the plate stands on the plate's line — centred on the row a plate has
+  in its corner, at the plate's side margin (a plate bottom left and the heart rate bottom right on one line).
+- **Portrait bottom margin** of the plate 260 → 176 units (about one plate's height nearer the edge), with the heart rate
+  above it when they share the corner.

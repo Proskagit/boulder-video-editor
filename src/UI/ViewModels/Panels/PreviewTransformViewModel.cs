@@ -520,12 +520,16 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         var next = g.Kind switch
         {
             TransformGestureKind.Move => PreviewTransformMath.Move(g.Start, pointer.X - g.Pointer.X, pointer.Y - g.Pointer.Y, keepAxis),
+            // D063 amendment 1: the opposite corner held — the picture grows towards the dragged corner. On a followed part the
+            // camera places the picture, so there the scale keeps the centre (only the scale is written).
+            TransformGestureKind.Scale when g.Target.FollowPart is null => PreviewTransformMath.ScaleFromAnchor(g.Start,
+                g.Target.Frame.HandlePoint(Opposite(g.Handle)), g.Target.Frame.HandlePoint(g.Handle), new PointD(pointer.X + g.Offset.X, pointer.Y + g.Offset.Y)),
             TransformGestureKind.Scale => PreviewTransformMath.ScaleFromCorner(g.Start, g.Target.Frame.Center, g.Target.Frame.HandlePoint(g.Handle),
                 new PointD(pointer.X + g.Offset.X, pointer.Y + g.Offset.Y)),
             _ => Crop(g, pointer)
         };
         next = Snap(g, next);
-        if (g.Kind == TransformGestureKind.Scale)
+        if (g.Kind == TransformGestureKind.Scale && g.Target.FollowPart is not null)
         {
             var result = WriteScale(g.Target, next.Scale, g.Undo);
             if (!result.Success)
@@ -540,6 +544,10 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         Apply(g, next);
     }
 
+    /// <summary>The corner opposite <paramref name="corner"/>.</summary>
+    private static CropEdges Opposite(CropEdges corner) =>
+        (corner.HasFlag(CropEdges.Left) ? CropEdges.Right : CropEdges.Left) | (corner.HasFlag(CropEdges.Top) ? CropEdges.Bottom : CropEdges.Top);
+
     /// <summary>D063 §B: the threshold in canvas pixels — the user's screen pixels at the Preview's zoom now.</summary>
     private double SnapThresholdCanvas() =>
         Math.Max(0, SnapThresholdPixels()) / Math.Max(1e-6, ScreenPixelsPerCanvasPixel);
@@ -553,7 +561,7 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         {
             var snapped = g.Kind == TransformGestureKind.Move
                 ? CanvasSnap.Move(Canvas, source, raw, SnapThresholdCanvas())
-                : CanvasSnap.Scale(Canvas, source, raw, SnapThresholdCanvas());
+                : CanvasSnap.ScaleFromAnchor(Canvas, source, g.Start, raw, SnapThresholdCanvas());
             raw = snapped.Visual;
             edges = snapped.Edges;
         }
