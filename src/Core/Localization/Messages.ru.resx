@@ -1378,4 +1378,19 @@
   <data name="Follow_InvalidParts" xml:space="preserve">
     <value>Участки слежения перекрылись бы: участок заканчивается до начала следующего.</value>
   </data>
+  <data name="Prop_KeyframesOnlyVideo" xml:space="preserve">
+    <value>Ключевые кадры трансформации есть только у видеоклипов.</value>
+  </data>
+  <data name="Prop_KeyframesInvalid" xml:space="preserve">
+    <value>Ключевые кадры недопустимы: два в один момент или значение вне пределов.</value>
+  </data>
+  <data name="Keyframe_Exists" xml:space="preserve">
+    <value>На этом кадре уже есть ключевой кадр.</value>
+  </data>
+  <data name="Keyframe_NotUnderPlayhead" xml:space="preserve">
+    <value>Поставьте указатель воспроизведения на выбранный клип, чтобы добавить ключевой кадр.</value>
+  </data>
+  <data name="Keyframe_NoClip" xml:space="preserve">
+    <value>Выберите видеоклип, чтобы добавить ключевой кадр.</value>
+  </data>
 </root>

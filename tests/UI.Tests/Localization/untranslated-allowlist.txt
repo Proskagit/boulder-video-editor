@@ -8,6 +8,8 @@ src/Timeline/Commands/RelinkMediaCommand.cs	Relink Media
 src/Timeline/Commands/TimelineCommands.cs	Add Clip
 src/Timeline/Commands/TimelineCommands.cs	Add Dissolve
 src/Timeline/Commands/TimelineCommands.cs	Add Hold
+src/Timeline/Commands/TimelineCommands.cs	Change Keyframe
+src/Timeline/Commands/TimelineCommands.cs	Change Keyframes
 src/Timeline/Commands/TimelineCommands.cs	Add Holds
 src/Timeline/Commands/TimelineCommands.cs	Animate Holds
 src/Timeline/Commands/TimelineCommands.cs	Change Appearance
@@ -107,11 +109,17 @@ src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Change Heart Rate Look
 src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Change Route Colour
 src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Change Route Status
 src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Move Heart Rate
+src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Move Route Plate
 src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Set Status Moment
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Crop Clip
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Move Clip
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Move Climber in Frame
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Scale Clip
+src/UI/Services/TransformKeyframeEditor.cs	Add Keyframe
+src/UI/Services/TransformKeyframeEditor.cs	Change Keyframe
+src/UI/Services/TransformKeyframeEditor.cs	Change Keyframe Easing
+src/UI/Services/TransformKeyframeEditor.cs	Delete Keyframe
+src/UI/Services/TransformKeyframeEditor.cs	Move Keyframe
 src/Timeline/TimelineEditService.FitMarks.cs	Propose FIT Marks
 src/Timeline/TimelineEditService.FitMarks.cs	Move FIT Mark
 src/Timeline/TimelineEditService.FitMarks.cs	Decline FIT Climb
@@ -123,6 +131,9 @@ src/Timeline/TimelineEditService.FitMarks.cs	Unlink FIT Climb
 src/Project/Persistence/ProjectSerializer.cs	a clip doesn't match the kind of {asset.FileName}
 src/Project/Persistence/ProjectSerializer.cs	a clip has a negative fade
 src/Project/Persistence/ProjectSerializer.cs	a clip has an empty link id
+src/Project/Persistence/ProjectSerializer.cs	transform keyframes out of order or out of range
+src/Project/Persistence/ProjectSerializer.cs	unknown keyframe easing
+src/Project/Persistence/ProjectSerializer.cs	unknown route plate corner
 src/Project/Persistence/ProjectSerializer.cs	a clip has an invalid property: {invalid.TrimEnd('.')}
 src/Project/Persistence/ProjectSerializer.cs	a clip has no duration
 src/Project/Persistence/ProjectSerializer.cs	a clip is not aligned to the project frame grid

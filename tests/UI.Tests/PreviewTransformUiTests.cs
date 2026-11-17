@@ -866,7 +866,7 @@ public sealed class PreviewTransformUiTests : IAsyncLifetime
         var clip = AddVideo();
         Assert.True(_edit.SetClipFollow(clip.Id, FollowSettings.Of(new FollowPart(MediaTime.Zero, MediaTime.FromSeconds(5)))).Success);
         // Follow puts the picture 100 px right on this frame (the analysis stubbed); outside the part — nothing.
-        Tool.FollowAt = (c, t) => t < MediaTime.FromSeconds(5) ? (0, 100, 0) : null;
+        Tool.FollowAt = (c, t) => t < MediaTime.FromSeconds(5) ? (0, VisualProperties.Of(c)!.Value with { PositionX = 100, PositionY = 0 }) : null;
         var steps = Steps();
         Assert.True(Tool.ActivateFor(clip.Id));
         Assert.Equal(0, Tool.Target!.FollowPart);
@@ -916,7 +916,7 @@ public sealed class PreviewTransformUiTests : IAsyncLifetime
     {
         var clip = AddVideo();
         Assert.True(_edit.SetClipFollow(clip.Id, FollowSettings.Whole()).Success);
-        Tool.FollowAt = (c, t) => (0, 100, 0);
+        Tool.FollowAt = (c, t) => (0, VisualProperties.Of(c)!.Value with { PositionX = 100, PositionY = 0 });
         Tool.IsCropOn = true;
         Assert.Equal(0, Tool.Target!.FollowPart);
         Assert.False(Tool.HasCropHandles);

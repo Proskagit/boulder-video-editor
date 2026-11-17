@@ -184,9 +184,12 @@ public sealed partial class ClipGroupViewModel : ViewModelBase
     [RelayCommand]
     private void FitFrame() => Frame(ClipFraming.Fit);
 
+    /// <summary>D063 §5: the time Fill / Fit writes on a keyframed clip (its keyframe on the playhead's frame); null — none.</summary>
+    public Func<Clip, Core.Common.MediaTime?>? FramingTimeOf { get; set; }
+
     private void Frame(ClipFraming framing) =>
         Apply(framing == ClipFraming.Fill ? "Fill Frame (Group)" : "Fit in Frame (Group)", null,
-            () => _framed.Select(c => _edit.FrameClip(c.Id, framing)));
+            () => _framed.Select(c => _edit.FrameClip(c.Id, framing, FramingTimeOf?.Invoke(c))));
 
     partial void OnOpacityPercentChanged(decimal? value)
     {

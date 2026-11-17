@@ -41,6 +41,9 @@ public sealed partial class TimelineEditService
         // longer opens).
         if (follow is not null && (follow.Parts.IsEmpty || !FollowSettings.AreValid(follow.Parts)))
             return TimelineEditResult.Fail(Messages.Follow_InvalidParts);
+        // D063 §4: a part's framing keyframes are valid as the clip's (the offset as a position, the scale within its limits).
+        if (follow is not null && follow.Parts.Any(p => p.Keyframes is { } keys && !TransformKeyframes.AreValid(keys.Keys)))
+            return TimelineEditResult.Fail(Messages.Prop_KeyframesInvalid);
         var occlusion = hideOutlinesBehindPeople is { } hides && hides != clip.HidesOutlinesBehindPeople;
         if (Equals(clip.Follow, follow) && !occlusion) return TimelineEditResult.Unchanged();
         var commands = new List<IUndoableCommand>();
@@ -64,7 +67,7 @@ public sealed partial class TimelineEditService
         return TimelineEditResult.Ok(new[] { clip.Id });
     }
 
-    public TimelineEditResult FrameClip(Guid clipId, ClipFraming framing)
+    public TimelineEditResult FrameClip(Guid clipId, ClipFraming framing, MediaTime? at = null)
     {
         var plan = new EditPlan(Sequence, Settings);
         if (Resolve(plan, new[] { clipId }, out var clips) is { } resolveError) return TimelineEditResult.Fail(resolveError);
@@ -79,6 +82,11 @@ public sealed partial class TimelineEditService
         if (PlaybackSnapshotBuilder.DisplaySize(asset?.Metadata) is not { } source)
             return TimelineEditResult.Fail(string.Format(Messages.Frame_SizeUnknown, asset?.FileName ?? string.Empty));
 
+        // D063: with keyframes the scale is the keyframe's at the given time (its position and the clip's crop and rotation
+        // are what the fit depends on — the position never does).
+        var keys = (clip as VideoClip)?.Keyframes;
+        var when = at ?? keys?.Keys[0].Time;
+        if (keys is not null && when is { } t) visual = TransformKeyframes.Apply(visual, keys, t);
         var canvas = new FrameSize(Settings.FrameWidth, Settings.FrameHeight);
         var scale = framing == ClipFraming.Fill
             ? CompositionMath.FillScale(canvas, source, visual)
@@ -94,11 +102,13 @@ public sealed partial class TimelineEditService
                 Message = framing == ClipFraming.Fill ? Messages.Frame_AlreadyFills : Messages.Frame_AlreadyFits
             };
 
-        return SetClipProperties(clip.Id, new ClipPropertyChange
+        var gesture = new ClipPropertyGesture(framing == ClipFraming.Fill ? "Fill Frame" : "Fit in Frame");
+        if (keys is not null && when is { } time)
         {
-            Visual = visual with { Scale = scale },
-            Gesture = new ClipPropertyGesture(framing == ClipFraming.Fill ? "Fill Frame" : "Fit in Frame")
-        });
+            var value = new TransformValue(visual.PositionX, visual.PositionY, scale);
+            return SetClipProperties(clip.Id, new ClipPropertyChange { Keyframes = new KeyframeValues(keys.WithValueAt(time, value).Keys), Gesture = gesture });
+        }
+        return SetClipProperties(clip.Id, new ClipPropertyChange { Visual = visual with { Scale = scale }, Gesture = gesture });
     }
 
     private static string Percent(double fraction) =>

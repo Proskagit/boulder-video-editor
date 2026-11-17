@@ -87,6 +87,16 @@ public sealed partial class InspectorViewModel
         if (_syncing || value is not { } v || _clip is not VideoClip { Follow: { } follow } clip || RejectWhileLocked()) return;
         var index = FollowOffsetPart(clip);
         if (index < 0) return;
+        // D063 §4: a part with framing keyframes — the keyframe on the playhead's frame (or a new one there).
+        if (follow.Parts[index].Keyframes is not null)
+        {
+            var owner = new UI.Services.KeyframeOwner(clip.Id, index);
+            var frame = KeyframeFrame(clip);
+            var shown = KeyframeEditor.ValueAt(clip, owner, frame);
+            var moved = with(follow.Parts[index] with { OffsetX = shown.X, OffsetY = shown.Y }, (double)v);
+            Apply(KeyframeEditor.SetValue(clip, owner, frame, shown with { X = moved.OffsetX, Y = moved.OffsetY }));
+            return;
+        }
         var part = with(follow.Parts[index], (double)v);
         if (part == follow.Parts[index]) return;
         Apply(_edit.SetClipFollow(clip.Id, follow.WithPart(index, part)));
@@ -102,8 +112,10 @@ public sealed partial class InspectorViewModel
         try
         {
             HasFollowOffset = index >= 0;
-            FollowOffsetX = index >= 0 ? (decimal)clip!.Follow!.Parts[index].OffsetX : null;
-            FollowOffsetY = index >= 0 ? (decimal)clip!.Follow!.Parts[index].OffsetY : null;
+            // D063 §4: the climber's place on the playhead's frame (the part's keyframes interpolated).
+            var shown = index >= 0 ? KeyframeEditor.ValueAt(clip!, new UI.Services.KeyframeOwner(clip!.Id, index), KeyframeFrame(clip!)) : default;
+            FollowOffsetX = index >= 0 ? (decimal)shown.X : null;
+            FollowOffsetY = index >= 0 ? (decimal)shown.Y : null;
         }
         finally
         {

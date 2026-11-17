@@ -129,7 +129,7 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
         var before = Markup.Geometry!;
         MediaTime? asked = null;
         clip.Follow = FollowSettings.Whole();
-        Markup.FollowPositionAt = (c, time) => { asked = time; return (120, -30); };
+        Markup.FollowPositionAt = (c, time) => { asked = time; return VisualProperties.Of(c)!.Value with { PositionX = 120, PositionY = -30 }; };
         Markup.RefreshGeometry();
         var after = Markup.Geometry!;
         Assert.Equal(before.Center.X + 120, after.Center.X, 6);

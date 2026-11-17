@@ -1,4 +1,5 @@
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Composition;
 
 namespace AiVideoEditor.Timeline;
 
@@ -56,8 +57,20 @@ public enum ClipPropertyFields : long
     TemplateShowHeartRate = 1L << 37,
     TemplateHeart = 1L << 38,
 
+    // D063: the transform keyframes — a keyframe added, removed, moved or its easing changed (Keyframes), or the values of
+    // the same keyframes changed (KeyframeX / Y / Scale).
+    Keyframes = 1L << 39,
+    KeyframeX = 1L << 40,
+    KeyframeY = 1L << 41,
+    KeyframeScale = 1L << 42,
+
+    // D063 §C: «Боулдер»'s route plate corner.
+    TemplatePlateCorner = 1L << 43,
+
     Template = TemplateDate | TemplateRoute | TemplateGrade | TemplateStatus | TemplateAccent | TemplateTitle | TemplateSubtitle |
-               TemplateStatusAt | TemplateLook | TemplateCorner | TemplateShowHeartRate | TemplateHeart,
+               TemplateStatusAt | TemplateLook | TemplateCorner | TemplateShowHeartRate | TemplateHeart | TemplatePlateCorner,
+
+    KeyframeValues = KeyframeX | KeyframeY | KeyframeScale,
 
     Crop = CropLeft | CropTop | CropRight | CropBottom
 }
@@ -68,10 +81,11 @@ public enum ClipPropertyFields : long
 /// write back exactly the values that were captured — nothing is recomputed.
 /// </summary>
 public readonly record struct ClipPropertyValues(VisualProperties? Visual, AudioProperties? Audio, TextProperties? Text,
-    FadeProperties? Fade = null, TemplateProperties? Template = null)
+    FadeProperties? Fade = null, TemplateProperties? Template = null, KeyframeValues? Keyframes = null)
 {
     public static ClipPropertyValues Capture(Clip clip) =>
-        new(VisualProperties.Of(clip), AudioProperties.Of(clip), TextProperties.Of(clip), FadeProperties.Of(clip), TemplateProperties.Of(clip));
+        new(VisualProperties.Of(clip), AudioProperties.Of(clip), TextProperties.Of(clip), FadeProperties.Of(clip), TemplateProperties.Of(clip),
+            KeyframeValues.Of(clip));
 
     public void ApplyTo(Clip clip)
     {
@@ -123,7 +137,14 @@ public readonly record struct ClipPropertyValues(VisualProperties? Visual, Audio
                 throw new InvalidOperationException($"{clip.GetType().Name} has no template fields.");
             (c.Date, c.Route, c.Grade, c.Status, c.AccentHex, c.Title, c.Subtitle, c.StatusAt, c.Look, c.Corner) =
                 (p.Date, p.Route, p.Grade, p.Status, p.AccentHex, p.Title, p.Subtitle, p.StatusAt, p.Look, p.Corner);
-            (c.ShowHeartRate, c.HeartHex) = (p.ShowHeartRate, p.HeartHex);
+            (c.ShowHeartRate, c.HeartHex, c.PlateCorner) = (p.ShowHeartRate, p.HeartHex, p.PlateCorner);
+        }
+
+        if (Keyframes is { } k)
+        {
+            if (clip is not VideoClip c)
+                throw new InvalidOperationException($"{clip.GetType().Name} has no transform keyframes.");
+            c.Keyframes = k.Keys;
         }
     }
 
@@ -189,8 +210,29 @@ public readonly record struct ClipPropertyValues(VisualProperties? Visual, Audio
             if (pa.Corner != pb.Corner) fields |= ClipPropertyFields.TemplateCorner;
             if (pa.ShowHeartRate != pb.ShowHeartRate) fields |= ClipPropertyFields.TemplateShowHeartRate;
             if (!string.Equals(pa.HeartHex, pb.HeartHex, StringComparison.Ordinal)) fields |= ClipPropertyFields.TemplateHeart;
+            if (pa.PlateCorner != pb.PlateCorner) fields |= ClipPropertyFields.TemplatePlateCorner;
         }
 
+        if (a.Keyframes is { } ka && b.Keyframes is { } kb && !Equals(ka.Keys, kb.Keys))
+            fields |= KeyframeDiff(ka.Keys, kb.Keys);
+
+        return fields;
+    }
+
+    /// <summary>D063: which values of the same keyframes changed, or <see cref="ClipPropertyFields.Keyframes"/> when a
+    /// keyframe was added, removed, moved or re-eased.</summary>
+    private static ClipPropertyFields KeyframeDiff(TransformKeyframes? a, TransformKeyframes? b)
+    {
+        if (a is null || b is null || a.Count != b.Count) return ClipPropertyFields.Keyframes;
+        var fields = ClipPropertyFields.None;
+        for (var i = 0; i < a.Count; i++)
+        {
+            var (x, y) = (a.Keys[i], b.Keys[i]);
+            if (x.Id != y.Id || x.Time != y.Time || x.Easing != y.Easing) return ClipPropertyFields.Keyframes;
+            if (!x.X.Equals(y.X)) fields |= ClipPropertyFields.KeyframeX;
+            if (!x.Y.Equals(y.Y)) fields |= ClipPropertyFields.KeyframeY;
+            if (!x.Scale.Equals(y.Scale)) fields |= ClipPropertyFields.KeyframeScale;
+        }
         return fields;
     }
 }

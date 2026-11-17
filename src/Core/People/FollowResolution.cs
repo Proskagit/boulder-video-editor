@@ -47,6 +47,11 @@ public sealed record FollowResolution(FollowState State, FollowTrajectory? Traje
     /// <summary>The stretches of the followed parts where their person is lost (at least <see cref="ReportedGap"/>), in source time.</summary>
     public ImmutableArray<FollowGap> Gaps { get; init; } = ImmutableArray<FollowGap>.Empty;
 
+    /// <summary>D063: the clip's whole framing per source time (its own transform, the followed parts' camera, their
+    /// framing keyframes and the glides between them) — what the Preview, the export and the editor draw; null while no
+    /// part follows. <see cref="Path"/> is the D061 position-only path at the clip's static values.</summary>
+    public FollowFraming? Framing { get; init; }
+
     /// <summary>Every part of the clip's Follow that lies in the clip, resolved.</summary>
     public ImmutableArray<FollowPartResolution> Parts { get; init; } = ImmutableArray<FollowPartResolution>.Empty;
 
@@ -66,6 +71,7 @@ public sealed record FollowResolution(FollowState State, FollowTrajectory? Traje
         var visual = VisualProperties.Of(clip) ?? VisualProperties.Default;
         var resolved = ImmutableArray.CreateBuilder<FollowPartResolution>();
         var paths = new List<(FollowPath Path, MediaTime From, MediaTime To)>();
+        var framed = new List<FollowFramingPart>();
         var unavailable = FollowUnavailable.None;
         for (var i = 0; i < follow.Parts.Length; i++)
         {
@@ -94,9 +100,20 @@ public sealed record FollowResolution(FollowState State, FollowTrajectory? Traje
                     { SeenFraction = 0, Gaps = gaps, AutoChosen = auto });
                 continue;
             }
-            var (path, reason) = FollowCamera.Solve(trajectory, canvas, source, visual, follow.Smoothness, part.OffsetX, part.OffsetY);
+            // D063 §4: with keyframes (the clip's or the part's) the framing is animated — the climber's place, the scale and
+            // the clip's own position per analysed frame; without them exactly D061.
+            Func<MediaTime, (TransformValue, double, double)>? framingAt = clip.Keyframes is null && part.Keyframes is null ? null : t =>
+            {
+                var own = TransformKeyframes.Apply(visual, clip.Keyframes, t);
+                return (part.FramingAt(t, own.Scale), own.PositionX, own.PositionY);
+            };
+            var (path, reason) = FollowCamera.Solve(trajectory, canvas, source, visual, follow.Smoothness, part.OffsetX, part.OffsetY, framingAt);
             if (path is null) unavailable = reason;
-            else paths.Add((path, from, to));
+            else
+            {
+                paths.Add((path, from, to));
+                framed.Add(new FollowFramingPart(i, path, from, to, part.OffsetX, part.OffsetY, part.Keyframes));
+            }
             resolved.Add(new FollowPartResolution(i, from, to, path is null ? FollowState.Unavailable : FollowState.Following, trajectory, reason)
                 { SeenFraction = trajectory.SeenFraction(from, to), Gaps = gaps, AutoChosen = auto });
         }
@@ -117,6 +134,7 @@ public sealed record FollowResolution(FollowState State, FollowTrajectory? Traje
         var combined = FollowCamera.Combine(paths, clip.SourceIn, clip.SourceOut, visual.PositionX, visual.PositionY);
         return new FollowResolution(FollowState.Following, following[0].Trajectory, combined, FollowUnavailable.None)
         {
+            Framing = new FollowFraming(framed, clip.SourceIn, clip.SourceOut, visual, clip.Keyframes, canvas),
             SeenFraction = seen,
             Gaps = allGaps,
             Parts = parts

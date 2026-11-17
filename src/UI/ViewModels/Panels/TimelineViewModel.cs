@@ -396,6 +396,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         RefreshStrips();
         RefreshRouteStartMarks();
         RefreshFollowStrips();
+        RefreshKeyframeMarkers();
     }
 
     /// <summary>Recomputes every pixel position from the model at the current zoom.</summary>
@@ -603,12 +604,14 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         Sequence.PlayheadPosition = position;
         PlayheadX = TimelineCoordinateMapper.TimeToX(position, PixelsPerSecond);
+        DropKeyframeSelectionOffFrame();
+        NotifyKeyframeCommands();
         RefreshRange();
         PlayheadChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void SetPlayheadFromX(double contentX) =>
-        SetPlayhead(TimelineCoordinateMapper.XToFrameTime(contentX, PixelsPerSecond, FrameRate));
+        SetPlayhead(SnapToKeyframe(TimelineCoordinateMapper.XToFrameTime(contentX, PixelsPerSecond, FrameRate)));
 
     public void StepFrames(long frames)
     {
@@ -692,7 +695,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private bool CanEdit() => !_editingLock.IsLocked;
 
-    private bool CanDeleteSelected() => CanEdit() && (HasSelection || HasTransitionSelection || SelectedOrangeClipId is not null);
+    private bool CanDeleteSelected() => CanEdit() && (HasSelection || HasTransitionSelection || SelectedOrangeClipId is not null || SelectedKeyframe is not null);
 
     /// <summary>The Dissolve command needs two selected clips on one track (a linked clip brings its partner into the
     /// selection, AQ1: the clips of the primary's track count); whether they meet and how long a dissolve — a crossfade on
@@ -714,8 +717,10 @@ public sealed partial class TimelineViewModel : ViewModelBase
         {
             CancelGesture();
             CancelFollowDrag();
+            CancelKeyframeDrag();
         }
         OnPropertyChanged(nameof(IsEditingAllowed));
+        NotifyKeyframeCommands();
         NotifyLinkCommands();
         SplitAtPlayheadCommand.NotifyCanExecuteChanged();
         TrimStartToPlayheadCommand.NotifyCanExecuteChanged();
@@ -782,6 +787,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanDeleteSelected))]
     private void DeleteSelected()
     {
+        if (DeleteSelectedKeyframe()) return;   // D063 §2: the selected keyframe, not its clip
         if (SelectedOrangeClipId is { } markupClip)
         {
             DeleteSelectedOrange(markupClip);   // D048 §3.9: the strip's selection, not the clip's
@@ -1439,6 +1445,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         foreach (var vm in _clipViewModels.Values)
             vm.IsSelected = _selection.Contains(vm.Id);
+        // D063: a keyframe stays selected only on the primary selected clip.
+        if (SelectedKeyframe is { } keyframe && (_selection.Count == 0 || _selection[^1] != keyframe.Owner.ClipId)) SelectedKeyframe = null;
+        NotifyKeyframeCommands();
         foreach (var vm in _transitionViewModels.Values)
             vm.IsSelected = vm.Id == _selectedTransitionId;
         HasSelection = _selection.Count > 0;

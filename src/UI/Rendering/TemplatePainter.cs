@@ -207,26 +207,27 @@ public static class TemplatePainter
     }
 
     /// <summary>
-    /// «Боулдер» (the product owner's corrections of 2026-10-21): two separate blocks bottom left (above the phone zone on a
-    /// vertical canvas). The route block — navy, the route's colour as its left edge, «ТРАССА 7 · 7A» in white (each part
-    /// only when given) — slides in and fades over the clip's fades. The status block beside it, after a gap — TOP yellow
-    /// with navy text, ПОПЫТКА muted blue with white text — appears at the moment the user set (<see cref="StatusAppear"/>)
-    /// with a short fade and a small slide (no overshoot) and stays to the end. Every text is centred on its block by its ink
-    /// (<see cref="InkOf"/>).
+    /// «Боулдер» (the product owner's corrections of 2026-10-21): two separate blocks in the plate's corner (D063 §C: any of
+    /// the four, bottom left by default; above the phone zone on a vertical canvas). The route block — navy, the route's colour
+    /// as its left edge, «ТРАССА 7 · 7A» in white (each part only when given) — slides in from its side and fades over the
+    /// clip's fades. The status block beside it on the side of the canvas centre, after a gap — TOP yellow with navy text,
+    /// ПОПЫТКА muted blue with white text — appears at the moment the user set (<see cref="StatusAppear"/>) with a short fade
+    /// and a small slide (no overshoot) and stays to the end; the route block never moves when it appears. Every text is
+    /// centred on its block by its ink (<see cref="InkOf"/>). Sizes and places: <see cref="CornerOverlayLayout"/> (larger on
+    /// a portrait canvas).
     /// </summary>
     private static void Boulder(DrawingContext context, TemplateDraw op)
     {
-        var (w, h, u) = (op.Canvas.Width, op.Canvas.Height, Unit(op));
+        var (w, h) = (op.Canvas.Width, op.Canvas.Height);
+        var u = Unit(op) * CornerOverlayLayout.PlateFactor(op.Canvas);
         var clock = op.Clock;
         var appear = OutCubic(clock.In);
         var k = Math.Min(appear, OutCubic(clock.Out));
         if (k <= 0) return;
 
         var fields = op.Fields;
-        var vertical = h > w;
-        var height = 62 * u;
-        var x0 = (vertical ? 48 : 60) * u;
-        var y0 = h - (vertical ? 260 : 64) * u - height;
+        var left = CornerOverlayLayout.IsLeft(fields.PlateCorner);
+        var (outerX, y0, height) = CornerOverlayLayout.PlateRow(op.Canvas, fields.PlateCorner);
         var centreY = y0 + height / 2;
         var padX = 20 * u;
         var gap = 10 * u;
@@ -247,9 +248,11 @@ public static class TemplatePainter
             parts.Add(Lay(grade, FontWeight.Bold, 36 * u, Brushes.White));
         }
         var textWidth = parts.Sum(p => p.InkWidth) + Math.Max(0, parts.Count - 1) * gap;
-        var plate = new Rect(x0, y0, edge + padX + textWidth + padX, height);
+        var plateWidth = edge + padX + textWidth + padX;
+        var plate = new Rect(left ? outerX : outerX - plateWidth, y0, plateWidth, height);
+        var side = left ? -1 : 1;   // the slides come from the plate's own side of the canvas
 
-        using var slide = context.PushTransform(Matrix.CreateTranslation(-(1 - appear) * 40 * u, 0));
+        using var slide = context.PushTransform(Matrix.CreateTranslation(side * (1 - appear) * 40 * u, 0));
         using var alpha = context.PushOpacity(k);
         if (parts.Count > 0)
         {
@@ -269,9 +272,13 @@ public static class TemplatePainter
         var top = fields.Status == BoulderStatus.Top;
         var label = Lay(top ? TemplateRules.TopWord : TemplateRules.AttemptWord, FontWeight.Bold, 32 * u,
             top ? Brush(TemplateRules.PlateHex) : Brushes.White);
-        var block = new Rect(parts.Count > 0 ? plate.Right + 12 * u : x0, y0, label.InkWidth + 2 * padX, height);
+        var blockWidth = label.InkWidth + 2 * padX;
+        var blockX = left
+            ? (parts.Count > 0 ? plate.Right + 12 * u : outerX)
+            : (parts.Count > 0 ? plate.X - 12 * u - blockWidth : outerX - blockWidth);
+        var block = new Rect(blockX, y0, blockWidth, height);
         using var fade = context.PushOpacity(shown);
-        using var rise = context.PushTransform(Matrix.CreateTranslation(-(1 - shown) * 16 * u, 0));
+        using var rise = context.PushTransform(Matrix.CreateTranslation(side * (1 - shown) * 16 * u, 0));
         context.DrawRectangle(Brush(top ? TemplateRules.TopHex : TemplateRules.AttemptHex, top ? 1 : 0.95), null, block);
         Centred(context, label.Text, label.Ink, block.Center);
     }
@@ -363,7 +370,8 @@ public static class TemplatePainter
     private static void HeartRate(DrawingContext context, TemplateDraw op)
     {
         if (op.HeartRate is not { } bpm) return;
-        var (w, h, u) = (op.Canvas.Width, op.Canvas.Height, Unit(op));
+        // D063 §C: a little smaller on a portrait canvas; beside a route plate in its corner.
+        var u = Unit(op) * CornerOverlayLayout.HeartFactor(op.Canvas);
         var clock = op.Clock;
         var plate = op.Fields.Look == HeartRateLook.Plate;
         using var fade = context.PushOpacity(Math.Min(clock.In, clock.Out));
@@ -382,9 +390,9 @@ public static class TemplatePainter
         var blockWidth = contentWidth + 2 * padX;
         var blockHeight = Math.Max(capHeight, heart) + 2 * padY;
 
-        var margin = TextPlacement.MarginFactor * Math.Min(w, h);
-        var left = op.Fields.Corner is OverlayCorner.TopLeft or OverlayCorner.BottomLeft ? margin : w - margin - blockWidth;
-        var top = op.Fields.Corner is OverlayCorner.TopLeft or OverlayCorner.TopRight ? margin : h - margin - blockHeight;
+        var plateCorner = op.Kind == TemplateKind.Boulder ? op.Fields.PlateCorner : op.PlateCorner;
+        var placed = CornerOverlayLayout.HeartRate(op.Canvas, op.Fields.Corner, blockWidth, blockHeight, plateCorner);
+        var (left, top) = (placed.X, placed.Y);
         if (plate)
             context.DrawRectangle(Brush(TemplateRules.PlateHex, 0.78), null, new Rect(left, top, blockWidth, blockHeight), 14 * u, 14 * u);
 

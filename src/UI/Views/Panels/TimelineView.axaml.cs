@@ -34,6 +34,7 @@ public partial class TimelineView : UserControl
 
     /// <summary>D061 amendment 1: an edge of a followed part is being dragged.</summary>
     private bool _pressedFollow;
+    private bool _pressedKeyframe;
     private TimelineClipViewModel? _pressedTemplate;   // variant B: the «Боулдер» the strip press was on
     // Variant B (D048 §4.1 / §4.2): the plate (or its overflow) whose cursor and tooltip the pointer currently sets.
     private Control? _stripHoverTarget;
@@ -73,7 +74,7 @@ public partial class TimelineView : UserControl
         TrackRows.PointerExited += (_, _) => ClearStripHover();
         TrackRows.PointerCaptureLost += (_, _) =>
         {
-            if (_pressedClip is not null || _pressedStrip is not null || _pressedFollow) CancelGesture();
+            if (_pressedClip is not null || _pressedStrip is not null || _pressedFollow || _pressedKeyframe) CancelGesture();
             if (_marqueeStarted) CancelMarquee();
         };
 
@@ -123,7 +124,7 @@ public partial class TimelineView : UserControl
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.Escape && (_viewModel?.IsGestureActive == true || _pressedFollow))
+        if (e.Key == Key.Escape && (_viewModel?.IsGestureActive == true || _pressedFollow || _pressedKeyframe))
         {
             CancelGesture();
             e.Handled = true;
@@ -176,6 +177,15 @@ public partial class TimelineView : UserControl
         }
         if (!e.GetCurrentPoint(TrackRows).Properties.IsLeftButtonPressed) return;
         Focus();
+
+        // D063 §2: a keyframe diamond — selected (the playhead on it) and dragged along the frames.
+        if (KeyframeOf(e.Source) is { } keyframe && _viewModel.BeginKeyframeDrag(keyframe.Clip, keyframe.Marker, e.GetPosition(ContentRoot).X))
+        {
+            _pressedKeyframe = _viewModel.IsKeyframeDragging;
+            if (_pressedKeyframe) e.Pointer.Capture(TrackRows);
+            e.Handled = true;
+            return;
+        }
 
         // D061 amendment 1: an edge of the followed part's strip drags; elsewhere on it the press is the clip's.
         if (FollowStripOf(e.Source) is { } follow &&
@@ -307,6 +317,11 @@ public partial class TimelineView : UserControl
     private void OnTracksMoved(object? sender, PointerEventArgs e)
     {
         if (_viewModel is null) return;
+        if (_pressedKeyframe)
+        {
+            _viewModel.UpdateKeyframeDrag(e.GetPosition(ContentRoot).X);
+            return;
+        }
         if (_pressedFollow)
         {
             _viewModel.UpdateFollowDrag(e.GetPosition(ContentRoot).X);
@@ -377,6 +392,13 @@ public partial class TimelineView : UserControl
     {
         if (_viewModel is null) return;
         _autoScroll.Stop();
+        if (_pressedKeyframe)
+        {
+            _pressedKeyframe = false;
+            _viewModel.EndKeyframeDrag();
+            e.Pointer.Capture(null);
+            return;
+        }
         if (_pressedFollow)
         {
             _pressedFollow = false;
@@ -465,6 +487,11 @@ public partial class TimelineView : UserControl
         {
             _pressedFollow = false;
             _viewModel?.CancelFollowDrag();
+        }
+        if (_pressedKeyframe)
+        {
+            _pressedKeyframe = false;
+            _viewModel?.CancelKeyframeDrag();
         }
         _viewModel?.CancelGesture();
     }
@@ -555,6 +582,18 @@ public partial class TimelineView : UserControl
         for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
         {
             if (visual is Control { Tag: "PlateOverflow", DataContext: TimelineClipViewModel plate } panel) return (plate, panel);
+            if (visual is ItemsControl { Name: "TrackRows" }) break;
+        }
+        return null;
+    }
+
+    /// <summary>D063 §2: the keyframe diamond <paramref name="source"/> is, with its clip, else null.</summary>
+    private static (TimelineClipViewModel Clip, KeyframeMarker Marker)? KeyframeOf(object? source)
+    {
+        if (source is not Control { Tag: "Keyframe", DataContext: KeyframeMarker marker } diamond) return null;
+        for (var visual = diamond as Visual; visual is not null; visual = visual.GetVisualParent())
+        {
+            if (visual is Control { Tag: "KeyframeLane", DataContext: TimelineClipViewModel clip }) return (clip, marker);
             if (visual is ItemsControl { Name: "TrackRows" }) break;
         }
         return null;

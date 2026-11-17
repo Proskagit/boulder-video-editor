@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Composition;
 
 namespace AiVideoEditor.Core.Entities;
 
@@ -25,10 +26,18 @@ public enum FollowSmoothness
 /// <para><see cref="OffsetX"/> / <see cref="OffsetY"/> (format v23): where the person stands in the frame — canvas pixels from
 /// the canvas centre (+X right, +Y down; 0, 0 — the centre), like the clip's Position. The camera keeps covering the canvas,
 /// so near the picture's edge the person can stand nearer the centre than asked.</para>
+/// <para><see cref="Keyframes"/> (format v24, D063 §4): the part's own transform keyframes — the offset and the scale per
+/// source time; independent of the clip's keyframes.</para>
 /// </summary>
 public sealed record FollowPart(MediaTime? From = null, MediaTime? To = null, MediaTime? TargetTime = null, NormalizedPoint? TargetPoint = null,
-    double OffsetX = 0, double OffsetY = 0)
+    double OffsetX = 0, double OffsetY = 0, TransformKeyframes? Keyframes = null)
 {
+    /// <summary>D063 §4 (format v24): the part's framing per source time — the climber's place in the frame
+    /// (<see cref="TransformValue.X"/> / <see cref="TransformValue.Y"/>, as <see cref="OffsetX"/> / <see cref="OffsetY"/>) and
+    /// the picture's scale while the part follows; null — the static offset and the clip's own scale.</summary>
+    public TransformValue FramingAt(MediaTime time, double clipScale) =>
+        Keyframes is { } keys ? keys.At(time) : new TransformValue(OffsetX, OffsetY, clipScale);
+
     public bool HasTarget => TargetTime is not null && TargetPoint is not null;
 
     /// <summary>The part within a clip showing <c>[sourceIn, sourceOut)</c> of the video; null when it lies outside the clip.</summary>

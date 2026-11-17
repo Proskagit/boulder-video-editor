@@ -44,6 +44,10 @@ public sealed record UserSettings
     /// <summary>D058 §1: the timeline turns its page with the playhead while playing; on by default.</summary>
     public bool TimelineFollowsPlayhead { get; init; } = true;
 
+    /// <summary>D063 §B: the Preview's magnetic snap of a picture's edges to the canvas edges — its threshold in screen
+    /// pixels (0: off).</summary>
+    public double CanvasSnapPixels { get; init; } = Composition.CanvasSnap.DefaultThresholdPixels;
+
     /// <summary>D057 §3.8: the interface language («ru» / «en»), or null for the application's configuration
     /// (<c>App:Language</c>). Applied at the next start.</summary>
     public string? Language { get; init; }
@@ -75,6 +79,9 @@ public sealed record UserSettings
         HeartRateDisplayOffsetTicks = Math.Clamp(HeartRateDisplayOffsetTicks, -MaxHeartRateDisplayOffset.Ticks, MaxHeartRateDisplayOffset.Ticks),
         GarminHeartRateDisplayOffsetTicks = Math.Clamp(GarminHeartRateDisplayOffsetTicks, -MaxHeartRateDisplayOffset.Ticks, MaxHeartRateDisplayOffset.Ticks),
         OtherHeartRateDisplayOffsetTicks = Math.Clamp(OtherHeartRateDisplayOffsetTicks, -MaxHeartRateDisplayOffset.Ticks, MaxHeartRateDisplayOffset.Ticks),
+        CanvasSnapPixels = double.IsFinite(CanvasSnapPixels)
+            ? Math.Clamp(CanvasSnapPixels, Composition.CanvasSnap.MinThresholdPixels, Composition.CanvasSnap.MaxThresholdPixels)
+            : Composition.CanvasSnap.DefaultThresholdPixels,
         Language = string.IsNullOrWhiteSpace(Language) ? null : Language.Trim(),
         FfmpegPath = string.IsNullOrWhiteSpace(FfmpegPath) ? null : FfmpegPath.Trim(),
         FfprobePath = string.IsNullOrWhiteSpace(FfprobePath) ? null : FfprobePath.Trim()

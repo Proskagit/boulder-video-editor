@@ -1,4 +1,5 @@
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Composition;
 
 namespace AiVideoEditor.Core.Entities;
 
@@ -21,6 +22,20 @@ public readonly record struct VisualProperties(
         TextClip t => new VisualProperties(t.PositionX, t.PositionY, t.Scale, t.RotationDegrees, t.Opacity, CropRect.None),
         _ => null
     };
+
+    /// <summary>D063: the clip's values at source time <paramref name="sourceTime"/> — its position and scale from its
+    /// keyframes (a video clip with keyframes), its static values otherwise; null when the clip has no picture. Without
+    /// Follow this is what the composition draws on the frame of that source time.</summary>
+    public static VisualProperties? At(Clip clip, MediaTime sourceTime) =>
+        Of(clip) is { } visual ? TransformKeyframes.Apply(visual, (clip as VideoClip)?.Keyframes, sourceTime) : null;
+}
+
+/// <summary>D063: a video clip's transform keyframes as a property group — <see cref="Keys"/> null: no keyframes (the static
+/// Position X / Y and Scale). The group itself is null for clip kinds without keyframes.</summary>
+public readonly record struct KeyframeValues(TransformKeyframes? Keys)
+{
+    /// <summary>The clip's keyframes, or null when the clip has none of its kind (not a video clip).</summary>
+    public static KeyframeValues? Of(Clip clip) => clip is VideoClip v ? new KeyframeValues(v.Keyframes) : null;
 }
 
 /// <summary>Sound properties of a clip that can carry audio (video, audio). Mute is its own

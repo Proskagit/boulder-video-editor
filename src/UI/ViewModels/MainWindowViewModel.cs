@@ -182,6 +182,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         Inspector.Training = training;
         WirePeople(people);
         Timeline.PlayheadChanged += (_, _) => Inspector.OnPlayheadMoved();
+        Inspector.GoToKeyframe = direction => Timeline.GoToKeyframe(direction);
         Timeline.SeekRequested += (_, position) => Preview.Seek(position);
         Preview.PlaybackPositionChanged += (_, position) => Timeline.ShowPlaybackPosition(position);
         // D058 §1: the timeline follows the playhead while playing.
@@ -262,7 +263,7 @@ public sealed class MainWindowViewModel : ViewModelBase
                     Core.Playback.PlaybackSnapshotBuilder.DisplaySize(project.MediaAssets.FirstOrDefault(a => a.Id == clip.MediaAssetId)?.Metadata) is not { } source)
                     return null;
                 var canvas = new Core.Composition.FrameSize(project.Settings.FrameWidth, project.Settings.FrameHeight);
-                return Core.People.FollowResolution.For(clip, follow, tracks, canvas, source).Path?.At(sourceTime);
+                return Core.People.FollowResolution.For(clip, follow, tracks, canvas, source).Framing?.At(sourceTime);
             };
             people.AnalysesChanged += (_, _) => markup.RefreshGeometry();
         }
@@ -278,9 +279,8 @@ public sealed class MainWindowViewModel : ViewModelBase
                     return null;
                 var canvas = new Core.Composition.FrameSize(project.Settings.FrameWidth, project.Settings.FrameHeight);
                 var resolution = Core.People.FollowResolution.For(clip, follow, tracks, canvas, source);
-                if (resolution.Path is not { } path || resolution.PartAt(sourceTime) is not { State: Core.People.FollowState.Following } part) return null;
-                var (x, y) = path.At(sourceTime);
-                return (part.Index, x, y);
+                if (resolution.Framing is not { } framing || resolution.PartAt(sourceTime) is not { State: Core.People.FollowState.Following } part) return null;
+                return (part.Index, framing.At(sourceTime));
             };
             people.AnalysesChanged += (_, _) => transform.Refresh();
         }

@@ -84,6 +84,14 @@ deferred to a separate release-preparation task. Details: `progress.md`, `docs/P
 
 ## Current
 
+**Phase 44 — Transform keyframes & canvas snapping (DECISIONS.md D063, 2026-11-17) — implemented, the owner's check open.**
+Keyframes of Position X / Y and Scale for a video clip and, independently, for each followed part (the climber's place and
+the scale while following), Linear / Ease In / Ease Out / Ease In-Out, a button on the timeline's tool bar, diamonds that
+select, drag and delete, Undo / Redo, kept through Trim / Split / moves / Speed and saved (`project.json` v24); Follow's start
+and end glide without a jump. The Preview's Move and Scale snap a picture's edges exactly onto the canvas edges (no thin black
+lines). «Боулдер»'s plate in any corner, sized by the canvas's shape, the heart rate beside it in the same corner. Manual
+plan: `docs/PHASE44_MANUAL_TEST_PLAN.md`.
+
 **Phase 43 — FIT import from any watch (DECISIONS.md D062, 2026-11-16) — implemented, the owner's check open.** One FIT reader
 for COROS, Garmin and other watches («Импорт FIT-тренировки…»): what the file contains is used, nothing is refused for its
 maker; Garmin's session end and sparse «smart recording» handled; the route's grade and status (Топ / Попытка) read from the

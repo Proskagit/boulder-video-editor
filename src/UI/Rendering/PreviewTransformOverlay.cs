@@ -45,6 +45,9 @@ public sealed class PreviewTransformOverlay : Control, ICustomHitTest
         new ImmutableDashStyle(new double[] { 4, 3 }, 0));
     private static readonly IPen HoverPen = new ImmutablePen(new ImmutableSolidColorBrush(Color.FromArgb(150, 255, 255, 255)), 1);
     private static readonly IPen HandleBorder = new ImmutablePen(Brushes.Black, 1);
+
+    /// <summary>D063 §B: a canvas edge the picture snapped to.</summary>
+    private static readonly IPen SnapPen = new ImmutablePen(new ImmutableSolidColorBrush(Color.Parse("#FF4FD8")), 2.5);
     private static readonly IBrush HandleFill = Brushes.White;
     private static readonly IBrush HoveredFill = new ImmutableSolidColorBrush(Color.Parse("#FFEA00"));
 
@@ -186,6 +189,7 @@ public sealed class PreviewTransformOverlay : Control, ICustomHitTest
         if (!t.IsPaused || t.IsGestureActive) return;
 
         var viewport = ViewportIn(t.Canvas, Bounds.Size);
+        t.ScreenPixelsPerCanvasPixel = viewport.A;   // D063 §B: the snap threshold is in screen pixels at this zoom
         var canvasPoint = ToCanvas(viewport, point.Position);
         var kind = PressKind.None;
         var handle = CropEdges.None;
@@ -370,6 +374,18 @@ public sealed class PreviewTransformOverlay : Control, ICustomHitTest
             : CropEdges.None;
         if (t.HasScaleHandles) DrawHandles(context, viewport, target.Frame, TransformFrame.Corners, active);
         else if (t.HasCropHandles) DrawHandles(context, viewport, target.Frame, TransformFrame.Handles, active);
+        DrawSnappedEdges(context, viewport, t.Canvas, t.SnappedEdges);
+    }
+
+    /// <summary>D063 §B: the canvas edges the running gesture snapped the picture to, highlighted along their length.</summary>
+    private static void DrawSnappedEdges(DrawingContext context, Affine2D viewport, FrameSize canvas, CropEdges edges)
+    {
+        if (edges == CropEdges.None) return;
+        var (tl, br) = (ToView(viewport, new PointD(0, 0)), ToView(viewport, new PointD(canvas.Width, canvas.Height)));
+        if (edges.HasFlag(CropEdges.Left)) context.DrawLine(SnapPen, new Point(tl.X, tl.Y), new Point(tl.X, br.Y));
+        if (edges.HasFlag(CropEdges.Right)) context.DrawLine(SnapPen, new Point(br.X, tl.Y), new Point(br.X, br.Y));
+        if (edges.HasFlag(CropEdges.Top)) context.DrawLine(SnapPen, new Point(tl.X, tl.Y), new Point(br.X, tl.Y));
+        if (edges.HasFlag(CropEdges.Bottom)) context.DrawLine(SnapPen, new Point(tl.X, br.Y), new Point(br.X, br.Y));
     }
 
     private static void DrawFrame(DrawingContext context, Affine2D viewport, TransformFrame frame, IPen? under, IPen pen)

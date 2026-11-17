@@ -300,8 +300,10 @@ public interface ITimelineEditService
     /// <c>CompositionMath.FillScale</c> / <c>FitScale</c> from the asset's display size, the crop and the rotation. Only
     /// the scale changes (the position, rotation and crop stay); one undo step that never merges with another. The value
     /// already there is <see cref="TimelineEditResult.NoChange"/> with a message. Refused for a text or audio clip, a clip
-    /// whose source size is unknown, a locked track and a scale outside <see cref="ClipPropertyLimits"/>.</summary>
-    TimelineEditResult FrameClip(Guid clipId, ClipFraming framing);
+    /// whose source size is unknown, a locked track and a scale outside <see cref="ClipPropertyLimits"/>. D063: a video clip
+    /// with transform keyframes gets the scale in its keyframe at source time <paramref name="at"/> (added there when none is;
+    /// without <paramref name="at"/> at its first keyframe).</summary>
+    TimelineEditResult FrameClip(Guid clipId, ClipFraming framing, MediaTime? at = null);
 
     /// <summary>D057 §3.7: a video clip's background — black or its own picture blurred; one undo step; the value already
     /// there is <see cref="TimelineEditResult.NoChange"/>; refused for another kind of clip or a locked track.</summary>
@@ -527,6 +529,10 @@ public sealed record ClipPropertyChange
 
     /// <summary>Templates (D045 §6): their fields.</summary>
     public TemplateProperties? Template { get; init; }
+
+    /// <summary>D063: a video clip's transform keyframes as a whole (<see cref="KeyframeValues.Keys"/> null: none — the
+    /// static Position X / Y and Scale again).</summary>
+    public KeyframeValues? Keyframes { get; init; }
 
     /// <summary>Every clip kind (D025). Each value is a whole number of frames of the project rate, at most the clip's
     /// length; it is stored as exactly that many frames.</summary>

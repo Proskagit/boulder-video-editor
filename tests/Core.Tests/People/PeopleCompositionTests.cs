@@ -192,6 +192,33 @@ public class PeopleCompositionTests
         Assert.NotNull(result.Job!.Snapshot.VideoLayers[0].Spans[0].Follow);
     }
 
+    [Fact]
+    public void A_followed_part_whose_keyframes_zoom_out_never_hides_the_track_below()
+    {
+        // D063 review: V2 at scale 3 covers the canvas, but its followed part zooms to 0.8 — the layer below must stay drawn.
+        var v2 = new Track { Type = TrackType.Video, Name = "V2", Order = 1 };
+        _project.Timeline.VideoTracks.Add(v2);
+        Clip();                                                                           // V1
+        var keys = new TransformKeyframes(ImmutableArray.Create(new TransformKeyframe(Guid.NewGuid(), S(0), 0, 0, 3),
+            new TransformKeyframe(Guid.NewGuid(), S(9), 0, 0, 0.8)));
+        var top = new VideoClip
+        {
+            MediaAssetId = _asset.Id, TimelineStart = F(0), Duration = S(10), SourceOut = S(10), Scale = 3,
+            Follow = FollowSettings.Of(new FollowPart(Keyframes: keys))
+        };
+        v2.Clips.Add(top);
+        var snapshot = PlaybackSnapshotBuilder.Build(_project, 1, people: With(Walk()));
+        Assert.NotNull(snapshot.VideoLayers.SelectMany(l => l.Spans).Single(sp => sp.ClipId == top.Id).Follow);
+        var layers = snapshot.LayersAt(S(9.5)).OfType<PictureLayer>().ToList();
+        Assert.Equal(2, layers.Count);                                                    // V1 is not dropped
+        Assert.False(layers.Single(l => l.ClipId == top.Id).OccludesBelow);
+
+        // Without the part's own scale the covering picture still hides what is below (as before).
+        top.Follow = FollowSettings.Whole();
+        var plain = PlaybackSnapshotBuilder.Build(_project, 2, people: With(Walk())).LayersAt(S(9.5)).OfType<PictureLayer>().ToList();
+        Assert.Single(plain);
+    }
+
     private ExportPreflightResult Preflight(ExportPeople people) => ExportPreflight.Check(_project, @"C:\out\video.mp4",
         new ExportPreflightEnvironment(true, _ => true, _ => true, path => path.TrimEnd('\\') == @"C:\out") { People = people });
 

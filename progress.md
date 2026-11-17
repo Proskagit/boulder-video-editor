@@ -2,6 +2,27 @@
 
 ## Current phase
 
+**Phase 44 — Transform keyframes & canvas snapping (D063, 2026-11-17) — on `feat/phase-44-transform-keyframes`.** Keyframes
+of Position X / Y and Scale (source time; Linear / Ease In / Ease Out / Ease In-Out) for a video clip and, independently, for
+each followed part (the climber's place and the scale while following); the tool-bar button «Ключ. кадр» (add / remove at the
+playhead for the owner placing the picture there), amber / cyan diamonds (select = playhead on it, drag along the frames,
+Delete), the playhead snapped to a diamond, the Inspector's «Ключевые кадры» (◀ ▶, the easing) and its fields showing / editing
+the frame's keyframe, the Preview's gestures writing it; `FollowFraming` blends the clip's transform and a part's framing
+(position and scale) at the part's edges — no jump; Trim / Split / moves / Speed / Duplicate / the canvas size / Fill keep
+them; `project.json` v24. Canvas snapping in the Preview's Move and corner Scale — exact (rational, the covering side), stable,
+a screen-pixel threshold in the settings, the snapped edge drawn. «Боулдер»'s plate in any corner («Угол плашки»), the plate
+1.35× / the heart rate 0.85× on a portrait canvas (by the aspect ratio), the heart rate beside the plate nearer the centre when
+in its corner. Branched from `origin/feat/fit-import-garmin` (PR #70, not yet merged). Manual plan:
+`docs/PHASE44_MANUAL_TEST_PLAN.md`. Phase review: FAIL (the climber's drag on a part with keyframes added the drag up
+on every move; a followed picture with a part's own scale could hide the track below; Fill / Fit from the timeline's menu
+and a group wrote the first keyframe) — fixed with tests; also one undo step per keyframe for the Inspector's edits, a part
+as `[From, To)`, the heart rate moved only by a plate that draws something. Re-review: PASS WITH NOTES. Gates (2026-11-17):
+Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check` clean; Debug and Release (+ `AIVE_HEAVY_TESTS=1`)
+every suite green — Core 1 897, Timeline 1 172, Project 735, Rendering 251, UI 1 258, Export 141, Vision 24, Video 405 + 1
+skipped, ExportEndToEnd 189 / 0 / 0 in Release (186 + 3 heavy skipped in Debug), the new `ExportKeyframeEndToEndTests`
+included (a keyframed clip byte-equal to the Preview; a snapped picture with no black edge in the MP4). The owner's manual
+check (Preview and Export on real projects) is open.
+
 **Phase 43 — amendment 1, second round (2026-11-17).** The settings window gets its left column of sections (the FIT section
 was unreachable once «Настройки FIT…» left the training menu); a selected orange shows the «Зацепки» section alone, opened.
 Rows G14 (revised), G16.

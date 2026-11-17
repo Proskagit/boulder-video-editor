@@ -1,4 +1,5 @@
 using System.Globalization;
+using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Localization;
 using static AiVideoEditor.Core.Entities.ClipPropertyLimits;
@@ -41,6 +42,12 @@ public static class ClipPropertyValidator
             if (TemplateRules.Validate(template) is { } error) return error;
         }
 
+        if (change.Keyframes is { } keyframes)
+        {
+            if (clip is not VideoClip) return Messages.Prop_KeyframesOnlyVideo;
+            if (keyframes.Keys is { } keys && !TransformKeyframes.AreValid(keys.Keys)) return Messages.Prop_KeyframesInvalid;
+        }
+
         return null;
     }
 
@@ -50,7 +57,8 @@ public static class ClipPropertyValidator
         Visual = VisualProperties.Of(clip),
         Audio = AudioProperties.Of(clip),
         Text = TextProperties.Of(clip),
-        Template = TemplateProperties.Of(clip)
+        Template = TemplateProperties.Of(clip),
+        Keyframes = KeyframeValues.Of(clip)
     });
 
     /// <summary>Checks picture properties on their own; <paramref name="allowCrop"/> is false for text.</summary>

@@ -85,7 +85,17 @@ public sealed record PictureSpan(
 
     /// <summary>D061: the clip's Follow camera — its position per source time (the shown frame's, like the hold contours'
     /// camera motion); null without Follow, or while it cannot move (the clip's own position). Presentation only.</summary>
-    public People.FollowPath? Follow { get; init; }
+    public People.FollowFraming? Follow { get; init; }
+
+    /// <summary>D063: the clip's transform keyframes — its Position X / Y and Scale per source time (the rest of
+    /// <see cref="Visual"/> stays); null without keyframes. Evaluated per timeline frame by <see cref="PlaybackSnapshot.LayersAt"/>
+    /// (the exact D009 / D022 source time of the frame), the same for the Preview and the export. Presentation only.</summary>
+    public TransformKeyframes? Keyframes { get; init; }
+
+    /// <summary>The picture's properties on timeline frame <paramref name="frame"/>: <see cref="Visual"/> with its position and
+    /// scale from <see cref="Keyframes"/> at the frame's source time; <see cref="Visual"/> itself without keyframes.</summary>
+    public VisualProperties VisualAt(long frame, FrameRate rate) =>
+        Keyframes is null ? Visual : TransformKeyframes.Apply(Visual, Keyframes, HoldAnimationRule.SourceTimeAt(TimelineStart, SourceIn, Speed, frame, rate));
 
     /// <summary>D061: the people's masks of the clip's video when the clip hides its hold outlines behind people; null
     /// otherwise (the outlines drawn over everything, as before). Presentation only.</summary>
@@ -348,9 +358,10 @@ public sealed class PlaybackSnapshot
             if (Find(layer.Spans, time) is { } picture)
             {
                 if (picture.Visual.Opacity == 0) continue;
-                var geometry = picture.SourceSize is { } size ? CompositionMath.Layout(Canvas, size, picture.Visual) : null;
+                var visual = VisualAt(picture, time, ref frame);
+                var geometry = picture.SourceSize is { } size ? CompositionMath.Layout(Canvas, size, visual) : null;
                 var fade = FadeAt(picture.TimelineStart, picture.TimelineEnd, picture.FadeInFrames, picture.FadeOutFrames, time, ref frame);
-                var pictureLayer = WithOutlineOpacities(new PictureLayer(layer.TrackId, picture, geometry, fade), time, ref frame);
+                var pictureLayer = WithOutlineOpacities(new PictureLayer(layer.TrackId, picture, geometry, fade) { Visual = visual }, time, ref frame);
                 topDown.Add(pictureLayer);
                 if (pictureLayer.OccludesBelow && (mayOcclude?.Invoke(pictureLayer) ?? true)) break;
             }
@@ -372,8 +383,33 @@ public sealed class PlaybackSnapshot
             }
         }
 
+        StackHeartRateOnPlates(topDown);
         topDown.Reverse();
         return topDown.ToImmutableArray();
+    }
+
+    /// <summary>D063 §C: a heart-rate overlay in the corner of a «Боулдер» route plate shown on the same frame stands beside
+    /// the plate, nearer the centre (<see cref="CornerOverlayLayout.HeartRate"/>) — never over it.</summary>
+    private static void StackHeartRateOnPlates(List<CompositionLayer> layers)
+    {
+        if (!layers.Exists(l => l is TemplateLayer { Kind: TemplateKind.HeartRate })) return;
+        // Only a plate that draws something (a route, a grade or a status) moves the heart rate.
+        var plates = layers.OfType<TemplateLayer>()
+            .Where(l => l.Kind == TemplateKind.Boulder && (l.Span.Fields.Route.Trim().Length > 0 || l.Span.Fields.Grade.Trim().Length > 0 ||
+                                                           l.Span.Fields.Status != BoulderStatus.None))
+            .Select(l => l.Span.Fields.PlateCorner).ToHashSet();
+        if (plates.Count == 0) return;
+        for (var i = 0; i < layers.Count; i++)
+            if (layers[i] is TemplateLayer { Kind: TemplateKind.HeartRate } heart && plates.Contains(heart.Span.Fields.Corner))
+                layers[i] = heart with { PlateCorner = heart.Span.Fields.Corner };
+    }
+
+    /// <summary>D063: the picture's properties on the frame of <paramref name="time"/> (its keyframes evaluated there).</summary>
+    private VisualProperties VisualAt(PictureSpan picture, MediaTime time, ref long? frame)
+    {
+        if (picture.Keyframes is null) return picture.Visual;
+        frame ??= time.ToFrameFloor(FrameRate);
+        return picture.VisualAt(frame.Value, FrameRate);
     }
 
     /// <summary>The layer of the clip of <paramref name="layer"/> that covers <paramref name="at"/>, shown at
@@ -384,9 +420,10 @@ public sealed class PlaybackSnapshot
         if (Find(layer.Spans, at) is { } picture)
         {
             if (picture.Visual.Opacity == 0) return null;
-            var geometry = picture.SourceSize is { } size ? CompositionMath.Layout(Canvas, size, picture.Visual) : null;
+            var visual = VisualAt(picture, time, ref frame);
+            var geometry = picture.SourceSize is { } size ? CompositionMath.Layout(Canvas, size, visual) : null;
             var fade = FadeAt(picture.TimelineStart, picture.TimelineEnd, picture.FadeInFrames, picture.FadeOutFrames, time, ref frame);
-            return WithOutlineOpacities(new PictureLayer(layer.TrackId, picture, geometry, fade * factor), time, ref frame);
+            return WithOutlineOpacities(new PictureLayer(layer.TrackId, picture, geometry, fade * factor) { Visual = visual }, time, ref frame);
         }
         if (FindText(layer.Texts, at) is { } text && text.Visual.Opacity > 0 && !string.IsNullOrWhiteSpace(text.Text.Text))
         {
@@ -582,7 +619,7 @@ public sealed class PlaybackSnapshot
         static AudioSpan WithoutMix(AudioSpan span) => span with { Gain = 0, IsMuted = false, FadeInFrames = 0, FadeOutFrames = 0 };
         static PictureSpan WithoutPresentation(PictureSpan span) =>
             span with { Visual = VisualProperties.Default, SourceSize = null, FadeInFrames = 0, FadeOutFrames = 0, Outline = null, HeartRate = null,
-                Background = Entities.ClipBackground.Black, Follow = null, PeopleMasks = null };
+                Background = Entities.ClipBackground.Black, Follow = null, PeopleMasks = null, Keyframes = null };
         static (Guid, MediaTime, MediaTime) TextTiming(TextSpan span) => (span.ClipId, span.TimelineStart, span.TimelineEnd);
         static (Guid, MediaTime, MediaTime) TemplateTiming(TemplateSpan span) => (span.ClipId, span.TimelineStart, span.TimelineEnd);
         static DissolveZone Placement(DissolveZone zone) => zone with { TypeId = TransitionRules.CrossDissolve, Direction = null };

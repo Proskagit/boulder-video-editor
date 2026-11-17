@@ -82,7 +82,9 @@ public sealed class TemplateTextAlignmentTests(ITestOutputHelper output)
         AssertCentred("TOP", topBlock, topInk);
 
         var attempt = Draw(canvas, TemplateKind.Boulder, fields with { Status = BoulderStatus.Attempt });
-        var attemptBlock = Find(attempt, (r, g, b) => Near(r, g, b, TemplateRules.AttemptHex, 16))!.Value;
+        // D063 §C: on a portrait canvas the larger plate's anti-aliased grey text comes near the muted blue — the status block is
+        // searched where the status block stands (from TOP's left edge: both follow the same route block).
+        var attemptBlock = Find(attempt, (r, g, b) => Near(r, g, b, TemplateRules.AttemptHex, 16), new Box(topBlock.Left, 0, width - 1, height - 1))!.Value;
         var attemptInk = Find(attempt, (r, g, b) => r > 200 && g > 200 && b > 200, attemptBlock)!.Value;
         AssertCentred("ПОПЫТКА", attemptBlock, attemptInk);
 

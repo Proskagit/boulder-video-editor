@@ -1589,7 +1589,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
     /// <summary>D061: the clip's Follow position (canvas pixels) on its video's source time, or null (no Follow, or it does
     /// not move the picture) — the position the composition draws that frame at. Set by the main window.</summary>
-    public Func<VideoClip, MediaTime, (double X, double Y)?>? FollowPositionAt { get; set; }
+    public Func<VideoClip, MediaTime, VisualProperties?>? FollowPositionAt { get; set; }
 
     /// <summary>D061: the people analysis changed — the markup frame's Follow position may have.</summary>
     public void RefreshGeometry() => UpdateOverlay();
@@ -1603,9 +1603,14 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         Canvas = new FrameSize(settings.FrameWidth, settings.FrameHeight);
         var size = MarkupFrame is { } frame ? new FrameSize(frame.Width, frame.Height) : _pickSize;
         var visual = _clip is not null ? VisualProperties.Of(_clip) : null;
-        if (visual is { } v && _clip is VideoClip { Follow: not null } video && MarkupFrame is { } markupFrame && FollowPositionAt is { } follow &&
-            follow(video, Core.Motion.CameraMotionMath.SourceTimeOf(markupFrame.Timestamp, Asset(video)?.Metadata?.StartTime ?? MediaTime.Zero)) is { } at)
-            visual = v with { PositionX = at.X, PositionY = at.Y };
+        // D063: the markup frame's own transform — the clip's keyframes there, and with Follow the framing there.
+        var shownAt = _clip is VideoClip keyed && MarkupFrame is { } keyedFrame
+            ? Core.Motion.CameraMotionMath.SourceTimeOf(keyedFrame.Timestamp, Asset(keyed)?.Metadata?.StartTime ?? MediaTime.Zero)
+            : (MediaTime?)null;
+        if (_clip is VideoClip { Keyframes: not null } animated && shownAt is { } keyTime) visual = VisualProperties.At(animated, keyTime);
+        if (visual is not null && _clip is VideoClip { Follow: not null } video && shownAt is { } followTime && FollowPositionAt is { } follow &&
+            follow(video, followTime) is { } at)
+            visual = at;
         Geometry = _clip is not null && size is { } frameSize && visual is { } placed
             ? CompositionMath.Layout(Canvas, frameSize, placed)
             : null;

@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Globalization;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
@@ -1776,7 +1777,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
             change.Audio ?? before.Audio,
             change.Text ?? before.Text,
             fade ?? before.Fade,
-            change.Template ?? before.Template);
+            change.Template ?? before.Template,
+            change.Keyframes ?? before.Keyframes);
 
         // D053: Top / Attempt chosen where the status moment gives no lilac is put where the layout puts it.
         if (clip is TemplateClip placed && after.Template is { } wanted && before.Template is { } had)
@@ -1882,16 +1884,22 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 if (VisualProperties.Of(clip) is not { } visual) continue;   // audio: nothing in canvas pixels
 
                 var text = TextProperties.Of(clip);
+                // D063: the keyframes' positions scale with the static ones (their scale is relative to the canvas already).
+                var keyframes = KeyframeValues.Of(clip);
+                var scaledKeys = keyframes?.Keys is { } keys
+                    ? new KeyframeValues(new TransformKeyframes(keys.Keys.Select(k => k with { X = k.X * scale, Y = k.Y * scale }).ToImmutableArray()))
+                    : keyframes;
                 var change = new ClipPropertyChange
                 {
                     Visual = visual with { PositionX = visual.PositionX * scale, PositionY = visual.PositionY * scale },
-                    Text = text is { } t ? t with { FontSize = t.FontSize * scale } : null
+                    Text = text is { } t ? t with { FontSize = t.FontSize * scale } : null,
+                    Keyframes = scaledKeys
                 };
                 if (ClipPropertyValidator.Validate(clip, change) is { } error)
                     return string.Format(Messages.Edit_CantChangeSize, width, height, Describe(clip), track.Name, error);
 
-                var before = new ClipPropertyValues(visual, null, text);
-                var after = new ClipPropertyValues(change.Visual, null, change.Text);
+                var before = new ClipPropertyValues(visual, null, text, Keyframes: keyframes);
+                var after = new ClipPropertyValues(change.Visual, null, change.Text, Keyframes: scaledKeys);
                 var fields = ClipPropertyValues.Diff(before, after);
                 if (fields != ClipPropertyFields.None)
                     commands.Add(new SetClipPropertiesCommand(clip, before, after, fields));
@@ -2575,6 +2583,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 Crop = v.Crop, IsAudioDetached = v.IsAudioDetached,
                 // D061: Follow (its target is a source time of the same video) and Occlusion go with the copy.
                 Follow = v.Follow, HidesOutlinesBehindPeople = v.HidesOutlinesBehindPeople,
+                // D063: the transform keyframes (source time, immutable) go with the copy — a split's two parts keep the same
+                // curve, so the picture does not change at the cut; each part shows and edits its own.
+                Keyframes = v.Keyframes,
                 // D034 §6 / D053: the routes go with the copy; they are immutable, so the two clips stay independent.
                 Routes = v.Routes
             },
@@ -2595,7 +2606,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             {
                 Kind = p.Kind, CounterStart = p.CounterStart, Date = p.Date, Route = p.Route, Grade = p.Grade, Status = p.Status,
                 AccentHex = p.AccentHex, Title = p.Title, Subtitle = p.Subtitle, StatusAt = p.StatusAt, Look = p.Look, Corner = p.Corner,
-                ShowHeartRate = p.ShowHeartRate, HeartHex = p.HeartHex,
+                ShowHeartRate = p.ShowHeartRate, HeartHex = p.HeartHex, PlateCorner = p.PlateCorner,
                 // D048 §3.5: kept by a split's right part (re-anchored by the split); remapped or cleared by a paste. D053: the
                 // route and the FIT climb go with it (cleared on a copy).
                 AnchorClipId = p.AnchorClipId, AnchorRouteId = p.AnchorRouteId, FitClimb = p.FitClimb, FitLayout = p.FitLayout, RouteStart = p.RouteStart

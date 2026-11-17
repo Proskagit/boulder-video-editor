@@ -309,7 +309,7 @@ public partial class MainWindow : Window
         public TimelineEditResult SetHoldStyle(Guid clipId, HoldStyle style, Guid? routeId = null) => Nothing;
         public TimelineEditResult SetHoldAnimation(Guid clipId, HoldAnimation? animation, Guid? routeId = null) => Nothing;
         public TimelineEditResult SetHoldFollowsCamera(Guid clipId, bool follows, Guid? routeId = null) => Nothing;
-        public TimelineEditResult FrameClip(Guid clipId, ClipFraming framing) => Nothing;
+        public TimelineEditResult FrameClip(Guid clipId, ClipFraming framing, MediaTime? at = null) => Nothing;
         public TimelineEditResult SetCanvasSize(int width, int height) => Nothing;
         public TimelineEditResult SetFrameRate(FrameRate rate) => Nothing;
         public TimelineEditResult SetProjectSettings(int width, int height, FrameRate? rate, ExportEncoding? export = null) => Nothing;

@@ -75,6 +75,13 @@ public sealed partial class InspectorViewModel
         new(OverlayCorner.BottomLeft, Strings.OverlayCorner_BottomLeft), new(OverlayCorner.BottomRight, Strings.OverlayCorner_BottomRight)
     };
 
+    /// <summary>D063 §C: «Боулдер»'s route plate corner.</summary>
+    public IReadOnlyList<TemplateChoiceOption<OverlayCorner>> PlateCorners { get; } = new TemplateChoiceOption<OverlayCorner>[]
+    {
+        new(OverlayCorner.TopLeft, Strings.OverlayCorner_TopLeft), new(OverlayCorner.TopRight, Strings.OverlayCorner_TopRight),
+        new(OverlayCorner.BottomLeft, Strings.OverlayCorner_BottomLeft), new(OverlayCorner.BottomRight, Strings.OverlayCorner_BottomRight)
+    };
+
     [ObservableProperty] private string _templateDate = string.Empty;
     [ObservableProperty] private string _templateRoute = string.Empty;
     [ObservableProperty] private string _templateGrade = string.Empty;
@@ -142,6 +149,9 @@ public sealed partial class InspectorViewModel
 
     [RelayCommand]
     private void SetHeartRateCorner(OverlayCorner corner) => EditTemplate(p => p with { Corner = corner }, "Move Heart Rate");
+
+    [RelayCommand]
+    private void SetPlateCorner(OverlayCorner corner) => EditTemplate(p => p with { PlateCorner = corner }, "Move Route Plate");
 
     /// <summary>The heart-rate hint: no training, a training whose FIT is not available, or where the value comes from (the
     /// reasons it may still show nothing) — for a green route area (D055 §4) its clip's video and, without a reliable file
@@ -233,6 +243,7 @@ public sealed partial class InspectorViewModel
             foreach (var option in TemplateStatuses) option.IsSelected = option.Status == template.Status;
             foreach (var option in HeartRateLooks) option.IsSelected = option.Value == template.Look;
             foreach (var option in HeartRateCorners) option.IsSelected = option.Value == template.Corner;
+            foreach (var option in PlateCorners) option.IsSelected = option.Value == template.PlateCorner;
             if (template.Kind is Core.Entities.TemplateKind.HeartRate or Core.Entities.TemplateKind.Boulder) RefreshHeartRateHint();
         }
         finally

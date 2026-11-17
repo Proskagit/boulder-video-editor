@@ -10433,3 +10433,133 @@ added the left column; the FIT section was reached only through «Настрой
 added, «Общие» / «FFmpeg» / «Таймлайн и разметка» / «FIT-тренировки», one shown at a time. (b) Item 3 refined: the orange is
 the route's holds only — the Inspector shows **the «Зацепки» section alone** (opened), none of the video's other sections
 (transform, crop, people, fades, training, audio, …).
+
+
+## D063 — Phase 44: Transform keyframes, canvas snapping, the route plate and the heart rate in any corner *(set by the owner's task of 2026-11-17; implemented 2026-11-17)*
+
+Date: 2026-11-17. **Status: the scope set by the product owner on 2026-11-17** (the Phase 44 task: «Transform Keyframes &
+Canvas Snapping» with parts A — keyframes of Position X / Y and Scale for a video clip and for a Follow overlay, B — the
+magnetic snap to the canvas edges, C — the sizes and corners of the route and heart-rate plates, D — architecture and
+quality). It **supersedes D042 §3 for the transform** (keyframes were «not planned»; only Position X / Y and Scale are
+keyframed — rotation, opacity, crop, text and audio stay without). Implemented on `feat/phase-44-transform-keyframes`.
+`project.json` v24. Manual plan: `docs/PHASE44_MANUAL_TEST_PLAN.md`.
+
+### 1. The model (A1, A4)
+
+- `TransformKeyframe(Id, Time, X, Y, Scale, Easing)` and `TransformKeyframes` (immutable, sorted, distinct times and ids, ≥ 1,
+  every value within the limits of a Position and a Scale; equal by value) in `Core.Composition` — values, so the playback
+  snapshot holds no mutable project entity.
+- **Time is the video's source time** (as a followed part's range, D061 amendment 1): Trim, Slip, Speed and moving the clip
+  keep every keyframe on its frame of the video; on the timeline a keyframe sits at the frame showing its source time.
+- **Two owners, two independent systems.** `VideoClip.Keyframes` — the clip's own transform (Position X / Y, Scale relative to
+  the canvas; when set, the static Position X / Y and Scale are not used for the picture); `FollowPart.Keyframes` — that
+  followed part's framing: the climber's place in the frame (as the part's offset X / Y) and the picture's scale while it
+  follows (without them the part's static offset and the clip's own scale, as D061). The owner is where a keyframe is stored;
+  the editor addresses it as `KeyframeOwner(ClipId, FollowPart?)`. A clip's keyframes never change a part's framing; a part's
+  keyframes never change the clip's transform.
+
+### 2. Editing (A1, A2)
+
+- **The keyframe button** on the timeline's tool bar («Ключ. кадр», also in the Inspector): on the playhead's frame of the
+  selected video clip it adds a keyframe of the owner that places the picture there — **the followed part whose range holds
+  the frame, else the clip** — with the values the frame shows (the picture does not change), or removes the one there.
+- **Diamonds** on the clip: the clip's keyframes along its top (amber), a part's on its cyan strip. A press selects one and
+  puts the playhead on its frame; a drag moves it along the frames (within the clip, a part's within the part; never onto
+  another keyframe's frame) — the release is one undo step; Esc, a lost pointer or the export's lock cancel. **Delete** with a
+  keyframe selected removes the keyframe, not the clip. With Snap on, the playhead put within 8 px of a diamond of the
+  selected clip lands on it; the Inspector's ◀ / ▶ go to the previous / next keyframe.
+- **Values.** The Inspector's Position X / Y and Scale (and a part's climber X / Y) show the values on the playhead's frame;
+  with keyframes an edit changes **the keyframe on that frame, or adds one there** (the common editors' rule; the new one takes
+  the easing of the segment it splits); without keyframes the static values, as before. The Preview's Move, corner Scale,
+  Ctrl + wheel and the climber's drag follow the same rule (a part with framing keyframes: its keyframe; a part without: the
+  scale goes to the clip, the place to the part's offset). A crop on a keyframed clip: the crop static, the compensating
+  position and scale into the frame's keyframe — one change, one undo step.
+- **The last keyframe removed** leaves its values as the static ones (the picture keeps them).
+- **Undo steps of the Inspector's fields**: the edits of one keyframe in a row (typed values, a scrub) are one step; an edit
+  of another keyframe, or one that adds a keyframe, starts a new step — never one step over two keyframes (phase review).
+- A Preview drag of the climber on a part with keyframes writes the frame's value **at the gesture's start plus the drag**.
+- Every change is one `SetClipProperties` (the clip's: `ClipPropertyChange.Keyframes`, a property group of its own with the
+  fields `Keyframes` / `KeyframeX` / `KeyframeY` / `KeyframeScale`) or `SetClipFollow` (a part's) — Undo / Redo as every
+  property edit; a Preview gesture's changes merge into one step.
+
+### 3. Interpolation (A3)
+
+Between two keyframes every value moves by `a + (b − a) · ease(f)`, `f` the share of the time between them — so a transition
+lasts exactly the distance between the keyframes (five seconds apart: five seconds). Before the first keyframe its values,
+after the last the last's. The easing belongs to a keyframe's outgoing segment: **Linear**, **Ease In** (cubic `f³`),
+**Ease Out** (`1 − (1 − f)³`), **Ease In / Out** (cubic, symmetric). `TransformKeyframes.At` is the one evaluation: the snapshot
+(`PictureSpan.VisualAt`, the frame's exact D009 / D022 source time) for the Preview and the export, the editor, the Inspector.
+
+### 4. Follow with keyframes; no jump at a part's edges (A4, A5)
+
+- `FollowCamera.Solve` takes the part's framing per analysed frame: the anchor at the canvas centre moved by the offset there,
+  at the scale there (the picture scales about the canvas centre), clamped to cover the canvas at that scale, then smoothed
+  (D061's Gaussian). Without keyframes the path is exactly D061's (the same arithmetic).
+- `FollowFraming` (People) is the clip's whole framing per source time, replacing the position-only path in the snapshot:
+  outside every part the clip's own transform (its keyframes); inside a part the camera's position **clamped again on that
+  very frame at the part's scale there** (so a zoom between samples never shows a border), the part's scale; at a part's free
+  edge the two blend by D061's weight (the smoothstep over 0.75 s) — **the position and the scale together**, whatever both
+  transforms are; between two touching parts the camera passes from one to the other. When Follow ends, the clip's transform
+  (and its keyframes) takes over without a jump. An axis with no room keeps the clip's own position there (as D061).
+- A picture whose followed part has its own scale (framing keyframes) **never hides the tracks below** on the strength of its
+  own transform (`PictureLayer.OccludesBelow`): the part may draw it smaller than the canvas (phase review).
+- `CompositionDrawPlan.GeometryAt` draws a followed picture through `FollowFraming.At` (its outline, blurred background and
+  masks with it) — the Preview and the export alike.
+
+### 5. Clip edits (A6)
+
+Keyframes are kept in source time and copied whole (immutable) by **Split** (both parts keep the same curve, so the picture
+does not change at the cut; each part shows and edits its own), **Duplicate** and **Paste**; **Trim** keeps the keyframes
+beyond the clip (an un-trim brings them back; they still shape the curve inside); a **move** and **Speed** keep them on their
+frames. A part's keyframes live in its `FollowPart` and go with its Follow (Split, a part's edges dragged: the keyframes
+outside the part are kept but not shown). A **canvas size** change scales the keyframes' positions with the static ones.
+**Fill / Fit** on a keyframed clip — from the Inspector, the timeline's context menu or a group — writes the scale into the
+keyframe on the playhead's frame (added there when none; with the playhead off the clip, its first keyframe). A part is
+`[From, To)`: a keyframe moved onto the part's end stops one frame before it. A project is saved
+and reopened with every keyframe (ids, times, values, easings).
+
+### 6. Canvas snapping (B1–B4)
+
+- In the Preview's **Move** and **corner Scale** of a picture (not a text, not a frame Follow places — the camera keeps covering
+  the canvas there), a picture edge within the threshold of the canvas edge on its side lands on it: Move snaps each axis to
+  its nearer edge; Scale (about the centre, the aspect kept) snaps the scale so the nearest edge lands on its canvas edge.
+- **The threshold is one setting in screen pixels** («Настройки» → «Таймлайн и разметка» → «Прилипание к краям кадра», 8 px by
+  default, 0 off, up to 40), converted by the Preview's zoom — the same feel at any Preview size and source resolution.
+- **Stable**: decided from the gesture's raw (unsnapped) value alone — no jitter; moving on beyond the threshold releases it.
+- **Exact (B4)**: for a picture turned by a multiple of 90° the snapped position / scale is computed in exact rational
+  arithmetic from the model's own values (as D018's coverage test) and rounded to the double on the covering side — the edge
+  lies on the canvas edge to the last bit, never short of it; a picture that reaches every edge provably covers the canvas
+  (`CoversCanvas`), so no thin black line is left in the Preview or the export (the same rasterizer and geometry). Other angles
+  snap the bounding box in doubles.
+- **Feedback**: the snapped canvas edges are drawn in magenta during the gesture; the bar adds «прилипло к краю».
+
+### 7. The route plate and the heart rate (C1–C4)
+
+- **Sizes** (`CornerOverlayLayout`): in 1080-units (× the canvas's short side / 1080, as before) times a factor of the canvas's
+  shape — **1 on a landscape or square canvas (the look of before)**; on a portrait canvas **the route plate up to 1.35×, the
+  heart rate down to 0.85×**, linear in the aspect ratio between 1 : 1 and 9 : 16 — never a value for a resolution. The plate's
+  inner typography (the word, the route, the grade, the gaps, the status block) scales together.
+- **The plate in any corner**: «Угол плашки» on a «Боулдер» (`TemplateClip.PlateCorner`, bottom left by default and for an
+  older project); its margins of before — left / right 60 → 48, bottom 64 → 260 (above a phone's controls), top 64 → 200 units,
+  landscape → portrait. In a right corner the route block stays at the outer edge and the status block appears on the centre's
+  side (the route block never moves when the status appears); the slides come from the plate's own side.
+- **Neighbours**: when the heart rate (a «Боулдер»'s own, or a heart-rate overlay on a frame where a «Боулдер» plate stands in
+  its corner; a plate that draws something — a route, a grade or a status) is in the plate's corner, it stands beside the plate **nearer the canvas centre** — above it in a bottom corner,
+  below it in a top one, aligned with the plate's outer edge, 18 units apart — in all four corners; in another corner neither
+  moves. The heart rate never covers the plate or its text.
+- One computation for the Preview and the export (the template painter, `PlaybackSnapshot.LayersAt` for the overlay's
+  neighbour).
+
+### 8. Persistence (A6, criterion 10)
+
+`project.json` **v24**: `keyframes` on a video clip and on a followed part (`id`, `timeTicks`, `x`, `y`, `scale`, `easing` —
+absent: linear; written only when there are some), `plateCorner` on a «Боулдер» (written only when not bottom left). A v23 (or
+older) file opens with none and the plate bottom left, and is saved as v24 differing only in the version; keyframes out of
+order, at one time, out of range or of an unknown easing, and an unknown corner, refuse the file as damaged; an older build
+refuses a v24 file as newer.
+
+### 9. Not in Phase 44
+
+Keyframes of the rotation, opacity, crop, text, audio or templates; Bézier curves or per-value easings; a keyframe graph
+editor; copying / pasting keyframes; a second timeline lane per value; snapping to the canvas centre or to other clips;
+snapping during a crop; the heart-rate overlay avoiding a plate of another clip's area by anything but its corner.

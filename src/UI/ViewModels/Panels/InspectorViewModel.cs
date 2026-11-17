@@ -71,6 +71,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
             if (e.PropertyName == nameof(ClipGroupViewModel.IsActive)) OnPropertyChanged(nameof(IsSingleClipSelected));
         };
         _edit = edit;
+        Group.FramingTimeOf = KeyframeTimeForFraming;   // D063 §5: Fill / Fit of a group writes each keyframed clip's playhead keyframe
         _dialogs = dialogs;
         _textBoxes = textBoxes;
         _status = status;
@@ -271,8 +272,11 @@ public sealed partial class InspectorViewModel : ViewModelBase
 
     private void EditVisual(decimal? value, Func<VisualProperties, decimal, VisualProperties> change)
     {
-        if (_syncing || value is not { } x || _clip is null || VisualProperties.Of(_clip) is not { } current || RejectWhileLocked()) return;
+        if (_syncing || value is not { } x || _clip is null || ShownVisual() is not { } current || RejectWhileLocked()) return;
 
+        // D063 §2: a keyframed clip's position / scale is its keyframe's on the playhead's frame.
+        if (EditKeyframedVisual(current, change(current, x))) return;
+        if (VisualProperties.Of(_clip) is { } stored && stored != current) current = stored;
         var result = _edit.SetClipProperties(_clip.Id, new ClipPropertyChange { Visual = change(current, x) });
         if (!result.Success)
         {
@@ -312,7 +316,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
     private void FrameClip(ClipFraming framing)
     {
         if (_clip is not { } clip || RejectWhileLocked()) return;
-        var result = _edit.FrameClip(clip.Id, framing);
+        var result = _edit.FrameClip(clip.Id, framing, KeyframeTimeForFraming(clip));
         _status.Report(ClipFramingStatus.Text(result, framing, clip));
         if (!result.Success) ShowModelAfterRejection();
     }
@@ -700,6 +704,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
             }
             if (_clip is MediaBackedClip { } media)
                 SpeedValue = media.Speed.ToDecimal();
+            RefreshKeyframes();
 
             var clipFrames = TransitionRules.ClipFrames(_clip, _rate);
             var fadeIn = TransitionRules.Frames(_clip.FadeIn, _rate);

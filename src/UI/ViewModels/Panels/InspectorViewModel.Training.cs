@@ -74,6 +74,7 @@ public sealed partial class InspectorViewModel
     {
         HasFollowPartHere = _clip is VideoClip { Follow: { } follow } clip && PlayheadSourceTime(clip) is { } now && follow.IndexAt(now) >= 0;
         RefreshFollowOffset();
+        RefreshKeyframes();
         UpdateTrainingReadout();
         PreselectClimb();
     }
