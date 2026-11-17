@@ -68,3 +68,16 @@ a music file (MP3 / WAV), ideally a long recording (≥ 20 min). Listen with hea
 |---|---|---|
 | F1 | A project using every feature above; export with NVENC and with libx264. | The exported sound equals what the Preview played (points, fades, ducking, clean-up, track / master volume, solo); start and end of the clips exact; 48 kHz stereo AAC. |
 | F2 | Export a long project (≥ 20 min). | Completes; the video encoding speed is not lower than before (the cleaned sounds are only read). |
+
+## G. Amendment 1 (D064 am. 1): keyframes for picture and sound, the Inspector by segment
+
+| # | Steps | Expected |
+|---|---|---|
+| G1 | Video clip with sound, «Ключ. кадр» at 2 s and 5 s. | Two amber diamonds; two points on the volume line at the same places; nothing heard or seen changes. |
+| G2 | Drag the diamond at 2 s to 3 s. | Its volume point moves with it. Then drag the point on the line to 4 s: the diamond follows. |
+| G3 | Double click the line at 6 s. | A point and a diamond appear at 6 s; the picture does not move. |
+| G4 | Select a diamond, Delete. | Both the keyframe and its point are gone; Ctrl+Z brings both back. |
+| G5 | Music clip: «Ключ. кадр» at 1 s and 4 s, move the line points down. | Diamonds on the audio clip; the sound follows the points; Delete on a diamond removes its point. |
+| G6 | Playhead between two points, Inspector «Громкость» 100 %. | The field shows the volume there before; after the change the whole segment between the two points is at 100 % (both points move). On a point's frame only that point changes. |
+| G7 | «Сбросить точки» on a video clip with keyframes. | The points go to 100 %, the keyframes and the picture stay. |
+| G8 | Open the Inspector at its default width. | No label breaks onto a second line («Шумоподавление», «Улучшение речи» …); a narrower saved width is widened to 340 px. |

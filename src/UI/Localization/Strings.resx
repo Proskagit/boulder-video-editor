@@ -3611,7 +3611,7 @@ If you don't save, your changes will be lost.</value>
     <value>No volume points — double click the line on the timeline to add one.</value>
   </data>
   <data name="Inspector_ClearVolumePoints" xml:space="preserve">
-    <value>Remove points</value>
+    <value>Reset points</value>
   </data>
   <data name="Inspector_SoundFadeIn" xml:space="preserve">
     <value>Sound fade in</value>
@@ -3660,5 +3660,11 @@ If you don't save, your changes will be lost.</value>
   </data>
   <data name="Mixer_Locked" xml:space="preserve">
     <value>The mix can&apos;t change while the project is being exported.</value>
+  </data>
+  <data name="Keyframe_AddedVolume" xml:space="preserve">
+    <value>Keyframe added — drag its point on the volume line up or down.</value>
+  </data>
+  <data name="Keyframe_TipVolume" xml:space="preserve">
+    <value>Keyframe {0}: volume {1}</value>
   </data>
 </root>

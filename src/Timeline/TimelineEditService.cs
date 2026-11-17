@@ -1651,7 +1651,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 }
             var before = ClipPropertyValues.Capture(clip);
             var after = before with { Audio = sound with { Volumes = Core.Audio.VolumeEnvelope.Of(points) } };
-            commands.Add(new SetClipPropertiesCommand(clip, before, after, ClipPropertyFields.VolumePoints));
+            if (clip is VideoClip synced && HasOwnSound(synced)) after = KeyframeVolumeSync.Sync(synced, before, after);   // amendment 1
+            commands.Add(new SetClipPropertiesCommand(clip, before, after, ClipPropertyValues.Diff(before, after)));
             changed.Add(clip.Id);
         }
         var mix = TrackMix.Of(track);
@@ -1894,6 +1895,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
             fade ?? before.Fade,
             change.Template ?? before.Template,
             change.Keyframes ?? before.Keyframes);
+
+        // D064 amendment 1: a video clip's own keyframes and its volume points are one set of keyframes.
+        if (clip is VideoClip synced && HasOwnSound(synced)) after = KeyframeVolumeSync.Sync(synced, before, after);
 
         // D053: Top / Attempt chosen where the status moment gives no lilac is put where the layout puts it.
         if (clip is TemplateClip placed && after.Template is { } wanted && before.Template is { } had)
@@ -2522,6 +2526,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
         : Math.Round(rate.ToDouble(), 3).ToString("0.###", CultureInfo.InvariantCulture);
 
     private MediaAsset? FindAsset(Guid id) => Project.MediaAssets.FirstOrDefault(a => a.Id == id);
+
+    /// <summary>D064 amendment 1: the video clip plays its own sound (not unlinked; its media has an audio stream).</summary>
+    private bool HasOwnSound(VideoClip clip) => !clip.IsAudioDetached && FindAsset(clip.MediaAssetId)?.Metadata?.AudioCodec is not null;
 
     private Track? FindTrack(Guid id) =>
         Sequence.VideoTracks.Concat(Sequence.AudioTracks).FirstOrDefault(t => t.Id == id);

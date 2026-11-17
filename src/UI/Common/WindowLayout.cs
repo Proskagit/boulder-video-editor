@@ -11,6 +11,9 @@ public static class WindowLayout
 {
     public const double MinWindowWidth = 1024, MinWindowHeight = 640;
     public const double MinSidePanel = 180, MaxSidePanel = 900;
+
+    /// <summary>Phase 45 amendment 1: the Inspector's least width — its labels (136 px) and fields (104 px) on one line.</summary>
+    public const double InspectorMin = 340;
     public const double MinTimeline = 120, MaxTimeline = 1200;
 
     /// <summary>How much of the window's title bar must lie on a screen for the stored position to be used.</summary>

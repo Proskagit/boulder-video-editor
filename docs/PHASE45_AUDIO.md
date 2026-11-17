@@ -9,7 +9,7 @@ Branch `feat/phase-45-audio-mixing`, `project.json` **v25**. Decision: DECISIONS
 |---|---|---|
 | Several audio tracks, import, move, trim, split, delete / undo | existing (D008, D027, D030, D032) | unchanged; volume points and clean-up go with Split / Duplicate / Paste / Unlink Audio |
 | Clip volume | the line in the clip, the Inspector | 0–200 %; dragging the line changes it (with points: the whole curve) |
-| Volume points | the line in the clip | double click on the line — a point (the line's value, nothing changes until dragged); drag — time and value; double click / Delete — remove; Inspector «Удалить точки» |
+| Volume points / keyframes | the line in the clip, «Ключ. кадр», the diamonds | amendment 1: a video clip's keyframes and volume points are one set (added, moved, removed together); on an audio clip «Ключ. кадр» and the diamonds edit its points; double click on the line — a point on the frame; drag — time and value; double click / Delete — remove; Inspector «Сбросить точки»; the Inspector's «Громкость» between two points raises the whole segment |
 | Fade in / out of the sound | two square handles at the top corners | drag inward; whole frames; audio clip — its fades; video clip — sound-only fades (the picture's D025 fade stays separate); exact values in the Inspector |
 | Track volume, mute, solo | track header (M, S, 🔊 flyout), «Микшер» | volume 0–200 %; while any track is solo only solo tracks sound — in the export too (the preflight warns) |
 | Master volume | «Микшер» | 0–200 %; the mix ends with a stateless soft clip at −1 dBFS — never overloads |

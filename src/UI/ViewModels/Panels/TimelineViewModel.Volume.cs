@@ -135,10 +135,10 @@ public sealed partial class TimelineViewModel
     {
         if (drag.Sound.Volumes is not { } points || points.Find(drag.Hit.PointId!.Value) is not { } point) return null;
         var index = points.Points.IndexOf(point);
-        var lo = index > 0 ? points.Points[index - 1].Time + new MediaTime(1) : shape.SourceAt(0);
-        var hi = index < points.Count - 1 ? points.Points[index + 1].Time - new MediaTime(1) : shape.SourceAt(shape.Width);
-        var time = shape.SourceAt(Math.Clamp(x, 0, shape.Width));
-        if (hi >= lo) time = time < lo ? lo : time > hi ? hi : time;
+        // Amendment 1: on the frames (a point is a keyframe), never onto a neighbour's frame.
+        var time = SourceOfFrameAt(drag.Clip, x);
+        if ((index > 0 && time <= points.Points[index - 1].Time) || (index < points.Count - 1 && time >= points.Points[index + 1].Time))
+            time = point.Time;
         var gain = Math.Clamp(shape.GainOfY(y, height) / Math.Max(drag.Sound.Volume, 0.01), VolumeEnvelope.MinGain, VolumeEnvelope.MaxGain);
         var moved = points.With(point with { Time = time, Gain = Math.Round(gain, 4) });
         return moved is null ? null : new ClipPropertyChange { Audio = drag.Sound with { Volumes = moved } };
@@ -201,7 +201,7 @@ public sealed partial class TimelineViewModel
             SelectVolumePoint(null);
             return true;
         }
-        var time = shape.SourceAt(Math.Clamp(x, 0, shape.Width));
+        var time = SourceOfFrameAt(vm, x);   // amendment 1: on the frame (a point is a keyframe)
         var point = new VolumePoint(Guid.NewGuid(), time, Math.Clamp(shape.CurveAt(x), VolumeEnvelope.MinGain, VolumeEnvelope.MaxGain));
         var points = sound.Volumes is { } existing ? existing.With(point) : VolumeEnvelope.Of(new[] { point });
         if (points is null) return true;   // a point already there
@@ -232,6 +232,16 @@ public sealed partial class TimelineViewModel
             Strings.Volume_PointRemoved);
         SelectVolumePoint(null);
         return true;
+    }
+
+    /// <summary>D064 amendment 1: the source time of the frame under clip-local pixel <paramref name="x"/> (the D009 / D022 rule,
+    /// as a keyframe's).</summary>
+    private MediaTime SourceOfFrameAt(TimelineClipViewModel vm, double x)
+    {
+        var clip = (MediaBackedClip)vm.Clip;
+        var (first, last) = (clip.TimelineStart.ToFrameFloor(FrameRate), Math.Max(clip.TimelineStart.ToFrameFloor(FrameRate), clip.TimelineEnd.ToFrameFloor(FrameRate) - 1));
+        var frame = Math.Clamp((clip.TimelineStart + TimelineCoordinateMapper.XToTime(Math.Max(0, x), PixelsPerSecond)).ToFrameFloor(FrameRate), first, last);
+        return HoldAnimationRule.SourceTimeAt(clip.TimelineStart, clip.SourceIn, clip.Speed, frame, FrameRate);
     }
 
     /// <summary>The cursor's hint over a clip: what the pointer would drag.</summary>

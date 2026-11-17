@@ -3615,7 +3615,7 @@
     <value>Точек громкости нет — двойной щелчок по линии на таймлайне добавит точку.</value>
   </data>
   <data name="Inspector_ClearVolumePoints" xml:space="preserve">
-    <value>Удалить точки</value>
+    <value>Сбросить точки</value>
   </data>
   <data name="Inspector_SoundFadeIn" xml:space="preserve">
     <value>Появление звука</value>
@@ -3664,5 +3664,11 @@
   </data>
   <data name="Mixer_Locked" xml:space="preserve">
     <value>Микс нельзя менять, пока проект экспортируется.</value>
+  </data>
+  <data name="Keyframe_AddedVolume" xml:space="preserve">
+    <value>Ключевой кадр добавлен — перетащите его точку на линии громкости вверх или вниз.</value>
+  </data>
+  <data name="Keyframe_TipVolume" xml:space="preserve">
+    <value>Ключевой кадр {0}: громкость {1}</value>
   </data>
 </root>

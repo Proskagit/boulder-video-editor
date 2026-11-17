@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using AiVideoEditor.Core.Audio;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
@@ -87,6 +88,62 @@ public sealed partial class InspectorViewModel
         RefreshCleanupStatus();
     }
 
+    // --- D064 amendment 1: the volume field with points ----------------------------------------------------------------
+
+    /// <summary>The playhead's frame on the clip and its source time (clamped to the clip), or null without a playhead.</summary>
+    private (long Frame, MediaTime Source)? VolumeFrame(MediaBackedClip clip)
+    {
+        if (Playhead is null) return null;
+        var first = clip.TimelineStart.ToFrameFloor(_rate);
+        var last = Math.Max(first, clip.TimelineEnd.ToFrameFloor(_rate) - 1);
+        var frame = Math.Clamp(Playhead().ToFrameFloor(_rate), first, last);
+        return (frame, Core.Playback.HoldAnimationRule.SourceTimeAt(clip.TimelineStart, clip.SourceIn, clip.Speed, frame, _rate));
+    }
+
+    private long FrameOfPoint(MediaBackedClip clip, MediaTime source)
+    {
+        long a = clip.Speed.Numerator, b = clip.Speed.Denominator;
+        return (clip.TimelineStart + new MediaTime((long)((Int128)(source - clip.SourceIn).Ticks * b / a))).ToNearestFrame(_rate);
+    }
+
+    /// <summary>With points the field shows what plays on the playhead's frame: the clip's volume × the curve there.</summary>
+    private void ShowVolumeAtPlayhead()
+    {
+        if (_clip is not MediaBackedClip media || AudioProperties.Of(_clip) is not { Volumes: { } points } audio || VolumeFrame(media) is not { } at)
+            return;
+        var wasSyncing = _syncing;
+        _syncing = true;
+        try { VolumePercent = Math.Min(200m, Math.Round((decimal)(audio.Volume * points.At(at.Source)) * 100m, 1)); }
+        finally { _syncing = wasSyncing; }
+    }
+
+    /// <summary>
+    /// The field set to <paramref name="target"/> (0–2) with points: on a keyframe's frame that point; between two the segment —
+    /// both of its points scaled alike, so the whole segment reaches the value (the curve is even in dB); before the first / after
+    /// the last that edge point. Without points (or a playhead) false: the clip's volume, as before.
+    /// </summary>
+    private bool EditVolumeAtPlayhead(double target)
+    {
+        if (_clip is not MediaBackedClip media || AudioProperties.Of(_clip) is not { Volumes: { } points } audio || VolumeFrame(media) is not { } at)
+            return false;
+        var onFrame = points.Points.FirstOrDefault(p => FrameOfPoint(media, p.Time) == at.Frame);
+        var previous = points.Points.LastOrDefault(p => p.Time < at.Source);
+        var next = points.Points.FirstOrDefault(p => p.Time > at.Source);
+        var affected = onFrame is not null ? new[] { onFrame }
+            : previous is not null && next is not null ? new[] { previous, next }
+            : new[] { previous ?? next! };
+        var current = audio.Volume * points.At(at.Source);
+        var volume = Math.Max(audio.Volume, 1e-6);
+        var updated = points;
+        foreach (var point in affected)
+        {
+            var gain = current > 1e-6 ? point.Gain * target / current : target / volume;
+            updated = updated.With(point with { Gain = Math.Round(Math.Clamp(gain, VolumeEnvelope.MinGain, VolumeEnvelope.MaxGain), 4) }) ?? updated;
+        }
+        EditAudio(a => a with { Volumes = updated });
+        return true;
+    }
+
     partial void OnSoundFadeInFramesChanged(decimal? value) => EditSoundFade(value, fadeIn: true);
     partial void OnSoundFadeOutFramesChanged(decimal? value) => EditSoundFade(value, fadeIn: false);
 
@@ -119,7 +176,11 @@ public sealed partial class InspectorViewModel
     }
 
     [RelayCommand]
-    private void ClearVolumePoints() => EditAudio(a => a with { Volumes = null });
+    private void ClearVolumePoints() => EditAudio(a =>
+        // Amendment 1: a video clip's points are its keyframes — their gains are reset, the keyframes (its picture) stay.
+        _clip is VideoClip { Keyframes: not null } && a.Volumes is { } points
+            ? a with { Volumes = new VolumeEnvelope(points.Points.Select(p => p with { Gain = 1 }).ToImmutableArray()) }
+            : a with { Volumes = null });
 
     [RelayCommand]
     private void CancelCleanup()

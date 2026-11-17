@@ -723,6 +723,9 @@ on the project grid (D006).
   jobs, publishes `AudioAnalyses` (cleaned files, speech, the «Исходный звук» comparison) to the Preview's snapshot and
   `ExportAudioAnalyses` to the preflight (pending = error, failed = warning, solo = warning). A span plays `AudioSpan.CleanedSource`
   when ready.
+- Amendment 1: `KeyframeVolumeSync` (Timeline, in `SetClipProperties` and the bake) keeps a video clip's own transform keyframes and
+  its volume points one set (ids and times); an audio clip's keyframes are its points (`TimelineViewModel.AudioKeyframes`); the
+  Inspector's volume with points edits the segment at the playhead (`InspectorViewModel.Audio`).
 - UI: `ClipVolumeShape` + `VolumeEnvelopeView` (the line, points, fade handles; hit test shared with the drawing),
   `TimelineViewModel.Volume` (drags as one gesture, double click, Delete), `MixerViewModel` / `TrackMixViewModel` (header S and 🔊
   flyout, the tool bar's «Микшер»), the Inspector's «Звук» (sound fades, points, clean-up, status, compare).

@@ -10708,3 +10708,27 @@ the same output wherever playback starts (no limiter state: the task's «лим�
   Media, the contracts in Core, the coordinator in UI. No new package.
 - Out of scope (part 13): equaliser, compressor, a limiter as an effect, transcription, subtitles, translation, voice
   generation and cloning, music generation.
+
+### D064 amendment 1 — the owner's check of 2026-11-17: one set of keyframes for picture and sound; the Inspector's volume by segment; a wider Inspector
+
+The owner's acceptance run (2026-11-17): volume, fades, noise reduction and voice enhancement work; the Inspector's «Громкость»
+moved the whole curve, which is not what is expected on a clip with points. Decided by the owner the same day:
+
+1. **One set of keyframes on every clip.** On a video clip with its own sound the clip's transform keyframes (D063 — not a
+   followed part's) and its volume points are one set: the same ids at the same source times. Adding a keyframe (the button, the
+   Preview, the Inspector) adds its volume point (the curve's gain there — nothing is heard differently); a point added on the line
+   adds a keyframe (the picture's position and scale there and the easing of the segment it splits — nothing moves); moving or
+   removing either does the same to the other; the last one removed leaves its values static (the picture keeps its place, the
+   sound's gain goes into the clip's volume). An edit that changes both (Undo, Redo, a cancel) is taken as it is. The rule is the
+   edit service's (`KeyframeVolumeSync`, applied in `SetClipProperties` and «Закрепить в точки»), so every path follows it. On an
+   **audio clip** the keyframes are its volume points: the tool bar's «Ключ. кадр» adds one on the playhead's frame (the line's
+   value) or removes the one there, amber diamonds along the clip's top select (the playhead goes to it), drag along the frames
+   and Delete — the same rules as D063 §2. Points are always on frames (a point added or dragged on the line lands on the frame
+   under the pointer). «Удалить точки» became «Сбросить точки»: an audio clip's points are removed; a video clip's are reset to
+   100 % (its keyframes, its picture, stay). No format change (v25 already stores both).
+2. **The Inspector's «Громкость» with points** shows what plays on the playhead's frame (the clip's volume × the curve) and, set,
+   changes: on a keyframe's frame that point; between two points **the whole segment** — both its points scaled alike, so the
+   segment reaches the value everywhere (the curve is even in dB); before the first / after the last that edge point. Without
+   points it is the clip's volume, as before. Dragging the line on the timeline still moves the whole curve.
+3. **A wider Inspector**: 360 px by default, at least 340 px (a narrower saved width is widened); the labels 136 px (were 116 px:
+   «Шумоподавление» broke onto two lines), the fields' left offset 144 px.
