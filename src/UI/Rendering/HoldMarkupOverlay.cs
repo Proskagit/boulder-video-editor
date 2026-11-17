@@ -320,11 +320,17 @@ public sealed class HoldMarkupOverlay : Control, ICustomHitTest
         ImmutableArray<NormalizedPoint> contour, IPen? under, IPen pen)
     {
         if (contour.IsDefaultOrEmpty || contour.Length < 3) return;
+        // D065 §4: the same smooth curve through the vertices as the Preview and the export draw (view pixels: scale 1).
+        var curve = Core.Composition.ContourCurve.Flatten(contour.Select(p =>
+        {
+            var v = ToView(geometry, canvas, view, p);
+            return new Core.Composition.PointD(v.X, v.Y);
+        }).ToImmutableArray(), 1);
         var stream = new StreamGeometry();
         using (var g = stream.Open())
         {
-            g.BeginFigure(ToView(geometry, canvas, view, contour[0]), false);
-            for (var i = 1; i < contour.Length; i++) g.LineTo(ToView(geometry, canvas, view, contour[i]));
+            g.BeginFigure(new Point(curve[0].X, curve[0].Y), false);
+            for (var i = 1; i < curve.Length; i++) g.LineTo(new Point(curve[i].X, curve[i].Y));
             g.EndFigure(true);
         }
         if (under is not null) context.DrawGeometry(null, under, stream);

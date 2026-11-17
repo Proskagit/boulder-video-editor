@@ -304,13 +304,13 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 |---|---|---|---|
 | 0–29 | … D045 | complete: merged and accepted | Phase 29 — PR #30, `e28a9d3` |
 | 30 — stabilisation (D042 G) | D046 | technically complete 2026-10-24; full acceptance (S1) open | in PR #31 (`024f3fb`), no PR of its own |
-| 31 — automatic hold proposals (D042 D) | D047 | technically complete 2026-10-26; A / B / E, C1–C4, D1, D1a, D2, D4, D5 PASS (2026-11-04: automated + the owner by hand); D3 and C5 DEFERRED by the owner; **accepted by the product owner 2026-11-04 with these two deferred checks** | in PR #31 (`024f3fb`), no PR of its own |
+| 31 — automatic hold proposals (D042 D) | D047 | technically complete 2026-10-26; A / B / E, C1–C4, D1, D1a, D2, D4, D5 PASS (2026-11-04: automated + the owner by hand); D3 and C5 DEFERRED by the owner; **accepted by the product owner 2026-11-04 with these two deferred checks**; D065 §5 (2026-11-17): D3 closed without a check (10–20 holds per clip), C5 dropped; the route-from-the-first-hold idea is a future research with Phase 32 | in PR #31 (`024f3fb`), no PR of its own |
 | — R2 → E, hold tracking | D048 §1.17, D052 | accepted for continued development (D048 §1.17); completion E-1…E-7 implemented 2026-11-08 (D052: K1 deferred, K2 WARN, K3 PERSIST, D4 cache); accuracy bound 3 px approved 2026-11-08; merged into `main` on 2026-11-08 (PR #42, `2a8a2f9`) and **technically accepted by the product owner on 2026-11-08**; the manual plan `docs/R2E_MANUAL_TEST_PLAN.md` closed as not needed by the product owner on 2026-11-17 (its checks covered by the Phase 42 manual checks) | PR #31, `024f3fb`; completion — PR #42, `2a8a2f9` |
-| 32 — route selection at `T` (D048 stage 1) | D048 | implemented, paused / deferred («Авторазметка» hidden); not complete | PR #32, `1e58885` |
+| 32 — route selection at `T` (D048 stage 1) | D048, D065 §5 | implemented, paused («Авторазметка» hidden); **closed as deferred on 2026-11-17** (D065 §5): with Phase 31 folded into a future research — the user points at a route's first hold, the editor proposes the route by its colour; code and research kept | PR #32, `1e58885` |
 | 33 — timing model, anchors, `project.json` v10 (D048 stage 2) | D048 | implemented and merged; D048 approved as implemented 2026-10-28; **acceptance evidence per D048 §5 completed 2026-11-08** (`docs/PHASE33_34_ACCEPTANCE_EVIDENCE.md`); **accepted by the product owner on 2026-11-17** | PR #32, `1e58885` |
 | 34 — the overlay strip (D048 stage 3) | D048 | implemented (variant B) and merged; D048 approved as implemented 2026-10-28; **acceptance evidence per D048 §5 completed 2026-11-08**; variant B's handle cursors and segment tooltips added on the owner's decision of 2026-11-08 (§6 there); **accepted by the product owner on 2026-11-17** | PR #32, `1e58885` |
-| 35 — COROS trainings and the heart rate | D050, D049, D053–D056 | in part: 35.0–35.2 done (35.2 accepted); 35.3 in part (35.3d: B6 not met; 35.3e awaiting the owner's decision; 35.3b2b deferred); 35.4 implemented (v11), C1–C14 automated 2026-11-04: PASS except C5's real re-export (manual) — **not accepted yet**; **35.5 implemented and accepted 2026-11-03 (v13; PR #35, `5c5cb7f`)**; **35.6 accepted 2026-11-09** (35.6a D055 v16; 35.6b with D056 v17 / v18, the owner's manual checks positive); not complete | 35.0–35.4 in PR #33 (`1640996`), with Phase 37; 35.5 PR #35; D053 PR #47, D054 PR #48, 35.6a PR #50, D056 PRs #51–#54 (`1a087ae`) |
-| 36 — summary and chapters | to be approved | planned; specification draft outside `main`; its time-code export a separate item until clarified | — |
+| 35 — COROS trainings and the heart rate | D050, D049, D053–D056 | 35.0–35.2 done (35.2 accepted); 35.3 (35.3d: B6 not met; **35.3e and 35.3b2b cancelled by the owner on 2026-11-17**, D065 §5); 35.4 implemented (v11), C1–C14 automated 2026-11-04 — **C5 accepted by its automated test** (the owner, 2026-11-17; recorded with S1); **35.5 implemented and accepted 2026-11-03 (v13; PR #35, `5c5cb7f`)**; **35.6 accepted 2026-11-09** (35.6a D055 v16; 35.6b with D056 v17 / v18, the owner's manual checks positive); **complete with D065 §5 (2026-11-17)** | 35.0–35.4 in PR #33 (`1640996`), with Phase 37; 35.5 PR #35; D053 PR #47, D054 PR #48, 35.6a PR #50, D056 PRs #51–#54 (`1a087ae`) |
+| 36 — summary and chapters | D057 §3.9, D065 §5 | **the YouTube chapters (36.1–36.2) done** as the export dialog's YouTube timestamps (D057 §3.9, Phase 38); 36.3 (`PassId`, «Итоги») and 36.4 (the heart rate in the summary) **deferred to the backlog** (the owner, 2026-11-17) | Phase 38's PRs |
 | 37 — FIT route starts and the start calibration | D051 | implemented (37.1–37.6, v12) and merged; 37.7 done (D051 A1–A15 automated 2026-11-04, all PASS, A10 measured); **accepted by the product owner 2026-11-04** | PR #33, `1640996` |
 | 38 — UX Improvements before the MVP | D057 | blocks A–F implemented 2026-11-10 (`project.json` v19); the owner's practical check of the builds 0.38.1 / 0.38.2 and its fixes (D057 §7); **accepted by the product owner 2026-11-10** | PRs #56–#62 (`d6d2b06`), PR #63 (`ef2f079`), PR #64 |
 | 39 — Timeline UX & Multi-Clip Editing | D058 | implemented 2026-11-10 (`project.json` v19 unchanged); **accepted by the product owner on 2026-11-17** | PR #65, `07252bf` |
@@ -320,13 +320,17 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 | 43 — FIT import from any watch (COROS, Garmin, others) | D062 + amendment 1 | implemented 2026-11-16 / 17 (no format change); **accepted by the product owner on 2026-11-17** | PR #70, `69db078` |
 | 44 — Transform keyframes & canvas snapping | D063 + amendment 1 | implemented 2026-11-17 (`project.json` v24); **accepted by the product owner on 2026-11-17** | PR #71, `9d87140` |
 | 45 — Audio editing, mixing and clean-up | D064 + amendment 1 | implemented 2026-11-17 (`project.json` v25); **accepted by the product owner on 2026-11-17**; the merge by the product owner after CI | PR #72 |
+| 46 — Smooth hold outlines | D065 | implemented 2026-11-17 on `feat/phase-46-contour-smoothing` (no format change, v25); a new contour smoothed (the slider «Сглаживание», default 50), every contour drawn as a smooth curve; the manual check by the owner open | — |
 | H — Final UX Pass | D042 §7, D057 | its goal covered by Phase 38 (D057); the former scope not restored | — |
 
-**State on 2026-11-17:** the **highest phase number in use is 45**; the **complete phases** (merged and accepted) are
-**1–29, 31, 33, 34 and 37–45** (Phase 45 accepted, its PR #72 merged by the product owner after CI; Phases 33 / 34 accepted
-and the R2 → E manual plan closed by the product owner on 2026-11-17). Not complete: Phase 30 (the S1 acceptance), Phase 32
-(paused / deferred), Phase 35 (Step 35.4's C5, Step 35.3's open sub-steps), Phase 36 (planned, no decision). Phase 31's D3 /
-C5 stay deferred. **Next:** set by the product owner's next task.
+**State on 2026-11-17 (after D065):** the **highest phase number in use is 46** (in work); the **complete phases** (merged and
+accepted) are **1–29, 31, 33–35 and 37–45**; Phase 32 closed as deferred, Phase 36 done in its chapters with 36.3 / 36.4 in the
+backlog, Phase 31's D3 closed and C5 dropped (D065 §5). Not complete: Phase 30 (the S1 acceptance) and Phase 46.
+**Next:** Phase 46 (smooth hold outlines), then **S1 — the release preparation** (D065 §6), the last step before the MVP;
+everything after it is development.
+
+*Before D065 (2026-11-17):* the highest phase number in use was 45; the complete phases were 1–29, 31, 33, 34 and 37–45; not
+complete: Phase 30, Phase 32 (paused), Phase 35 (Step 35.4's C5, Step 35.3's open sub-steps), Phase 36 (planned).
 
 *Earlier states, kept as history:* the highest phase number in use was 37; the complete phases were 1–29, 31 and 37 (Phases 31
 and 37 accepted on 2026-11-04 — Phase 31 with D3 and C5 deferred; Phases 30 and 32–36 not complete). **Next — by the

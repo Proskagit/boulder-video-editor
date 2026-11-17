@@ -208,6 +208,7 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
         var (w, h) = (geometry.Source.Width, geometry.Source.Height);
         var crop = geometry.SourceRect;
         var m = picture.Motion.Apply(canvas, geometry.Transform);   // the outline moves with its frame (D044 §2)
+        var targetScale = Math.Sqrt(Math.Abs(canvasToTarget.Compose(m).Determinant));   // target pixels per source pixel
 
         var opacities = !picture.RouteOpacities.IsDefault && index < picture.RouteOpacities.Length ? picture.RouteOpacities[index] : default;
         var animated = !opacities.IsDefault && opacities.Length == outline.Polygons.Length;
@@ -227,7 +228,8 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
                 if (mapped.Kind == CameraMotionLookupKind.Aligned)
                     points = points.Select(mapped.Transform.Apply).ToImmutableArray();
             }
-            polygons.Add(points.Select(p => new PointD(p.X * w - crop.X, p.Y * h - crop.Y)).ToImmutableArray());
+            // D065 §4: a smooth curve through the vertices, flattened for the painter (the occlusion cuts the same pieces).
+            polygons.Add(ContourCurve.Flatten(points.Select(p => new PointD(p.X * w - crop.X, p.Y * h - crop.Y)).ToImmutableArray(), targetScale));
             if (animated) shown.Add(opacities[i]);
         }
         if (polygons.Count == 0) return null;

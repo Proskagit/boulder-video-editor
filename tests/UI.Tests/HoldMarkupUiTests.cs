@@ -360,6 +360,31 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task The_smoothing_slider_reshapes_the_shown_candidate_and_the_shown_contour_is_confirmed()
+    {
+        // D065 §2–§3: the candidate is smoothed while it is shown; 0 gives the mask's own boundary (the 18 × 18 square's four
+        // corners); the slider re-smooths it at once; Enter confirms what is shown; the setting is the user's, global.
+        var clip = await StartOnClip();
+        Assert.Equal(ContourSmoothing.DefaultStrength, Markup.ContourSmoothing);
+        await Markup.OnClickAsync(new NormalizedPoint(0.5, 0.5), additive: false);
+        var smoothed = Markup.CandidateContour.ToArray();
+        Assert.True(smoothed.Length > 4);                              // the square's corners rounded
+
+        Markup.ContourSmoothing = 0;
+        Assert.Equal(4, Markup.CandidateContour.Length);               // the mask's own square
+        Markup.ContourSmoothing = 100;
+        var strongest = Markup.CandidateContour.ToArray();
+        Assert.NotEqual(smoothed, strongest);
+        Assert.All(strongest, p => Assert.InRange(p.X * W, 88, 112)); // still on the hold
+
+        await Markup.ConfirmCommand.ExecuteAsync(null);
+        var hold = Assert.Single(clip.HoldMarkup!.Holds);
+        Assert.Equal(strongest, hold.Points.ToArray());
+        Markup.ContourSmoothing = 0;                                   // a confirmed hold never changes
+        Assert.Equal(strongest, clip.HoldMarkup!.Holds[0].Points.ToArray());
+    }
+
+    [Fact]
     public async Task A_refinement_without_an_allowed_mask_keeps_the_previous_candidate_and_drops_only_the_new_point()
     {
         var clip = await StartOnClip();
@@ -653,6 +678,7 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
     private async Task<(VideoClip Clip, Hold Hold)> SelectedHold()
     {
         var clip = await StartOnClip();
+        Markup.ContourSmoothing = 0;                                   // D065: the mask's own square — four vertices to edit
         await Markup.OnClickAsync(new NormalizedPoint(0.5, 0.5), false);
         await Markup.ConfirmCommand.ExecuteAsync(null);
         var hold = Assert.Single(clip.HoldMarkup!.Holds);

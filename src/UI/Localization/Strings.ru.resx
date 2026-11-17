@@ -588,6 +588,12 @@
   <data name="Holds_UntilClipEndTip" xml:space="preserve">
     <value>Оставить все контуры до конца клипа, не убирая их</value>
   </data>
+  <data name="Holds_Smoothing" xml:space="preserve">
+    <value>Сглаживание</value>
+  </data>
+  <data name="Holds_SmoothingTip" xml:space="preserve">
+    <value>Сглаживание контура новой зацепки: 0 — край маски как есть, больше — плавнее. Уже размеченные зацепки не меняются.</value>
+  </data>
   <data name="Holds_Width" xml:space="preserve">
     <value>Толщина</value>
   </data>

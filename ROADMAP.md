@@ -88,6 +88,15 @@ deferred to a separate release-preparation task. Details: `progress.md`, `docs/P
 the owner after CI); the R2 → E manual plan closed as not needed. Highest phase number 45; the table of every phase:
 `docs/DEVELOPMENT_PLAN.md`, "Official phases". Next: the product owner's next task.
 
+**D065 (2026-11-17) — the closure before the release and Phase 46.** The owner's review of the open items: Phase 32 closed as
+deferred and folded with Phase 31 into a future research (the user points at a route's first hold, the editor proposes the
+route by its colour); Phase 31's D3 closed without a check, C5 dropped; Phase 35 complete (35.4's C5 accepted by its automated
+test, 35.3e and 35.3b2b cancelled); Phase 36's YouTube chapters done (D057 §3.9), 36.3 / 36.4 to the backlog. **Phase 46 —
+smooth hold outlines** (DECISIONS.md D065; `docs/PHASE46_MANUAL_TEST_PLAN.md`): a new hold's contour smoothed (the slider
+«Сглаживание», default 50), every contour drawn as a smooth curve in the Preview, the export and the markup mode; the holds
+already marked kept as they are; no format change. **Next: S1 — the release preparation** (D065 §6), the last step of the MVP;
+everything after it is development.
+
 **Phase 45 — Audio editing, mixing and clean-up (DECISIONS.md D064, 2026-11-17) — accepted by the product owner on 2026-11-17; PR #72, the merge by the owner after CI.** The
 volume line with points and fade handles inside audio clips and video clips with sound, track volume / mute / solo, a master and
 a mixer, ducking under a speech track (Silero VAD) with «Закрепить в точки», non-destructive noise reduction (FFmpeg `afftdn`) and
@@ -628,6 +637,11 @@ of the AI hold markup MVP; keeping the contours on the holds while the camera mo
 tracking task. Sketch: `docs/DEVELOPMENT_PLAN.md`, "Future ideas (not phases)".
 
 ## Follow-ups and backlog
+
+**Development after the release (D065 §5, 2026-11-17):** the route from its first hold (a research folding Phases 31 / 32:
+the user marks one hold, the editor proposes the holds of its colour); Phase 36's Steps 36.3 (`PassId`, the «Итоги» template)
+and 36.4 (the heart rate in the summary); FU-EX.1; Motion Tracking Camera (R4); more transitions; the clips' thumbnails
+(D058 §7); the plate's X / Y offsets; an installer.
 
 **After D057 (2026-11-09).** Checked on Phase 38's target build, decided separately (D057 §4.1): the duplicated «Импорт» /
 «Готово» (2026-11-10: the tool bar's «Импорт медиа» removed, D057 §7.13; «Готово» once — D058 §6), the timeline following the playhead (D058 §1), thumbnails on the clips (deferred, D058 §7), editing several clips (D058 §3), further text improvements (deferred, D058 §7).

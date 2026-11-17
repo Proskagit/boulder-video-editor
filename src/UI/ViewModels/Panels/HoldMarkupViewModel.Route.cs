@@ -252,7 +252,7 @@ public sealed partial class HoldMarkupViewModel
         try
         {
             var sourceTime = _sourceTime;
-            var holds = await Task.Run(() => RouteHoldFinder.ToHolds(frame, accepted, existing, sourceTime));
+            var holds = await Task.Run(() => SmoothHolds(RouteHoldFinder.ToHolds(frame, accepted, existing, sourceTime), frame.Width, frame.Height));
             if (!IsRouteReview || !ReferenceEquals(_clip, clip)) return;   // left meanwhile: nothing added
             var result = _edit.AddHolds(clip.Id, holds, RouteForEdit());
             if (!result.Success)
