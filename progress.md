@@ -2,6 +2,22 @@
 
 ## Current phase
 
+**Phase 45 — Audio editing, mixing and clean-up (D064, 2026-11-17) — on `feat/phase-45-audio-mixing`.** Track volume / solo /
+ducking and a master volume; volume points (source time, relative to the clip's volume) with the line, points and fade handles on
+the timeline; a video clip's sound-only fades; noise reduction (FFmpeg `afftdn`, its 1 200-sample delay compensated) and voice
+enhancement (DeepFilterNet3, CPU, 30 s chunks in parallel) computed once per file and setting into the application's cache;
+ducking under the speech of another track (Silero VAD) with «Закрепить в точки»; the «Исходный звук» comparison; one per-sample
+gain curve and a stateless soft clip at −1 dBFS for the Preview and the export; the export waits for a running clean-up / speech
+analysis and warns for a failed one and for solo; `project.json` v25. The models (owner's permission, 2026-11-17) are in
+`%LOCALAPPDATA%\AiVideoEditor\models\audio-v1` (hashes in `docs/AI_MODEL.md`). Docs and benchmark: `docs/PHASE45_AUDIO.md`
+(30 min: NR ×298, voice ×29, speech ×204 real time on the 5800X); manual plan: `docs/PHASE45_MANUAL_TEST_PLAN.md`. Phase review:
+FAIL (a cleaned sound becoming ready kept the old reader; the mixer ignored the export's lock; a project change during a job left
+the new project's jobs waiting; FFmpeg tests with an early return; a blank line at a file's end) — fixed with tests (the coordinator
+test fails without its fix); re-review: PASS WITH NOTES. Gates (2026-11-17, after the fixes): Debug and Release `--no-incremental
+-warnaserror` 0 / 0; `git diff --check` clean; Debug and Release every suite green — Core 1 913, Timeline 1 186, Project 749,
+Rendering 257, UI 1 264, Export 142, Vision 24, Video 411 + 1 skipped (as before), ExportEndToEnd 186 + 3 skipped (the heavy 4K
+ones, `AIVE_HEAVY_TESTS` not set). Local real-model suite: `AudioModelBenchmarkTests` 2 / 2. Not done: the owner's manual run
+(listening, the real app); a run of the app was only a start-up smoke (the check project opened, no errors in the log).
 **Phase 44 — amendment 1 after the owner's first check (D063 §10, 2026-11-17) — on `feat/phase-44-transform-keyframes`,
 PR #71.** The Preview's corner scale holds the opposite corner (the picture grows towards the dragged corner; snapping keeps
 a held canvas edge exact, so corner → opposite corner fills the canvas); the heart rate on a landscape canvas 1.5 times
