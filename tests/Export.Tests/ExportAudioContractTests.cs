@@ -280,6 +280,63 @@ public sealed class ExportAudioContractTests
         Assert.InRange(samples[2 * 24_000], -1f, -0.95f);
     }
 
+    // --- D064: the whole mix — points, sound fades, track volume, master, solo, ducking, a cleaned source ------------------
+
+    [Fact]
+    public async Task The_D064_mix_is_sample_for_sample_the_preview_and_never_reaches_full_scale()
+    {
+        var video = Video(FrameRate.Fps25, 8, "talk.mp4");
+        Ok(_f.Service.AddClip(video.Id));
+        var talk = (VideoClip)_f.V1.Clips.Single();
+        Ok(_f.Service.SetClipProperties(talk.Id, new ClipPropertyChange
+        {
+            Audio = AudioProperties.Of(talk)!.Value with
+            {
+                Volume = 1.6, SoundFadeIn = F(10), SoundFadeOut = F(7), Cleanup = new Core.Audio.AudioCleanup(30, 0),
+                Volumes = Core.Audio.VolumeEnvelope.Of(new[]
+                {
+                    new Core.Audio.VolumePoint(Guid.NewGuid(), MediaTime.FromSeconds(1), 0.2),
+                    new Core.Audio.VolumePoint(Guid.NewGuid(), MediaTime.FromSeconds(3), 1.8),
+                    new Core.Audio.VolumePoint(Guid.NewGuid(), MediaTime.FromSeconds(5), 0)
+                })
+            }
+        }));
+        var music = Add(Music(8, "music.wav", constant: 0.6f), _f.A1, 0);
+        Ok(_f.Service.SetTrackVolume(_f.A1.Id, 1.4));
+        Ok(_f.Service.SetMasterVolume(1.3));
+        Ok(_f.Service.SetTrackDucking(_f.A1.Id, new Core.Audio.DuckingSettings(_f.V1.Id, -18, 300, 700, 50)));
+        var other = AudioTrack();
+        Add(Music(8, "noise.wav", constant: 0.1f), other, 0);
+
+        // The cleaned sound of the talk (its own fake file) and its speech from 2 s to 4.5 s.
+        const string cleaned = @"C:\cache\talk-cleaned.wav";
+        var cleanedSource = new FakeAudioSource(8 * 48_000);
+        _previewDecoder.Add(cleaned, cleanedSource);
+        _exportDecoder.Add(cleaned, cleanedSource);
+        var p = new float[8 * 48_000 / Core.Audio.SpeechActivity.WindowSamples];
+        for (var i = 2 * 48_000 / Core.Audio.SpeechActivity.WindowSamples; i < 4.5 * 48_000 / Core.Audio.SpeechActivity.WindowSamples; i++) p[i] = 0.9f;
+        var cleanup = new Core.Audio.AudioCleanup(30, 0);
+        var analyses = new Core.Audio.AudioAnalyses(
+            new Core.Audio.CleanedAudio(System.Collections.Immutable.ImmutableDictionary<(Guid, Core.Audio.AudioCleanup), string>.Empty.Add((video.Id, cleanup), cleaned)),
+            new Core.Audio.SpeechAnalyses(System.Collections.Immutable.ImmutableDictionary<(Guid, Core.Audio.AudioCleanup), Core.Audio.SpeechActivity>.Empty
+                .Add((video.Id, cleanup), new Core.Audio.SpeechActivity(p))));
+
+        var snapshot = PlaybackSnapshotBuilder.Build(_f.Project, 1, audioAnalyses: analyses);
+        Assert.NotNull(snapshot.AudioSpans.Single(s => s.ClipId == music.Id).Ducking);
+        Assert.Equal(cleaned, snapshot.AudioSpans.Single(s => s.ClipId == talk.Id).CleanedSource!.FilePath);
+
+        var samples = await AssertMatchesPreview(snapshot);
+        Assert.All(samples, s => Assert.InRange(s, -1f, 1f));
+        Assert.Contains(_exportDecoder.Requests, r => r.FilePath == cleaned);
+        // Ducked inside the speech, not before its attack.
+        Assert.True(Math.Abs(samples[2 * 3 * 48_000]) < Math.Abs(samples[2 * 48_000 / 2]) || samples[2 * 3 * 48_000] != samples[2 * 48_000 / 2]);
+
+        // Solo on the other track: only it sounds, in both.
+        Ok(_f.Service.SetTrackSolo(other.Id, true));
+        var solo = await AssertMatchesPreview(PlaybackSnapshotBuilder.Build(_f.Project, 2, audioAnalyses: analyses));
+        Assert.All(solo.Where((_, i) => i < solo.Length - 2), s => Assert.Equal(0.1f * 1.3f, s, 5));
+    }
+
     // --- silence ----------------------------------------------------------------------------------------------------
 
     [Fact]

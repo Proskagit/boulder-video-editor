@@ -400,6 +400,12 @@ public sealed class AudioProcessingCoordinator : IDisposable
     private static bool Same<TValue>(ImmutableDictionary<(Guid, AudioCleanup), TValue> a, ImmutableDictionary<(Guid, AudioCleanup), TValue> b) =>
         a.Count == b.Count && a.All(p => b.TryGetValue(p.Key, out var v) && Equals(v, p.Value));
 
+    /// <summary>Tests: until no job runs.</summary>
+    internal async Task IdleAsync()
+    {
+        while (_worker is { IsCompleted: false } worker) await worker;
+    }
+
     public void Dispose()
     {
         if (_disposed) return;
