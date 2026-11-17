@@ -1,5 +1,6 @@
 using AiVideoEditor.Core.Audio;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.UI.Localization;
 
 namespace AiVideoEditor.UI.Common;
 
@@ -80,8 +81,8 @@ public sealed record ClipVolumeShape(double Volume, VolumeEnvelope? Points, Medi
 
     /// <summary>A gain as the user reads it: dB (−∞ at 0) and per cent.</summary>
     public static string Describe(double gain) => gain <= 0
-        ? "−∞ дБ"
-        : string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{20 * Math.Log10(gain):+0.0;−0.0;0.0} дБ ({gain * 100:0} %)");
+        ? $"−∞ {Strings.Audio_DecibelUnit}"
+        : string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{20 * Math.Log10(gain):+0.0;−0.0;0.0} {Strings.Audio_DecibelUnit} ({gain * 100:0} %)");
 }
 
 public enum VolumeHitKind { None, Line, Point, FadeIn, FadeOut }

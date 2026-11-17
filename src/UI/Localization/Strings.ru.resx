@@ -588,6 +588,9 @@
   <data name="Holds_UntilClipEndTip" xml:space="preserve">
     <value>Оставить все контуры до конца клипа, не убирая их</value>
   </data>
+  <data name="Audio_DecibelUnit" xml:space="preserve">
+    <value>дБ</value>
+  </data>
   <data name="Holds_Smoothing" xml:space="preserve">
     <value>Сглаживание</value>
   </data>
