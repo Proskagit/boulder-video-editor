@@ -298,6 +298,12 @@ public sealed partial class TimelineViewModel : ViewModelBase
         if (!_clipViewModels.TryGetValue(clip.Id, out var vm) || vm.Clip != clip)
             _clipViewModels[clip.Id] = vm = new TimelineClipViewModel(clip, ClipName(clip));
         vm.IsLinked = clip is MediaBackedClip { LinkId: not null };   // D032 R12: the mark follows Link / Unlink / Undo
+        vm.HasCleanup = clip switch                                  // D066: the clean-up badge follows its edits and Undo
+        {
+            VideoClip v => v.Cleanup is { } c && c != Core.Audio.AudioCleanup.None,
+            AudioClip a => a.Cleanup is { } c && c != Core.Audio.AudioCleanup.None,
+            _ => false,
+        };
         return vm;
     }
 

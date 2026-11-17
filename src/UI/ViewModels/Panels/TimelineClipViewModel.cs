@@ -36,6 +36,10 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(Label))]
     private bool _isLinked;
 
+    /// <summary>S1 / D066 (a Phase 45 leftover): the clip's own sound is cleaned up (noise reduction or voice enhancement, D064
+    /// §5) — a badge on the rectangle.</summary>
+    [ObservableProperty] private bool _hasCleanup;
+
     /// <summary>What the rectangle shows: the name, with the link mark when linked.</summary>
     public string Label => IsLinked ? "🔗 " + Name : Name;
 

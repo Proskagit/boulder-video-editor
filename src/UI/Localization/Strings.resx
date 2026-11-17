@@ -591,6 +591,9 @@ The file is replaced only when the export succeeds.</value>
   <data name="Audio_DecibelUnit" xml:space="preserve">
     <value>dB</value>
   </data>
+  <data name="Timeline_CleanupBadge" xml:space="preserve">
+    <value>Clean-up</value>
+  </data>
   <data name="Holds_Smoothing" xml:space="preserve">
     <value>Smoothing</value>
   </data>
