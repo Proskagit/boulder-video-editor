@@ -21,12 +21,21 @@ namespace AiVideoEditor.Telemetry.LocalTests;
 /// own frozen reference marks of climb 5 in that video (the study of 35.3R2: the start at 33.4 s — the last foot leaves the
 /// floor —, the end at 83.3 s — the last touch of the wall). C8 / C8b / C8c through the Inspector, C1 through a save and an
 /// open with the real FIT, C12 with the process's time zone replaced. Nothing beside the FIT or the videos is written.
+/// S1 (D066): brought to D055 — the heart rate by the file's time, never by <c>Z</c>: C8 checks the match (<c>Z</c>) and the
+/// refusal of this video's heart rate (its file times disagree); C1 and C12 read the heart rate of a video whose file times
+/// agree.
 /// </summary>
 [Collection(nameof(Phase354RealProjectTests))]
 [CollectionDefinition(nameof(Phase354RealProjectTests), DisableParallelization = true)]
 public sealed class Phase354RealProjectTests : IDisposable
 {
     private const string VideoName = "video_20260927_103026.mp4";
+
+    /// <summary>S1 (D066): a video of the same session whose recording-time tag and file name agree (within 1 s), so its heart
+    /// rate is shown by its file's time (D055 §1). <see cref="VideoName"/>'s disagree by 182 s: since D055 its heart rate is
+    /// refused («FileTimesDisagree») whatever its <c>Z</c>, and C1 / C12 — written before D055, when <c>Z</c> gave the heart
+    /// rate — read it here.</summary>
+    private const string AgreeingVideoName = "video_20260927_102533.mp4";
     private readonly string _temp = Path.Combine(Path.GetTempPath(), "aive-35-4-real", Guid.NewGuid().ToString("N"));
 
     public Phase354RealProjectTests() => Directory.CreateDirectory(_temp);
@@ -68,9 +77,9 @@ public sealed class Phase354RealProjectTests : IDisposable
 
     /// <summary>A new project at the video's own rate with the video's clip from its start and the real training attached
     /// (the FIT read from <paramref name="fitPath"/>).</summary>
-    private static async Task<Session> NewSessionAsync(string fitPath)
+    private static async Task<Session> NewSessionAsync(string fitPath, string videoName = VideoName)
     {
-        var asset = (await RealSet.ProbeAsync(new[] { Path.Combine(Path.GetDirectoryName(RealSet.FitPath)!, VideoName) })).Single();
+        var asset = (await RealSet.ProbeAsync(new[] { Path.Combine(Path.GetDirectoryName(RealSet.FitPath)!, videoName) })).Single();
         asset.AnalysisStatus = MediaAnalysisStatus.Completed;
         asset.FileSizeBytes = new FileInfo(asset.FilePath).Length;
         var rate = asset.Metadata!.FrameRate!.Value;
@@ -92,7 +101,7 @@ public sealed class Phase354RealProjectTests : IDisposable
         {
             Undo = undo, Projects = projects, Edit = edit, Training = training, Inspector = inspector, Asset = asset, Clip = clip, Rate = rate
         };
-        var selection = new TimelineClipSelection(clip, VideoName, asset, rate);
+        var selection = new TimelineClipSelection(clip, videoName, asset, rate);
         inspector.ShowClip(selection);
         // What the main window does after every edit: the timeline shows the selected clip again in the Inspector.
         projects.TimelineChanged += (_, _) => inspector.ShowClip(selection);
@@ -124,16 +133,25 @@ public sealed class Phase354RealProjectTests : IDisposable
         s.At(endFrame);
         var history = s.Undo.CurrentPosition;
         s.Inspector.AlignToClimbCommand.Execute(null);
+        // D055 §1 (2026-11-09): the heart rate goes by the file's time, never by Z — and this video's tag and file name
+        // disagree by 182 s, so it is refused, whatever the match; the match itself (Z, the route bounds) is unchanged.
         var endReadout = TrainingAlignment.ReadoutAt(s.Projects.Current.Training, s.Clip, s.Asset, endFrame, s.Rate);
-        Assert.Equal(climb5.End - TimeSpan.FromSeconds(4.6), endReadout.WatchTime!.Value, TimeSpan.FromTicks(MediaTime.FromFrame(1, s.Rate).Ticks));
-        Assert.Equal("10:31:48", Clock(endReadout.WatchTime.Value, workout));
-        Assert.Equal(string.Format(Strings.Readout_Value, "10:31:48", endReadout.Bpm), s.Inspector.TrainingReadout);
+        Assert.Equal(TrainingReadoutReason.FileTimesDisagree, endReadout.Reason);
+        Assert.Null(endReadout.Bpm);
+        var zeroAtEnd = s.Asset.RecordingZeroOverrideUtc!.Value;              // the frame of the last touch is the climb's end - 4.6 s
+        Assert.Equal(climb5.End - TimeSpan.FromSeconds(4.6), zeroAtEnd + TimeSpan.FromTicks(endTicks), TimeSpan.FromTicks(MediaTime.FromFrame(1, s.Rate).Ticks));
         Assert.Equal(Strings.Inspector_RecordingStartSet, s.Inspector.RecordingStartText);
         Assert.Equal(MediaTime.Zero, s.Projects.Current.Training!.ClockCorrection);
         var zeroByEnd = s.Asset.RecordingZeroOverrideUtc;
+        // D054 (2026-11-09): the first Z also binds the FIT's climbs to the video — «Create Route Areas from FIT», a step of its
+        // own after the Z's.
+        Assert.Equal("Create Route Areas from FIT", s.Undo.NextUndo!.Description);
         s.Undo.Undo();
-        Assert.Same(history, s.Undo.CurrentPosition);                         // one Undo step
+        Assert.Equal(zeroByEnd, s.Asset.RecordingZeroOverrideUtc);
+        s.Undo.Undo();
+        Assert.Same(history, s.Undo.CurrentPosition);                         // the Z's own step
         Assert.Null(s.Asset.RecordingZeroOverrideUtc);
+        s.Undo.Redo();
         s.Undo.Redo();
         Assert.Equal(zeroByEnd, s.Asset.RecordingZeroOverrideUtc);
 
@@ -142,9 +160,8 @@ public sealed class Phase354RealProjectTests : IDisposable
         Assert.Equal(ClimbAnchor.Start, s.Inspector.AlignAnchor);
         s.At(startFrame);
         s.Inspector.AlignToClimbCommand.Execute(null);
-        var startReadout = TrainingAlignment.ReadoutAt(s.Projects.Current.Training, s.Clip, s.Asset, startFrame, s.Rate);
-        Assert.Equal("10:31:21", Clock(startReadout.WatchTime!.Value, workout));
-        Assert.Equal(string.Format(Strings.Readout_Value, "10:31:21", startReadout.Bpm), s.Inspector.TrainingReadout);
+        var zeroAtStart = s.Asset.RecordingZeroOverrideUtc!.Value;
+        Assert.Equal("10:31:21", Clock(zeroAtStart + TimeSpan.FromTicks(startTicks), workout));   // the climb's start on that frame
         Assert.NotEqual(zeroByEnd, s.Asset.RecordingZeroOverrideUtc);          // the zero replaced
         var zeroByStart = s.Asset.RecordingZeroOverrideUtc;
         s.Undo.Undo();                                                        // one step back: the match by the end
@@ -170,8 +187,11 @@ public sealed class Phase354RealProjectTests : IDisposable
         Assert.Equal(zeroByStart, s.Asset.RecordingZeroOverrideUtc);
         s.Undo.Undo();
         Assert.Equal(zeroByEnd, s.Asset.RecordingZeroOverrideUtc);
+        s.Undo.Undo();                                                        // the areas of the first Z (D054)
+        Assert.Equal(zeroByEnd, s.Asset.RecordingZeroOverrideUtc);
         s.Undo.Undo();
         Assert.Null(s.Asset.RecordingZeroOverrideUtc);
+        Assert.Same(history, s.Undo.CurrentPosition);
     }
 
     // --- C1 with the real FIT ---------------------------------------------------------------------------------------------
@@ -181,12 +201,9 @@ public sealed class Phase354RealProjectTests : IDisposable
     {
         var fit = Path.Combine(_temp, Path.GetFileName(RealSet.FitPath));
         File.Copy(RealSet.FitPath, fit);
-        var s = await NewSessionAsync(fit);
-        var (_, endTicks) = OwnersMarksOfClimb5();
-        s.Inspector.SelectedClimbIndex = s.Inspector.TrainingClimbs.IndexOf(string.Format(Strings.Inspector_ClimbItem, 5, "10:31:21", "10:31:53"));
-        s.At(s.FrameOf(endTicks));
-        s.Inspector.AlignToClimbCommand.Execute(null);
-        var frames = new long[] { 0, s.FrameOf(endTicks), s.FrameOf(endTicks) + 600, s.Clip.TimelineEnd.ToFrameFloor(s.Rate) - 1 };
+        var s = await NewSessionAsync(fit, AgreeingVideoName);
+        var last = s.Clip.TimelineEnd.ToFrameFloor(s.Rate) - 1;
+        var frames = new long[] { 0, last / 3, 2 * last / 3, last };
         var before = frames.Select(f => TrainingAlignment.ReadoutAt(s.Projects.Current.Training, s.Clip, s.Asset, f, s.Rate)).ToList();
         Assert.All(before, r => Assert.NotNull(r.Bpm));
 
@@ -227,11 +244,7 @@ public sealed class Phase354RealProjectTests : IDisposable
     [Fact]
     public async Task C12_another_time_zone_gives_the_identical_mapping_and_heart_rate()
     {
-        var s = await NewSessionAsync(RealSet.FitPath);
-        var (_, endTicks) = OwnersMarksOfClimb5();
-        s.Inspector.SelectedClimbIndex = s.Inspector.TrainingClimbs.IndexOf(string.Format(Strings.Inspector_ClimbItem, 5, "10:31:21", "10:31:53"));
-        s.At(s.FrameOf(endTicks));
-        s.Inspector.AlignToClimbCommand.Execute(null);
+        var s = await NewSessionAsync(RealSet.FitPath, AgreeingVideoName);
         var folder = Path.Combine(_temp, "project");
         await s.Projects.SaveAsAsync(folder);
         var json = File.ReadAllText(ProjectFileStore.ProjectFilePath(folder));
@@ -261,6 +274,6 @@ public sealed class Phase354RealProjectTests : IDisposable
         var tokyo = InTimeZone("Tokyo Standard Time", Seen);
         Assert.Equal(moscow, pacific);
         Assert.Equal(moscow, tokyo);
-        Assert.Contains(moscow, line => line.Contains("10:31:48"));
+        Assert.All(moscow.Skip(1), line => Assert.DoesNotContain("||", line));    // every frame has its watch time and heart rate
     }
 }

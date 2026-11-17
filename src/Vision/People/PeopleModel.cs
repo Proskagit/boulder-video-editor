@@ -1,11 +1,12 @@
 namespace AiVideoEditor.Vision.People;
 
 /// <summary>
-/// The pinned people models "people-v1" (D061 §5, docs/AI_MODEL.md "People models"): all Apache-2.0, all local, never
-/// downloaded by the application.
+/// The pinned people models "people-v2" (D061 §5, D066 §3; docs/AI_MODEL.md "People models"): all Apache-2.0, all local,
+/// never downloaded by the application. «people-v1» differed only in the detector's file (the same outputs, see below).
 /// <list type="bullet">
-/// <item>RF-DETR-M (Roboflow, Apache-2.0) at 576 × 576 — the person detector; the ONNX conversion distributed with rtmlib
-/// 0.0.16 (Apache-2.0).</item>
+/// <item>RF-DETR-M (Roboflow, Apache-2.0) at 576 × 576 — the person detector, exported by
+/// <c>tools/people-models/export_rfdetr.py</c> from the official checkpoint with Roboflow's <c>rfdetr</c> 1.12.1 (S1, D066 §3); on
+/// 180 real frames its people are those of people-v1's third-party conversion (rtmlib 0.0.16), box for box.</item>
 /// <item>RTMPose-m body7 256 × 192 (OpenMMLab, Apache-2.0) — the 17 COCO keypoints; the torso centre is the camera's
 /// anchor.</item>
 /// <item>SAM 2.1 Hiera tiny (Meta, Apache-2.0) in its video mode — six graphs exported by
@@ -15,13 +16,13 @@ namespace AiVideoEditor.Vision.People;
 /// </summary>
 public static class PeopleModel
 {
-    public const string Id = "people-v1";
+    public const string Id = "people-v2";
 
     /// <summary>The folder name under %LOCALAPPDATA%\AiVideoEditor\models.</summary>
-    public const string FolderName = "people-v1";
+    public const string FolderName = "people-v2";
 
     public static readonly HoldModelFile Detector =
-        new("rfdetr_m_576.onnx", 126_347_989, "7fc5834e2fc7205e399a77d29dd0e89b694b075eeb496d5c8464d25137cad788");
+        new("rfdetr_m_576.onnx", 133_424_287, "ec23de6746c6737b47c34fd24f06583e80a2253924efc32c27b716157ae1632a");
 
     public static readonly HoldModelFile Pose =
         new("rtmpose_m_body7_256x192.onnx", 54_330_655, "5c0a4bf67953e6d2ac43ce15e77dc9d5d354ae18430a47d2c5963a7bc5683e3c");

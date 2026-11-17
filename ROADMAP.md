@@ -97,6 +97,13 @@ smooth hold outlines** (DECISIONS.md D065; `docs/PHASE46_MANUAL_TEST_PLAN.md`): 
 already marked kept as they are; no format change. **Next: S1 — the release preparation** (D065 §6), the last step of the MVP;
 everything after it is development.
 
+**Phase 46 merged** (PR #73, `f15b1cd`, 2026-11-17). **Phase 47 — S1, the release 1.0** (DECISIONS.md D066;
+`docs/PHASE47_MANUAL_TEST_PLAN.md`) on `feat/s1-release-1.0`: the owner's minimal FFmpeg recipe merged and extended with NVENC
+and the noise reduction filters; the AI models as a separate archive with an installer (the people detector re-exported from
+Roboflow's checkpoint — `people-v2`); the portable 1.0.0 with FFmpeg; Phase 45's leftovers; the local test baseline green; a
+Windows Sandbox configuration for the clean-machine check. Open: the owner's clean-machine check, the legal review of the
+notices and the source offer, the GitHub Release `v1.0.0` (published by the owner).
+
 **Phase 45 — Audio editing, mixing and clean-up (DECISIONS.md D064, 2026-11-17) — accepted by the product owner on 2026-11-17; PR #72, the merge by the owner after CI.** The
 volume line with points and fade handles inside audio clips and video clips with sound, track volume / mute / solo, a master and
 a mixer, ducking under a speech track (Silero VAD) with «Закрепить в точки», non-destructive noise reduction (FFmpeg `afftdn`) and

@@ -69,7 +69,7 @@ public sealed partial class TrackMixViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(SensitivityText))]
     private double _sensitivity = DuckingSettings.DefaultSensitivity;
 
-    public string DepthText => string.Format(CultureInfo.InvariantCulture, "{0:0} дБ", DepthDb).Replace('-', '−');
+    public string DepthText => string.Format(CultureInfo.InvariantCulture, "{0:0} {1}", DepthDb, Strings.Audio_DecibelUnit).Replace('-', '−');
     public string AttackText => string.Format(Strings.Mixer_Milliseconds, AttackMs);
     public string ReleaseText => string.Format(Strings.Mixer_Milliseconds, ReleaseMs);
     public string SensitivityText => string.Format(CultureInfo.InvariantCulture, "{0:0}", Sensitivity);
@@ -247,8 +247,8 @@ public sealed partial class MixerViewModel : ViewModelBase
     }
 
     public static string Db(double gain) => gain <= 0
-        ? "−∞ дБ"
-        : string.Format(CultureInfo.InvariantCulture, "{0:+0.0;−0.0;0.0} дБ", 20 * Math.Log10(gain));
+        ? $"−∞ {Strings.Audio_DecibelUnit}"
+        : string.Format(CultureInfo.InvariantCulture, "{0:+0.0;−0.0;0.0} {1}", 20 * Math.Log10(gain), Strings.Audio_DecibelUnit);
 
     internal IReadOnlyList<SpeechTrackChoice> SpeechChoicesFor(Track track) =>
         _projects.Current.Timeline.VideoTracks.Concat(_projects.Current.Timeline.AudioTracks)

@@ -9,8 +9,9 @@
       AiVideoEditor.exe, the .NET runtime and every dependency, appsettings.json,
       README.txt (the user's instruction), THIRD-PARTY-NOTICES.txt and licenses\ (generated from the packages actually
       published - not a legal review), docs\AI_MODEL.md, BUILD-INFO.txt (commit, SDK, runtime, the folder's size).
-    FFmpeg is NOT included (D046 par. 2: only after its licence audit and the product owner's choice) unless
-    -FfmpegDir names a local FFmpeg for a local technical check.
+    With -FfmpegPackage (the release, D066 par. 2) the minimal FFmpeg of tools/ffmpeg-minimal is put into ffmpeg\ with its
+    own notices and licences; without it FFmpeg is not included, unless -FfmpegDir names a local FFmpeg for a local
+    technical check.
     The SDK is pinned by global.json (8.0.424, latest patch); every NuGet package by its exact version in the projects.
 
 .PARAMETER Version
@@ -19,6 +20,10 @@
     Where the folder is created (default: artifacts/portable under the repository).
 .PARAMETER Zip
     Also packs the folder into a .zip next to it.
+.PARAMETER FfmpegPackage
+    The release's FFmpeg (D066 par. 2): the unpacked aive-ffmpeg-minimal-*-win64.zip of the "Minimal FFmpeg" workflow
+    (bin\ffmpeg.exe, bin\ffprobe.exe, THIRD-PARTY-NOTICES.txt, licenses\, the manifest). Copied into ffmpeg\ as it is;
+    appsettings.json points at it; the notices name it and where its corresponding source is published.
 .PARAMETER FfmpegDir
     For a local technical check only: a folder holding ffmpeg.exe and ffprobe.exe (a bin folder, or a distribution
     folder with bin\). They are copied into ffmpeg\ with the distribution's LICENSE / README into licenses\FFmpeg\,
@@ -27,9 +32,10 @@
 #>
 [CmdletBinding()]
 param(
-    [string] $Version = '0.30.0',
+    [string] $Version = '1.0.0',
     [string] $OutputRoot,
     [switch] $Zip,
+    [string] $FfmpegPackage,
     [string] $FfmpegDir
 )
 
@@ -161,8 +167,37 @@ foreach ($component in $components) {
     $lines.Add('')
 }
 
-# --- FFmpeg for a local technical check (-FfmpegDir) ------------------------------------------------------------------
+# --- The release's FFmpeg (-FfmpegPackage, D066 par. 2) ------------------------------------------------------------------
 $ffmpegLine = 'FFmpeg: not included (DECISIONS.md D046 par. 2).'
+if ($FfmpegPackage -and $FfmpegDir) { throw 'Give -FfmpegPackage or -FfmpegDir, not both.' }
+if ($FfmpegPackage) {
+    foreach ($required in 'bin\ffmpeg.exe', 'bin\ffprobe.exe', 'THIRD-PARTY-NOTICES.txt', 'licenses') {
+        if (-not (Test-Path (Join-Path $FfmpegPackage $required))) { throw "-FfmpegPackage: $required not found in $FfmpegPackage" }
+    }
+    $ffmpegOut = Join-Path $out 'ffmpeg'
+    New-Item -ItemType Directory -Force $ffmpegOut | Out-Null
+    Copy-Item -Recurse (Join-Path $FfmpegPackage '*') $ffmpegOut -Force
+    $ffmpegVersion = (& (Join-Path $ffmpegOut 'bin\ffmpeg.exe') -hide_banner -version | Select-Object -First 1)
+    if ($ffmpegVersion -notmatch 'aive-minimal') { throw "-FfmpegPackage is not the minimal FFmpeg: $ffmpegVersion" }
+    $lines.Add("FFmpeg / FFprobe - $ffmpegVersion")
+    $lines.Add('  The minimal FFmpeg of AiVideoEditor (DECISIONS.md D046 par. 13, D066 par. 2), built by tools/ffmpeg-minimal; in ffmpeg\.')
+    $lines.Add('  Licence: GNU General Public License version 2 or later (FFmpeg configured with --enable-gpl, statically linked')
+    $lines.Add('  with libx264). Its components, their licences and the toolchain runtime: ffmpeg\THIRD-PARTY-NOTICES.txt, ffmpeg\licenses\.')
+    $lines.Add('  The complete corresponding source code is published with this release (aive-ffmpeg-minimal-*-sources.tar).')
+    foreach ($exe in 'ffmpeg.exe', 'ffprobe.exe') {
+        $lines.Add("  $exe SHA-256 $((Get-FileHash -Algorithm SHA256 (Join-Path $ffmpegOut "bin\$exe")).Hash.ToLowerInvariant())")
+    }
+    $lines.Add('')
+    $settingsPath = Join-Path $out 'appsettings.json'
+    $settings = Get-Content -Raw -Encoding UTF8 $settingsPath | ConvertFrom-Json
+    $settings.Ffmpeg.FfmpegPath = 'ffmpeg\bin\ffmpeg.exe'
+    $settings.Ffmpeg.FfprobePath = 'ffmpeg\bin\ffprobe.exe'
+    Set-Content -Path $settingsPath -Value ($settings | ConvertTo-Json -Depth 10) -Encoding UTF8
+    $ffmpegLine = "FFmpeg: $ffmpegVersion in ffmpeg\ (the release's minimal FFmpeg)."
+    Write-Host "FFmpeg: $ffmpegVersion from $FfmpegPackage"
+}
+
+# --- FFmpeg for a local technical check (-FfmpegDir) ------------------------------------------------------------------
 if ($FfmpegDir) {
     $bin = if (Test-Path (Join-Path $FfmpegDir 'bin\ffmpeg.exe')) { Join-Path $FfmpegDir 'bin' } else { $FfmpegDir }
     $distribution = if ($bin -ne $FfmpegDir) { $FfmpegDir } else { Split-Path $bin }
@@ -202,7 +237,7 @@ if ($FfmpegDir) {
 }
 
 $notices = Get-Content -Raw -Encoding UTF8 (Join-Path $templates 'THIRD-PARTY-NOTICES.header.txt')
-if ($FfmpegDir) {
+if ($FfmpegDir -or $FfmpegPackage) {
     # The "not shipped" bullet of the template no longer holds: FFmpeg is listed with the components above.
     $notices = [regex]::Replace($notices, '(?m)^- FFmpeg / FFprobe .*\r?\n(?:  .*\r?\n)*', '')
 }
@@ -210,7 +245,7 @@ $notices = $notices.Replace('{{VERSION}}', $informational).Replace('{{COMPONENTS
 Set-Content -Path (Join-Path $out 'THIRD-PARTY-NOTICES.txt') -Value $notices -Encoding UTF8
 
 # --- The user's instruction and the model's document --------------------------------------------------------------
-$readme = Get-Content -Raw -Encoding UTF8 (Join-Path $templates 'README.txt')
+$readme = Get-Content -Raw -Encoding UTF8 (Join-Path $templates $(if ($FfmpegPackage) { 'README.release.txt' } else { 'README.txt' }))
 if ($FfmpegDir) {
     $bundled = (Get-Content -Raw -Encoding UTF8 (Join-Path $templates 'README.ffmpeg-bundled.txt')).TrimEnd() -replace '\r?\n', "`r`n"
     $readme = [regex]::Replace($readme, '(?m)^- FFmpeg \(ffmpeg\.exe.*$', { param($m) $bundled })
@@ -231,7 +266,7 @@ $info = @(
     ".NET runtime: $(if ($runtime) { $runtime.Version } else { '(unknown)' })",
     "Files: $($files.Count + 1); size before this file: $bytes bytes ($([math]::Round($bytes / 1MB, 1)) MiB)",
     $ffmpegLine,
-    'AI model: not included (docs\AI_MODEL.md).'
+    'AI models: not included - the separate archive AiVideoEditor-<version>-models.zip (README.txt, docs\AI_MODEL.md).'
 )
 Set-Content -Path (Join-Path $out 'BUILD-INFO.txt') -Value $info -Encoding UTF8
 

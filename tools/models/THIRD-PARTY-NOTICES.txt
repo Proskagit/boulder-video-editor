@@ -1,0 +1,48 @@
+THIRD-PARTY NOTICES - AiVideoEditor 1.0, AI models archive
+==========================================================
+
+This archive holds the AI models AiVideoEditor uses locally (DECISIONS.md D066 par. 3). They are ONNX conversions of the
+third-party models below, made for AiVideoEditor by the recipes named; the weights are the original authors' work and stay
+under their licences. AiVideoEditor never downloads them; Install-Models.cmd copies them into
+%LOCALAPPDATA%\AiVideoEditor\models after checking every file's size and SHA-256 (models.json).
+
+The licence texts are in licenses\.
+
+
+sam2.1-large\  - hold markup
+----------------------------
+SAM 2.1 Hiera Large (Segment Anything Model 2), Meta Platforms, Inc. and affiliates.
+Source: https://github.com/facebookresearch/sam2, checkpoint sam2.1_hiera_large.pt (092824).
+Licence: Apache License 2.0 (licenses\SAM2-LICENSE-Apache-2.0.txt); the repository has no NOTICE file.
+Modification: converted to ONNX (an image encoder and a prompt decoder) with samexporter 0.5.0 (MIT) - recipe in
+docs/AI_MODEL.md, "Export recipe", of the AiVideoEditor repository.
+
+
+people-v2\  - Follow and Occlusion
+----------------------------------
+RF-DETR Medium (576 x 576) - Copyright 2025 Roboflow, Inc.
+Source: https://github.com/roboflow/rf-detr, the official checkpoint rf-detr-medium.pth.
+Licence: Apache License 2.0 (licenses\RF-DETR-LICENSE-Apache-2.0.txt).
+Modification: exported to ONNX with Roboflow's rfdetr 1.12.1 - tools/people-models/export_rfdetr.py.
+
+RTMPose-m body7 256 x 192 - Copyright 2018-2020 Open-MMLab (MMPose).
+Source: https://github.com/open-mmlab/mmpose (the ONNX file distributed with rtmlib 0.0.16, Apache-2.0).
+Licence: Apache License 2.0 (licenses\MMPOSE-LICENSE-Apache-2.0.txt).
+
+SAM 2.1 Hiera Tiny in its video mode, Meta Platforms, Inc. and affiliates.
+Source: https://github.com/facebookresearch/sam2, checkpoint sam2.1_hiera_tiny.pt (092824).
+Licence: Apache License 2.0 (licenses\SAM2-LICENSE-Apache-2.0.txt).
+Modification: six ONNX graphs and their constants exported by tools/people-models/export_sam2_video.py (the memory
+attention in float16).
+
+
+audio-v1\  - voice enhancement and ducking
+------------------------------------------
+DeepFilterNet3 - Copyright (c) 2021 Hendrik Schröter.
+Source: https://github.com/Rikorose/DeepFilterNet; the ONNX export of huggingface.co/kimtos-labs/denoiser-dfn3.
+Licence: MIT OR Apache-2.0, at your option (licenses\DEEPFILTERNET-LICENSE-MIT.txt,
+licenses\DEEPFILTERNET-LICENSE-Apache-2.0.txt).
+
+Silero VAD v5 - Copyright (c) 2020-present Silero Team.
+Source: https://github.com/snakers4/silero-vad, src/silero_vad/data/silero_vad.onnx.
+Licence: MIT (licenses\SILERO-VAD-LICENSE-MIT.txt).

@@ -1,4 +1,5 @@
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Audio;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Project;
@@ -283,5 +284,25 @@ public sealed class TimelineLinkUiTests : IAsyncLifetime
         public IReadOnlySet<string> SupportedExtensions { get; } = new HashSet<string>();
         public Task<MediaImportBatchResult> ImportManyAsync(IEnumerable<string> filePaths, CancellationToken ct = default) =>
             Task.FromResult(new MediaImportBatchResult());
+    }
+
+    [Fact]
+    public void The_clean_up_badge_follows_the_clips_noise_reduction_and_undo()
+    {
+        // S1 / D066 (a Phase 45 leftover): a clip whose own sound is cleaned up shows a badge on the timeline.
+        var video = Recording();
+        Click(video);
+        Assert.False(Vm(video).HasCleanup);
+        Inspector.NoiseReduction = 40;
+        Assert.True(Vm(video).HasCleanup);
+        Inspector.NoiseReduction = 0;
+        Assert.False(Vm(video).HasCleanup);
+        Inspector.VoiceEnhancement = 60;
+        Assert.True(Vm(video).HasCleanup);
+        _vm.Toolbar.UndoCommand.Execute(null);
+        Assert.Equal(video.Cleanup is { } c && c != AudioCleanup.None, Vm(video).HasCleanup);   // the badge follows Undo
+        while (video.Cleanup is { } left && left != AudioCleanup.None && _vm.Toolbar.UndoCommand.CanExecute(null))
+            _vm.Toolbar.UndoCommand.Execute(null);
+        Assert.False(Vm(video).HasCleanup);
     }
 }
