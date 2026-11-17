@@ -1,0 +1,13 @@
+# The minimal FFmpeg's sources (DECISIONS.md D046 §13). One component per line, tab-separated:
+# name  kind  version  location  pin  licence  licence-files
+#   kind tarball: location is the URL, pin its SHA-256 (checked by fetch-sources.sh)
+#   kind git:     location is the repository, pin the full commit (checked out and verified; archived as a git bundle)
+# Every value below was checked on 2026-10-22: the FFmpeg tarball's GPG signature (release key
+# FCF986EA15E6E293A5644F10B4322F04D67658D8, as published on ffmpeg.org), dav1d's against VideoLAN's .sha256, zlib's
+# against GitHub's asset digest; the git commits through the GitHub API.
+ffmpeg	tarball	9.0.2	https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz	8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e	GPL-2.0-or-later (as configured; LGPL-2.1-or-later code)	COPYING.GPLv2 COPYING.LGPLv2.1 LICENSE.md
+x264	git	0.165.3223	https://code.videolan.org/videolan/x264.git	0480cb05fa188d37ae87e8f4fd8f1aea3711f7ee	GPL-2.0-or-later	COPYING
+zimg	git	3.0.6+253	https://github.com/sekrit-twc/zimg.git	67e0603271c080e22c8429856dd4a8a56587e61e	WTFPL	COPYING
+graphengine	git	zimg submodule	https://github.com/sekrit-twc/graphengine.git	cb5b2ce13384ec2491f0c37256ea210034799f69	WTFPL	COPYING
+zlib	tarball	1.3.2	https://github.com/madler/zlib/releases/download/v1.3.2/zlib-1.3.2.tar.xz	d7a0654783a4da529d1bb793b7ad9c3318020af77667bcae35f95d0e42a792f3	Zlib	LICENSE
+dav1d	tarball	1.5.4	https://downloads.videolan.org/pub/videolan/dav1d/1.5.4/dav1d-1.5.4.tar.xz	686616b7c69eb88d44459391ab25cac13b6647a3b288835c5784e71c1514a5c5	BSD-2-Clause	COPYING
