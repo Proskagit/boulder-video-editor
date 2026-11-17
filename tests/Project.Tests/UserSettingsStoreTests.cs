@@ -162,8 +162,11 @@ public sealed class UserSettingsStoreTests : IDisposable
             ui.Update(s => s with { InspectorWidth = width });
         }
         Assert.False(File.Exists(UiPath));                               // not yet: the delay
-        var deadline = DateTime.UtcNow + UiStateService.WriteDelay + TimeSpan.FromSeconds(5);
+        // The write runs on a thread-pool timer; on a loaded CI runner it can start seconds late (run 44097888225 timed out
+        // after 1 + 5 s), so the wait is generous — the assertions below are unchanged.
+        var deadline = DateTime.UtcNow + UiStateService.WriteDelay + TimeSpan.FromSeconds(30);
         while (!File.Exists(UiPath) && DateTime.UtcNow < deadline) Thread.Sleep(50);
+        Assert.True(File.Exists(UiPath), "the layout was not written");
         using var back = Ui();
         Assert.Equal(319, back.Current.InspectorWidth);
     }
