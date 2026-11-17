@@ -137,7 +137,9 @@ enabled_external="$(
       done | sort -u | tr '\n' ' '
 )"
 echo "Enabled external / hardware libraries: $enabled_external"
-expected="d3d11va dxva2 ffnvcodec libdav1d libx264 libzimg nvenc zlib "
+# cuda: the CUDA driver loader of nv-codec-headers that NVENC selects (dynamic loading of nvcuda.dll; no CUDA SDK, no
+# code of NVIDIA linked in).
+expected="cuda d3d11va dxva2 ffnvcodec libdav1d libx264 libzimg nvenc zlib "
 [[ "$enabled_external" == "$expected" ]] || {
     echo "Unexpected external libraries: got '$enabled_external', expected '$expected'" >&2
     exit 1
