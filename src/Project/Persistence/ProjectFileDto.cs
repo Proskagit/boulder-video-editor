@@ -279,6 +279,10 @@ internal sealed class SequenceDto
     public long PlayheadTicks { get; set; }
     public double ZoomPixelsPerSecond { get; set; }
     public bool SnappingEnabled { get; set; }
+
+    /// <summary>Format v25 (D064 §1): the master volume; written only when not 1.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? MasterVolume { get; set; }
 }
 
 internal sealed class TrackDto
@@ -289,6 +293,17 @@ internal sealed class TrackDto
     public bool IsMuted { get; set; }
     public bool IsHidden { get; set; }
     public bool IsLocked { get; set; }
+
+    /// <summary>Format v25 (D064 §1): the track's volume (written only when not 1), solo (only when on), ducking (only when on).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Volume { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? IsSolo { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DuckingDto? Ducking { get; set; }
+
     public List<ClipDto>? Clips { get; set; }
     public List<TransitionDto>? Transitions { get; set; }
 }
@@ -366,6 +381,20 @@ internal sealed class VideoClipDto : MediaBackedClipDto
     /// <summary>Format v24 (D063): the clip's transform keyframes, sorted; written only when it has some.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<KeyframeDto>? Keyframes { get; set; }
+
+    /// <summary>Format v25 (D064 §1): the volume points of the clip's own sound, its sound-only fades and its clean-up; each
+    /// written only when set.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<VolumePointDto>? VolumePoints { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? SoundFadeInTicks { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? SoundFadeOutTicks { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public CleanupDto? Cleanup { get; set; }
 
     /// <summary>Format v20 (D061): the hold outlines hidden behind people; written only when true.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -453,6 +482,38 @@ internal sealed class AudioClipDto : MediaBackedClipDto
 {
     public double Volume { get; set; }
     public bool IsMuted { get; set; }
+
+    /// <summary>Format v25 (D064 §1): the volume points and the clean-up; written only when set.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<VolumePointDto>? VolumePoints { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public CleanupDto? Cleanup { get; set; }
+}
+
+/// <summary>Format v25 (D064 §1): one volume point — its id, its source time (100 ns ticks) and its linear gain.</summary>
+internal sealed class VolumePointDto
+{
+    public Guid Id { get; set; }
+    public long TimeTicks { get; set; }
+    public double Gain { get; set; }
+}
+
+/// <summary>Format v25 (D064 §5): the clean-up's two strengths (0–100).</summary>
+internal sealed class CleanupDto
+{
+    public int NoiseReduction { get; set; }
+    public int VoiceEnhancement { get; set; }
+}
+
+/// <summary>Format v25 (D064 §4): a track's ducking.</summary>
+internal sealed class DuckingDto
+{
+    public Guid SpeechTrackId { get; set; }
+    public double DepthDb { get; set; }
+    public int AttackMs { get; set; }
+    public int ReleaseMs { get; set; }
+    public int Sensitivity { get; set; }
 }
 
 internal sealed class ImageClipDto : MediaBackedClipDto

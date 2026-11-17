@@ -28,6 +28,12 @@ public static class ClipPropertyValidator
             if (AudioProperties.Of(clip) is null) return string.Format(Messages.Prop_NoSound, KindName(clip));
             if (!InRange(audio.Volume, MinVolume, MaxVolume))
                 return string.Format(Messages.Prop_Volume, Pct(MinVolume), Pct(MaxVolume));
+            // D064 §1: the points, a video clip's sound-only fades, the clean-up's strengths.
+            if (audio.Volumes is { } points && !Audio.VolumeEnvelope.AreValid(points.Points)) return Messages.Prop_VolumePointsInvalid;
+            if (clip is not VideoClip && (audio.SoundFadeIn != Common.MediaTime.Zero || audio.SoundFadeOut != Common.MediaTime.Zero))
+                return Messages.Prop_SoundFadeOnlyVideo;
+            if (audio.SoundFadeIn < Common.MediaTime.Zero || audio.SoundFadeOut < Common.MediaTime.Zero) return Messages.Edit_FadeNegative;
+            if (audio.Cleanup is { IsValid: false }) return Messages.Prop_CleanupInvalid;
         }
 
         if (change.Text is { } text)

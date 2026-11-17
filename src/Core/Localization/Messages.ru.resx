@@ -1393,4 +1393,19 @@
   <data name="Keyframe_NoClip" xml:space="preserve">
     <value>Выберите видеоклип, чтобы добавить ключевой кадр.</value>
   </data>
+  <data name="Prop_VolumePointsInvalid" xml:space="preserve">
+    <value>Точки громкости недопустимы: две в один момент или громкость вне пределов.</value>
+  </data>
+  <data name="Prop_SoundFadeOnlyVideo" xml:space="preserve">
+    <value>Отдельные затухания звука есть только у видеоклипа; затухания аудиоклипа — это затухания его звука.</value>
+  </data>
+  <data name="Prop_CleanupInvalid" xml:space="preserve">
+    <value>Сила очистки звука должна быть от 0 до 100.</value>
+  </data>
+  <data name="Ducking_Invalid" xml:space="preserve">
+    <value>Параметры приглушения вне пределов (глубина −40…−3 дБ, начало 0–2000 мс, восстановление 50–3000 мс, чувствительность 0–100).</value>
+  </data>
+  <data name="Ducking_SpeechTrack" xml:space="preserve">
+    <value>Выберите другую дорожку с речью: дорожка не может приглушаться от самой себя.</value>
+  </data>
 </root>

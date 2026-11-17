@@ -1,3 +1,4 @@
+using AiVideoEditor.Core.Audio;
 using AiVideoEditor.Core.Common;
 
 namespace AiVideoEditor.Core.Entities;
@@ -21,6 +22,16 @@ public sealed class Track
     public bool IsMuted { get; set; }
     public bool IsHidden { get; set; }
     public bool IsLocked { get; set; }
+
+    /// <summary>D064 §1: the track's volume (linear 0–2) — of its clips' sound (a video track's: its clips' own sound).</summary>
+    public double Volume { get; set; } = 1.0;
+
+    /// <summary>D064 §1: while any track is solo only the solo tracks sound (the Preview and the export); monitoring state like
+    /// mute.</summary>
+    public bool IsSolo { get; set; }
+
+    /// <summary>D064 §4: the track is lowered while speech is detected on another track; null — off.</summary>
+    public DuckingSettings? Ducking { get; set; }
 
     public List<Clip> Clips { get; } = new();
     public List<Transition> Transitions { get; } = new();
@@ -54,6 +65,9 @@ public sealed class Sequence
     public const double DefaultZoomPixelsPerSecond = 60;
 
     public bool SnappingEnabled { get; set; } = true;
+
+    /// <summary>D064 §1: the project's master volume (linear 0–2).</summary>
+    public double MasterVolume { get; set; } = 1.0;
 
     public MediaTime Duration()
     {

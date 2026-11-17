@@ -83,7 +83,7 @@ public class TemplatePersistenceTests
     public void A_version_8_project_opens_unchanged_and_is_saved_again_differing_only_in_the_version()
     {
         var v9 = Save(Build(templates: false));
-        var v8 = v9.Replace("\"formatVersion\": 24", "\"formatVersion\": 8");
+        var v8 = v9.Replace("\"formatVersion\": 25", "\"formatVersion\": 8");
         Assert.NotEqual(v9, v8);
 
         Assert.Equal(v9, Save(Load(v8)));

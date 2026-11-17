@@ -3,7 +3,7 @@ using AiVideoEditor.Core.Playback;
 namespace AiVideoEditor.Timeline.Playback;
 
 /// <summary>A reader, the gain it is mixed with and its clip's fade (D025).</summary>
-internal readonly record struct MixEntry(AudioSpanReader Reader, float Gain, AudioFadeEnvelope Fade = default);
+internal readonly record struct MixEntry(AudioSpanReader Reader, AudioGainCurve Curve);
 
 /// <summary>
 /// Sums the active <see cref="AudioSpanReader"/>s into the output (48 kHz stereo float) with the
@@ -41,10 +41,10 @@ internal sealed class AudioMixer : IAudioSampleSource
         foreach (var entry in Volatile.Read(ref _entries))
         {
             if (entry.Reader.EndSample > from && entry.Reader.FirstSample < until)
-                entry.Reader.MixInto(from, interleaved, entry.Gain, entry.Fade);
+                entry.Reader.MixInto(from, interleaved, entry.Curve);
         }
 
-        AudioMix.Clamp(interleaved);
+        AudioMix.Finish(interleaved);
 
         var end = Interlocked.Read(ref _endSample);
         if (end < until)

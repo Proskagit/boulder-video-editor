@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AiVideoEditor.Core.Color;
+using AiVideoEditor.Core.Audio;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
@@ -41,7 +42,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 24;
+    public const int CurrentFormatVersion = 25;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -127,6 +128,10 @@ public static class ProjectSerializer
     /// route plate corner. A v23 file has none (the static values; the plate bottom left) and is saved as v24; an older build
     /// refuses a v24 file as newer.</summary>
     private const int KeyframesVersion = 24;
+
+    /// <summary>The first version with the audio mix (D064): a track's volume, solo and ducking, the master volume, a clip's volume
+    /// points, a video clip's sound-only fades and the clean-up. A v24 file has none and is saved as v25.</summary>
+    private const int AudioMixVersion = 25;
 
     /// <summary>Whether a template of <paramref name="kind"/> in a file of <paramref name="formatVersion"/> carries the
     /// heart-rate look and corner: the overlay (v13), a «Боулдер» from v16 (D055 §5).</summary>
@@ -443,7 +448,8 @@ public static class ProjectSerializer
         Markers = s.Markers.Select(m => new MarkerDto { Id = m.Id, PositionTicks = m.Position.Ticks, Label = m.Label, ColorHex = m.ColorHex }).ToList(),
         PlayheadTicks = s.PlayheadPosition.Ticks,
         ZoomPixelsPerSecond = s.ZoomPixelsPerSecond,
-        SnappingEnabled = s.SnappingEnabled
+        SnappingEnabled = s.SnappingEnabled,
+        MasterVolume = s.MasterVolume.Equals(1.0) ? null : s.MasterVolume
     };
 
     private static TrackDto ToDto(Track t) => new()
@@ -454,6 +460,11 @@ public static class ProjectSerializer
         IsMuted = t.IsMuted,
         IsHidden = t.IsHidden,
         IsLocked = t.IsLocked,
+        Volume = t.Volume.Equals(1.0) ? null : t.Volume,
+        IsSolo = t.IsSolo ? true : null,
+        Ducking = t.Ducking is { } d
+            ? new DuckingDto { SpeechTrackId = d.SpeechTrackId, DepthDb = d.DepthDb, AttackMs = d.AttackMs, ReleaseMs = d.ReleaseMs, Sensitivity = d.Sensitivity }
+            : null,
         Clips = t.Clips.Select(ToDto).ToList(),
         Transitions = t.Transitions.Select(x => new TransitionDto
         {
@@ -507,6 +518,43 @@ public static class ProjectSerializer
         Easing = k.Easing == KeyframeEasing.Linear ? null : k.Easing
     }).ToList();
 
+    private static List<VolumePointDto>? ToDto(VolumeEnvelope? points) =>
+        points?.Points.Select(p => new VolumePointDto { Id = p.Id, TimeTicks = p.Time.Ticks, Gain = p.Gain }).ToList();
+
+    private static CleanupDto? ToDto(AudioCleanup? cleanup) => AudioCleanup.Normalize(cleanup) is { } c
+        ? new CleanupDto { NoiseReduction = c.NoiseReduction, VoiceEnhancement = c.VoiceEnhancement }
+        : null;
+
+    /// <summary>v25 (D064): volume points as the edits allow them (at least one, sorted, distinct, gains within the limits).</summary>
+    private static VolumeEnvelope? FromDto(List<VolumePointDto>? dto)
+    {
+        if (dto is null) return null;
+        var points = dto.Select(p => new VolumePoint(p?.Id ?? throw Damaged("empty volume point"), new MediaTime(p.TimeTicks), p.Gain)).ToImmutableArray();
+        if (!VolumeEnvelope.AreValid(points)) throw Damaged("volume points out of order or out of range");
+        return new VolumeEnvelope(points);
+    }
+
+    private static AudioCleanup? FromDto(CleanupDto? dto)
+    {
+        if (dto is null) return null;
+        var cleanup = new AudioCleanup(dto.NoiseReduction, dto.VoiceEnhancement);
+        if (!cleanup.IsValid) throw Damaged("a sound clean-up strength out of range");
+        return AudioCleanup.Normalize(cleanup);
+    }
+
+    private static DuckingSettings FromDto(DuckingDto dto)
+    {
+        var ducking = new DuckingSettings(dto.SpeechTrackId, dto.DepthDb, dto.AttackMs, dto.ReleaseMs, dto.Sensitivity);
+        if (!ducking.IsValid) throw Damaged("ducking values out of range");
+        return ducking;
+    }
+
+    private static double CheckVolume(double volume, string what) =>
+        double.IsFinite(volume) && volume >= ClipPropertyLimits.MinVolume && volume <= ClipPropertyLimits.MaxVolume ? volume : throw Damaged($"{what} out of range");
+
+    private static MediaTime SoundFade(long? ticks) => ticks is null ? MediaTime.Zero
+        : ticks.Value >= 0 ? new MediaTime(ticks.Value) : throw Damaged("a negative sound fade");
+
     /// <summary>v24 (D063): keyframes as the edits allow them — at least one, sorted, distinct times and ids, values within the
     /// limits; anything else is a damaged file (never a project that draws something else than it was saved with).</summary>
     private static TransformKeyframes FromDto(List<KeyframeDto> dto)
@@ -554,10 +602,14 @@ public static class ProjectSerializer
                 Background = v.Background == ClipBackground.Blur ? "blur" : null,
                 Follow = v.Follow is { } follow ? ToDto(follow) : null,
                 Keyframes = v.Keyframes is { } keyframes ? ToDto(keyframes) : null,
+                VolumePoints = ToDto(v.Volumes),
+                SoundFadeInTicks = v.SoundFadeIn == MediaTime.Zero ? null : v.SoundFadeIn.Ticks,
+                SoundFadeOutTicks = v.SoundFadeOut == MediaTime.Zero ? null : v.SoundFadeOut.Ticks,
+                Cleanup = ToDto(v.Cleanup),
                 HidesOutlinesBehindPeople = v.HidesOutlinesBehindPeople,
                 Routes = v.Routes.IsDefaultOrEmpty ? null : v.Routes.Select(r => (HoldMarkupDto?)ToDto(r)).ToList()
             },
-            AudioClip a => new AudioClipDto { Volume = a.Volume, IsMuted = a.IsMuted },
+            AudioClip a => new AudioClipDto { Volume = a.Volume, IsMuted = a.IsMuted, VolumePoints = ToDto(a.Volumes), Cleanup = ToDto(a.Cleanup) },
             ImageClip i => new ImageClipDto
             {
                 PositionX = i.PositionX, PositionY = i.PositionY, Scale = i.Scale, RotationDegrees = i.RotationDegrees,
@@ -947,7 +999,8 @@ public static class ProjectSerializer
             Name = dto.Name ?? string.Empty,
             PlayheadPosition = new MediaTime(dto.PlayheadTicks),
             ZoomPixelsPerSecond = dto.ZoomPixelsPerSecond,
-            SnappingEnabled = dto.SnappingEnabled
+            SnappingEnabled = dto.SnappingEnabled,
+            MasterVolume = formatVersion < AudioMixVersion || dto.MasterVolume is null ? 1.0 : CheckVolume(dto.MasterVolume.Value, "master volume")
         };
 
         var ids = new TimelineIds();
@@ -965,6 +1018,12 @@ public static class ProjectSerializer
 
         if (LinkRules.Validate(sequence) is { } invalidLink)
             throw Damaged($"a link is invalid: {invalidLink.TrimEnd('.')}");
+
+        // D064 §1: a ducking listens to another track of the timeline.
+        var trackIds = sequence.VideoTracks.Concat(sequence.AudioTracks).Select(t => t.Id).ToHashSet();
+        foreach (var track in sequence.VideoTracks.Concat(sequence.AudioTracks))
+            if (track.Ducking is { } ducking && (ducking.SpeechTrackId == track.Id || !trackIds.Contains(ducking.SpeechTrackId)))
+                throw Damaged($"the ducking of track {track.Name} listens to a missing track or to itself");
 
         // D048 §3.5: an anchor to a missing or non-video clip is cleared (the template stays free), not a damaged file.
         var videos = sequence.VideoTracks.SelectMany(t => t.Clips).OfType<VideoClip>().ToDictionary(c => c.Id);
@@ -1017,7 +1076,11 @@ public static class ProjectSerializer
             Order = dto.Order,
             IsMuted = dto.IsMuted,
             IsHidden = dto.IsHidden,
-            IsLocked = dto.IsLocked
+            IsLocked = dto.IsLocked,
+            // v1–v24: no mix (D064).
+            Volume = formatVersion < AudioMixVersion || dto.Volume is null ? 1.0 : CheckVolume(dto.Volume.Value, "track volume"),
+            IsSolo = formatVersion >= AudioMixVersion && dto.IsSolo == true,
+            Ducking = formatVersion < AudioMixVersion || dto.Ducking is null ? null : FromDto(dto.Ducking)
         };
 
         var clips = new List<Clip>();
@@ -1100,9 +1163,19 @@ public static class ProjectSerializer
                 Follow = formatVersion < PeopleVersion || v.Follow is null ? null : FromDto(v.Follow, formatVersion),
                 // v1–v23: none (D063).
                 Keyframes = formatVersion < KeyframesVersion || v.Keyframes is null ? null : FromDto(v.Keyframes),
-                HidesOutlinesBehindPeople = formatVersion >= PeopleVersion && v.HidesOutlinesBehindPeople
+                HidesOutlinesBehindPeople = formatVersion >= PeopleVersion && v.HidesOutlinesBehindPeople,
+                // v1–v24: none (D064).
+                Volumes = formatVersion < AudioMixVersion ? null : FromDto(v.VolumePoints),
+                SoundFadeIn = formatVersion < AudioMixVersion ? MediaTime.Zero : SoundFade(v.SoundFadeInTicks),
+                SoundFadeOut = formatVersion < AudioMixVersion ? MediaTime.Zero : SoundFade(v.SoundFadeOutTicks),
+                Cleanup = formatVersion < AudioMixVersion ? null : FromDto(v.Cleanup)
             },
-            AudioClipDto a => new AudioClip { Id = a.Id, MediaAssetId = a.MediaAssetId, Volume = a.Volume, IsMuted = a.IsMuted },
+            AudioClipDto a => new AudioClip
+            {
+                Id = a.Id, MediaAssetId = a.MediaAssetId, Volume = a.Volume, IsMuted = a.IsMuted,
+                Volumes = formatVersion < AudioMixVersion ? null : FromDto(a.VolumePoints),
+                Cleanup = formatVersion < AudioMixVersion ? null : FromDto(a.Cleanup)
+            },
             ImageClipDto i => new ImageClip
             {
                 Id = i.Id, MediaAssetId = i.MediaAssetId, PositionX = i.PositionX, PositionY = i.PositionY, Scale = i.Scale,

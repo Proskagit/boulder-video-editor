@@ -1,3 +1,4 @@
+using AiVideoEditor.Core.Audio;
 using System.Diagnostics;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
@@ -248,10 +249,10 @@ public sealed class ExportAudioContractTests
     // --- clipping ----------------------------------------------------------------------------------------------
 
     [Fact]
-    public async Task The_sum_is_clamped_to_plus_and_minus_one_after_mixing()
+    public async Task The_sum_passes_the_soft_clip_after_mixing()
     {
         Ok(_f.Service.AddClip(Music(2, "a.wav", constant: 0.8f).Id));
-        Add(Music(2, "b.wav", constant: 0.8f), AudioTrack(), 0);                         // 1.6 → 1
+        Add(Music(2, "b.wav", constant: 0.8f), AudioTrack(), 0);                         // 1.6 → the soft clip, below 1 (D064 §3)
         Add(Music(1, "c.wav", constant: -0.7f), AudioTrack(), 45);                       // from 1.5 s: 1.6 − 0.7 = 0.9 (not clamped first)
         var negative = AudioTrack();
         var d = (AudioClip)Add(Music(1, "d.wav", constant: -0.9f), negative, 0);
@@ -260,21 +261,23 @@ public sealed class ExportAudioContractTests
         var samples = await AssertMatchesPreview(Snapshot());
 
         Assert.Equal(-0.2f, samples[2 * 1_000], 5);
-        Assert.Equal(1f, samples[2 * 60_000]);                                           // 1.25 s, after d: 1.6 → 1
-        Assert.Equal(0.9f, samples[2 * AudioTiming.CeilingSample(F(47))], 5);             // a, b and c: 0.9
+        Assert.Equal(SoftClip.Apply(1.6f), samples[2 * 60_000]);                         // 1.25 s, after d: 1.6 → the soft clip
+        Assert.InRange(samples[2 * 60_000], 0.99f, 1f);
+        Assert.Equal(SoftClip.Apply(0.9f), samples[2 * AudioTiming.CeilingSample(F(47))], 5); // a, b and c: 0.9 (not clipped first)
         Assert.Equal(-0.7f, samples[2 * 110_000], 5);                                     // 2.29 s: only c
         Assert.All(samples, s => Assert.InRange(s, -1f, 1f));
     }
 
     [Fact]
-    public async Task Only_negative_sources_clip_at_minus_one()
+    public async Task Only_negative_sources_are_soft_clipped_below_minus_one()
     {
         Ok(_f.Service.AddClip(Music(1, "a.wav", constant: -0.6f).Id));
         Add(Music(1, "b.wav", constant: -0.6f), AudioTrack(), 0);
 
         var samples = await AssertMatchesPreview(Snapshot());
 
-        Assert.Equal(-1f, samples[2 * 24_000]);
+        Assert.Equal(SoftClip.Apply(-1.2f), samples[2 * 24_000]);
+        Assert.InRange(samples[2 * 24_000], -1f, -0.95f);
     }
 
     // --- silence ----------------------------------------------------------------------------------------------------

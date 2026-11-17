@@ -303,7 +303,62 @@ public sealed class SetTrackOrderCommand(IReadOnlyList<TrackOrderChange> changes
 }
 
 /// <summary>One of a track's state flags (D030 §4).</summary>
-public enum TrackStateFlag { Muted, Hidden, Locked }
+public enum TrackStateFlag { Muted, Hidden, Locked, Solo }
+
+/// <summary>D064 §1: a track's mix — its volume and its ducking.</summary>
+public readonly record struct TrackMix(double Volume, Core.Audio.DuckingSettings? Ducking)
+{
+    public static TrackMix Of(Track track) => new(track.Volume, track.Ducking);
+
+    public void ApplyTo(Track track) => (track.Volume, track.Ducking) = (Volume, Ducking);
+}
+
+/// <summary>D064 §1: sets a track's volume and ducking; consecutive volume changes of the same track (a slider's drag, the
+/// same <paramref name="gesture"/>) merge into one step.</summary>
+public sealed class SetTrackMixCommand(Track track, TrackMix before, TrackMix after, object? gesture = null) : IMergeableCommand
+{
+    public Track Track { get; } = track;
+    public TrackMix Before { get; } = before;
+    public TrackMix After { get; } = after;
+    public object? Gesture { get; } = gesture;
+
+    public string Description => Before.Ducking != After.Ducking ? "Change Ducking" : "Change Track Volume";
+
+    public void Execute() => After.ApplyTo(Track);
+    public void Undo() => Before.ApplyTo(Track);
+
+    public bool TryMerge(IUndoableCommand next, out IUndoableCommand? merged)
+    {
+        merged = null;
+        if (next is not SetTrackMixCommand n || n.Track != Track || n.Before != After || Gesture is null || !ReferenceEquals(n.Gesture, Gesture))
+            return false;
+        if (n.After != Before) merged = new SetTrackMixCommand(Track, Before, n.After, Gesture);
+        return true;
+    }
+}
+
+/// <summary>D064 §1: sets the project's master volume; the changes of one gesture (a slider's drag) merge.</summary>
+public sealed class SetMasterVolumeCommand(Sequence sequence, double before, double after, object? gesture = null) : IMergeableCommand
+{
+    public Sequence Sequence { get; } = sequence;
+    public double Before { get; } = before;
+    public double After { get; } = after;
+    public object? Gesture { get; } = gesture;
+
+    public string Description => "Change Master Volume";
+
+    public void Execute() => Sequence.MasterVolume = After;
+    public void Undo() => Sequence.MasterVolume = Before;
+
+    public bool TryMerge(IUndoableCommand next, out IUndoableCommand? merged)
+    {
+        merged = null;
+        if (next is not SetMasterVolumeCommand n || n.Sequence != Sequence || !n.Before.Equals(After) || Gesture is null || !ReferenceEquals(n.Gesture, Gesture))
+            return false;
+        if (!n.After.Equals(Before)) merged = new SetMasterVolumeCommand(Sequence, Before, n.After, Gesture);
+        return true;
+    }
+}
 
 /// <summary>Sets one state flag of a track (D030 §4) — <see cref="Track.IsMuted"/>, <see cref="Track.IsHidden"/> or
 /// <see cref="Track.IsLocked"/>; Undo writes the value it found back. Nothing else changes.</summary>
@@ -330,6 +385,8 @@ public sealed class SetTrackStateCommand : IUndoableCommand
         (TrackStateFlag.Hidden, true) => "Hide Track",
         (TrackStateFlag.Hidden, false) => "Show Track",
         (TrackStateFlag.Locked, true) => "Lock Track",
+        (TrackStateFlag.Solo, true) => "Solo Track",
+        (TrackStateFlag.Solo, false) => "Unsolo Track",
         _ => "Unlock Track"
     };
 
@@ -342,6 +399,7 @@ public sealed class SetTrackStateCommand : IUndoableCommand
         TrackStateFlag.Muted => track.IsMuted,
         TrackStateFlag.Hidden => track.IsHidden,
         TrackStateFlag.Locked => track.IsLocked,
+        TrackStateFlag.Solo => track.IsSolo,
         _ => throw new ArgumentOutOfRangeException(nameof(flag), flag, null)
     };
 
@@ -352,6 +410,7 @@ public sealed class SetTrackStateCommand : IUndoableCommand
             case TrackStateFlag.Muted: track.IsMuted = value; break;
             case TrackStateFlag.Hidden: track.IsHidden = value; break;
             case TrackStateFlag.Locked: track.IsLocked = value; break;
+            case TrackStateFlag.Solo: track.IsSolo = value; break;
             default: throw new ArgumentOutOfRangeException(nameof(flag), flag, null);
         }
     }
@@ -404,6 +463,9 @@ public sealed class SetClipPropertiesCommand(Clip clip, ClipPropertyValues befor
         _ when (fields & ~ClipPropertyFields.Crop) == 0 => "Change Crop",
         ClipPropertyFields.Volume => "Change Volume",
         ClipPropertyFields.Mute => "Mute Clip",
+        ClipPropertyFields.VolumePoints or ClipPropertyFields.VolumePointValues => "Change Volume Points",
+        ClipPropertyFields.SoundFadeIn or ClipPropertyFields.SoundFadeOut => "Change Sound Fade",
+        ClipPropertyFields.Cleanup => "Change Sound Clean-up",
         ClipPropertyFields.Text => "Edit Text",
         ClipPropertyFields.FontFamily => "Change Font",
         ClipPropertyFields.FontSize => "Change Font Size",

@@ -273,6 +273,26 @@ public interface ITimelineEditService
     /// when an edit is planned — Undo / Redo of earlier steps are not blocked by it.</summary>
     TimelineEditResult SetTrackLocked(Guid trackId, bool locked);
 
+    /// <summary>D064 §1: solo — while any track is solo only the solo tracks sound (the Preview and the export). Monitoring
+    /// state: one Undo step, allowed on a locked track.</summary>
+    TimelineEditResult SetTrackSolo(Guid trackId, bool solo);
+
+    /// <summary>D064 §1: a track's volume (linear 0–2). The changes of one <paramref name="gesture"/> (a slider's drag) merge
+    /// into one Undo step. Allowed on a locked track (monitoring, like mute).</summary>
+    TimelineEditResult SetTrackVolume(Guid trackId, double volume, object? gesture = null);
+
+    /// <summary>D064 §4: a track's ducking (null: off). Refused for a speech track that is the track itself or is missing,
+    /// or values out of range. One Undo step.</summary>
+    TimelineEditResult SetTrackDucking(Guid trackId, Audio.DuckingSettings? ducking);
+
+    /// <summary>D064 §1: the master volume (linear 0–2); a gesture's changes merge.</summary>
+    TimelineEditResult SetMasterVolume(double volume, object? gesture = null);
+
+    /// <summary>D064 §4 «Закрепить в точки»: the ducking <paramref name="curve"/> (timeline samples) written into the volume
+    /// points of the track's clips — multiplied with their own — and the track's ducking turned off; one Undo step. Refused on a
+    /// locked track.</summary>
+    TimelineEditResult BakeDucking(Guid trackId, Audio.DuckingCurve curve);
+
     /// <summary>How many clips of the timeline use the media asset (any track, also hidden, muted or locked).</summary>
     int CountClipsUsing(Guid mediaAssetId);
 

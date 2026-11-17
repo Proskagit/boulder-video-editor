@@ -298,6 +298,11 @@ public partial class MainWindow : Window
         public TimelineEditResult SetTrackMuted(Guid trackId, bool muted) => Nothing;
         public TimelineEditResult SetTrackHidden(Guid trackId, bool hidden) => Nothing;
         public TimelineEditResult SetTrackLocked(Guid trackId, bool locked) => Nothing;
+        public TimelineEditResult SetTrackSolo(Guid trackId, bool solo) => Nothing;
+        public TimelineEditResult SetTrackVolume(Guid trackId, double volume, object? gesture = null) => Nothing;
+        public TimelineEditResult SetTrackDucking(Guid trackId, Core.Audio.DuckingSettings? ducking) => Nothing;
+        public TimelineEditResult SetMasterVolume(double volume, object? gesture = null) => Nothing;
+        public TimelineEditResult BakeDucking(Guid trackId, Core.Audio.DuckingCurve curve) => Nothing;
         public int CountClipsUsing(Guid mediaAssetId) => 0;
         public string? GetRemoveMediaBlockReason(Guid mediaAssetId) => "Design time.";
         public TimelineEditResult RemoveMedia(Guid mediaAssetId) => Nothing;

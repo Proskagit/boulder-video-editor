@@ -78,19 +78,30 @@ public readonly record struct AudioFadeEnvelope(long FirstSample, long FadeInEnd
     public static AudioFadeEnvelope Of(AudioSpan span, FrameRate rate)
     {
         if (span.FadeInFrames == 0 && span.FadeOutFrames == 0 && span.CrossfadeIn is null && span.CrossfadeOut is null) return None;
+        return Build(span, rate, span.FadeInFrames, span.FadeOutFrames, crossfades: true);
+    }
+
+    /// <summary>D064 §1: the envelope of a video clip's sound-only fades (<see cref="AudioSpan.SoundFadeInFrames"/> /
+    /// <see cref="AudioSpan.SoundFadeOutFrames"/>), the same ramps as its D025 fade; no crossfade.</summary>
+    public static AudioFadeEnvelope SoundOf(AudioSpan span, FrameRate rate) =>
+        span.SoundFadeInFrames == 0 && span.SoundFadeOutFrames == 0 ? None
+            : Build(span, rate, span.SoundFadeInFrames, span.SoundFadeOutFrames, crossfades: false);
+
+    private static AudioFadeEnvelope Build(AudioSpan span, FrameRate rate, long fadeInFrames, long fadeOutFrames, bool crossfades)
+    {
         var startFrame = span.TimelineStart.ToFrameFloor(rate);
         var endFrame = span.TimelineEnd.ToFrameFloor(rate);
         var first = AudioTiming.CeilingSample(span.TimelineStart);
         var end = AudioTiming.CeilingSample(span.TimelineEnd);
         return new AudioFadeEnvelope(first,
-            AudioTiming.CeilingSample(MediaTime.FromFrame(startFrame + span.FadeInFrames, rate)),
-            AudioTiming.CeilingSample(MediaTime.FromFrame(endFrame - span.FadeOutFrames, rate)),
+            AudioTiming.CeilingSample(MediaTime.FromFrame(startFrame + fadeInFrames, rate)),
+            AudioTiming.CeilingSample(MediaTime.FromFrame(endFrame - fadeOutFrames, rate)),
             end)
         {
-            CrossfadeInStart = span.CrossfadeIn is { } zoneIn ? AudioTiming.CeilingSample(zoneIn.Start) : 0,
-            CrossfadeInEnd = span.CrossfadeIn is { } zoneInEnd ? AudioTiming.CeilingSample(zoneInEnd.End) : 0,
-            CrossfadeOutStart = span.CrossfadeOut is { } zoneOut ? AudioTiming.CeilingSample(zoneOut.Start) : 0,
-            CrossfadeOutEnd = span.CrossfadeOut is { } zoneOutEnd ? AudioTiming.CeilingSample(zoneOutEnd.End) : 0
+            CrossfadeInStart = crossfades && span.CrossfadeIn is { } zoneIn ? AudioTiming.CeilingSample(zoneIn.Start) : 0,
+            CrossfadeInEnd = crossfades && span.CrossfadeIn is { } zoneInEnd ? AudioTiming.CeilingSample(zoneInEnd.End) : 0,
+            CrossfadeOutStart = crossfades && span.CrossfadeOut is { } zoneOut ? AudioTiming.CeilingSample(zoneOut.Start) : 0,
+            CrossfadeOutEnd = crossfades && span.CrossfadeOut is { } zoneOutEnd ? AudioTiming.CeilingSample(zoneOutEnd.End) : 0
         };
     }
 

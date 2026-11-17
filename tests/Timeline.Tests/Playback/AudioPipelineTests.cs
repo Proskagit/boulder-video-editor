@@ -116,12 +116,12 @@ public sealed class AudioPipelineTests
         var a2 = AddTrack(TrackType.Audio);
         AddAudio(Music("loud.wav", 2, constant: 0.7f), a2);  // 0.25 + 0.7 = 0.95
         await using (var pipeline = Pipeline(1_000))
-            Assert.All(await Pull(pipeline, _mixer, 1_000, 500), v => Assert.Equal(0.95f, v, 5));
+            Assert.All(await Pull(pipeline, _mixer, 1_000, 500), v => Assert.Equal(Core.Audio.SoftClip.Apply(0.95f), v, 5));   // D064 §3: above −1 dBFS the soft clip
 
         var a3 = AddTrack(TrackType.Audio);
-        AddAudio(Music("louder.wav", 2, constant: 0.5f), a3); // 1.45 → clamped to 1
+        AddAudio(Music("louder.wav", 2, constant: 0.5f), a3); // 1.45 → the soft clip, below 1 (D064 §3)
         await using (var pipeline = Pipeline(2_000))
-            Assert.All(await Pull(pipeline, _mixer, 2_000, 500), v => Assert.Equal(1f, v));
+            Assert.All(await Pull(pipeline, _mixer, 2_000, 500), v => Assert.Equal(Core.Audio.SoftClip.Apply(1.45f), v));
     }
 
     [Fact]

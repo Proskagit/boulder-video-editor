@@ -21,7 +21,7 @@ public sealed class ExportAudioSource : IAsyncDisposable
 {
     private readonly PlaybackSnapshot _snapshot;
     private readonly IAudioDecoder _decoder;
-    private readonly List<(AudioSpan Span, AudioPlacement Placement, float Gain, AudioFadeEnvelope Fade)> _audible;
+    private readonly List<(AudioSpan Span, AudioPlacement Placement, AudioGainCurve Curve)> _audible;
     private readonly Dictionary<Guid, ExportAudioReader> _readers = new();
     private readonly long _endSample;
     private bool _disposed;
@@ -38,8 +38,8 @@ public sealed class ExportAudioSource : IAsyncDisposable
         Position = output.FirstSample;
         _endSample = output.FirstSample + output.AudioSampleCount;
         _audible = snapshot.AudioSpans
-            .Select(span => (span, AudioPlacement.Of(span), AudioMix.Gain(span), AudioFadeEnvelope.Of(span, snapshot.FrameRate)))
-            .Where(a => a.Item3 != 0 && a.Item2.EndSample > a.Item2.FirstSample)
+            .Select(span => (span, AudioPlacement.Of(span), AudioGainCurve.Of(span, snapshot.FrameRate)))
+            .Where(a => !a.Item3.IsSilent && a.Item2.EndSample > a.Item2.FirstSample)
             .ToList();
     }
 
@@ -67,16 +67,16 @@ public sealed class ExportAudioSource : IAsyncDisposable
         var mix = interleaved[..(frames * AudioFormat.Channels)];
         mix.Span.Clear();
 
-        foreach (var (span, placement, gain, fade) in _audible) // snapshot order, like the Preview's mixer entries
+        foreach (var (span, placement, curve) in _audible) // snapshot order, like the Preview's mixer entries
         {
             if (placement.EndSample <= from || placement.FirstSample >= until) continue;
             ct.ThrowIfCancellationRequested();
-            await Reader(span).MixIntoAsync(from, mix, gain, fade, ct);
+            await Reader(span).MixIntoAsync(from, mix, curve, ct);
         }
-        AudioMix.Clamp(mix.Span);
+        AudioMix.Finish(mix.Span);
 
         // Clips that end within this window are finished.
-        foreach (var (span, placement, _, _) in _audible)
+        foreach (var (span, placement, _) in _audible)
         {
             if (placement.EndSample > until || !_readers.Remove(span.ClipId, out var done)) continue;
             await done.DisposeAsync();
@@ -92,7 +92,7 @@ public sealed class ExportAudioSource : IAsyncDisposable
         if (span.Status != SpanStatus.Audio || !_snapshot.Assets.TryGetValue(span.AssetId, out var asset))
             throw new ExportException(ExportFailure.DecodeFailed,
                 $"The audio of a clip at {span.TimelineStart} can't be exported ({span.Status}{(span.Reason is null ? "" : ": " + span.Reason)}).");
-        reader = new ExportAudioReader(span, asset, _decoder);
+        reader = new ExportAudioReader(span, span.CleanedSource ?? asset, _decoder);   // D064 §5: the cleaned sound when ready
         _readers[span.ClipId] = reader;
         return reader;
     }

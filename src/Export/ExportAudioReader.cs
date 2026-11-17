@@ -48,7 +48,11 @@ internal sealed class ExportAudioReader : IAsyncDisposable
     /// <summary>Adds this clip's samples for timeline samples [<paramref name="from"/>, from + frames) of
     /// <paramref name="mix"/> (interleaved stereo) × <paramref name="gain"/> × the clip's <paramref name="fade"/> (<see cref="AudioMix.Add(ReadOnlySpan{float}, Span{float}, float, in AudioFadeEnvelope, long)"/>,
     /// the Preview's mix).</summary>
-    public async ValueTask MixIntoAsync(long from, Memory<float> mix, float gain, AudioFadeEnvelope fade, CancellationToken ct)
+    public ValueTask MixIntoAsync(long from, Memory<float> mix, float gain, AudioFadeEnvelope fade, CancellationToken ct) =>
+        MixIntoAsync(from, mix, AudioGainCurve.Constant(gain, fade), ct);
+
+    /// <summary>As above with the span's whole gain curve (D064 §3, the Preview's mix).</summary>
+    public async ValueTask MixIntoAsync(long from, Memory<float> mix, AudioGainCurve curve, CancellationToken ct)
     {
         var frames = mix.Length / AudioFormat.Channels;
         if (from < _windowEnd)
@@ -92,7 +96,7 @@ internal sealed class ExportAudioReader : IAsyncDisposable
                 _consumed += (int)(at - available);
                 var count = (int)(Math.Min(end, chunkEnd) - at);
                 AudioMix.Add(_chunk.AsSpan(_consumed * AudioFormat.Channels, count * AudioFormat.Channels),
-                    mix.Span.Slice((int)(at - from) * AudioFormat.Channels), gain, fade, at);
+                    mix.Span.Slice((int)(at - from) * AudioFormat.Channels), curve, at);
                 _consumed += count;
                 at += count;
             }

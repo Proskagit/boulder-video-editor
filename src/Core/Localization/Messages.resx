@@ -1393,4 +1393,19 @@
   <data name="Keyframe_NoClip" xml:space="preserve">
     <value>Select a video clip to add a keyframe.</value>
   </data>
+  <data name="Prop_VolumePointsInvalid" xml:space="preserve">
+    <value>The volume points are not valid: two at one moment, or a volume out of range.</value>
+  </data>
+  <data name="Prop_SoundFadeOnlyVideo" xml:space="preserve">
+    <value>Only a video clip has fades of its sound alone; an audio clip&apos;s fades are its sound&apos;s.</value>
+  </data>
+  <data name="Prop_CleanupInvalid" xml:space="preserve">
+    <value>The strength of the sound clean-up must be from 0 to 100.</value>
+  </data>
+  <data name="Ducking_Invalid" xml:space="preserve">
+    <value>The ducking&apos;s values are out of range (depth −40…−3 dB, attack 0–2000 ms, release 50–3000 ms, sensitivity 0–100).</value>
+  </data>
+  <data name="Ducking_SpeechTrack" xml:space="preserve">
+    <value>Choose another track with the speech: a track can&apos;t duck under itself.</value>
+  </data>
 </root>
