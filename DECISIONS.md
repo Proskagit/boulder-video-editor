@@ -10599,7 +10599,10 @@ D023). The timeline's tracks are 44 px high, the clips 36 px.
 
 - `Track.Volume` (linear, 0–2, default 1) and `Track.IsSolo` on **every** track — a video track's are those of its clips' own
   sound. `Sequence.MasterVolume` (0–2, default 1): the project's master.
-- **Solo** is monitoring state like mute (a locked track takes it, D030 Q13). While any track is solo, only the solo tracks
+- **Solo**, a track's **volume** and its **ducking** are monitoring / mix state like mute (a locked track takes them, D030 Q13;
+  the lock protects the clips). Deleting a track turns off the ducking of every track listening to it in the same step, a locked
+  one included (a dangling reference would make the file damaged; Undo brings it back). «Закрепить в точки» writes clips, so it is
+  refused on a locked track; it keeps a clip's points outside its used range as they are. While any track is solo, only the solo tracks
   sound — in the Preview **and in the export** (the same snapshot; the preflight warns «включено Solo»). A muted track stays
   silent even when solo.
 - `VolumeEnvelope` — the clip's **volume points** `VolumePoint(Id, Time, Gain)`: immutable, sorted, distinct times and ids,
@@ -10624,9 +10627,10 @@ D023). The timeline's tracks are 44 px high, the clips 36 px.
 
 ### 2. Editing on the timeline (part 5)
 
-- **The volume line** inside an audio clip and a video clip with sound: its height is the clip's gain (0 at the clip's bottom,
-  100 % at the middle line of a 36 px clip — 200 % at the top) × the points' curve. Drawn when the clip is selected or hovered,
-  never on a clip without sound; on a low clip the line is thin and the points 6 px.
+- **The volume line** inside an audio clip and a video clip with sound: its height is the clip's gain × the points' curve in
+  the clip's sound area — all of an audio clip, the lower (waveform) half of a video clip: 0 at its bottom, 100 % at its middle,
+  200 % at its top. Every clip with sound shows it as a thin line (the volume at a glance); the selected clip brighter, with its
+  points and the fade handles, which only it takes (hover: the cursor and a hint); never on a clip without sound.
 - **Drag the line** (no point under the pointer): the clip's `Volume` changes (with points: the whole curve moves with it — the
   points are relative to the clip's volume); the gain in dB is shown while dragging. One undo step per drag.
 - **Double click on the line** adds a point there (the line's value at that time, so nothing changes until it is dragged);
@@ -10687,7 +10691,7 @@ the same output wherever playback starts (no limiter state: the task's «лим�
   the key: the file's content fingerprint, the settings, the algorithm version; least recently used removed above 4 GB). Every
   clip of the file with the same setting (both parts of a split) shares it. The source file is never changed.
 - The snapshot plays a cleaned clip from that file (the same placement, D013 / D022); until it is ready — the original, with
-  «обработка N %» on the clip and in the Inspector; a failure (no model, decode error) — the original with the message. The
+  «Обработка N %» in the Inspector (not on the timeline clip — the clip stays uncluttered); a failure (no model, decode error) — the original with the message. The
   export **blocks while a cleanup it needs is still running** and warns for a failed one (the Preview's sound either way).
   Progress, cancel and retry as D061 §5 (`AudioProcessingCoordinator`).
 - **Compare** («Исходный звук», the Inspector): while held on, the Preview plays every clip's original sound — never saved,

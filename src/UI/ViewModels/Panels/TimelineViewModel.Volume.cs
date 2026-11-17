@@ -88,6 +88,7 @@ public sealed partial class TimelineViewModel
     public void UpdateVolumeDrag(double x, double y, double height)
     {
         if (_volumeDrag is not { } drag || vmShape(drag) is not { } shape) return;
+        if (!CanEdit()) { CancelVolumeDrag(); return; }
         if (!drag.Moved && Math.Abs(x - drag.PressX) < 2 && Math.Abs(y - drag.PressY) < 2) return;
         drag.Moved = true;
         var clip = drag.Clip.Clip;

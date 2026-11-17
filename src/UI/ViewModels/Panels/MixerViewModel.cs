@@ -242,7 +242,7 @@ public sealed partial class MixerViewModel : ViewModelBase
 
     partial void OnMasterPercentChanged(double value)
     {
-        if (_syncing) return;
+        if (_syncing || Locked()) return;
         Report(_edit.SetMasterVolume(Math.Clamp(value / 100, 0, 2), Gesture()));
     }
 
@@ -266,18 +266,40 @@ public sealed partial class MixerViewModel : ViewModelBase
         return _gesture;
     }
 
-    internal void SetMuted(TrackMixViewModel mix, bool muted) =>
+    /// <summary>The export's editing lock: every mixer control is inert (the control shows the model again).</summary>
+    private bool Locked(TrackMixViewModel? mix = null)
+    {
+        if (_canEdit()) return false;
+        _status.Report(Strings.Mixer_Locked);
+        mix?.Sync();
+        if (mix is null) { _syncing = true; try { MasterPercent = Math.Round(_projects.Current.Timeline.MasterVolume * 100, 1); } finally { _syncing = false; } }
+        return true;
+    }
+
+    internal void SetMuted(TrackMixViewModel mix, bool muted)
+    {
+        if (Locked(mix)) return;
         Report(_edit.SetTrackMuted(mix.Track.Id, muted), string.Format(muted ? Strings.Track_Muted : Strings.Track_Unmuted, mix.Track.Name), mix);
+    }
 
-    internal void SetSolo(TrackMixViewModel mix, bool solo) =>
+    internal void SetSolo(TrackMixViewModel mix, bool solo)
+    {
+        if (Locked(mix)) return;
         Report(_edit.SetTrackSolo(mix.Track.Id, solo), string.Format(solo ? Strings.Track_Soloed : Strings.Track_Unsoloed, mix.Track.Name), mix);
+    }
 
-    internal void SetVolume(TrackMixViewModel mix, double volume) =>
+    internal void SetVolume(TrackMixViewModel mix, double volume)
+    {
+        if (Locked(mix)) return;
         Report(_edit.SetTrackVolume(mix.Track.Id, Math.Clamp(volume, 0, 2), Gesture()), null, mix);
+    }
 
-    internal void SetDucking(TrackMixViewModel mix, DuckingSettings? ducking, bool slider = false) =>
+    internal void SetDucking(TrackMixViewModel mix, DuckingSettings? ducking, bool slider = false)
+    {
+        if (Locked(mix)) return;
         Report(_edit.SetTrackDucking(mix.Track.Id, ducking, slider ? Gesture() : null),
             slider ? null : string.Format(ducking is null ? Strings.Mixer_DuckingOff : Strings.Mixer_DuckingOn, mix.Track.Name), mix);
+    }
 
     internal void RetryAnalyses() => _audio?.Retry();
 
@@ -286,7 +308,7 @@ public sealed partial class MixerViewModel : ViewModelBase
     /// <summary>«Закрепить в точки»: the ducking as it sounds now written into the track's clips' points; the ducking off.</summary>
     internal void BakeDucking(TrackMixViewModel mix)
     {
-        if (mix.Track.Ducking is not { } ducking || _audio is null) return;
+        if (mix.Track.Ducking is not { } ducking || _audio is null || Locked(mix)) return;
         var speech = _projects.Current.Timeline.VideoTracks.Concat(_projects.Current.Timeline.AudioTracks).FirstOrDefault(t => t.Id == ducking.SpeechTrackId);
         if (speech is null) return;
         var curve = PlaybackSnapshotBuilder.DuckingCurveOf(speech, ducking, _audio.Analyses.Speech);

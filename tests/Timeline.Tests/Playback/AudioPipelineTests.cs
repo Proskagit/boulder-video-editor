@@ -224,4 +224,31 @@ public sealed class AudioPipelineTests
         Assert.True(_f.Service.AddTrack(type).Success);
         return (type == TrackType.Audio ? _f.Project.Timeline.AudioTracks : _f.Project.Timeline.VideoTracks)[^1];
     }
+
+    [Fact]
+    public async Task A_cleaned_sound_that_becomes_ready_is_decoded_by_a_new_reader_and_the_comparison_by_the_original_again()
+    {
+        var music = Music("music.wav", 2, constant: 0.25f);
+        var clip = AddAudio(music, _f.A1);
+        clip.Cleanup = new Core.Audio.AudioCleanup(40, 0);
+        const string cleaned = @"C:\cache\music-cleaned.wav";
+        _decoder.Add(cleaned, new FakeAudioSource(2 * 48_000, Constant: 0.125f));
+        Core.Audio.AudioAnalyses Ready(bool original) => new(new Core.Audio.CleanedAudio(
+                System.Collections.Immutable.ImmutableDictionary<(Guid, Core.Audio.AudioCleanup), string>.Empty.Add((music.Id, clip.Cleanup!.Value), cleaned)),
+            Core.Audio.SpeechAnalyses.None) { OriginalSound = original };
+        AudioPipeline With(Core.Audio.AudioAnalyses? analyses, AudioPipeline? previous) =>
+            new(PlaybackSnapshotBuilder.Build(_f.Project, ++_version, audioAnalyses: analyses), 1, 0, _mixer, _decoder, _settings, NullLogger.Instance, previous);
+
+        await using var original = With(null, null);
+        _mixer.Reset(0);
+        Assert.All(await Pull(original, _mixer, 0, 480), v => Assert.Equal(0.25f, v));
+
+        await using var processed = With(Ready(original: false), original);
+        _mixer.Reset(0);
+        Assert.All(await Pull(processed, _mixer, 0, 480), v => Assert.Equal(0.125f, v));     // not the original's reader taken over
+
+        await using var compare = With(Ready(original: true), processed);
+        _mixer.Reset(0);
+        Assert.All(await Pull(compare, _mixer, 0, 480), v => Assert.Equal(0.25f, v));
+    }
 }

@@ -300,4 +300,3 @@ public sealed class AudioCleanupProcessor : IAudioCleanupService
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { _logger.LogWarning(ex, "Audio clean-up: cannot delete {File}.", path); }
     }
 }
-

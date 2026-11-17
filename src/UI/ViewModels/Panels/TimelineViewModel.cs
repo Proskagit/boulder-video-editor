@@ -724,6 +724,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
             CancelGesture();
             CancelFollowDrag();
             CancelKeyframeDrag();
+            CancelVolumeDrag();   // D064 §2: the values before the drag come back
         }
         OnPropertyChanged(nameof(IsEditingAllowed));
         NotifyKeyframeCommands();

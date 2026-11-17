@@ -61,10 +61,9 @@ public sealed class AudioCleanupIntegrationTests : IDisposable
         return best;
     }
 
-    [Fact]
+    [FfmpegFact]
     public async Task The_noise_reduction_keeps_every_sample_in_its_place_and_the_length()
     {
-        if (FfmpegTools.Ffmpeg is null) return;
         var source = Clicks("clicks.wav", 3, 24_000, 100_000, 140_000);
         var output = Path.Combine(_dir, "nr.wav");
         var processor = new AudioCleanupProcessor(Decoder());
@@ -78,10 +77,9 @@ public sealed class AudioCleanupIntegrationTests : IDisposable
             Assert.InRange(Peak(cleaned, click - 3_000, click + 3_000), click - 1, click + 1);
     }
 
-    [Fact]
+    [FfmpegFact]
     public async Task The_voice_chunks_join_without_a_seam_and_keep_the_alignment()
     {
-        if (FfmpegTools.Ffmpeg is null) return;
         // 65 s: two chunk boundaries (30 s, 60 s); clicks across them.
         var source = Clicks("long.wav", 65, 1_000, 1_440_000 - 3, 1_440_000, 2_880_001, 3_100_000);
         var output = Path.Combine(_dir, "ve.wav");
@@ -98,10 +96,9 @@ public sealed class AudioCleanupIntegrationTests : IDisposable
             if (Math.Abs(original[i] - cleaned[i]) > 1e-6f) Assert.Fail($"sample {i / 2} differs: {original[i]} vs {cleaned[i]}");
     }
 
-    [Fact]
+    [FfmpegFact]
     public async Task A_half_strength_blends_the_voice_and_the_dry_sound()
     {
-        if (FfmpegTools.Ffmpeg is null) return;
         var source = Clicks("blend.wav", 2, 50_000);
         var output = Path.Combine(_dir, "half.wav");
         var processor = new AudioCleanupProcessor(Decoder(), new DelayOnly(gain: 0), parallelism: 1);   // the "voice" is silence
@@ -113,10 +110,9 @@ public sealed class AudioCleanupIntegrationTests : IDisposable
         Assert.Equal(original[2 * 50_000] * 0.5f, cleaned[2 * 50_000], 6);
     }
 
-    [Fact]
+    [FfmpegFact]
     public async Task The_speech_analysis_gives_one_value_per_window_from_the_start()
     {
-        if (FfmpegTools.Ffmpeg is null) return;
         var source = Clicks("speech.wav", 2, 48_000);
         var processor = new AudioCleanupProcessor(Decoder(), speech: new LoudnessSpeech());
 
@@ -127,10 +123,9 @@ public sealed class AudioCleanupIntegrationTests : IDisposable
         Assert.Equal(48_000 / SpeechActivity.WindowSamples, loudest);
     }
 
-    [Fact]
+    [FfmpegFact]
     public async Task Without_the_voice_model_the_clean_up_fails_with_the_reason()
     {
-        if (FfmpegTools.Ffmpeg is null) return;
         var source = Clicks("none.wav", 1, 1_000);
         var processor = new AudioCleanupProcessor(Decoder());
         var error = await Assert.ThrowsAsync<AudioCleanupException>(() =>
@@ -138,10 +133,9 @@ public sealed class AudioCleanupIntegrationTests : IDisposable
         Assert.Equal(Core.Localization.Messages.Audio_VoiceModelUnavailable, error.Message);
     }
 
-    [Fact]
+    [FfmpegFact]
     public async Task A_cancelled_clean_up_stops()
     {
-        if (FfmpegTools.Ffmpeg is null) return;
         var source = Clicks("cancel.wav", 40, 1_000);
         using var cts = new CancellationTokenSource();
         cts.Cancel();

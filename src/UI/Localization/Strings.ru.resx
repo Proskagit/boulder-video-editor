@@ -3662,4 +3662,7 @@
   <data name="Inspector_CleanupRetry" xml:space="preserve">
     <value>Повторить</value>
   </data>
+  <data name="Mixer_Locked" xml:space="preserve">
+    <value>Микс нельзя менять, пока проект экспортируется.</value>
+  </data>
 </root>

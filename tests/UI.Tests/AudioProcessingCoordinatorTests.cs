@@ -56,6 +56,7 @@ public sealed class AudioProcessingCoordinatorTests : IDisposable
         public int Produced { get; private set; }
         public int Analysed { get; private set; }
         public TaskCompletionSource? Gate { get; set; }
+        public bool IgnoreCancel { get; set; }
         public List<string> SpeechPaths { get; } = new();
         public string Version => "test";
 
@@ -65,7 +66,7 @@ public sealed class AudioProcessingCoordinatorTests : IDisposable
         public async Task ProduceAsync(string filePath, MediaTime startTime, MediaTime duration, AudioCleanup cleanup, string outputPath,
             IProgress<double>? progress, CancellationToken ct)
         {
-            if (Gate is { } gate) await gate.Task.WaitAsync(ct);
+            if (Gate is { } gate) await (IgnoreCancel ? gate.Task : gate.Task.WaitAsync(ct));
             Produced++;
             await File.WriteAllBytesAsync(outputPath, new byte[64], ct);
         }
@@ -178,5 +179,28 @@ public sealed class AudioProcessingCoordinatorTests : IDisposable
         Assert.Equal(1, changed);
         Assert.Null(Core.Playback.PlaybackSnapshotBuilder.Build(_projects.Current, 1, audioAnalyses: coordinator.Analyses).AudioSpans.Single().CleanedSource);
         Assert.False(coordinator.ForExport().Analyses.OriginalSound);
+    });
+
+    [Fact]
+    public Task A_project_change_while_a_job_runs_starts_the_new_projects_jobs() => _ui.Run(async () =>
+    {
+        AddAudio(new AudioCleanup(50, 0));
+        var gate = new TaskCompletionSource();
+        var service = new Service { Gate = gate, IgnoreCancel = true };                   // a job slow to notice the cancel
+        using var coordinator = New(service);
+        _projects.NotifyTimelineChanged();
+        await Task.Delay(50);                                                             // the first project's job is at the gate
+
+        _projects.CreateNew("Second");
+        service.Gate = null;
+        var clip = AddAudio(new AudioCleanup(20, 0));
+        _projects.NotifyTimelineChanged();                                                // every event while the old job still runs
+        gate.SetResult();
+        await coordinator.IdleAsync();
+        await Task.Delay(50);
+        await coordinator.IdleAsync();
+
+        Assert.Equal(AudioJobState.Ready, coordinator.CleanupStatus(clip.MediaAssetId, clip.Cleanup).State);
+        Assert.Empty(coordinator.ForExport().PendingCleanups);
     });
 }

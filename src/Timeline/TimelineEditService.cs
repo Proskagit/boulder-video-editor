@@ -1615,6 +1615,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         ArgumentNullException.ThrowIfNull(curve);
         if (FindTrack(trackId) is not { } track) return TimelineEditResult.Fail(Messages.Edit_TrackGone);
         if (track.IsLocked) return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
+        if (track.Ducking is null) return TimelineEditResult.Unchanged();
 
         var commands = new List<IUndoableCommand>();
         var changed = new List<Guid>();
@@ -1643,7 +1644,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 {
                     var k = Core.Playback.AudioTiming.CeilingSample(clip.TimelineStart + new MediaTime(
                         (long)Math.Round((point.Time - clip.SourceIn).Ticks / (double)clip.Speed.ToDecimal())));
-                    if (k <= placement.FirstSample || k >= placement.EndSample - 1 || !times.Add(point.Time)) continue;
+                    if (!times.Add(point.Time)) continue;
+                    // A point outside the used range is kept as it is (a trim back shows it again, D064 §1).
+                    if (k <= placement.FirstSample || k >= placement.EndSample - 1) { points.Add(point); continue; }
                     points.Add(point with { Gain = Math.Clamp(point.Gain * curve.Gain(k), Core.Audio.VolumeEnvelope.MinGain, Core.Audio.VolumeEnvelope.MaxGain) });
                 }
             var before = ClipPropertyValues.Capture(clip);

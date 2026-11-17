@@ -58,6 +58,7 @@ public sealed class AudioProcessingCoordinator : IDisposable
     private (Job Job, CancellationTokenSource Cancel)? _running;
     private CancellationTokenSource _projectCancel = new();
     private Task? _worker;
+    private CancellationTokenSource? _workerProject;
     private bool _originalSound;
 
     /// <summary>How long a job waits before it starts (the last of a slider's values wins); tests set 0.</summary>
@@ -280,8 +281,13 @@ public sealed class AudioProcessingCoordinator : IDisposable
 
     private void StartWorker()
     {
-        if (!_disposed && _service is not null && (_worker is null || _worker.IsCompleted) && NextJob() is not null)
+        // A worker of a previous project (its token cancelled) is winding down: the new project's jobs start now (D064 §5).
+        if (!_disposed && _service is not null && (_worker is null || _worker.IsCompleted || _workerProject?.IsCancellationRequested == true) &&
+            NextJob() is not null)
+        {
+            _workerProject = _projectCancel;
             _worker = RunAsync(_projectCancel);
+        }
     }
 
     /// <summary>The next job: a clean-up a clip uses, then a speech analysis whose cleaned sound (if any) is ready.</summary>
@@ -309,9 +315,12 @@ public sealed class AudioProcessingCoordinator : IDisposable
             var cancel = CancellationTokenSource.CreateLinkedTokenSource(project.Token);
             _running = (job, cancel);
             var state = StateOf(job);
+            state.Progress = 0;
             Publish();
             var progress = new Progress<double>(p =>
             {
+                // Throttled: a whole per cent more (the views re-sync on every status change).
+                if (p < 1 && Math.Floor(p * 100) <= Math.Floor(state.Progress * 100)) return;
                 state.Progress = p;
                 StatusChanged?.Invoke(this, EventArgs.Empty);
             });
@@ -335,7 +344,7 @@ public sealed class AudioProcessingCoordinator : IDisposable
             }
             finally
             {
-                _running = null;
+                if (_running is { } current && ReferenceEquals(current.Cancel, cancel)) _running = null;
                 cancel.Dispose();
             }
             Publish();
@@ -385,8 +394,14 @@ public sealed class AudioProcessingCoordinator : IDisposable
     private void Publish()
     {
         var cleaned = ImmutableDictionary.CreateBuilder<(Guid, AudioCleanup), string>();
+        var lost = false;
         foreach (var (key, job) in _cleanups)
-            if (StateOf(job).CleanedPath is { } path && File.Exists(path)) cleaned[key] = path;
+        {
+            var state = StateOf(job);
+            if (state.CleanedPath is not { } path) continue;
+            if (File.Exists(path)) cleaned[key] = path;
+            else { state.CleanedPath = null; state.Progress = 0; lost = true; }   // removed from the cache: computed again, never silent
+        }
         var speech = ImmutableDictionary.CreateBuilder<(Guid, AudioCleanup), SpeechActivity>();
         foreach (var (key, job) in _speech)
             if (StateOf(job).Speech is { } activity) speech[key] = activity;
@@ -395,6 +410,7 @@ public sealed class AudioProcessingCoordinator : IDisposable
         Analyses = next;
         if (changed) AnalysesChanged?.Invoke(this, EventArgs.Empty);
         StatusChanged?.Invoke(this, EventArgs.Empty);
+        if (lost) StartWorker();
     }
 
     private static bool Same<TValue>(ImmutableDictionary<(Guid, AudioCleanup), TValue> a, ImmutableDictionary<(Guid, AudioCleanup), TValue> b) =>

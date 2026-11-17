@@ -116,7 +116,9 @@ internal sealed class AudioPipeline : IAsyncDisposable
 
     private ReaderKey Key(AudioSpan span)
     {
-        var asset = _snapshot.Assets[span.AssetId];
+        // D064 §5: the file actually decoded — a cleaned sound that becomes ready (or the comparison with the original) is
+        // another reader, never the old one taken over.
+        var asset = SourceOf(span);
         return new ReaderKey(span.ClipId, span.AssetId, span.TimelineStart, span.TimelineEnd, span.SourceIn, asset.FilePath, asset.StartTime,
             span.PlayStart, span.PlayEnd);
     }

@@ -488,8 +488,6 @@ public static class ExportPreflight
         }
     }
 
-    /// <summary>D061: Follow and Occlusion of the clips that reach the output — a running (or stopped) people analysis blocks
-    /// (one issue per media file), a Follow that cannot move and outlines that cannot be hidden are warnings.</summary>
     /// <summary>
     /// D064: a clean-up of a clip heard in the output that is still processed (or stopped) blocks — the export waits, as for
     /// Follow; a failed one is a warning (the original sound, as the Preview plays it); so are a pending and a failed ducking of
@@ -531,6 +529,8 @@ public static class ExportPreflight
             issues.Add(new ExportIssue(ExportIssueSeverity.Warning, ExportIssueKind.SoloActive, string.Format(Messages.Preflight_SoloActive, string.Join(", ", solo))));
     }
 
+    /// <summary>D061: Follow and Occlusion of the clips that reach the output — a running (or stopped) people analysis blocks
+    /// (one issue per media file), a Follow that cannot move and outlines that cannot be hidden are warnings.</summary>
     private static void CheckPeople(Project project, PlaybackSnapshot snapshot, ExportPreflightEnvironment env, List<ExportIssue> issues, Window window)
     {
         var clips = project.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<VideoClip>()

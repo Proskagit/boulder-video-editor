@@ -272,8 +272,6 @@ public static class PlaybackSnapshotBuilder
         return zones.OrderBy(z => z.Start).ToImmutableArray();
     }
 
-    /// <summary>The clip's effective fades in frames (D025 §2): clamped to the clip; none on an edge that has a
-    /// dissolve (PO-8) — the same for its picture and its sound.</summary>
     /// <summary>D064 §5: the cleaned sound of <paramref name="assetId"/> with <paramref name="cleanup"/> when it is ready (and the
     /// Preview is not comparing with the original sound); null — the source's own sound.</summary>
     private static PlaybackAsset? CleanedSourceOf(Guid assetId, Audio.AudioCleanup? cleanup, Audio.AudioAnalyses analyses) =>
@@ -309,6 +307,8 @@ public static class PlaybackSnapshotBuilder
             (long)ducking.AttackMs * AudioFormat.SampleRate / 1000, (long)ducking.ReleaseMs * AudioFormat.SampleRate / 1000);
     }
 
+    /// <summary>The clip's effective fades in frames (D025 §2): clamped to the clip; none on an edge that has a
+    /// dissolve (PO-8) — the same for its picture and its sound.</summary>
     private static (long In, long Out) Fades(Clip clip, Track track, FrameRate rate)
     {
         if (clip.FadeIn == MediaTime.Zero && clip.FadeOut == MediaTime.Zero) return (0, 0);
