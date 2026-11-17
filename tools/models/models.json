@@ -1,0 +1,37 @@
+{
+  "comment": "S1 (D066 §3): the AI models of AiVideoEditor 1.0 — the folders under %LOCALAPPDATA%\\AiVideoEditor\\models and their files. Must equal the pinned files in src/Vision (HoldModel, PeopleModel, AudioModel); Vision.Tests checks it.",
+  "version": "1.0",
+  "folders": [
+    {
+      "folder": "sam2.1-large",
+      "purpose": "hold markup (D034)",
+      "files": [
+        { "name": "sam2.1_large.encoder.onnx", "length": 852451097, "sha256": "5ca0f505138811202a60445427383559fb84afcd80e7a5e2d1ce5d9f546e3362" },
+        { "name": "sam2.1_large.decoder.onnx", "length": 16519627, "sha256": "d2ef7f723ed226f424d590cd382bfef135fdfd4cb74f3a76f6bd563a63b28f10" }
+      ]
+    },
+    {
+      "folder": "people-v2",
+      "purpose": "Follow and Occlusion (D061)",
+      "files": [
+        { "name": "rfdetr_m_576.onnx", "length": 133424287, "sha256": "ec23de6746c6737b47c34fd24f06583e80a2253924efc32c27b716157ae1632a" },
+        { "name": "rtmpose_m_body7_256x192.onnx", "length": 54330655, "sha256": "5c0a4bf67953e6d2ac43ce15e77dc9d5d354ae18430a47d2c5963a7bc5683e3c" },
+        { "name": "sam2.1_tiny_video.encoder.onnx", "length": 109408012, "sha256": "8bd43ed78fb7c56eebec730592003a8b795604a61c22f9a68229c3da770016cf" },
+        { "name": "sam2.1_tiny_video.memory_attention.onnx", "length": 16238215, "sha256": "5b3e99ecba4374f0b7e3adfafa956909a874673a14852ae2853c4c571f40b7df" },
+        { "name": "sam2.1_tiny_video.decoder_multi.onnx", "length": 17884116, "sha256": "136f739f10fc44b79bb09bdb6a207577625711a4186175d2b6bf978bfbb31cc1" },
+        { "name": "sam2.1_tiny_video.decoder_single.onnx", "length": 17893385, "sha256": "a63a960ae5a23c9509605f2425727065d20caad2ac2677ef87e4cf3689eaa4f1" },
+        { "name": "sam2.1_tiny_video.memory_encoder.onnx", "length": 5591772, "sha256": "0be6bdbea360072de1fa6a3b042f5415fbe2bff4618670f5846e82c852c0236c" },
+        { "name": "sam2.1_tiny_video.pointer_pos.onnx", "length": 67131, "sha256": "b8db9c1ddc26c967caa7cf2d49b1528d2e0ff55dfef0e689d99c9a2caf06c1da" },
+        { "name": "sam2.1_tiny_video.constants.bin", "length": 2832, "sha256": "3ffeae7ff4579e5913f8fbf4de1a6ae0e1ccc7a09157052d7d14da19736ab61b" }
+      ]
+    },
+    {
+      "folder": "audio-v1",
+      "purpose": "voice enhancement and ducking (D064)",
+      "files": [
+        { "name": "denoiser_model.onnx", "length": 16104687, "sha256": "fe5eb64fa2e4154c83f8e4935e82871c850c154387ee892e0ab65fe179e7d8c9" },
+        { "name": "silero_vad.onnx", "length": 2327524, "sha256": "1a153a22f4509e292a94e67d6f9b85e8deb25b4988682b7e174c65279d8788e3" }
+      ]
+    }
+  ]
+}
