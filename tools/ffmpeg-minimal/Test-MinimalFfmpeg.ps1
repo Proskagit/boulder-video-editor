@@ -296,8 +296,13 @@ $nr = Invoke-Tool $cand.ffmpeg @('-hide_banner', '-nostdin', '-nostats', '-logle
     '-map', '0:a:0', '-vn', '-af', 'aresample=48000:async=1,aformat=sample_fmts=flt:channel_layouts=stereo,ashowinfo,apad=pad_len=1200,highpass=f=80,afftdn=nr=14:nf=-50:tn=1',
     '-f', 'f32le', 'pipe:1') $null $nrOut
 Add-Result 'noise reduction (highpass + afftdn)' $(if ($nr.Code -eq 0 -and (Get-Item $nrOut).Length -gt 0) { 'PASS' } else { 'FAIL' }) "exit $($nr.Code)"
+# FfmpegEncoderCapabilities' trial: its input and filter, then FfmpegExportEncoder's NVENC arguments of the default plan.
 $nvencArgs = @('-hide_banner', '-nostats', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc2=s=640x360:r=30',
-    '-frames:v', '10', '-c:v', 'h264_nvenc', '-f', 'null', '-')
+    '-frames:v', '10', '-vf', 'format=yuv420p', '-c:v', 'h264_nvenc', '-preset', 'p5', '-tune', 'hq', '-profile:v', 'high',
+    '-rc', 'vbr', '-cq', '19', '-b:v', '0', '-spatial-aq', '1', '-rc-lookahead', '20', '-bf', '3', '-g', '250', '-f', 'null', '-')
+# The NVENC check's pipeline itself (lavfi -> filter -> encoder -> null) with libx264: must work on any machine.
+$pipe = Invoke-Tool $cand.ffmpeg ($nvencArgs[0..12] + @('libx264', '-f', 'null', '-')) $null $null
+Add-Result 'NVENC check pipeline (lavfi, libx264, null)' $(if ($pipe.Code -eq 0) { 'PASS' } else { 'FAIL' }) "exit $($pipe.Code): $(($pipe.Err -split "`r?`n" | Select-Object -Last 2) -join ' | ')"
 $nvenc = Invoke-Tool $cand.ffmpeg $nvencArgs $null $null
 $nvencRef = Invoke-Tool $ref.ffmpeg $nvencArgs $null $null   # the reference has NVENC: whether this machine can encode with it
 if ($nvenc.Code -eq 0) { Add-Result 'NVENC trial encoding' 'PASS' 'h264_nvenc works here' }

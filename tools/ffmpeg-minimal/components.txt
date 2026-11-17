@@ -101,8 +101,9 @@ filter highpass
 filter afftdn
 filter testsrc2
 
-# S1 (D066): the NVENC check's input (-f lavfi).
+# S1 (D066): the NVENC check's input (-f lavfi) and its frames' pseudo-codec.
 indev lavfi
+decoder wrapped_avframe
 
 # Protocols.
 protocol file
