@@ -3469,4 +3469,193 @@ If you don't save, your changes will be lost.</value>
   <data name="Timeline_Keyframe" xml:space="preserve">
     <value>Keyframe</value>
   </data>
+  <data name="Volume_FadeLabel" xml:space="preserve">
+    <value>Fade {0}</value>
+  </data>
+  <data name="Volume_TrackLocked" xml:space="preserve">
+    <value>The track is locked: its volume points can&apos;t change.</value>
+  </data>
+  <data name="Volume_PointAdded" xml:space="preserve">
+    <value>Volume point added — drag it up or down.</value>
+  </data>
+  <data name="Volume_PointRemoved" xml:space="preserve">
+    <value>Volume point removed.</value>
+  </data>
+  <data name="Volume_LineTip" xml:space="preserve">
+    <value>Drag: the clip&apos;s volume. Double click: a volume point.</value>
+  </data>
+  <data name="Volume_PointTip" xml:space="preserve">
+    <value>Drag: move the point. Double click or Delete: remove it.</value>
+  </data>
+  <data name="Volume_FadeInTip" xml:space="preserve">
+    <value>Drag inward: the sound&apos;s fade in.</value>
+  </data>
+  <data name="Volume_FadeOutTip" xml:space="preserve">
+    <value>Drag inward: the sound&apos;s fade out.</value>
+  </data>
+  <data name="Mixer_Milliseconds" xml:space="preserve">
+    <value>{0:0} ms</value>
+  </data>
+  <data name="Mixer_DuckingDetecting" xml:space="preserve">
+    <value>Detecting speech… {0:0} %</value>
+  </data>
+  <data name="Mixer_DuckingWaiting" xml:space="preserve">
+    <value>Speech detection is waiting its turn.</value>
+  </data>
+  <data name="Mixer_DuckingCancelled" xml:space="preserve">
+    <value>Speech detection stopped.</value>
+  </data>
+  <data name="Mixer_DuckingFailed" xml:space="preserve">
+    <value>Speech detection failed.</value>
+  </data>
+  <data name="Mixer_DuckingReady" xml:space="preserve">
+    <value>Speech found — the track is lowered while it sounds.</value>
+  </data>
+  <data name="Mixer_DuckingNoSpeech" xml:space="preserve">
+    <value>The speech track has no clips with sound.</value>
+  </data>
+  <data name="Mixer_NoSpeechTrack" xml:space="preserve">
+    <value>Add another track with speech first.</value>
+  </data>
+  <data name="Mixer_DuckingOn" xml:space="preserve">
+    <value>Track {0} is lowered during speech.</value>
+  </data>
+  <data name="Mixer_DuckingOff" xml:space="preserve">
+    <value>Ducking of track {0} is off.</value>
+  </data>
+  <data name="Mixer_DuckingBaked" xml:space="preserve">
+    <value>The ducking of track {0} is now volume points.</value>
+  </data>
+  <data name="Track_Soloed" xml:space="preserve">
+    <value>Track {0}: solo — only the solo tracks are heard.</value>
+  </data>
+  <data name="Track_Unsoloed" xml:space="preserve">
+    <value>Track {0}: solo off.</value>
+  </data>
+  <data name="Track_SoloTip" xml:space="preserve">
+    <value>Solo: only the solo tracks are heard (also in the export)</value>
+  </data>
+  <data name="Track_MixTip" xml:space="preserve">
+    <value>The track&apos;s volume and ducking</value>
+  </data>
+  <data name="Timeline_Mixer" xml:space="preserve">
+    <value>Mixer</value>
+  </data>
+  <data name="Timeline_MixerTip" xml:space="preserve">
+    <value>The master volume and every track&apos;s volume, mute and solo</value>
+  </data>
+  <data name="Mixer_TrackVolume" xml:space="preserve">
+    <value>Volume</value>
+  </data>
+  <data name="Mixer_TrackVolumeTip" xml:space="preserve">
+    <value>The volume of the whole track (0–200 %)</value>
+  </data>
+  <data name="Mixer_Mute" xml:space="preserve">
+    <value>Mute</value>
+  </data>
+  <data name="Mixer_Solo" xml:space="preserve">
+    <value>Solo</value>
+  </data>
+  <data name="Mixer_Ducking" xml:space="preserve">
+    <value>Lower during speech (ducking)</value>
+  </data>
+  <data name="Mixer_DuckingTip" xml:space="preserve">
+    <value>The track is lowered automatically while speech sounds on the chosen track; your volume points stay</value>
+  </data>
+  <data name="Mixer_SpeechTrack" xml:space="preserve">
+    <value>Speech on</value>
+  </data>
+  <data name="Mixer_Depth" xml:space="preserve">
+    <value>Depth</value>
+  </data>
+  <data name="Mixer_Attack" xml:space="preserve">
+    <value>Lowering</value>
+  </data>
+  <data name="Mixer_Release" xml:space="preserve">
+    <value>Recovery</value>
+  </data>
+  <data name="Mixer_Sensitivity" xml:space="preserve">
+    <value>Sensitivity</value>
+  </data>
+  <data name="Mixer_Cancel" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="Mixer_Retry" xml:space="preserve">
+    <value>Try again</value>
+  </data>
+  <data name="Mixer_Bake" xml:space="preserve">
+    <value>To volume points</value>
+  </data>
+  <data name="Mixer_BakeTip" xml:space="preserve">
+    <value>Write the ducking into the track&apos;s volume points to adjust it by hand; the ducking turns off</value>
+  </data>
+  <data name="Mixer_Master" xml:space="preserve">
+    <value>Master</value>
+  </data>
+  <data name="Mixer_MasterTip" xml:space="preserve">
+    <value>The volume of the whole project (0–200 %); the mix never clips</value>
+  </data>
+  <data name="Mixer_OriginalSound" xml:space="preserve">
+    <value>Play the original sound (compare)</value>
+  </data>
+  <data name="Mixer_OriginalSoundTip" xml:space="preserve">
+    <value>The Preview plays every clip without its noise reduction and voice enhancement; never saved or exported</value>
+  </data>
+  <data name="Mixer_Note" xml:space="preserve">
+    <value>Volumes above 100 % are protected from overload at −1 dB.</value>
+  </data>
+  <data name="Plural_VolumePoints" xml:space="preserve">
+    <value>{0} volume point|{0} volume points</value>
+  </data>
+  <data name="Inspector_NoVolumePoints" xml:space="preserve">
+    <value>No volume points — double click the line on the timeline to add one.</value>
+  </data>
+  <data name="Inspector_ClearVolumePoints" xml:space="preserve">
+    <value>Remove points</value>
+  </data>
+  <data name="Inspector_SoundFadeIn" xml:space="preserve">
+    <value>Sound fade in</value>
+  </data>
+  <data name="Inspector_SoundFadeOut" xml:space="preserve">
+    <value>Sound fade out</value>
+  </data>
+  <data name="Inspector_SoundFadeTip" xml:space="preserve">
+    <value>Fades of the clip&apos;s sound only (frames); the picture&apos;s fade stays as set above</value>
+  </data>
+  <data name="Inspector_CleanupHeading" xml:space="preserve">
+    <value>Clean-up</value>
+  </data>
+  <data name="Inspector_NoiseReduction" xml:space="preserve">
+    <value>Noise reduction</value>
+  </data>
+  <data name="Inspector_NoiseReductionTip" xml:space="preserve">
+    <value>Reduces steady noise — the hall, ventilation, hum, hiss, wind rumble (0 = off)</value>
+  </data>
+  <data name="Inspector_VoiceEnhancement" xml:space="preserve">
+    <value>Voice enhancement</value>
+  </data>
+  <data name="Inspector_VoiceEnhancementTip" xml:space="preserve">
+    <value>Separates the voice from noise, music and the hall with a local neural model (0 = off)</value>
+  </data>
+  <data name="Inspector_CleanupProcessing" xml:space="preserve">
+    <value>Processing… {0:0} %</value>
+  </data>
+  <data name="Inspector_CleanupWaiting" xml:space="preserve">
+    <value>Waiting to be processed — the original sound plays meanwhile.</value>
+  </data>
+  <data name="Inspector_CleanupReady" xml:space="preserve">
+    <value>Cleaned — the source file is unchanged.</value>
+  </data>
+  <data name="Inspector_CleanupCancelled" xml:space="preserve">
+    <value>Stopped — the original sound plays.</value>
+  </data>
+  <data name="Inspector_CleanupFailed" xml:space="preserve">
+    <value>Not cleaned — the original sound plays: {0}</value>
+  </data>
+  <data name="Inspector_CleanupStop" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="Inspector_CleanupRetry" xml:space="preserve">
+    <value>Try again</value>
+  </data>
 </root>

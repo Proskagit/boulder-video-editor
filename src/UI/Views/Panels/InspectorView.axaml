@@ -1134,6 +1134,49 @@
                 <!-- Not focusable: Space stays Play/Pause instead of toggling the box after a click. -->
                 <CheckBox Content="{x:Static l:Strings.Inspector_Mute}" IsChecked="{Binding IsMuted, Mode=TwoWay}" Focusable="False"
                           Margin="124,0,0,0" Foreground="#DDDDDD"/>
+
+                <!-- D064 §2: the volume points (edited on the timeline's line). -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="{Binding VolumePointsText}" Foreground="#AAAAAA" FontSize="11" TextWrapping="Wrap" MaxWidth="220" VerticalAlignment="Center"/>
+                  <Button FontSize="11" Content="{x:Static l:Strings.Inspector_ClearVolumePoints}" Command="{Binding ClearVolumePointsCommand}"
+                          IsVisible="{Binding HasVolumePoints}"/>
+                </StackPanel>
+
+                <!-- D064 §1: a video clip's sound-only fades (whole frames; the timeline's handles set them too). -->
+                <StackPanel Spacing="6" IsVisible="{Binding HasSoundFades}" ToolTip.Tip="{x:Static l:Strings.Inspector_SoundFadeTip}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{x:Static l:Strings.Inspector_SoundFadeIn}" Classes="label"/>
+                    <controls:CommitNumericUpDown Value="{Binding SoundFadeInFrames, Mode=TwoWay}" Increment="1" Minimum="0" FormatString="0" Width="104"/>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{x:Static l:Strings.Inspector_SoundFadeOut}" Classes="label"/>
+                    <controls:CommitNumericUpDown Value="{Binding SoundFadeOutFrames, Mode=TwoWay}" Increment="1" Minimum="0" FormatString="0" Width="104"/>
+                  </StackPanel>
+                </StackPanel>
+
+                <!-- D064 §5: the clean-up — two tools, each a strength (0 = off); non-destructive, processed in the background. -->
+                <TextBlock Text="{x:Static l:Strings.Inspector_CleanupHeading}" Foreground="#9A9A9A" FontSize="11" FontWeight="Bold" Margin="0,6,0,0"/>
+                <StackPanel Orientation="Horizontal" Spacing="8" ToolTip.Tip="{x:Static l:Strings.Inspector_NoiseReductionTip}">
+                  <TextBlock Text="{x:Static l:Strings.Inspector_NoiseReduction}" Classes="label"/>
+                  <controls:CommitNumericUpDown Value="{Binding NoiseReduction, Mode=TwoWay}" Increment="5" Minimum="0" Maximum="100" FormatString="0" Width="104"/>
+                </StackPanel>
+                <Slider x:Name="NoiseReductionSlider" Classes="under" TickFrequency="5" Focusable="False" Minimum="0" Maximum="100"
+                        Value="{Binding NoiseReduction, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
+                        ToolTip.Tip="{x:Static l:Strings.Inspector_NoiseReductionTip}"/>
+                <StackPanel Orientation="Horizontal" Spacing="8" ToolTip.Tip="{x:Static l:Strings.Inspector_VoiceEnhancementTip}">
+                  <TextBlock Text="{x:Static l:Strings.Inspector_VoiceEnhancement}" Classes="label"/>
+                  <controls:CommitNumericUpDown Value="{Binding VoiceEnhancement, Mode=TwoWay}" Increment="5" Minimum="0" Maximum="100" FormatString="0" Width="104"/>
+                </StackPanel>
+                <Slider x:Name="VoiceEnhancementSlider" Classes="under" TickFrequency="5" Focusable="False" Minimum="0" Maximum="100"
+                        Value="{Binding VoiceEnhancement, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
+                        ToolTip.Tip="{x:Static l:Strings.Inspector_VoiceEnhancementTip}"/>
+                <TextBlock Text="{Binding CleanupStatus}" IsVisible="{Binding HasCleanupStatus}" Foreground="#AAAAAA" FontSize="11" TextWrapping="Wrap"/>
+                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+                  <Button FontSize="11" Content="{x:Static l:Strings.Inspector_CleanupStop}" Command="{Binding CancelCleanupCommand}" IsVisible="{Binding CanCancelCleanup}"/>
+                  <Button FontSize="11" Content="{x:Static l:Strings.Inspector_CleanupRetry}" Command="{Binding RetryCleanupCommand}" IsVisible="{Binding CanRetryCleanup}"/>
+                </StackPanel>
+                <CheckBox Content="{x:Static l:Strings.Mixer_OriginalSound}" IsChecked="{Binding OriginalSound, Mode=TwoWay}" Focusable="False"
+                          ToolTip.Tip="{x:Static l:Strings.Mixer_OriginalSoundTip}" Foreground="#DDDDDD"/>
               </StackPanel>
             </controls:InspectorSection>
 

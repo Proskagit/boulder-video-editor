@@ -59,6 +59,9 @@ public sealed class AudioProcessingCoordinator : IDisposable
     private CancellationTokenSource _projectCancel = new();
     private Task? _worker;
     private bool _originalSound;
+
+    /// <summary>How long a job waits before it starts (the last of a slider's values wins); tests set 0.</summary>
+    public TimeSpan StartDelay { get; set; } = TimeSpan.FromMilliseconds(600);
     private bool _disposed;
 
     public AudioProcessingCoordinator(IProjectService projects, IAudioCleanupService? service = null, IAudioAnalysisCache? cache = null,
@@ -314,6 +317,9 @@ public sealed class AudioProcessingCoordinator : IDisposable
             });
             try
             {
+                // A slider's drag changes the setting many times: wait a moment, and run only what is still wanted then.
+                await Task.Delay(StartDelay, cancel.Token);
+                if (NextJob() != job) continue;
                 if (job.Kind == JobKind.Clean) state.CleanedPath = await CleanAsync(job, progress, cancel.Token);
                 else state.Speech = await SpeechAsync(job, progress, cancel.Token);
             }

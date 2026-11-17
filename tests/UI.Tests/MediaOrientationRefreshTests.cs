@@ -279,7 +279,7 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult SetTrackLocked(Guid trackId, bool locked) => No;
         public TimelineEditResult SetTrackSolo(Guid trackId, bool solo) => No;
         public TimelineEditResult SetTrackVolume(Guid trackId, double volume, object? gesture = null) => No;
-        public TimelineEditResult SetTrackDucking(Guid trackId, Core.Audio.DuckingSettings? ducking) => No;
+        public TimelineEditResult SetTrackDucking(Guid trackId, Core.Audio.DuckingSettings? ducking, object? gesture = null) => No;
         public TimelineEditResult SetMasterVolume(double volume, object? gesture = null) => No;
         public TimelineEditResult BakeDucking(Guid trackId, Core.Audio.DuckingCurve curve) => No;
         public int CountClipsUsing(Guid mediaAssetId) => 0;

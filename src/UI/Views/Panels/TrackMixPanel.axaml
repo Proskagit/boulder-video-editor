@@ -1,0 +1,82 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:l="using:AiVideoEditor.UI.Localization"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="AiVideoEditor.UI.Views.Panels.TrackMixPanel"
+             Width="300">
+
+  <!-- D064 §2 / §4: a track's volume and its ducking (the header's flyout). The DataContext is the track's TrackMixViewModel;
+       every change is one undo step (a slider's drag merges). -->
+  <UserControl.Styles>
+    <Style Selector="TextBlock.heading">
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="Foreground" Value="#C0C0C0"/>
+    </Style>
+    <Style Selector="TextBlock.label">
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="Foreground" Value="#AAAAAA"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="TextBlock.value">
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="Foreground" Value="#E0E0E0"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="HorizontalAlignment" Value="Right"/>
+    </Style>
+    <Style Selector="TextBlock.note">
+      <Setter Property="FontSize" Value="10"/>
+      <Setter Property="Foreground" Value="#9A9A9A"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+  </UserControl.Styles>
+
+  <StackPanel Spacing="6" Margin="4">
+    <TextBlock Classes="heading" Text="{Binding Name}"/>
+    <Grid ColumnDefinitions="90,*,70">
+      <TextBlock Classes="label" Text="{x:Static l:Strings.Mixer_TrackVolume}"/>
+      <Slider Grid.Column="1" Minimum="0" Maximum="200" Value="{Binding VolumePercent, Mode=TwoWay}" SmallChange="1" LargeChange="10"
+              ToolTip.Tip="{x:Static l:Strings.Mixer_TrackVolumeTip}"/>
+      <TextBlock Grid.Column="2" Classes="value" Text="{Binding VolumeText}"/>
+    </Grid>
+    <StackPanel Orientation="Horizontal" Spacing="12">
+      <CheckBox Content="{x:Static l:Strings.Mixer_Mute}" IsChecked="{Binding IsMuted, Mode=TwoWay}"/>
+      <CheckBox Content="{x:Static l:Strings.Mixer_Solo}" IsChecked="{Binding IsSolo, Mode=TwoWay}" ToolTip.Tip="{x:Static l:Strings.Track_SoloTip}"/>
+    </StackPanel>
+
+    <Rectangle Height="1" Fill="#3A3A3A" Margin="0,4"/>
+    <CheckBox Content="{x:Static l:Strings.Mixer_Ducking}" IsChecked="{Binding IsDucking, Mode=TwoWay}" ToolTip.Tip="{x:Static l:Strings.Mixer_DuckingTip}"/>
+    <StackPanel Spacing="6" IsVisible="{Binding IsDucking}">
+      <Grid ColumnDefinitions="90,*">
+        <TextBlock Classes="label" Text="{x:Static l:Strings.Mixer_SpeechTrack}"/>
+        <ComboBox Grid.Column="1" ItemsSource="{Binding SpeechChoices}" SelectedItem="{Binding SpeechTrack, Mode=TwoWay}" HorizontalAlignment="Stretch"/>
+      </Grid>
+      <Grid ColumnDefinitions="90,*,60">
+        <TextBlock Classes="label" Text="{x:Static l:Strings.Mixer_Depth}"/>
+        <Slider Grid.Column="1" Minimum="-40" Maximum="-3" Value="{Binding DepthDb, Mode=TwoWay}" SmallChange="1" LargeChange="3"/>
+        <TextBlock Grid.Column="2" Classes="value" Text="{Binding DepthText}"/>
+      </Grid>
+      <Grid ColumnDefinitions="90,*,60">
+        <TextBlock Classes="label" Text="{x:Static l:Strings.Mixer_Attack}"/>
+        <Slider Grid.Column="1" Minimum="0" Maximum="2000" Value="{Binding AttackMs, Mode=TwoWay}" SmallChange="10" LargeChange="100"/>
+        <TextBlock Grid.Column="2" Classes="value" Text="{Binding AttackText}"/>
+      </Grid>
+      <Grid ColumnDefinitions="90,*,60">
+        <TextBlock Classes="label" Text="{x:Static l:Strings.Mixer_Release}"/>
+        <Slider Grid.Column="1" Minimum="50" Maximum="3000" Value="{Binding ReleaseMs, Mode=TwoWay}" SmallChange="10" LargeChange="100"/>
+        <TextBlock Grid.Column="2" Classes="value" Text="{Binding ReleaseText}"/>
+      </Grid>
+      <Grid ColumnDefinitions="90,*,60">
+        <TextBlock Classes="label" Text="{x:Static l:Strings.Mixer_Sensitivity}"/>
+        <Slider Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding Sensitivity, Mode=TwoWay}" SmallChange="1" LargeChange="10"/>
+        <TextBlock Grid.Column="2" Classes="value" Text="{Binding SensitivityText}"/>
+      </Grid>
+      <TextBlock Classes="note" Text="{Binding DuckingStatus}"/>
+      <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+        <Button FontSize="11" Content="{x:Static l:Strings.Mixer_Cancel}" Command="{Binding CancelDuckingCommand}" IsVisible="{Binding CanCancelDucking}"/>
+        <Button FontSize="11" Content="{x:Static l:Strings.Mixer_Retry}" Command="{Binding RetryDuckingCommand}" IsVisible="{Binding CanRetryDucking}"/>
+        <Button FontSize="11" Content="{x:Static l:Strings.Mixer_Bake}" Command="{Binding BakeDuckingCommand}" IsEnabled="{Binding CanBakeDucking}"
+                ToolTip.Tip="{x:Static l:Strings.Mixer_BakeTip}"/>
+      </StackPanel>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

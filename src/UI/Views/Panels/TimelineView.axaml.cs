@@ -35,6 +35,11 @@ public partial class TimelineView : UserControl
     /// <summary>D061 amendment 1: an edge of a followed part is being dragged.</summary>
     private bool _pressedFollow;
     private bool _pressedKeyframe;
+    /// <summary>D064 §2: the clip's rectangle whose volume line, point or fade handle is being dragged.</summary>
+    private Control? _pressedVolume;
+    private Control? _volumeHoverTarget;
+    private static readonly Cursor VerticalCursor = new(StandardCursorType.SizeNorthSouth);
+    private static readonly Cursor HandCursor = new(StandardCursorType.Hand);
     private TimelineClipViewModel? _pressedTemplate;   // variant B: the «Боулдер» the strip press was on
     // Variant B (D048 §4.1 / §4.2): the plate (or its overflow) whose cursor and tooltip the pointer currently sets.
     private Control? _stripHoverTarget;
@@ -71,10 +76,10 @@ public partial class TimelineView : UserControl
         TrackRows.PointerPressed += OnTracksPressed;
         TrackRows.PointerMoved += OnTracksMoved;
         TrackRows.PointerReleased += OnTracksReleased;
-        TrackRows.PointerExited += (_, _) => ClearStripHover();
+        TrackRows.PointerExited += (_, _) => { ClearStripHover(); if (_volumeHoverTarget is { } v) { v.Cursor = null; ToolTip.SetTip(v, null); _volumeHoverTarget = null; } };
         TrackRows.PointerCaptureLost += (_, _) =>
         {
-            if (_pressedClip is not null || _pressedStrip is not null || _pressedFollow || _pressedKeyframe) CancelGesture();
+            if (_pressedClip is not null || _pressedStrip is not null || _pressedFollow || _pressedKeyframe || _pressedVolume is not null) CancelGesture();
             if (_marqueeStarted) CancelMarquee();
         };
 
@@ -124,7 +129,7 @@ public partial class TimelineView : UserControl
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.Escape && (_viewModel?.IsGestureActive == true || _pressedFollow || _pressedKeyframe))
+        if (e.Key == Key.Escape && (_viewModel?.IsGestureActive == true || _pressedFollow || _pressedKeyframe || _pressedVolume is not null))
         {
             CancelGesture();
             e.Handled = true;
@@ -279,6 +284,24 @@ public partial class TimelineView : UserControl
         _pressedWithToggle = TimelineGestureModifiers.IsToggle(e.KeyModifiers);
         var x = e.GetPosition(ContentRoot).X;
 
+        // D064 §2: on the selected clip, the volume line, a point or a fade handle — before the trim, the slip and the move.
+        if (!_pressedWithToggle && clip.IsSelected && ClipBorderOf(e.Source) is { DataContext: TimelineClipViewModel owner } volumeBorder && owner == clip)
+        {
+            var at = e.GetPosition(volumeBorder);
+            if (e.ClickCount == 2 && _viewModel.VolumeDoubleClick(clip, at.X, at.Y, volumeBorder.Bounds.Height))
+            {
+                e.Handled = true;
+                return;
+            }
+            if (_viewModel.BeginVolumeDrag(clip, at.X, at.Y, volumeBorder.Bounds.Height))
+            {
+                _pressedVolume = volumeBorder;
+                e.Pointer.Capture(TrackRows);
+                e.Handled = true;
+                return;
+            }
+        }
+
         if (edge is { } trimEdge && !_pressedWithToggle)
         {
             _viewModel.BeginTrim(clip, trimEdge, x, ripple: TimelineGestureModifiers.IsRippleTrim(e.KeyModifiers),
@@ -327,6 +350,12 @@ public partial class TimelineView : UserControl
             _viewModel.UpdateFollowDrag(e.GetPosition(ContentRoot).X);
             return;
         }
+        if (_pressedVolume is { } volume)
+        {
+            var at = e.GetPosition(volume);
+            _viewModel.UpdateVolumeDrag(at.X, at.Y, volume.Bounds.Height);
+            return;
+        }
         if (_marqueeStarted || _gestureStarted)
         {
             _pointerViewportX = e.GetPosition(ContentScroll).X;
@@ -341,6 +370,7 @@ public partial class TimelineView : UserControl
         if (!_gestureStarted)
         {
             UpdateStripHover(e);
+            UpdateVolumeHover(e);
             return;
         }
         _viewModel.UpdateGesture(e.GetPosition(ContentRoot).X, TrackAt(e.GetPosition(TrackRows).Y));
@@ -380,6 +410,36 @@ public partial class TimelineView : UserControl
         if (!Equals(ToolTip.GetTip(target), hover.Tip)) ToolTip.SetTip(target, hover.Tip);
     }
 
+    /// <summary>D064 §2: over the selected clip's volume line or a point the vertical cursor, over a fade handle the horizontal
+    /// one, each with its hint — only feedback; the press decides in <c>OnTracksPressed</c>.</summary>
+    private void UpdateVolumeHover(PointerEventArgs e)
+    {
+        if (_viewModel is null) return;
+        Control? target = null;
+        VolumeHit hit = default;
+        if (ClipBorderOf(e.Source) is { DataContext: TimelineClipViewModel { IsSelected: true } clip } border)
+        {
+            var at = e.GetPosition(border);
+            hit = _viewModel.VolumeHitAt(clip, at.X, at.Y, border.Bounds.Height);
+            if (hit.Kind != VolumeHitKind.None) target = border;
+        }
+        if (!ReferenceEquals(target, _volumeHoverTarget) && _volumeHoverTarget is { } previous)
+        {
+            previous.Cursor = null;
+            ToolTip.SetTip(previous, null);
+        }
+        _volumeHoverTarget = target;
+        if (target is null) return;
+        target.Cursor = hit.Kind switch
+        {
+            VolumeHitKind.FadeIn or VolumeHitKind.FadeOut => ResizeCursor,
+            VolumeHitKind.Point => HandCursor,
+            _ => VerticalCursor
+        };
+        var tip = _viewModel.VolumeTip(hit);
+        if (!Equals(ToolTip.GetTip(target), tip)) ToolTip.SetTip(target, tip);
+    }
+
     private void ClearStripHover()
     {
         if (_stripHoverTarget is not { } target) return;
@@ -392,6 +452,13 @@ public partial class TimelineView : UserControl
     {
         if (_viewModel is null) return;
         _autoScroll.Stop();
+        if (_pressedVolume is not null)
+        {
+            _pressedVolume = null;
+            _viewModel.EndVolumeDrag();
+            e.Pointer.Capture(null);
+            return;
+        }
         if (_pressedKeyframe)
         {
             _pressedKeyframe = false;
@@ -492,6 +559,11 @@ public partial class TimelineView : UserControl
         {
             _pressedKeyframe = false;
             _viewModel?.CancelKeyframeDrag();
+        }
+        if (_pressedVolume is not null)
+        {
+            _pressedVolume = null;
+            _viewModel?.CancelVolumeDrag();
         }
         _viewModel?.CancelGesture();
     }

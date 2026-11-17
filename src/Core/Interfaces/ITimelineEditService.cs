@@ -283,7 +283,7 @@ public interface ITimelineEditService
 
     /// <summary>D064 §4: a track's ducking (null: off). Refused for a speech track that is the track itself or is missing,
     /// or values out of range. One Undo step.</summary>
-    TimelineEditResult SetTrackDucking(Guid trackId, Audio.DuckingSettings? ducking);
+    TimelineEditResult SetTrackDucking(Guid trackId, Audio.DuckingSettings? ducking, object? gesture = null);
 
     /// <summary>D064 §1: the master volume (linear 0–2); a gesture's changes merge.</summary>
     TimelineEditResult SetMasterVolume(double volume, object? gesture = null);

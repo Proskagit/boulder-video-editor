@@ -690,6 +690,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
                 VolumePercent = (decimal)audio.Volume * 100m;
                 IsMuted = audio.IsMuted;
             }
+            SyncAudioExtras(_clip);   // D064
             if (VisualProperties.Of(_clip) is { } visual)
             {
                 PositionX = (decimal)visual.PositionX;

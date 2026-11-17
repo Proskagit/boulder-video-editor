@@ -1584,7 +1584,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         return TimelineEditResult.Ok();
     }
 
-    public TimelineEditResult SetTrackDucking(Guid trackId, Core.Audio.DuckingSettings? ducking)
+    public TimelineEditResult SetTrackDucking(Guid trackId, Core.Audio.DuckingSettings? ducking, object? gesture = null)
     {
         if (FindTrack(trackId) is not { } track) return TimelineEditResult.Fail(Messages.Edit_TrackGone);
         if (ducking is not null)
@@ -1595,7 +1595,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         }
         if (track.Ducking == ducking) return TimelineEditResult.Unchanged();
         var before = TrackMix.Of(track);
-        ExecuteTracked(new NotifyingCommand(new SetTrackMixCommand(track, before, before with { Ducking = ducking }),
+        ExecuteTracked(new NotifyingCommand(new SetTrackMixCommand(track, before, before with { Ducking = ducking }, gesture),
             _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok();
     }

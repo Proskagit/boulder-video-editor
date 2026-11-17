@@ -171,6 +171,19 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
 
     public bool HasKeyframes => KeyframeMarkers.Count > 0;
 
+    /// <summary>D064 §2: the clip's volume line (its volume × its points, the sound fades), or null — no sound.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasVolumeLine))]
+    private ClipVolumeShape? _volumeShape;
+
+    public bool HasVolumeLine => VolumeShape is not null;
+
+    /// <summary>The selected clip shows its points and fade handles.</summary>
+    partial void OnIsSelectedChanged(bool value)
+    {
+        if (VolumeShape is { } shape && shape.IsActive != value) VolumeShape = shape with { IsActive = value };
+    }
+
     /// <summary>The template's status may have changed: the mark's colour follows it.</summary>
     public void OnStatusChanged() => OnPropertyChanged(nameof(StatusMarkColorHex));
 
@@ -214,6 +227,9 @@ public sealed partial class TimelineTrackViewModel : ViewModelBase
     [ObservableProperty] private bool _isMuted;
     [ObservableProperty] private bool _isHidden;
     [ObservableProperty] private bool _isLocked;
+
+    /// <summary>D064: the track's mix (volume, solo, ducking) for its header's S button and flyout.</summary>
+    [ObservableProperty] private TrackMixViewModel? _mix;
 
     /// <summary>The owner's acceptance of 2026-11-10: the ghost of a drag from the Media Browser over this track — where the
     /// dropped files would lie (their width at the timeline's scale), marked when the drop would move other clips.

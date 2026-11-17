@@ -24,7 +24,8 @@ public sealed partial class LocalizationGuardTests
     // Literals allowed in AXAML: symbols have no Latin letter and need no entry; these are the technical tokens.
     private static readonly HashSet<string> AxamlAllowed = new(StringComparer.Ordinal)
     {
-        "M"   // the mute button of a track header (as in other editors; its tooltip is translated)
+        "M",  // the mute button of a track header (as in other editors; its tooltip is translated)
+        "S"   // D064: the solo button of a track header and the mixer (as in other editors; its tooltip is translated)
     };
 
     [Fact]

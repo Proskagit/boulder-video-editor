@@ -56,6 +56,8 @@ src/Timeline/Commands/TimelineCommands.cs	Change Volume Points
 src/Timeline/Commands/TimelineCommands.cs	Change Sound Fade
 src/Timeline/Commands/TimelineCommands.cs	Change Sound Clean-up
 src/Timeline/TimelineEditService.cs	Bake Ducking
+src/UI/ViewModels/Panels/TimelineViewModel.Volume.cs	Change Sound Fade
+src/UI/ViewModels/Panels/TimelineViewModel.Volume.cs	Change Volume
 src/Timeline/Commands/TimelineCommands.cs	Unmute Track
 src/Timeline/EditPlan.cs	Update Dissolve
 src/Timeline/MediaRelinkService.cs	Relink Media
