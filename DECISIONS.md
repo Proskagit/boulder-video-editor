@@ -10732,3 +10732,7 @@ moved the whole curve, which is not what is expected on a clip with points. Deci
    points it is the clip's volume, as before. Dragging the line on the timeline still moves the whole curve.
 3. **A wider Inspector**: 360 px by default, at least 340 px (a narrower saved width is widened); the labels 136 px (were 116 px:
    «Шумоподавление» broke onto two lines), the fields' left offset 144 px.
+4. **Follow (the owner's second check)**: inside a followed part a point added on the line becomes that part's keyframe (the part's framing there — nothing moves); a
+   part's keyframe moved in the timeline, the Inspector or the Preview moves its point; a part removed (or Follow switched off)
+   keeps its points (the sound does not change). A change of both the sound and a part is one undo step
+   (`SetSoundAndFollowCommand`; a drag merges).

@@ -305,6 +305,43 @@ public sealed class SetTrackOrderCommand(IReadOnlyList<TrackOrderChange> changes
 /// <summary>One of a track's state flags (D030 §4).</summary>
 public enum TrackStateFlag { Muted, Hidden, Locked, Solo }
 
+/// <summary>
+/// D064 amendment 1: a video clip's sound and its Follow changed together — a volume point and a followed part's keyframe are one
+/// keyframe. One undo step; the steps of one gesture (a drag) merge as their two halves do.
+/// </summary>
+public sealed class SetSoundAndFollowCommand(SetClipPropertiesCommand properties, SetClipFollowCommand follow) : IMergeableCommand
+{
+    public SetClipPropertiesCommand Properties { get; } = properties;
+    public SetClipFollowCommand Follow { get; } = follow;
+
+    public string Description => Properties.Description;
+
+    public void Execute()
+    {
+        Properties.Execute();
+        Follow.Execute();
+    }
+
+    public void Undo()
+    {
+        Follow.Undo();
+        Properties.Undo();
+    }
+
+    public bool TryMerge(IUndoableCommand next, out IUndoableCommand? merged)
+    {
+        merged = null;
+        if (next is not SetSoundAndFollowCommand n || Properties.Gesture is null || !ReferenceEquals(Properties.Gesture, n.Properties.Gesture))
+            return false;
+        if (!Properties.TryMerge(n.Properties, out var props) || !Follow.TryMerge(n.Follow, out var follow)) return false;
+        var p = props as SetClipPropertiesCommand ?? new SetClipPropertiesCommand(Properties.Clip, Properties.Before, Properties.Before, Properties.Fields, Properties.Gesture);
+        var f = follow as SetClipFollowCommand ?? new SetClipFollowCommand(Follow.Clip, Follow.Before, Follow.Before, Follow.Gesture);
+        if (props is null && follow is null) return true;   // the gesture came back to where it started
+        merged = new SetSoundAndFollowCommand(p, f);
+        return true;
+    }
+}
+
 /// <summary>D064 §1: a track's mix — its volume and its ducking.</summary>
 public readonly record struct TrackMix(double Volume, Core.Audio.DuckingSettings? Ducking)
 {

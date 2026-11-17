@@ -1,3 +1,4 @@
+using AiVideoEditor.Core.People;
 using AiVideoEditor.Core.Audio;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
@@ -114,5 +115,69 @@ public class KeyframeVolumeSyncTests
             Audio = AudioProperties.Of(music)!.Value with { Volumes = VolumeEnvelope.Of(new[] { new VolumePoint(Guid.NewGuid(), S(1), 0.5) }) }
         }));
         Assert.Single(music.Volumes!.Points);
+    }
+
+    // --- the owner's second check: the keyframes of a followed part ---------------------------------------------------
+
+    private static (TimelineFixture F, VideoClip Clip) Followed()
+    {
+        var (f, clip) = WithSound();
+        Ok(f.Service.SetClipFollow(clip.Id, FollowSettings.Of(new FollowPart(S(1), S(3)))));
+        return (f, clip);
+    }
+
+    [Fact]
+    public void A_followed_parts_keyframe_brings_its_point_and_moving_it_moves_the_point()
+    {
+        var (f, clip) = Followed();
+        var key = new TransformKeyframe(Guid.NewGuid(), S(2), 10, 0, 1.5);
+        Ok(f.Service.SetClipFollow(clip.Id, clip.Follow!.WithPart(0, clip.Follow.Parts[0] with { Keyframes = TransformKeyframes.Of(new[] { key }) })));
+        var point = Assert.Single(clip.Volumes!.Points);
+        Assert.Equal((key.Id, key.Time, 1.0), (point.Id, point.Time, point.Gain));
+
+        var gesture = new ClipPropertyGesture("Move Keyframe");
+        foreach (var t in new[] { 2.2, 2.4, 2.6 })
+            Ok(f.Service.SetClipFollow(clip.Id, clip.Follow!.WithPart(0, clip.Follow.Parts[0] with
+            {
+                Keyframes = TransformKeyframes.Of(new[] { key with { Time = S(t) } })
+            }), gesture: gesture));
+        Assert.Equal(S(2.6), clip.Volumes!.Points[0].Time);
+        f.UndoRedo.Undo();                                                       // the drag is one step
+        Assert.Equal(S(2), clip.Volumes!.Points[0].Time);
+        Assert.Equal(S(2), clip.Follow!.Parts[0].Keyframes!.Keys[0].Time);
+    }
+
+    [Fact]
+    public void A_point_added_inside_a_followed_part_becomes_that_parts_keyframe()
+    {
+        var (f, clip) = Followed();
+        var inside = new VolumePoint(Guid.NewGuid(), S(2), 0.5);
+        var outside = new VolumePoint(Guid.NewGuid(), S(3.5), 0.7);
+        Ok(f.Service.SetClipProperties(clip.Id, new ClipPropertyChange
+        {
+            Audio = AudioProperties.Of(clip)!.Value with { Volumes = VolumeEnvelope.Of(new[] { inside, outside }) }
+        }));
+        Assert.Equal(inside.Id, Assert.Single(clip.Follow!.Parts[0].Keyframes!.Keys).Id);
+        Assert.Equal(outside.Id, Assert.Single(clip.Keyframes!.Keys).Id);
+
+        // Removing the point removes the part's keyframe; the part keeps its framing static.
+        Ok(f.Service.SetClipProperties(clip.Id, new ClipPropertyChange
+        {
+            Audio = AudioProperties.Of(clip)!.Value with { Volumes = clip.Volumes!.Without(inside.Id) }
+        }));
+        Assert.Null(clip.Follow!.Parts[0].Keyframes);
+        f.UndoRedo.Undo();
+        Assert.NotNull(clip.Follow!.Parts[0].Keyframes);
+        Assert.Equal(2, clip.Volumes!.Count);
+    }
+
+    [Fact]
+    public void Switching_Follow_off_keeps_the_sound()
+    {
+        var (f, clip) = Followed();
+        var key = new TransformKeyframe(Guid.NewGuid(), S(2), 10, 0, 1.5);
+        Ok(f.Service.SetClipFollow(clip.Id, clip.Follow!.WithPart(0, clip.Follow.Parts[0] with { Keyframes = TransformKeyframes.Of(new[] { key }) })));
+        Ok(f.Service.SetClipFollow(clip.Id, null));
+        Assert.Single(clip.Volumes!.Points);                                     // the sound does not change
     }
 }

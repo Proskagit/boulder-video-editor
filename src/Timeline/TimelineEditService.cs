@@ -1651,7 +1651,10 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 }
             var before = ClipPropertyValues.Capture(clip);
             var after = before with { Audio = sound with { Volumes = Core.Audio.VolumeEnvelope.Of(points) } };
-            if (clip is VideoClip synced && HasOwnSound(synced)) after = KeyframeVolumeSync.Sync(synced, before, after);   // amendment 1
+            FollowSettings? followAfter = null;
+            if (clip is VideoClip synced && HasOwnSound(synced)) (after, followAfter) = KeyframeVolumeSync.Sync(before, after, synced.Follow, synced.Follow);   // amendment 1
+            if (clip is VideoClip withFollow && followAfter is not null && !Equals(withFollow.Follow, followAfter))
+                commands.Add(new Commands.SetClipFollowCommand(withFollow, withFollow.Follow, followAfter));
             commands.Add(new SetClipPropertiesCommand(clip, before, after, ClipPropertyValues.Diff(before, after)));
             changed.Add(clip.Id);
         }
@@ -1897,7 +1900,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
             change.Keyframes ?? before.Keyframes);
 
         // D064 amendment 1: a video clip's own keyframes and its volume points are one set of keyframes.
-        if (clip is VideoClip synced && HasOwnSound(synced)) after = KeyframeVolumeSync.Sync(synced, before, after);
+        var followAfter = (clip as VideoClip)?.Follow;
+        if (clip is VideoClip synced && HasOwnSound(synced)) (after, followAfter) = KeyframeVolumeSync.Sync(before, after, synced.Follow, synced.Follow);
 
         // D053: Top / Attempt chosen where the status moment gives no lilac is put where the layout puts it.
         if (clip is TemplateClip placed && after.Template is { } wanted && before.Template is { } had)
@@ -1910,7 +1914,11 @@ public sealed partial class TimelineEditService : ITimelineEditService
             return TimelineEditResult.Fail(overlap);
 
         var command = new SetClipPropertiesCommand(clip, before, after, fields, change.Gesture);
-        ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
+        // Amendment 1: a point inside a followed part is that part's keyframe — the sound and the Follow in one step.
+        IUndoableCommand step = clip is VideoClip followed && !Equals(followed.Follow, followAfter)
+            ? new SetSoundAndFollowCommand(command, new Commands.SetClipFollowCommand(followed, followed.Follow, followAfter, change.Gesture))
+            : command;
+        ExecuteTracked(new NotifyingCommand(step, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(new[] { clip.Id });
     }
 

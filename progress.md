@@ -2,6 +2,10 @@
 
 ## Current phase
 
+**Phase 45 — amendment 1, second round (2026-11-17).** The keyframes of a followed part (the cyan diamonds) are tied to the volume
+points too: a part's keyframe brings, moves and removes its point; a point added inside a part becomes the part's keyframe; Follow
+off keeps the points; a change of the sound and a part is one undo step (`SetSoundAndFollowCommand`, a drag merges). Manual row G9.
+Gates: Debug and Release `-warnaserror` 0 / 0; every suite green (Timeline 1 194, UI 1 269, others as above). Portable build 0.45.2.
 **Phase 45 — amendment 1 after the owner's first check (D064 am. 1, 2026-11-17).** A video clip's own transform keyframes and its
 volume points are one set (added, moved, removed together; `KeyframeVolumeSync` in the edit service); an audio clip's keyframes are
 its volume points (the tool bar's «Ключ. кадр», diamonds, drag, Delete); points on frames; «Сбросить точки»; the Inspector's
