@@ -2,6 +2,13 @@
 
 ## Current phase
 
+**Phase 45 — amendment 1 after the owner's first check (D064 am. 1, 2026-11-17).** A video clip's own transform keyframes and its
+volume points are one set (added, moved, removed together; `KeyframeVolumeSync` in the edit service); an audio clip's keyframes are
+its volume points (the tool bar's «Ключ. кадр», diamonds, drag, Delete); points on frames; «Сбросить точки»; the Inspector's
+«Громкость» with points shows the playhead's value and raises the whole segment around it; the Inspector 360 px by default (at least
+340 px), labels 136 px. Manual rows G1–G8. Gates (2026-11-17): Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff
+--check` clean; Debug and Release every suite green — Core 1 913, Timeline 1 191, Project 749, Rendering 257, UI 1 269, Export 142,
+Vision 24, Video 411 + 1 skipped, ExportEndToEnd 186 + 3 skipped (heavy 4K). Portable build 0.45.1 for the owner's check.
 **Phase 45 — Audio editing, mixing and clean-up (D064, 2026-11-17) — on `feat/phase-45-audio-mixing`.** Track volume / solo /
 ducking and a master volume; volume points (source time, relative to the clip's volume) with the line, points and fade handles on
 the timeline; a video clip's sound-only fades; noise reduction (FFmpeg `afftdn`, its 1 200-sample delay compensated) and voice
