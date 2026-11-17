@@ -79,7 +79,8 @@ public sealed class MainWindowViewModel : ViewModelBase
         TrainingSessionService? training = null,
         ExportWorkflow? export = null,
         IDialogService? dialogs = null,
-        PeopleAnalysisCoordinator? people = null)
+        PeopleAnalysisCoordinator? people = null,
+        AudioProcessingCoordinator? audioProcessing = null)
     {
         _export = export;
         _dialogs = dialogs;
@@ -181,6 +182,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         // Phase 35 (D050 amendment B4): the clip's training readout follows the playhead.
         Inspector.Training = training;
         WirePeople(people);
+        Inspector.AudioProcessing = audioProcessing;   // D064: the clean-up's state in «Звук»
         Timeline.PlayheadChanged += (_, _) => Inspector.OnPlayheadMoved();
         Inspector.GoToKeyframe = direction => Timeline.GoToKeyframe(direction);
         Timeline.SeekRequested += (_, position) => Preview.Seek(position);

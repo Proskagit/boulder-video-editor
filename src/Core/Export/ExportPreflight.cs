@@ -63,7 +63,18 @@ public enum ExportIssueKind
     FollowUnavailable,
     /// <summary>D061: a clip's outlines cannot be hidden behind people (no GPU, no model, the analysis failed): they are
     /// exported drawn over the people — a warning.</summary>
-    OcclusionUnavailable
+    OcclusionUnavailable,
+    /// <summary>D064 §5: a clip's sound clean-up is still being processed (or was stopped): the export waits, so it mixes what
+    /// the Preview plays.</summary>
+    AudioCleanupPending,
+    /// <summary>D064 §5: a clean-up failed (no model, a decode error): the clip is exported with its original sound — a warning.</summary>
+    AudioCleanupUnavailable,
+    /// <summary>D064 §4: the speech a ducked track listens to is still being analysed: the export waits.</summary>
+    DuckingPending,
+    /// <summary>D064 §4: the ducking can't be computed (no speech model, a failure): the track is exported unducked — a warning.</summary>
+    DuckingUnavailable,
+    /// <summary>D064 §1: a track is solo — only the solo tracks sound in the export too (a warning, so it is never a surprise).</summary>
+    SoloActive
 }
 
 /// <summary>D061: the people analyses the export draws with (the Preview's own), the assets whose analysis has not finished
@@ -118,6 +129,9 @@ public sealed record ExportPreflightEnvironment(
     /// <summary>D061: the people analyses (Follow, Occlusion); none — every clip with its own framing and outlines over all.</summary>
     public ExportPeople People { get; init; } = ExportPeople.None;
 
+    /// <summary>D064: the cleaned sounds and the speech (the Preview's own); none — every clip's original sound, no ducking.</summary>
+    public Core.Audio.ExportAudioAnalyses Audio { get; init; } = Core.Audio.ExportAudioAnalyses.None;
+
     public static ExportPreflightEnvironment Default(bool encoderAvailable, Func<string, bool> isFontInstalled) =>
         new(encoderAvailable, isFontInstalled, File.Exists, Directory.Exists);
 }
@@ -156,7 +170,7 @@ public static class ExportPreflight
         ArgumentNullException.ThrowIfNull(environment);
 
         var snapshot = PlaybackSnapshotBuilder.Build(project, version: 0, environment.CameraMotion.Tracks, environment.HeartRateDisplayOffset,
-            environment.People.Analyses);
+            environment.People.Analyses, environment.Audio.Analyses);
         var issues = new List<ExportIssue>();
 
         if (snapshot.Duration <= MediaTime.Zero)
@@ -199,6 +213,7 @@ public static class ExportPreflight
         CheckFonts(snapshot, environment, issues, window);
         CheckHeartRate(project, snapshot, issues, window);
         CheckPeople(project, snapshot, environment, issues, window);
+        CheckAudio(project, snapshot, environment, issues, window);
 
         var ordered = issues.OrderBy(i => i.Severity).ToImmutableArray();
         var job = ordered.Any(i => i.Severity == ExportIssueSeverity.Error)
@@ -471,6 +486,47 @@ public static class ExportPreflight
                 string.Format(Messages.Preflight_HoldTrackingUnreliable, Name(group.Key), Clips(group), group.Min(s => s.TimelineStart),
                     Math.Max(1, (int)Math.Round(share * 100)))), group));
         }
+    }
+
+    /// <summary>
+    /// D064: a clean-up of a clip heard in the output that is still processed (or stopped) blocks — the export waits, as for
+    /// Follow; a failed one is a warning (the original sound, as the Preview plays it); so are a pending and a failed ducking of
+    /// a track heard in the output; and a solo track (only the solo tracks are exported, like the Preview plays them).
+    /// </summary>
+    private static void CheckAudio(Project project, PlaybackSnapshot snapshot, ExportPreflightEnvironment env, List<ExportIssue> issues, Window window)
+    {
+        var assets = project.MediaAssets.ToDictionary(a => a.Id);
+        string Name(Guid assetId) => assets.GetValueOrDefault(assetId)?.FileName ?? Messages.Preflight_MediaNotInProject;
+        var audible = snapshot.AudioSpans.Where(s => s.Status == SpanStatus.Audio && s.EffectiveGain > 0 && window.Plays(AudioPlacement.Of(s))).ToList();
+        var audio = env.Audio;
+
+        foreach (var group in audible.Where(s => Core.Audio.AudioCleanup.Normalize(s.Cleanup) is not null)
+                     .GroupBy(s => (s.AssetId, Cleanup: Core.Audio.AudioCleanup.Normalize(s.Cleanup)!.Value)).OrderBy(g => g.Min(s => s.TimelineStart)))
+        {
+            var ids = group.OrderBy(s => s.TimelineStart).Select(s => s.ClipId).Distinct().ToImmutableArray();
+            var clips = Plural.Format(ids.Length, Messages.Plural_Clips);
+            if (audio.PendingCleanups.Contains(group.Key))
+                issues.Add(new ExportIssue(ExportIssueSeverity.Error, ExportIssueKind.AudioCleanupPending,
+                    string.Format(Messages.Preflight_AudioCleanupPending, Name(group.Key.AssetId), clips)) { AssetId = group.Key.AssetId, ClipIds = ids });
+            else if (audio.FailedCleanups.TryGetValue(group.Key, out var failed))
+                issues.Add(new ExportIssue(ExportIssueSeverity.Warning, ExportIssueKind.AudioCleanupUnavailable,
+                    string.Format(Messages.Preflight_AudioCleanupFailed, Name(group.Key.AssetId), clips, failed)) { AssetId = group.Key.AssetId, ClipIds = ids });
+        }
+
+        var tracks = project.Timeline.VideoTracks.Concat(project.Timeline.AudioTracks).ToList();
+        var heard = audible.Select(s => s.ClipId).ToHashSet();
+        foreach (var track in tracks.Where(t => t.Ducking is not null && t.Clips.Any(c => heard.Contains(c.Id))))
+        {
+            if (audio.PendingDucking.Contains(track.Id))
+                issues.Add(new ExportIssue(ExportIssueSeverity.Error, ExportIssueKind.DuckingPending, string.Format(Messages.Preflight_DuckingPending, track.Name)));
+            else if (audio.FailedDucking.TryGetValue(track.Id, out var failed))
+                issues.Add(new ExportIssue(ExportIssueSeverity.Warning, ExportIssueKind.DuckingUnavailable,
+                    string.Format(Messages.Preflight_DuckingFailed, track.Name, failed)));
+        }
+
+        var solo = tracks.Where(t => t.IsSolo).Select(t => t.Name).ToList();
+        if (solo.Count > 0)
+            issues.Add(new ExportIssue(ExportIssueSeverity.Warning, ExportIssueKind.SoloActive, string.Format(Messages.Preflight_SoloActive, string.Join(", ", solo))));
     }
 
     /// <summary>D061: Follow and Occlusion of the clips that reach the output — a running (or stopped) people analysis blocks

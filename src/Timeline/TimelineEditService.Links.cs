@@ -46,8 +46,14 @@ public sealed partial class TimelineEditService
             // AQ8: a muted video track played the sound silent; the audio clip stays silent.
             IsMuted = video.IsMuted || videoTrack.IsMuted,
             FadeIn = TransitionRules.Frames(video.FadeIn, rate) == fadeIn ? video.FadeIn : MediaTime.FromFrame(fadeIn, rate),
-            FadeOut = TransitionRules.Frames(video.FadeOut, rate) == fadeOut ? video.FadeOut : MediaTime.FromFrame(fadeOut, rate)
+            FadeOut = TransitionRules.Frames(video.FadeOut, rate) == fadeOut ? video.FadeOut : MediaTime.FromFrame(fadeOut, rate),
+            // D064 §1: the volume points and the clean-up go with the sound.
+            Volumes = video.Volumes,
+            Cleanup = video.Cleanup
         };
+        // D064 §1: a sound-only fade becomes the audio clip's fade — the longer of the two on an edge.
+        if (TransitionRules.Frames(video.SoundFadeIn, rate) > TransitionRules.Frames(sound.FadeIn, rate)) sound.FadeIn = video.SoundFadeIn;
+        if (TransitionRules.Frames(video.SoundFadeOut, rate) > TransitionRules.Frames(sound.FadeOut, rate)) sound.FadeOut = video.SoundFadeOut;
         ClipState.Capture(video).ApplyTo(sound);
 
         // AQ8: the first audio track that takes the sound as it is heard now — unlocked, not muted, free over the clip —

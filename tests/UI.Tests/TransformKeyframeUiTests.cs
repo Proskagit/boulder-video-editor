@@ -408,4 +408,50 @@ public sealed class TransformKeyframeUiTests : IAsyncLifetime
         Assert.Equal(2, clip.Keyframes!.Count);
         Assert.Equal(120, clip.Keyframes.Keys[1].X);
     }
+
+    // --- D064 amendment 1: the same keyframes on sound ---------------------------------------------------------------
+
+    [Fact]
+    public void On_an_audio_clip_the_button_adds_a_volume_keyframe_with_a_diamond_and_Delete_removes_it()
+    {
+        var asset = new MediaAsset
+        {
+            FilePath = Path.Combine(_root, "media", "music.wav"), Kind = MediaKind.Audio, AnalysisStatus = MediaAnalysisStatus.Completed,
+            Metadata = new MediaMetadata { Duration = MediaTime.FromSeconds(10), AudioCodec = "pcm" }
+        };
+        _projects.AddMediaAssets(new[] { asset });
+        Timeline.AddMedia(asset);
+        var clip = _projects.Current.Timeline.AudioTracks.SelectMany(t => t.Clips).OfType<AudioClip>().Single();
+        Timeline.SelectClipFromPreview(clip.Id);
+        Timeline.SetPlayhead(F(25));
+
+        Assert.True(Timeline.ToggleKeyframeCommand.CanExecute(null));
+        Timeline.ToggleKeyframeCommand.Execute(null);
+        var point = Assert.Single(clip.Volumes!.Points);
+        Assert.Equal(1, point.Gain);                                              // the line's value: nothing changes yet
+        var marker = Assert.Single(ClipVm(clip).KeyframeMarkers);
+        Assert.Equal(point.Id, marker.Id);
+
+        Timeline.ToggleKeyframeCommand.Execute(null);                             // a second press on the same frame removes it
+        Assert.Null(clip.Volumes);
+        Assert.Empty(ClipVm(clip).KeyframeMarkers);
+
+        Timeline.ToggleKeyframeCommand.Execute(null);
+        Assert.True(Timeline.BeginKeyframeDrag(ClipVm(clip), ClipVm(clip).KeyframeMarkers[0], 0));
+        Timeline.EndKeyframeDrag();
+        Timeline.DeleteSelectedCommand.Execute(null);
+        Assert.Null(clip.Volumes);
+        Assert.Single(_projects.Current.Timeline.AudioTracks[0].Clips);          // the clip stays
+    }
+
+    [Fact]
+    public void On_a_video_clip_with_sound_the_keyframe_brings_its_volume_point()
+    {
+        var clip = AddVideo();
+        _projects.Current.MediaAssets.Single().Metadata!.AudioCodec = "aac";
+        Timeline.ToggleKeyframeCommand.Execute(null);
+        var key = Assert.Single(clip.Keyframes!.Keys);
+        var point = Assert.Single(clip.Volumes!.Points);
+        Assert.Equal((key.Id, key.Time), (point.Id, point.Time));
+    }
 }

@@ -129,6 +129,19 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPeopleVision>(sp => new AiVideoEditor.Vision.People.OnnxPeopleVision(
             Path.Combine(AppPaths.ModelsFolder, AiVideoEditor.Vision.People.PeopleModel.FolderName),
             sp.GetService<Microsoft.Extensions.Logging.ILogger<AiVideoEditor.Vision.People.OnnxPeopleVision>>()));
+        // D064 §4–§5: the audio models (DeepFilterNet3, Silero VAD) from the user's models folder, the clean-up processor, the cache.
+        services.AddSingleton(sp => new AiVideoEditor.Vision.Audio.DeepFilterNetEnhancer(
+            Path.Combine(AppPaths.ModelsFolder, AiVideoEditor.Vision.Audio.AudioModel.FolderName),
+            sp.GetService<Microsoft.Extensions.Logging.ILogger<AiVideoEditor.Vision.Audio.DeepFilterNetEnhancer>>()));
+        services.AddSingleton(sp => new AiVideoEditor.Vision.Audio.SileroSpeechModel(
+            Path.Combine(AppPaths.ModelsFolder, AiVideoEditor.Vision.Audio.AudioModel.FolderName),
+            sp.GetService<Microsoft.Extensions.Logging.ILogger<AiVideoEditor.Vision.Audio.SileroSpeechModel>>()));
+        services.AddSingleton<Core.Audio.IAudioCleanupService>(sp => new AiVideoEditor.Media.Audio.AudioCleanupProcessor(
+            sp.GetRequiredService<IAudioDecoder>(), sp.GetRequiredService<AiVideoEditor.Vision.Audio.DeepFilterNetEnhancer>(),
+            sp.GetRequiredService<AiVideoEditor.Vision.Audio.SileroSpeechModel>(),
+            sp.GetService<Microsoft.Extensions.Logging.ILogger<AiVideoEditor.Media.Audio.AudioCleanupProcessor>>()));
+        services.AddSingleton<Core.Audio.IAudioAnalysisCache>(sp => new AudioAnalysisCacheStore(AppPaths.AudioCacheFolder,
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<AudioAnalysisCacheStore>>()));
         // Phase 31 (D047): automatic hold proposals at 1920×1080 and full-resolution refinement of accepted proposals.
         services.AddSingleton<IHoldProposalService, HoldProposalService>();
         services.AddSingleton<IHoldProposalGenerator, HoldProposalGenerator>();
@@ -146,6 +159,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ThumbnailCoordinator>();
         services.AddSingleton<CameraMotionCoordinator>();   // hold tracking (R2 → E): camera motion of clips with holds
         services.AddSingleton<PeopleAnalysisCoordinator>();   // D061: the people of videos with Follow / Occlusion
+        services.AddSingleton<AudioProcessingCoordinator>();  // D064: the clean-ups and the speech of the ducking
         services.AddSingleton<WaveformCoordinator>();
         services.AddSingleton<MediaAvailabilityMonitor>();
         services.AddSingleton<MediaImportWorkflow>();

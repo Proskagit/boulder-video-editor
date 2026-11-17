@@ -10578,3 +10578,161 @@ snapping during a crop; the heart-rate overlay avoiding a plate of another clip'
   in its corner, at the plate's side margin (a plate bottom left and the heart rate bottom right on one line).
 - **Portrait bottom margin** of the plate 260 → 176 units (about one plate's height nearer the edge), with the heart rate
   above it when they share the corner.
+
+## D064 — Phase 45: Audio editing, mixing and clean-up — track volume / Solo / master, the volume line and its points on the timeline, sound fades, ducking, noise reduction and voice enhancement *(set by the owner's task of 2026-11-17; implemented 2026-11-17)*
+
+Date: 2026-11-17. **Status: the scope set by the product owner on 2026-11-17** (the Phase 45 task «полноценная система
+аудиомонтажа и обработки звука», parts 1–17). It **supersedes D032 L7** (ducking, volume automation and a mixer were out of
+scope of Phase 17) and **refines D013 / D023's mix rule** (§3). D025 stays: a clip's fade still fades its picture and its
+own sound together; the sound-only fades of §2 are added to it. Implemented on `feat/phase-45-audio-mixing`. `project.json`
+**v25**. Manual plan: `docs/PHASE45_MANUAL_TEST_PLAN.md`; feature documentation, models, licences and the benchmark:
+`docs/PHASE45_AUDIO.md`; the models also in `docs/AI_MODEL.md`, "Audio models".
+
+### 0. What already existed (inspected before building, not duplicated)
+
+Several audio tracks; audio import (any format ffprobe reads); moving, trimming, Split at the playhead, Delete / Undo of audio
+clips (D008, D027, D030); a clip's volume 0–200 % and mute (D013 Step 4); a track's mute (D030 §4); D025 fades; D032 unlink /
+link of a video's sound, J / L cuts, crossfades; the waveform (D024); one mixer for the Preview and the export (`AudioMix`,
+D023). The timeline's tracks are 44 px high, the clips 36 px.
+
+### 1. The model (format v25)
+
+- `Track.Volume` (linear, 0–2, default 1) and `Track.IsSolo` on **every** track — a video track's are those of its clips' own
+  sound. `Sequence.MasterVolume` (0–2, default 1): the project's master.
+- **Solo**, a track's **volume** and its **ducking** are monitoring / mix state like mute (a locked track takes them, D030 Q13;
+  the lock protects the clips). Deleting a track turns off the ducking of every track listening to it in the same step, a locked
+  one included (a dangling reference would make the file damaged; Undo brings it back). «Закрепить в точки» writes clips, so it is
+  refused on a locked track; it keeps a clip's points outside its used range as they are. While any track is solo, only the solo tracks
+  sound — in the Preview **and in the export** (the same snapshot; the preflight warns «включено Solo»). A muted track stays
+  silent even when solo.
+- `VolumeEnvelope` — the clip's **volume points** `VolumePoint(Id, Time, Gain)`: immutable, sorted, distinct times and ids,
+  ≥ 1 point, `Gain` linear 0–2. **Time is the clip's source time** (D063's rule): a move, Trim, Slip and Speed keep every
+  point on the same sound; points outside the used range are kept (a trim back shows them again). On `VideoClip` (its own
+  sound) and `AudioClip`: `Volumes`, null = none.
+- `VideoClip.SoundFadeIn` / `SoundFadeOut`: the fades of the video clip's **sound only** (whole frames, clamped to the clip, as
+  D025). An `AudioClip`'s sound fades are its D025 `FadeIn` / `FadeOut` (an audio clip has no picture), so the timeline's fade
+  handles edit those.
+- `AudioCleanup(NoiseReduction, VoiceEnhancement)` — two strengths 0–100 (0 = off) on `VideoClip` (its own sound, without an
+  unlink — part 4 / 7.5) and `AudioClip`: `Cleanup`, null = none.
+- `DuckingSettings(SpeechTrackId, DepthDb, AttackMs, ReleaseMs, Sensitivity)` on a track (`Track.Ducking`, null = off): the
+  track is lowered while a speech is detected on `SpeechTrackId` (another track, any kind). Depth −3…−40 dB (default −15),
+  attack 0–2000 ms (default 250), release 50–3000 ms (default 600), sensitivity 0–100 (default 50).
+- Split: both parts get the clip's volume points, cleanup and (D025) its fades on the outer edges only; the sound at the cut
+  does not change (the points are evaluated in source time). Duplicate / Copy / Paste copy them. Unlink Audio (D032 R3) gives
+  the new audio clip the video clip's points and cleanup; its D025 fade, combined with the sound fade on the same edge, becomes
+  the longer of the two (the one documented difference of R3's byte-equality).
+- Format v25 writes the new fields only when set (a v24 project saved again differs only in `formatVersion`); loading
+  validates them (damaged = the whole file refused, D014); a `SpeechTrackId` naming a missing track or the track itself is
+  damaged.
+
+### 2. Editing on the timeline (part 5)
+
+- **The volume line** inside an audio clip and a video clip with sound: its height is the clip's gain × the points' curve in
+  the clip's sound area — all of an audio clip, the lower (waveform) half of a video clip: 0 at its bottom, 100 % at its middle,
+  200 % at its top. Every clip with sound shows it as a thin line (the volume at a glance); the selected clip brighter, with its
+  points and the fade handles, which only it takes (hover: the cursor and a hint); never on a clip without sound.
+- **Drag the line** (no point under the pointer): the clip's `Volume` changes (with points: the whole curve moves with it — the
+  points are relative to the clip's volume); the gain in dB is shown while dragging. One undo step per drag.
+- **Double click on the line** adds a point there (the line's value at that time, so nothing changes until it is dragged);
+  **a drag of a point** moves it in time (between its neighbours) and in value; **double click on a point** or **Delete** with a
+  point selected removes it. The last point removed — the curve is gone (the clip's volume stays).
+- **Fade handles**: a small square at the top corners of the clip; dragging it inward sets the fade's length (whole frames,
+  at most the clip), the fade's area is shaded and its length shown while dragging. On an audio clip: `FadeIn` / `FadeOut`; on
+  a video clip: `SoundFadeIn` / `SoundFadeOut`. The Inspector's «Звук» section has the exact values (the existing pattern).
+- Esc, a lost pointer or the export's editing lock cancel a drag. Every change is one `SetClipProperties` (the `Audio` group
+  grows: volume, mute, points, sound fades, cleanup) — Undo / Redo as every property edit.
+- **The track header**: M, **S** (solo, yellow), and a **volume** button opening a flyout: the track's volume (dB), Ducking
+  (on / off, the speech track, depth, attack, release, sensitivity, «Закрепить в точки» — §4). The tool bar's **«Микшер»**:
+  the master and every track's volume, M and S in one flyout. Each change is one undo step (a slider's drag merges).
+
+### 3. The mix (parts 8–10) — one rule for the Preview and the export
+
+Per span and timeline sample `k`:
+`g(k) = master × track × clip volume × points(source time of k) × D025 fade(k) × sound fade(k) × crossfade(k) × ducking(k)`;
+the spans are summed in snapshot order and the sum passes a **stateless soft clip**: `|x| ≤ 0.891` (−1 dBFS) unchanged, above
+it `t + (1 − t)·tanh((|x| − t)/(1 − t))` with its sign (`t` = 0.891) — continuous with slope 1 at the knee and never reaching
+1, so the output never clips and a sum below −1 dBFS is bit for bit D013's. It replaces D013's clamp. Being per sample it gives
+the same output wherever playback starts (no limiter state: the task's «лимитер как отдельный эффект» stays out).
+- **Points**: between two points the gain moves in dB, `10^(lerp(dBa, dBb, f)/20)` (an even, predictable fade); a segment with
+  a 0 end moves linearly in amplitude. Before the first point its value, after the last the last's.
+- Changing a volume, a point, a fade, mute, solo, a track's volume or the master is mix-only (`DiffersOnlyInPresentation`): no
+  decoder restarts, applied within one device buffer (no click: the gain is per sample, a new curve takes over at the mixer's
+  write position).
+
+### 4. Ducking (part 6.1)
+
+- **Detection**: Silero VAD v5 (MIT, ONNX, CPU) on each audible clip of the speech track — its source's sound (the cleaned
+  sound when the clip has a cleanup), resampled to 16 kHz, 32 ms windows. The probabilities are cached per source file and
+  cleanup (§5); the clips map them to the timeline. A window is speech when its probability ≥ `0.85 − 0.6·sensitivity/100`;
+  speech shorter than 150 ms is dropped, gaps shorter than 300 ms are closed.
+- **The curve** (closed form, so the same at any start): for each speech interval `[a, b)` the gain is `depth` inside, moves
+  from 0 dB at `a − attack` to `depth` at `a` (the sound is already down when the speech starts — the analysis looks ahead) and
+  back from `b` to `b + release`, linearly in dB; overlapping intervals take the lowest gain. Applied to every span of the
+  ducked track, multiplied with its clips' own points — **manual automation is never changed**.
+- **Manual correction**: the points stay editable over the ducking; **«Закрепить в точки»** writes the curve into the ducked
+  track's clips' points (multiplied with theirs, sampled at the curve's corners) and turns the ducking off — one undo step.
+- Without the model, ducking is unavailable with a message (the track and the export say so: the export warns and mixes
+  without it, like the Preview).
+
+### 5. Noise reduction and voice enhancement (part 7) — non-destructive, cached, the same in the Preview and the export
+
+- **Two tools, named so the user knows which is which**: «Шумоподавление» — steady noise (hall, ventilation, hum, hiss, wind
+  rumble): FFmpeg `highpass` (40 Hz, + 80 Hz from strength 60) and `afftdn` (noise tracking on, `nr` = 4 + 0.2·strength dB,
+  at most 24 dB, the noise floor −50 dB) — DSP, no model, no artefacts by its limit. «Улучшение речи» — the voice separated
+  from the background (noise, music, the hall): DeepFilterNet3 (MIT / Apache-2.0, a 16 MB streaming ONNX, 48 kHz, CPU), its
+  output blended with the dry sound delayed by the model's 1 440 samples: `wet·s + dry·(1 − s)`, `s` = strength/100 (the
+  model's own attenuation limit mixes without the delay — a comb filter — and is not used). The model is mono: the voice is
+  the mid of the channels, in both channels; the dry part keeps the stereo.
+- Reverb reduction, wind as a separate tool, impulse noise: not built separately (DeepFilterNet reduces some reverb and wind;
+  a dedicated model brought no proven gain worth its size — `docs/PHASE45_AUDIO.md`).
+- **Processing**: the whole source file once per cleanup setting (decoded by the D013 decoder from sample 0, NR as the
+  decoder's filter, the voice model in 30 s chunks with a 1 s overlap processed in parallel on the CPU — deterministic) into a
+  48 kHz stereo float WAV aligned to the source's sample 0 in `%LOCALAPPDATA%\AiVideoEditor\cache\audio` (never the project;
+  the key: the file's content fingerprint, the settings, the algorithm version; least recently used removed above 4 GB). Every
+  clip of the file with the same setting (both parts of a split) shares it. The source file is never changed.
+- The snapshot plays a cleaned clip from that file (the same placement, D013 / D022); until it is ready — the original, with
+  «Обработка N %» in the Inspector (not on the timeline clip — the clip stays uncluttered); a failure (no model, decode error) — the original with the message. The
+  export **blocks while a cleanup it needs is still running** and warns for a failed one (the Preview's sound either way).
+  Progress, cancel and retry as D061 §5 (`AudioProcessingCoordinator`).
+- **Compare** («Исходный звук», the Inspector): while held on, the Preview plays every clip's original sound — never saved,
+  never exported.
+
+### 6. Consequences
+
+- `AudioMix` gains the per-sample gain curve and the soft clip; the Preview's mixer and the export call it as before.
+- `IAudioDecoder` requests gain an optional `Filter` (an FFmpeg audio filter after the placement's `ashowinfo`, so the sample
+  positions stay exact). `afftdn` keeps the sample count but delays its raw output by a constant 1 200 samples at 48 kHz (half
+  its 50 ms window, measured with FFmpeg 9.0.1): the filter pads 1 200 samples after the source and the processor drops 1 200 at
+  the start — aligned to ±1 sample, guarded by `AudioCleanupIntegrationTests`.
+- The audio models live in the Vision project (it already ships ONNX Runtime and the pinned-model check); the processor in
+  Media, the contracts in Core, the coordinator in UI. No new package.
+- Out of scope (part 13): equaliser, compressor, a limiter as an effect, transcription, subtitles, translation, voice
+  generation and cloning, music generation.
+
+### D064 amendment 1 — the owner's check of 2026-11-17: one set of keyframes for picture and sound; the Inspector's volume by segment; a wider Inspector
+
+The owner's acceptance run (2026-11-17): volume, fades, noise reduction and voice enhancement work; the Inspector's «Громкость»
+moved the whole curve, which is not what is expected on a clip with points. Decided by the owner the same day:
+
+1. **One set of keyframes on every clip.** On a video clip with its own sound the clip's transform keyframes (D063 — not a
+   followed part's) and its volume points are one set: the same ids at the same source times. Adding a keyframe (the button, the
+   Preview, the Inspector) adds its volume point (the curve's gain there — nothing is heard differently); a point added on the line
+   adds a keyframe (the picture's position and scale there and the easing of the segment it splits — nothing moves); moving or
+   removing either does the same to the other; the last one removed leaves its values static (the picture keeps its place, the
+   sound's gain goes into the clip's volume). An edit that changes both (Undo, Redo, a cancel) is taken as it is. The rule is the
+   edit service's (`KeyframeVolumeSync`, applied in `SetClipProperties` and «Закрепить в точки»), so every path follows it. On an
+   **audio clip** the keyframes are its volume points: the tool bar's «Ключ. кадр» adds one on the playhead's frame (the line's
+   value) or removes the one there, amber diamonds along the clip's top select (the playhead goes to it), drag along the frames
+   and Delete — the same rules as D063 §2. Points are always on frames (a point added or dragged on the line lands on the frame
+   under the pointer). «Удалить точки» became «Сбросить точки»: an audio clip's points are removed; a video clip's are reset to
+   100 % (its keyframes, its picture, stay). No format change (v25 already stores both).
+2. **The Inspector's «Громкость» with points** shows what plays on the playhead's frame (the clip's volume × the curve) and, set,
+   changes: on a keyframe's frame that point; between two points **the whole segment** — both its points scaled alike, so the
+   segment reaches the value everywhere (the curve is even in dB); before the first / after the last that edge point. Without
+   points it is the clip's volume, as before. Dragging the line on the timeline still moves the whole curve.
+3. **A wider Inspector**: 360 px by default, at least 340 px (a narrower saved width is widened); the labels 136 px (were 116 px:
+   «Шумоподавление» broke onto two lines), the fields' left offset 144 px.
+4. **Follow (the owner's second check)**: inside a followed part a point added on the line becomes that part's keyframe (the part's framing there — nothing moves); a
+   part's keyframe moved in the timeline, the Inspector or the Preview moves its point; a part removed (or Follow switched off)
+   keeps its points (the sound does not change). A change of both the sound and a part is one undo step
+   (`SetSoundAndFollowCommand`; a drag merges).

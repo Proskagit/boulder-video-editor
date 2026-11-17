@@ -493,4 +493,49 @@ public class ExportPreflightTests
 
         Assert.DoesNotContain(Check().Issues, i => i.Kind == ExportIssueKind.HdrNotConverted);
     }
+
+    // --- D064: the audio clean-up, the ducking and solo ------------------------------------------------------------
+
+    private ExportPreflightResult CheckAudio(AiVideoEditor.Core.Audio.ExportAudioAnalyses audio) =>
+        ExportPreflight.Check(_project, Output, new ExportPreflightEnvironment(
+            _encoderAvailable, _fonts.Contains, path => !_missingFiles.Contains(path), _folders.Contains) { Audio = audio });
+
+    [Fact]
+    public void A_pending_clean_up_blocks_a_failed_one_warns_and_solo_warns()
+    {
+        var music = Asset(MediaKind.Audio);
+        var cleanup = new AiVideoEditor.Core.Audio.AudioCleanup(40, 0);
+        var clip = Add(_a1, new AudioClip { MediaAssetId = music.Id, Cleanup = cleanup }, 0, 50);
+        var none = AiVideoEditor.Core.Audio.ExportAudioAnalyses.None;
+
+        var pending = CheckAudio(none with { PendingCleanups = new HashSet<(Guid, AiVideoEditor.Core.Audio.AudioCleanup)> { (music.Id, cleanup) } });
+        var issue = Only(pending, ExportIssueKind.AudioCleanupPending);
+        Assert.Equal(ExportIssueSeverity.Error, issue.Severity);
+        Assert.Equal(new[] { clip.Id }, issue.ClipIds);
+        Assert.Null(pending.Job);
+
+        var failed = CheckAudio(none with { FailedCleanups = new Dictionary<(Guid, AiVideoEditor.Core.Audio.AudioCleanup), string> { [(music.Id, cleanup)] = "x" } });
+        Assert.Equal(ExportIssueSeverity.Warning, Only(failed, ExportIssueKind.AudioCleanupUnavailable).Severity);
+        Assert.NotNull(failed.Job);
+
+        clip.IsMuted = true;                                                             // not heard: nothing to wait for
+        Assert.DoesNotContain(CheckAudio(none with { PendingCleanups = new HashSet<(Guid, AiVideoEditor.Core.Audio.AudioCleanup)> { (music.Id, cleanup) } }).Issues,
+            i => i.Kind == ExportIssueKind.AudioCleanupPending);
+
+        clip.IsMuted = false;
+        _a1.IsSolo = true;
+        Assert.Equal(ExportIssueSeverity.Warning, Only(CheckAudio(none), ExportIssueKind.SoloActive).Severity);
+    }
+
+    [Fact]
+    public void A_pending_ducking_of_a_heard_track_blocks_the_export()
+    {
+        var music = Asset(MediaKind.Audio);
+        Add(_a1, new AudioClip { MediaAssetId = music.Id }, 0, 50);
+        _a1.Ducking = AiVideoEditor.Core.Audio.DuckingSettings.Default(_v1.Id);
+        var result = CheckAudio(AiVideoEditor.Core.Audio.ExportAudioAnalyses.None with { PendingDucking = new HashSet<Guid> { _a1.Id } });
+        Assert.Equal(ExportIssueSeverity.Error, Only(result, ExportIssueKind.DuckingPending).Severity);
+        var failed = CheckAudio(AiVideoEditor.Core.Audio.ExportAudioAnalyses.None with { FailedDucking = new Dictionary<Guid, string> { [_a1.Id] = "no model" } });
+        Assert.Contains("no model", Only(failed, ExportIssueKind.DuckingUnavailable).Message);
+    }
 }

@@ -235,8 +235,28 @@ public sealed record AudioSpan(
     Guid ClipId, Guid AssetId, SpanStatus Status, MediaTime TimelineStart, MediaTime TimelineEnd, MediaTime SourceIn, double Gain,
     string? Reason = null, bool IsMuted = false)
 {
-    /// <summary>The gain the mixer applies: 0 while muted, the volume otherwise.</summary>
-    public double EffectiveGain => IsMuted ? 0 : Gain;
+    /// <summary>The gain the mixer applies: 0 while muted, the volume × the track's and the master's otherwise (D064 §3).</summary>
+    public double EffectiveGain => IsMuted ? 0 : Gain * TrackGain;
+
+    /// <summary>D064 §3: the clip's track volume × the master volume (1 by default).</summary>
+    public double TrackGain { get; init; } = 1;
+
+    /// <summary>D064 §1: the clip's volume points (source time), relative to <see cref="Gain"/>; null — none. Mix only.</summary>
+    public Audio.VolumeEnvelope? Volumes { get; init; }
+
+    /// <summary>D064 §1: a video clip's sound-only fades in frames (clamped to the clip). Mix only.</summary>
+    public long SoundFadeInFrames { get; init; }
+    public long SoundFadeOutFrames { get; init; }
+
+    /// <summary>D064 §4: the ducking of the clip's track; null — none. Mix only.</summary>
+    public Audio.DuckingCurve? Ducking { get; init; }
+
+    /// <summary>D064 §5: the cleaned sound the clip plays instead of its source's (a WAV aligned to the source's sample 0);
+    /// null — the source's own sound. Part of the decoding, so a change is never mix-only.</summary>
+    public PlaybackAsset? CleanedSource { get; init; }
+
+    /// <summary>D064 §5: the clip's clean-up as set (shown and checked by the export), whether or not its sound is ready.</summary>
+    public Audio.AudioCleanup? Cleanup { get; init; }
 
     /// <summary>The clip's speed (D022): part of the timing, so a change is never mix-only.</summary>
     public ClipSpeed Speed { get; init; }
@@ -616,7 +636,12 @@ public sealed class PlaybackSnapshot
         return Assets.Count == other.Assets.Count &&
                Assets.All(pair => other.Assets.TryGetValue(pair.Key, out var asset) && asset == pair.Value);
 
-        static AudioSpan WithoutMix(AudioSpan span) => span with { Gain = 0, IsMuted = false, FadeInFrames = 0, FadeOutFrames = 0 };
+        // D064 §3: the track's and the master's volume, the points, the sound-only fades and the ducking are mix-only too.
+        static AudioSpan WithoutMix(AudioSpan span) => span with
+        {
+            Gain = 0, IsMuted = false, FadeInFrames = 0, FadeOutFrames = 0, TrackGain = 1, Volumes = null, SoundFadeInFrames = 0,
+            SoundFadeOutFrames = 0, Ducking = null, Cleanup = null
+        };
         static PictureSpan WithoutPresentation(PictureSpan span) =>
             span with { Visual = VisualProperties.Default, SourceSize = null, FadeInFrames = 0, FadeOutFrames = 0, Outline = null, HeartRate = null,
                 Background = Entities.ClipBackground.Black, Follow = null, PeopleMasks = null, Keyframes = null };

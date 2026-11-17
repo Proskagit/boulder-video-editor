@@ -86,8 +86,11 @@ internal sealed class FakeVideoDecoder : IVideoDecoder
 
     public async Task<IVideoFrameStream> OpenAsync(VideoDecodeRequest request, CancellationToken ct = default)
     {
+        // The gate is taken before the request is logged: once a test sees the request, replacing the file's gate
+        // (Gate again) affects only later opens, never this one.
+        _gates.TryGetValue(request.FilePath, out var gate);
         Requests.Enqueue(request);
-        if (_gates.TryGetValue(request.FilePath, out var gate))
+        if (gate is not null)
             await gate.Task.WaitAsync(ct);
         if (request.Hardware == HardwareDecoding.Disabled && _softwareGates.TryGetValue(request.FilePath, out var softwareGate))
             await softwareGate.Task.WaitAsync(ct);

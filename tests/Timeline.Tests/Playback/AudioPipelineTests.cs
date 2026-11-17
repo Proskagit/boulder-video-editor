@@ -116,12 +116,12 @@ public sealed class AudioPipelineTests
         var a2 = AddTrack(TrackType.Audio);
         AddAudio(Music("loud.wav", 2, constant: 0.7f), a2);  // 0.25 + 0.7 = 0.95
         await using (var pipeline = Pipeline(1_000))
-            Assert.All(await Pull(pipeline, _mixer, 1_000, 500), v => Assert.Equal(0.95f, v, 5));
+            Assert.All(await Pull(pipeline, _mixer, 1_000, 500), v => Assert.Equal(Core.Audio.SoftClip.Apply(0.95f), v, 5));   // D064 §3: above −1 dBFS the soft clip
 
         var a3 = AddTrack(TrackType.Audio);
-        AddAudio(Music("louder.wav", 2, constant: 0.5f), a3); // 1.45 → clamped to 1
+        AddAudio(Music("louder.wav", 2, constant: 0.5f), a3); // 1.45 → the soft clip, below 1 (D064 §3)
         await using (var pipeline = Pipeline(2_000))
-            Assert.All(await Pull(pipeline, _mixer, 2_000, 500), v => Assert.Equal(1f, v));
+            Assert.All(await Pull(pipeline, _mixer, 2_000, 500), v => Assert.Equal(Core.Audio.SoftClip.Apply(1.45f), v));
     }
 
     [Fact]
@@ -223,5 +223,32 @@ public sealed class AudioPipelineTests
     {
         Assert.True(_f.Service.AddTrack(type).Success);
         return (type == TrackType.Audio ? _f.Project.Timeline.AudioTracks : _f.Project.Timeline.VideoTracks)[^1];
+    }
+
+    [Fact]
+    public async Task A_cleaned_sound_that_becomes_ready_is_decoded_by_a_new_reader_and_the_comparison_by_the_original_again()
+    {
+        var music = Music("music.wav", 2, constant: 0.25f);
+        var clip = AddAudio(music, _f.A1);
+        clip.Cleanup = new Core.Audio.AudioCleanup(40, 0);
+        const string cleaned = @"C:\cache\music-cleaned.wav";
+        _decoder.Add(cleaned, new FakeAudioSource(2 * 48_000, Constant: 0.125f));
+        Core.Audio.AudioAnalyses Ready(bool original) => new(new Core.Audio.CleanedAudio(
+                System.Collections.Immutable.ImmutableDictionary<(Guid, Core.Audio.AudioCleanup), string>.Empty.Add((music.Id, clip.Cleanup!.Value), cleaned)),
+            Core.Audio.SpeechAnalyses.None) { OriginalSound = original };
+        AudioPipeline With(Core.Audio.AudioAnalyses? analyses, AudioPipeline? previous) =>
+            new(PlaybackSnapshotBuilder.Build(_f.Project, ++_version, audioAnalyses: analyses), 1, 0, _mixer, _decoder, _settings, NullLogger.Instance, previous);
+
+        await using var original = With(null, null);
+        _mixer.Reset(0);
+        Assert.All(await Pull(original, _mixer, 0, 480), v => Assert.Equal(0.25f, v));
+
+        await using var processed = With(Ready(original: false), original);
+        _mixer.Reset(0);
+        Assert.All(await Pull(processed, _mixer, 0, 480), v => Assert.Equal(0.125f, v));     // not the original's reader taken over
+
+        await using var compare = With(Ready(original: true), processed);
+        _mixer.Reset(0);
+        Assert.All(await Pull(compare, _mixer, 0, 480), v => Assert.Equal(0.25f, v));
     }
 }

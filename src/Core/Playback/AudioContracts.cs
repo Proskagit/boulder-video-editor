@@ -74,6 +74,11 @@ public sealed record AudioDecodeRequest
     /// (<see cref="VideoDecodeError.DecoderFailed"/>) instead of returning 0.
     /// </summary>
     public bool StrictEnd { get; init; }
+
+    /// <summary>D064 §5: an FFmpeg audio filter applied after the placement's timestamps are read (so the sample positions
+    /// stay exact) and before any tempo change — the noise reduction of a clean-up; null — none. It must keep the sample count
+    /// and the alignment (<c>highpass</c>, <c>afftdn</c> do).</summary>
+    public string? Filter { get; init; }
 }
 
 /// <summary>Decodes source audio into <see cref="AudioFormat"/> with an exact sample position.</summary>

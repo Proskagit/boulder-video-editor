@@ -1393,4 +1393,49 @@
   <data name="Keyframe_NoClip" xml:space="preserve">
     <value>Select a video clip to add a keyframe.</value>
   </data>
+  <data name="Prop_VolumePointsInvalid" xml:space="preserve">
+    <value>The volume points are not valid: two at one moment, or a volume out of range.</value>
+  </data>
+  <data name="Prop_SoundFadeOnlyVideo" xml:space="preserve">
+    <value>Only a video clip has fades of its sound alone; an audio clip&apos;s fades are its sound&apos;s.</value>
+  </data>
+  <data name="Prop_CleanupInvalid" xml:space="preserve">
+    <value>The strength of the sound clean-up must be from 0 to 100.</value>
+  </data>
+  <data name="Ducking_Invalid" xml:space="preserve">
+    <value>The ducking&apos;s values are out of range (depth −40…−3 dB, attack 0–2000 ms, release 50–3000 ms, sensitivity 0–100).</value>
+  </data>
+  <data name="Ducking_SpeechTrack" xml:space="preserve">
+    <value>Choose another track with the speech: a track can&apos;t duck under itself.</value>
+  </data>
+  <data name="Audio_VoiceModelUnavailable" xml:space="preserve">
+    <value>Voice enhancement is unavailable: the voice model is not set up on this computer.</value>
+  </data>
+  <data name="Audio_SpeechModelUnavailable" xml:space="preserve">
+    <value>Speech detection for ducking is unavailable: the speech model is not set up on this computer.</value>
+  </data>
+  <data name="Audio_TooLong" xml:space="preserve">
+    <value>The sound is too long to clean (more than about 3 hours).</value>
+  </data>
+  <data name="Audio_ModelFailed" xml:space="preserve">
+    <value>The audio model {0} could not be loaded: {1}</value>
+  </data>
+  <data name="Audio_ProcessingFailed" xml:space="preserve">
+    <value>The sound could not be processed: {0}</value>
+  </data>
+  <data name="Preflight_AudioCleanupPending" xml:space="preserve">
+    <value>The sound of {0} ({1}) is still being cleaned. The export starts once it is ready, so it sounds as in the Preview.</value>
+  </data>
+  <data name="Preflight_AudioCleanupFailed" xml:space="preserve">
+    <value>The sound of {0} ({1}) could not be cleaned and is exported as recorded: {2}</value>
+  </data>
+  <data name="Preflight_DuckingPending" xml:space="preserve">
+    <value>The speech for the ducking of track {0} is still being detected. The export starts once it is ready.</value>
+  </data>
+  <data name="Preflight_DuckingFailed" xml:space="preserve">
+    <value>Track {0} is exported without ducking: {1}</value>
+  </data>
+  <data name="Preflight_SoloActive" xml:space="preserve">
+    <value>Solo is on ({0}): only the solo tracks are heard in the export.</value>
+  </data>
 </root>

@@ -84,7 +84,17 @@ deferred to a separate release-preparation task. Details: `progress.md`, `docs/P
 
 ## Current
 
-**Phase 44 — Transform keyframes & canvas snapping (DECISIONS.md D063, 2026-11-17) — implemented, the owner's check open.**
+**State on 2026-11-17:** Phases 33, 34 and 39–45 accepted by the product owner on 2026-11-17 (Phase 45's PR #72 merged by
+the owner after CI); the R2 → E manual plan closed as not needed. Highest phase number 45; the table of every phase:
+`docs/DEVELOPMENT_PLAN.md`, "Official phases". Next: the product owner's next task.
+
+**Phase 45 — Audio editing, mixing and clean-up (DECISIONS.md D064, 2026-11-17) — accepted by the product owner on 2026-11-17; PR #72, the merge by the owner after CI.** The
+volume line with points and fade handles inside audio clips and video clips with sound, track volume / mute / solo, a master and
+a mixer, ducking under a speech track (Silero VAD) with «Закрепить в точки», non-destructive noise reduction (FFmpeg `afftdn`) and
+voice enhancement (DeepFilterNet3, local, CPU) cached per file and setting, the comparison with the original sound; the Preview and
+the export mix sample for sample alike with a soft clip at −1 dBFS; `project.json` v25. Docs: `docs/PHASE45_AUDIO.md`; manual plan:
+`docs/PHASE45_MANUAL_TEST_PLAN.md`.
+**Phase 44 — Transform keyframes & canvas snapping (DECISIONS.md D063, 2026-11-17) — accepted by the product owner on 2026-11-17 (PR #71).**
 Keyframes of Position X / Y and Scale for a video clip and, independently, for each followed part (the climber's place and
 the scale while following), Linear / Ease In / Ease Out / Ease In-Out, a button on the timeline's tool bar, diamonds that
 select, drag and delete, Undo / Redo, kept through Trim / Split / moves / Speed and saved (`project.json` v24); Follow's start
@@ -92,18 +102,18 @@ and end glide without a jump. The Preview's Move and Scale snap a picture's edge
 lines). «Боулдер»'s plate in any corner, sized by the canvas's shape, the heart rate beside it in the same corner. Manual
 plan: `docs/PHASE44_MANUAL_TEST_PLAN.md`.
 
-**Phase 43 — FIT import from any watch (DECISIONS.md D062, 2026-11-16) — implemented, the owner's check open.** One FIT reader
+**Phase 43 — FIT import from any watch (DECISIONS.md D062, 2026-11-16) — accepted by the product owner on 2026-11-17 (PR #70).** One FIT reader
 for COROS, Garmin and other watches («Импорт FIT-тренировки…»): what the file contains is used, nothing is refused for its
 maker; Garmin's session end and sparse «smart recording» handled; the route's grade and status (Топ / Попытка) read from the
 file onto the green areas made from the FIT. Manual plan: `docs/PHASE43_FIT_IMPORT.md` §5.
 
-**Phase 42 — Follow and Occlusion (DECISIONS.md D061, 2026-11-16) — implemented (PR #68), the owner's check open.** The frame
+**Phase 42 — Follow and Occlusion (DECISIONS.md D061, 2026-11-16) — accepted by the product owner on 2026-11-17 (PRs #68, #69).** The frame
 follows the chosen climber (no Auto Zoom, no editable camera path); every person in the frame is segmented separately and the
 hold outlines are hidden where a person stands in front of them. One background analysis per video file, cached. Needs the
 people models (docs/AI_MODEL.md); Occlusion needs a DirectML GPU. Manual plan: `docs/PHASE42_MANUAL_TEST_PLAN.md`.
 
-**Phase 41 — Export UX, Resolution Presets & Project Snapshot Isolation (DECISIONS.md D060, 2026-11-16) — implemented, the
-owner's check open.** The export runs in the background: the editor stays usable (the job is its own independent snapshot of
+**Phase 41 — Export UX, Resolution Presets & Project Snapshot Isolation (DECISIONS.md D060, 2026-11-16) — accepted by the product owner on 2026-11-17
+(PR #67).** The export runs in the background: the editor stays usable (the job is its own independent snapshot of
 the project; the source files are held so they can't be deleted or overwritten meanwhile), the progress window is not modal and
 hides into a compact indicator in the status bar, closing the app asks and cancels cleanly, no ffmpeg ever outlives the app.
 Unsaved changes are saved first («Сохранить и экспортировать» / «Отмена»). The export resolution: 4K UHD / Full HD / HD / SD at
@@ -116,7 +126,7 @@ over a named pipe, a bounded pipeline of parallel rasterizers, NVIDIA NVENC H.26
 same bytes) / ×3.9 (NVENC); 1080p and vertical ×4.7–5.6. Results: `docs/EXPORT_PERFORMANCE.md`. HEVC / AV1 and NVENC in S1 not
 in it.
 
-**Phase 39 — Timeline UX & Multi-Clip Editing (DECISIONS.md D058, 2026-11-10) — implemented, the owner's check open.** The
+**Phase 39 — Timeline UX & Multi-Clip Editing (DECISIONS.md D058, 2026-11-10) — accepted by the product owner on 2026-11-17 (PR #65).** The
 timeline follows the playhead page by page; the initial zoom shows ten minutes; several clips edited together (background,
 Fill / Fit, volume / mute, opacity, the hold outline) in one undo step; marker labels; draggable Position / Scale / Rotation
 labels and 5 % percent sliders; «Готово» only on the Preview bar. Then the MVP, then S1. Deferred: D058 §7.
@@ -133,7 +143,7 @@ a settings window with the heart-rate display offset (−60 s), YouTube timestam
 on an occupied place, live Preview scrubbing, frame stepping by the source's frame rate, hold proposals off by default.
 Record: D057; manual plan `docs/PHASE38_MANUAL_TEST_PLAN.md`. **Phase H:** its goal is covered by Phase 38; its former scope
 is not restored. **Phase 32** leaves the active plan (a distant idea); **WASTED** is removed from the plan and the backlog.
-Kept apart: Phases 33 / 34 on real footage, Step 35.4's C5, Phase 31's D3 / C5, R10, the HDR visual check, the NOT RUN rows
+Kept apart: Step 35.4's C5, Phase 31's D3 / C5, R10, the HDR visual check, the NOT RUN rows
 of Phases 23 / 25, the remaining S1 checks.
 
 **State on 2026-11-03** (`main` at `1640996`, the merge of PR #33; `project.json` v12; the table of every phase:
@@ -152,10 +162,10 @@ and 37 accepted on 2026-11-04, Phase 31 with D3 and C5 deferred); the **highest 
   with D056 (PRs #51–#54, v17 / v18); **open: 35.4's acceptance** (C5's real re-export manual) and 35.3's sub-steps. Steps
   35.0–35.4 reached `main` with PR #33, together with Phase 37. Record: `docs/PHASE_COROS.md`.
 - **Phases 32–34** — D048 (approved 2026-10-28, merged in PR #32): 32 (the route selection at `T`) paused / deferred; 33
-  (the timing model, v10) and 34 (the overlay strip, variant B) implemented, a separate formal acceptance not recorded.
+  (the timing model, v10) and 34 (the overlay strip, variant B) implemented; accepted by the product owner on 2026-11-17.
 - **Phases 30 and 31** — both merged through PR #31. Phase 30 technically complete, its full S1 acceptance open.
   **Phase 31 accepted by the product owner on 2026-11-04 with two deferred checks (D3 — 500 holds, impractical by hand; C5 — 1080p, the owner works on 4K)**; every other check PASS (automated, PR #38, and the owner by hand). **R2 → E** (the outlines following the camera) — its camera-motion part merged in PR #31; its completion (D052: K1 deferred,
-  K2 WARN, K3 PERSIST, D4 cache, E-1…E-7) implemented 2026-11-08, the accuracy bound (3 px at 1920) approved 2026-11-08; merged into `main` on 2026-11-08 (PR #42, `2a8a2f9`) and **technically accepted by the product owner on 2026-11-08**; the manual plan `docs/R2E_MANUAL_TEST_PLAN.md` stays outstanding — to be run during practical application testing, not blocking the next phase —
+  K2 WARN, K3 PERSIST, D4 cache, E-1…E-7) implemented 2026-11-08, the accuracy bound (3 px at 1920) approved 2026-11-08; merged into `main` on 2026-11-08 (PR #42, `2a8a2f9`) and **technically accepted by the product owner on 2026-11-08**; the manual plan `docs/R2E_MANUAL_TEST_PLAN.md` closed as not needed by the product owner on 2026-11-17 (its checks covered by the Phase 42 manual checks) —
   unnumbered.
 - **Phase 36** — the session summary and the YouTube chapters: a specification draft outside `main`, no decision.
 
@@ -164,7 +174,8 @@ on 2026-11-09 (35.6b with D056)*; 2) Phase 30 / S1 — the next major milestone,
 validation and the remaining release requirements; 3) H after S1; 4) R4 (Motion Tracking Camera research) deferred until
 then. Human occlusion stays deferred; Motion Tracking Camera stays Future / Backlog. *(Superseded on 2026-11-09 by D057 §1:
 Phase 38 first, S1 after the MVP.)*
-Open alongside: Step 35.4's acceptance (C5), the owner's check of Phases 33 / 34, the R2 → E manual plan.
+Open alongside: Step 35.4's acceptance (C5). *(Phases 33 / 34 accepted and the R2 → E manual plan closed by the product owner
+on 2026-11-17.)*
 
 **Next (the product owner's direction of 2026-11-03, DECISIONS.md D050): Step 35.5 — the heart-rate overlay** (implemented
 and accepted on 2026-11-03, merged with PR #35), then 35.6, Phase 35's closeout. It is not combined with an export of time codes: the time-code export (Phase 36's YouTube chapters)
@@ -556,7 +567,7 @@ research, F only after its feasibility is confirmed and a separate agreement; H 
 | R1 | Automatic hold proposals — research | research | research | — (parallel with A–C) |
 | D | Automatic hold proposals — implementation, on a go | AI | large | R1 |
 | R2 | Outlines following the holds while the camera moves, with occlusion that hides only the covered segments of a contour — research (concept of 2026-10-22: `docs/DEVELOPMENT_PLAN.md`, "R2 → E") | research | research (highest uncertainty) | — (parallel) |
-| E | Outline tracking — implementation, on a go (camera-motion part merged in PR #31 `024f3fb`; accepted by the owner for continued development, not marked complete; completion D052 implemented 2026-11-08 — accuracy bound 3 px approved, merged into `main` on 2026-11-08 (PR #42, `2a8a2f9`) and **technically accepted by the product owner on 2026-11-08**; the manual plan `docs/R2E_MANUAL_TEST_PLAN.md` stays outstanding — to be run during practical application testing, not blocking the next phase; key frames deferred (K1), occlusion a separate stage — `docs/DEVELOPMENT_PLAN.md` "R2 → E" status) | AI | large | R2; after D if D is taken |
+| E | Outline tracking — implementation, on a go (camera-motion part merged in PR #31 `024f3fb`; accepted by the owner for continued development, not marked complete; completion D052 implemented 2026-11-08 — accuracy bound 3 px approved, merged into `main` on 2026-11-08 (PR #42, `2a8a2f9`) and **technically accepted by the product owner on 2026-11-08**; the manual plan `docs/R2E_MANUAL_TEST_PLAN.md` closed as not needed by the product owner on 2026-11-17 (its checks covered by the Phase 42 manual checks); key frames deferred (K1), occlusion a separate stage — `docs/DEVELOPMENT_PLAN.md` "R2 → E" status) | AI | large | R2; after D if D is taken |
 | D048-1 | Route selection at `T` and review — **Phase 32** (D048 **approved 2026-10-28**; implemented, then **paused / deferred**: «Авторазметка» hidden, code and research kept — `docs/HOLD_AUTO_DETECTION_RESEARCH.md`) | AI | medium | D (Phase 31), E's tracking |
 | D048-2 | Timing model (animation duration, orders, standard / short-intro layout), template ↔ clip anchor, speed / trim / copy rules, `project.json` v10 (v9 converted on save, no backward compatibility) — **Phase 33** (implemented and merged, PR #32; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded) | core | medium–large | D048 approval; schema check with F done (COROS takes the next version) |
 | D048-3 | The overlay strip — **Phase 34** (implemented and merged, PR #32; separate formal acceptance not recorded; variant B: the segments inside the «Боулдер»; the lane above the clip Debug-only) | UX | medium | D048-2 |

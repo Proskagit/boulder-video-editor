@@ -66,6 +66,7 @@ public sealed class ExportWorkflow
 
     /// <summary>D061: the Preview's own people analyses (Follow, Occlusion), so the export draws what the Preview draws.</summary>
     private readonly PeopleAnalysisCoordinator? _people;
+    private readonly AudioProcessingCoordinator? _audio;
     private bool _running;
     private readonly Func<Task<bool>>? _saveProject;
     private CancellationTokenSource? _exportCts;
@@ -95,9 +96,10 @@ public sealed class ExportWorkflow
         ITimelineEditService? edit = null,
         ProjectFileWorkflow? projectFiles = null,
         Func<Task<bool>>? saveProject = null,
-        PeopleAnalysisCoordinator? people = null)
+        PeopleAnalysisCoordinator? people = null, AudioProcessingCoordinator? audio = null)
     {
         _people = people;
+        _audio = audio;
         // Save as the toolbar's Save does it (Save As for a project never saved); a test may give its own.
         _saveProject = saveProject ?? (projectFiles is null ? null : projectFiles.SaveAsync);
         _exportDialog = exportDialog;
@@ -226,7 +228,8 @@ public sealed class ExportWorkflow
         {
             CameraMotion = _cameraMotion?.ForExport() ?? ExportCameraMotion.None,
             HeartRateDisplayOffset = _settings?.Current.HeartRateDisplayOffsetFor(project.Training?.Activity.Manufacturer) ?? MediaTime.Zero,
-            People = _people?.ForExport() ?? ExportPeople.None
+            People = _people?.ForExport() ?? ExportPeople.None,
+            Audio = _audio?.ForExport() ?? Core.Audio.ExportAudioAnalyses.None
         };
 
         // 1. Everything but the output file, which is chosen next.

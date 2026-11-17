@@ -61,7 +61,9 @@ public partial class MainWindow : Window
     {
         var state = _layout.Current;
         PanelsGrid.ColumnDefinitions[0].Width = new GridLength(WindowLayout.SidePanel(state.MediaBrowserWidth, 260));
-        PanelsGrid.ColumnDefinitions[4].Width = new GridLength(WindowLayout.SidePanel(state.InspectorWidth, 300));
+        // Phase 45 amendment 1: the Inspector at least 340 px (its labels and fields fit; a narrower saved width is widened).
+        PanelsGrid.ColumnDefinitions[4].Width = new GridLength(Math.Max(WindowLayout.InspectorMin, WindowLayout.SidePanel(state.InspectorWidth, 360)));
+        PanelsGrid.ColumnDefinitions[4].MinWidth = WindowLayout.InspectorMin;   // the splitter never makes it narrower
         RootGrid.RowDefinitions[3].Height = new GridLength(WindowLayout.Timeline(state.TimelineHeight, 240));
         if (state.Window is not { } placement) return;
         var screens = Screens.All.Select(s => s.WorkingArea).ToList();
@@ -298,6 +300,11 @@ public partial class MainWindow : Window
         public TimelineEditResult SetTrackMuted(Guid trackId, bool muted) => Nothing;
         public TimelineEditResult SetTrackHidden(Guid trackId, bool hidden) => Nothing;
         public TimelineEditResult SetTrackLocked(Guid trackId, bool locked) => Nothing;
+        public TimelineEditResult SetTrackSolo(Guid trackId, bool solo) => Nothing;
+        public TimelineEditResult SetTrackVolume(Guid trackId, double volume, object? gesture = null) => Nothing;
+        public TimelineEditResult SetTrackDucking(Guid trackId, Core.Audio.DuckingSettings? ducking, object? gesture = null) => Nothing;
+        public TimelineEditResult SetMasterVolume(double volume, object? gesture = null) => Nothing;
+        public TimelineEditResult BakeDucking(Guid trackId, Core.Audio.DuckingCurve curve) => Nothing;
         public int CountClipsUsing(Guid mediaAssetId) => 0;
         public string? GetRemoveMediaBlockReason(Guid mediaAssetId) => "Design time.";
         public TimelineEditResult RemoveMedia(Guid mediaAssetId) => Nothing;

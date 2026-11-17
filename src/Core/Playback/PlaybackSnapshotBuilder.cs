@@ -25,9 +25,17 @@ public static class PlaybackSnapshotBuilder
     /// <param name="heartRateDisplayOffset">D057 §3.8: the user's display offset of the heart rate (zero: none).</param>
     /// <param name="people">D061: the people analyses by asset (Follow, Occlusion); null or a missing asset — the clip keeps
     /// its own framing and its outlines are drawn over everything, exactly as before.</param>
+    /// <param name="audioAnalyses">D064 §4–§5: the cleaned sounds ready so far and the speech found in the sources; null — every
+    /// clip's original sound and no ducking.</param>
     public static PlaybackSnapshot Build(Project project, long version, IReadOnlyDictionary<RouteKey, CameraMotionTrack>? motion = null,
-        MediaTime heartRateDisplayOffset = default, People.PeopleAnalyses? people = null)
+        MediaTime heartRateDisplayOffset = default, People.PeopleAnalyses? people = null, Audio.AudioAnalyses? audioAnalyses = null)
     {
+        audioAnalyses ??= Audio.AudioAnalyses.None;
+        // D064 §1 / §3: while any track is solo only the solo tracks sound; every span carries its track's and the master's volume.
+        var anySolo = project.Timeline.VideoTracks.Concat(project.Timeline.AudioTracks).Any(t => t.IsSolo);
+        bool Sounds(Track t) => !t.IsMuted && (!anySolo || t.IsSolo);
+        var master = project.Timeline.MasterVolume;
+        var spanTracks = new Dictionary<Guid, Guid>();   // clip → track, for the ducking
         var canvas = new FrameSize(project.Settings.FrameWidth, project.Settings.FrameHeight);
         var sequence = project.Timeline;
         var assets = project.MediaAssets.ToDictionary(a => a.Id);
@@ -113,11 +121,20 @@ public static class PlaybackSnapshotBuilder
                     });
 
                 // An unlinked video clip's sound is its audio clip's (D032 R10).
-                if (media is VideoClip { IsAudioDetached: false } video && !track.IsMuted && asset?.Metadata?.AudioCodec is not null)
+                if (media is VideoClip { IsAudioDetached: false } video && Sounds(track) && asset?.Metadata?.AudioCodec is not null)
                 {
                     var (audioStatus, audioReason) = AudioStatus(media, asset);
+                    var frames = TransitionRules.ClipFrames(clip, rate);
                     audio.Add(new AudioSpan(clip.Id, media.MediaAssetId, audioStatus, clip.TimelineStart, clip.TimelineEnd,
-                        media.SourceIn, video.Volume, audioReason, video.IsMuted) { Speed = media.Speed, FadeInFrames = fadeIn, FadeOutFrames = fadeOut });
+                        media.SourceIn, video.Volume, audioReason, video.IsMuted)
+                    {
+                        Speed = media.Speed, FadeInFrames = fadeIn, FadeOutFrames = fadeOut,
+                        TrackGain = track.Volume * master, Volumes = video.Volumes, Cleanup = video.Cleanup,
+                        CleanedSource = CleanedSourceOf(video.MediaAssetId, video.Cleanup, audioAnalyses),
+                        SoundFadeInFrames = Math.Clamp(TransitionRules.Frames(video.SoundFadeIn, rate), 0, frames),
+                        SoundFadeOutFrames = Math.Clamp(TransitionRules.Frames(video.SoundFadeOut, rate), 0, frames)
+                    });
+                    spanTracks[clip.Id] = track.Id;
                 }
             }
             if (!track.IsHidden)
@@ -129,7 +146,7 @@ public static class PlaybackSnapshotBuilder
 
         foreach (var track in sequence.AudioTracks)
         {
-            if (track.IsMuted) continue;
+            if (!Sounds(track)) continue;
             var crossfades = Dissolves(track, rate);   // the same zones on an audio track: crossfades (D032 R9)
             foreach (var clip in track.Clips.OfType<AudioClip>().OrderBy(c => c.TimelineStart))
             {
@@ -141,9 +158,23 @@ public static class PlaybackSnapshotBuilder
                 {
                     Speed = clip.Speed, FadeInFrames = fadeIn, FadeOutFrames = fadeOut,
                     CrossfadeIn = crossfades.FirstOrDefault(z => z.RightClipId == clip.Id) is { } zoneIn ? new CrossfadeZone(zoneIn.Start, zoneIn.End) : null,
-                    CrossfadeOut = crossfades.FirstOrDefault(z => z.LeftClipId == clip.Id) is { } zoneOut ? new CrossfadeZone(zoneOut.Start, zoneOut.End) : null
+                    CrossfadeOut = crossfades.FirstOrDefault(z => z.LeftClipId == clip.Id) is { } zoneOut ? new CrossfadeZone(zoneOut.Start, zoneOut.End) : null,
+                    TrackGain = track.Volume * master, Volumes = clip.Volumes, Cleanup = clip.Cleanup,
+                    CleanedSource = CleanedSourceOf(clip.MediaAssetId, clip.Cleanup, audioAnalyses)
                 });
+                spanTracks[clip.Id] = track.Id;
             }
+        }
+
+        // D064 §4: the ducked tracks' spans get the curve of the speech found on their speech track.
+        foreach (var track in sequence.VideoTracks.Concat(sequence.AudioTracks))
+        {
+            if (track.Ducking is not { } ducking || FindTrack(sequence, ducking.SpeechTrackId) is not { } speechTrack) continue;
+            var curve = DuckingCurveOf(speechTrack, ducking, audioAnalyses.Speech);
+            if (curve.IsEmpty) continue;
+            for (var i = 0; i < audio.Count; i++)
+                if (spanTracks.TryGetValue(audio[i].ClipId, out var owner) && owner == track.Id)
+                    audio[i] = audio[i] with { Ducking = curve };
         }
 
         return new PlaybackSnapshot(version, project.Settings.FrameRate, sequence.Duration(),
@@ -239,6 +270,41 @@ public static class PlaybackSnapshotBuilder
             });
         }
         return zones.OrderBy(z => z.Start).ToImmutableArray();
+    }
+
+    /// <summary>D064 §5: the cleaned sound of <paramref name="assetId"/> with <paramref name="cleanup"/> when it is ready (and the
+    /// Preview is not comparing with the original sound); null — the source's own sound.</summary>
+    private static PlaybackAsset? CleanedSourceOf(Guid assetId, Audio.AudioCleanup? cleanup, Audio.AudioAnalyses analyses) =>
+        !analyses.OriginalSound && Audio.AudioCleanup.Normalize(cleanup) is { } on && analyses.Cleaned.Files.TryGetValue((assetId, on), out var file)
+            ? new PlaybackAsset(assetId, file, MediaKind.Audio, MediaTime.Zero, null)
+            : null;
+
+    private static Track? FindTrack(Sequence sequence, Guid id) =>
+        sequence.VideoTracks.Concat(sequence.AudioTracks).FirstOrDefault(t => t.Id == id);
+
+    /// <summary>
+    /// D064 §4: the ducking curve from the speech of <paramref name="speechTrack"/>'s clips — every clip with sound that is not
+    /// muted itself (the track's own mute and solo don't matter: they change what is heard, not where the speech is), its source's
+    /// speech (of its cleaned sound when it has a clean-up) mapped to the timeline by the clip's placement and cut to the clip.
+    /// </summary>
+    public static Audio.DuckingCurve DuckingCurveOf(Track speechTrack, Audio.DuckingSettings ducking, Audio.SpeechAnalyses speech)
+    {
+        var intervals = new List<(long Start, long End)>();
+        foreach (var clip in speechTrack.Clips.OfType<MediaBackedClip>())
+        {
+            if (clip is VideoClip { IsAudioDetached: true } || AudioProperties.Of(clip) is not { IsMuted: false } sound) continue;
+            var key = (clip.MediaAssetId, Audio.AudioCleanup.Normalize(sound.Cleanup) ?? Audio.AudioCleanup.None);
+            if (!speech.ByAsset.TryGetValue(key, out var activity)) continue;
+            var placement = AudioPlacement.Of(clip.TimelineStart, clip.TimelineEnd, clip.SourceIn, clip.Speed);
+            foreach (var (start, end) in activity.Intervals(ducking.SpeechThreshold))
+            {
+                var a = Math.Max(placement.FirstSample, placement.TimelineSampleOfStream(start));
+                var b = Math.Min(placement.EndSample, placement.TimelineSampleOfStream(end));
+                if (b > a) intervals.Add((a, b));
+            }
+        }
+        return new Audio.DuckingCurve(intervals, ducking.DepthDb,
+            (long)ducking.AttackMs * AudioFormat.SampleRate / 1000, (long)ducking.ReleaseMs * AudioFormat.SampleRate / 1000);
     }
 
     /// <summary>The clip's effective fades in frames (D025 §2): clamped to the clip; none on an edge that has a

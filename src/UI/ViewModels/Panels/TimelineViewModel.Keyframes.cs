@@ -60,12 +60,17 @@ public sealed partial class TimelineViewModel
         return frame >= first && frame <= last ? clip : null;
     }
 
-    private bool CanToggleKeyframe() => CanEdit() && KeyframeClip() is not null;
+    private bool CanToggleKeyframe() => CanEdit() && (KeyframeClip() is not null || AudioKeyframeClip() is not null);
 
     /// <summary>The keyframe button: adds a keyframe on the playhead's frame (or removes the one there).</summary>
     [RelayCommand(CanExecute = nameof(CanToggleKeyframe))]
     private void ToggleKeyframe()
     {
+        if (KeyframeClip() is null && AudioKeyframeClip() is { } audio)
+        {
+            ToggleAudioKeyframe(audio);   // D064 amendment 1: an audio clip's keyframes are its volume points
+            return;
+        }
         if (KeyframeClip() is not { } clip)
         {
             _status.Report(_selection.Count == 0 ? Core.Localization.Messages.Keyframe_NoClip : Core.Localization.Messages.Keyframe_NotUnderPlayhead);
@@ -86,6 +91,9 @@ public sealed partial class TimelineViewModel
         if (SelectedKeyframe is { } selected && Keyframes.Clip(selected.Owner.ClipId) is { } clip &&
             TransformKeyframeEditor.KeysOf(clip, selected.Owner)?.Find(selected.Id) is null)
             SelectedKeyframe = null;   // removed by an undo, a delete or a Follow change
+        else if (SelectedKeyframe is { } audioSelected && AudioClipById(audioSelected.Owner.ClipId) is { } audioClip &&
+                 audioClip.Volumes?.Find(audioSelected.Id) is null)
+            SelectedKeyframe = null;
         foreach (var vm in _clipViewModels.Values)
             if (_keyframeDrag?.Clip != vm) ShowKeyframes(vm);
         NotifyKeyframeCommands();
@@ -93,6 +101,12 @@ public sealed partial class TimelineViewModel
 
     private void ShowKeyframes(TimelineClipViewModel vm)
     {
+        if (vm.Clip is AudioClip audioClip)
+        {
+            var points = AudioKeyframeMarkers(audioClip);
+            if (points.Count > 0 || vm.KeyframeMarkers.Count > 0) vm.KeyframeMarkers = points;
+            return;
+        }
         if (vm.Clip is not VideoClip clip || (clip.Keyframes is null && clip.Follow?.Parts.All(p => p.Keyframes is null) != false))
         {
             if (vm.KeyframeMarkers.Count > 0) vm.KeyframeMarkers = Array.Empty<KeyframeMarker>();
@@ -126,6 +140,15 @@ public sealed partial class TimelineViewModel
     /// frame; the drag may start.</summary>
     public bool BeginKeyframeDrag(TimelineClipViewModel vm, KeyframeMarker marker, double contentX)
     {
+        if (vm.Clip is AudioClip audio)
+        {
+            if (_selection.Count == 0 || _selection[^1] != vm.Id) SetSelection(new[] { vm });
+            SelectedKeyframe = (new KeyframeOwner(audio.Id, null), marker.Id);
+            if (audio.Volumes?.Find(marker.Id) is { } point) SetPlayhead(MediaTime.FromFrame(FrameOfSource(audio, point.Time), FrameRate));
+            if (!CanEdit() || TrackOf(vm) is { IsLocked: true }) return true;
+            _keyframeDrag = (vm, marker with { IsSelected = true }, contentX, marker.Left);
+            return true;
+        }
         if (vm.Clip is not VideoClip clip) return false;
         if (_selection.Count == 0 || _selection[^1] != vm.Id) SetSelection(new[] { vm });
         var owner = new KeyframeOwner(clip.Id, marker.FollowPart);
@@ -164,6 +187,8 @@ public sealed partial class TimelineViewModel
             Report(result);
             if (result.Success && !result.NoChange) SetPlayhead(MediaTime.FromFrame(frame, FrameRate));
         }
+        else if (drag.Clip.Clip is AudioClip audio && shown is not null && Math.Abs(shown.Left - drag.Left) >= 0.5 && CanEdit())
+            MoveAudioKeyframe(audio, drag.Marker.Id, FrameAt(drag.Clip, shown.Left).ToFrameFloor(FrameRate));
         ShowKeyframes(drag.Clip);
     }
 
@@ -178,6 +203,12 @@ public sealed partial class TimelineViewModel
     /// <summary>Delete with a keyframe selected: removes it (the clip stays).</summary>
     private bool DeleteSelectedKeyframe()
     {
+        if (SelectedKeyframe is { } audioSelected && AudioClipById(audioSelected.Owner.ClipId) is { } audioClip)
+        {
+            if (DeleteAudioKeyframe(audioClip, audioSelected.Id)) return true;
+            SelectedKeyframe = null;
+            return false;
+        }
         if (SelectedKeyframe is not { } selected || Keyframes.Clip(selected.Owner.ClipId) is not { } clip) return false;
         var result = Keyframes.Delete(clip, selected.Owner, selected.Id);
         Report(result, successMessage: Strings.Keyframe_Removed);
@@ -201,6 +232,12 @@ public sealed partial class TimelineViewModel
     private void DropKeyframeSelectionOffFrame()
     {
         if (SelectedKeyframe is not { } selected || _keyframeDrag is not null) return;
+        if (AudioClipById(selected.Owner.ClipId) is { } audio)
+        {
+            if (audio.Volumes?.Find(selected.Id) is not { } point || FrameOfSource(audio, point.Time) != Playhead.ToFrameFloor(FrameRate))
+                SelectedKeyframe = null;
+            return;
+        }
         if (Keyframes.Clip(selected.Owner.ClipId) is not { } clip || TransformKeyframeEditor.KeysOf(clip, selected.Owner)?.Find(selected.Id) is not { } key ||
             Keyframes.FrameOf(clip, key.Time) != Playhead.ToFrameFloor(FrameRate))
             SelectedKeyframe = null;
@@ -209,6 +246,17 @@ public sealed partial class TimelineViewModel
     /// <summary>The playhead to the previous / next keyframe of the selected clip (any owner); false when there is none.</summary>
     public bool GoToKeyframe(int direction)
     {
+        if (_selection.Count > 0 && _clipViewModels.TryGetValue(_selection[^1], out var audioVm) && audioVm.Clip is AudioClip audio)
+        {
+            var at = Playhead.ToFrameFloor(FrameRate);
+            var frames = AudioKeyframeFrames(audio).ToList();
+            var target = direction > 0 ? frames.Where(f => f.Frame > at).OrderBy(f => f.Frame).FirstOrDefault()
+                : frames.Where(f => f.Frame < at).OrderByDescending(f => f.Frame).FirstOrDefault();
+            if (target.Id == Guid.Empty) return false;
+            SetPlayhead(MediaTime.FromFrame(target.Frame, FrameRate));
+            SelectedKeyframe = (new KeyframeOwner(audio.Id, null), target.Id);
+            return true;
+        }
         if (_selection.Count == 0 || !_clipViewModels.TryGetValue(_selection[^1], out var vm) || vm.Clip is not VideoClip clip) return false;
         var now = Playhead.ToFrameFloor(FrameRate);
         var all = Keyframes.AllShown(clip);

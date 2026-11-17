@@ -124,10 +124,98 @@ public static class AudioMix
         }
     }
 
-    /// <summary>Clamps every sample of the finished sum to [−1, 1].</summary>
+    /// <summary>
+    /// D064 §3: as <see cref="Add(ReadOnlySpan{float}, Span{float}, float, in AudioFadeEnvelope, long)"/> with the span's whole
+    /// gain curve — <c>(float)(gain · D025 fade · sound fade · points · ducking)</c> per stereo frame. Where nothing varies over
+    /// the block the gain is the constant <see cref="AudioGainCurve.Gain"/> (bit for bit D013's mix). Evaluated per sample, so the
+    /// Preview's device blocks and the export's windows give the same output.
+    /// </summary>
+    public static void Add(ReadOnlySpan<float> samples, Span<float> mix, AudioGainCurve curve, long firstSample)
+    {
+        var frames = samples.Length / AudioFormat.Channels;
+        if (curve.IsConstant(firstSample, firstSample + frames))
+        {
+            Add(samples, mix, curve.Gain);
+            return;
+        }
+
+        if (samples.Length > mix.Length) throw new ArgumentException("More samples than mix positions.", nameof(samples));
+        for (var f = 0; f < frames; f++)
+        {
+            var g = curve.At(firstSample + f);
+            var i = f * AudioFormat.Channels;
+            for (var c = 0; c < AudioFormat.Channels; c++)
+                mix[i + c] += samples[i + c] * g;
+        }
+    }
+
+    /// <summary>Clamps every sample of the finished sum to [−1, 1] (D013; since D064 the mix ends with <see cref="Finish"/>).</summary>
     public static void Clamp(Span<float> mix)
     {
         for (var i = 0; i < mix.Length; i++)
             mix[i] = Math.Clamp(mix[i], -1f, 1f);
+    }
+
+    /// <summary>D064 §3: the end of the mix — every sample through the stateless <see cref="Audio.SoftClip"/> (unchanged at or
+    /// below −1 dBFS, never reaching full scale above it).</summary>
+    public static void Finish(Span<float> mix)
+    {
+        for (var i = 0; i < mix.Length; i++)
+            mix[i] = Audio.SoftClip.Apply(mix[i]);
+    }
+}
+
+/// <summary>
+/// D064 §3: the gain of one span's samples — the constant <see cref="Gain"/> (volume × track × master, 0 while muted) times the
+/// clip's D025 fade and crossfades, its sound-only fades, its volume points (evaluated at the source time of each sample) and its
+/// track's ducking. Built once per span from the snapshot; immutable, read on the device thread and by the export.
+/// </summary>
+public sealed class AudioGainCurve
+{
+    private readonly AudioFadeEnvelope _fade;
+    private readonly AudioFadeEnvelope _soundFade;
+    private readonly Audio.VolumeEnvelope? _points;
+    private readonly AudioPlacement _placement;
+    private readonly Audio.DuckingCurve? _ducking;
+
+    private AudioGainCurve(float gain, AudioFadeEnvelope fade, AudioFadeEnvelope soundFade, Audio.VolumeEnvelope? points,
+        AudioPlacement placement, Audio.DuckingCurve? ducking)
+    {
+        Gain = gain;
+        _fade = fade;
+        _soundFade = soundFade;
+        _points = points;
+        _placement = placement;
+        _ducking = ducking is { IsEmpty: false } ? ducking : null;
+    }
+
+    /// <summary>The curve of <paramref name="span"/> at the project rate <paramref name="rate"/>.</summary>
+    public static AudioGainCurve Of(AudioSpan span, FrameRate rate) =>
+        new(AudioMix.Gain(span), AudioFadeEnvelope.Of(span, rate), AudioFadeEnvelope.SoundOf(span, rate), span.Volumes,
+            AudioPlacement.Of(span), span.Ducking);
+
+    /// <summary>A constant gain only (tests, the Source viewer).</summary>
+    public static AudioGainCurve Constant(float gain, AudioFadeEnvelope fade = default) =>
+        new(gain, fade, AudioFadeEnvelope.None, null, default, null);
+
+    /// <summary>The gain without the fades, points and ducking.</summary>
+    public float Gain { get; }
+
+    /// <summary>True when the span is silent wherever it plays (muted, volume 0).</summary>
+    public bool IsSilent => Gain == 0;
+
+    /// <summary>True when every sample in <c>[from, until)</c> gets exactly <see cref="Gain"/>.</summary>
+    public bool IsConstant(long from, long until) =>
+        Gain == 0 || (!_fade.Affects(from, until) && !_soundFade.Affects(from, until) && _points is null &&
+                      (_ducking is null || !_ducking.Affects(from, until)));
+
+    /// <summary>The gain of timeline sample <paramref name="sample"/>.</summary>
+    public float At(long sample)
+    {
+        var g = Gain * _fade.Gain(sample);
+        if (_soundFade.HasFade) g *= _soundFade.Gain(sample);
+        if (_points is not null) g *= _points.AtTicks(_placement.SourcePositionAt(sample).Ticks);
+        if (_ducking is not null) g *= _ducking.Gain(sample);
+        return (float)g;
     }
 }

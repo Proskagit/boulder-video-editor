@@ -67,6 +67,14 @@ public enum ClipPropertyFields : long
     // D063 §C: «Боулдер»'s route plate corner.
     TemplatePlateCorner = 1L << 43,
 
+    // D064: the volume points (added, removed or moved: VolumePoints; only the gains of the same points: VolumePointValues),
+    // a video clip's sound-only fades and the clean-up.
+    VolumePoints = 1L << 44,
+    VolumePointValues = 1L << 45,
+    SoundFadeIn = 1L << 46,
+    SoundFadeOut = 1L << 47,
+    Cleanup = 1L << 48,
+
     Template = TemplateDate | TemplateRoute | TemplateGrade | TemplateStatus | TemplateAccent | TemplateTitle | TemplateSubtitle |
                TemplateStatusAt | TemplateLook | TemplateCorner | TemplateShowHeartRate | TemplateHeart | TemplatePlateCorner,
 
@@ -114,8 +122,13 @@ public readonly record struct ClipPropertyValues(VisualProperties? Visual, Audio
         {
             switch (clip)
             {
-                case VideoClip c: (c.Volume, c.IsMuted) = (a.Volume, a.IsMuted); break;
-                case AudioClip c: (c.Volume, c.IsMuted) = (a.Volume, a.IsMuted); break;
+                case VideoClip c:
+                    (c.Volume, c.IsMuted, c.Volumes, c.SoundFadeIn, c.SoundFadeOut, c.Cleanup) =
+                        (a.Volume, a.IsMuted, a.Volumes, a.SoundFadeIn, a.SoundFadeOut, Core.Audio.AudioCleanup.Normalize(a.Cleanup));
+                    break;
+                case AudioClip c:
+                    (c.Volume, c.IsMuted, c.Volumes, c.Cleanup) = (a.Volume, a.IsMuted, a.Volumes, Core.Audio.AudioCleanup.Normalize(a.Cleanup));
+                    break;
                 default: throw new InvalidOperationException($"{clip.GetType().Name} has no audio properties.");
             }
         }
@@ -170,6 +183,10 @@ public readonly record struct ClipPropertyValues(VisualProperties? Visual, Audio
         {
             if (!aa.Volume.Equals(ab.Volume)) fields |= ClipPropertyFields.Volume;
             if (aa.IsMuted != ab.IsMuted) fields |= ClipPropertyFields.Mute;
+            if (aa.Volumes != ab.Volumes) fields |= VolumePointDiff(aa.Volumes, ab.Volumes);
+            if (aa.SoundFadeIn != ab.SoundFadeIn) fields |= ClipPropertyFields.SoundFadeIn;
+            if (aa.SoundFadeOut != ab.SoundFadeOut) fields |= ClipPropertyFields.SoundFadeOut;
+            if (Core.Audio.AudioCleanup.Normalize(aa.Cleanup) != Core.Audio.AudioCleanup.Normalize(ab.Cleanup)) fields |= ClipPropertyFields.Cleanup;
         }
 
         if (a.Text is { } ta && b.Text is { } tb)
@@ -217,6 +234,16 @@ public readonly record struct ClipPropertyValues(VisualProperties? Visual, Audio
             fields |= KeyframeDiff(ka.Keys, kb.Keys);
 
         return fields;
+    }
+
+    /// <summary>D064: <see cref="ClipPropertyFields.VolumePointValues"/> when only the gains of the same points changed (a drag
+    /// of one point's value merges), else <see cref="ClipPropertyFields.VolumePoints"/>.</summary>
+    private static ClipPropertyFields VolumePointDiff(Core.Audio.VolumeEnvelope? a, Core.Audio.VolumeEnvelope? b)
+    {
+        if (a is null || b is null || a.Count != b.Count) return ClipPropertyFields.VolumePoints;
+        for (var i = 0; i < a.Count; i++)
+            if (a.Points[i].Id != b.Points[i].Id || a.Points[i].Time != b.Points[i].Time) return ClipPropertyFields.VolumePoints;
+        return ClipPropertyFields.VolumePointValues;
     }
 
     /// <summary>D063: which values of the same keyframes changed, or <see cref="ClipPropertyFields.Keyframes"/> when a

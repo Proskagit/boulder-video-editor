@@ -1010,8 +1010,14 @@ public sealed partial class TimelineEditService : ITimelineEditService
         // D025 §2: the fades stay with the outer edges — the right part keeps the fade out, the left part the
         // fade in; the new inner edges have none.
         rightClip.FadeIn = MediaTime.Zero;
-        if (clip.FadeOut != MediaTime.Zero)
-            plan.SetProperties(clip, new ClipPropertyValues(null, null, null, new FadeProperties(clip.FadeIn, MediaTime.Zero)));
+        // D064 §1: so do a video clip's sound-only fades (the volume points, in source time, go with both parts unchanged).
+        if (rightClip is VideoClip rightVideo) rightVideo.SoundFadeIn = MediaTime.Zero;
+        var leftSound = clip is VideoClip { SoundFadeOut.Ticks: not 0 } && AudioProperties.Of(clip) is { } sound
+            ? sound with { SoundFadeOut = MediaTime.Zero }
+            : (AudioProperties?)null;
+        if (clip.FadeOut != MediaTime.Zero || leftSound is not null)
+            plan.SetProperties(clip, new ClipPropertyValues(null, leftSound, null,
+                clip.FadeOut != MediaTime.Zero ? new FadeProperties(clip.FadeIn, MediaTime.Zero) : null));
 
         // A dissolve at the clip's end moves to the right part (the left part keeps the clip's id and its dissolve at
         // the start).
@@ -1503,6 +1509,12 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 .Select(p => (IUndoableCommand)new SetClipLinkCommand(p.Clip, ClipLinkState.Capture(p.Clip),
                     ClipLinkState.Capture(p.Clip) with { LinkId = null }, command.Description))
                 .Prepend(command));
+        // D064 §4: a ducking listening to the deleted track is turned off in the same step (Undo brings it back).
+        var listening = Sequence.VideoTracks.Concat(Sequence.AudioTracks).Where(t => t.Ducking?.SpeechTrackId == track.Id).ToList();
+        if (listening.Count > 0)
+            command = new CompositeCommand(command.Description, listening
+                .Select(t => (IUndoableCommand)new SetTrackMixCommand(t, TrackMix.Of(t), TrackMix.Of(t) with { Ducking = null }))
+                .Prepend(command));
         ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok();
     }
@@ -1555,6 +1567,102 @@ public sealed partial class TimelineEditService : ITimelineEditService
     }
 
     public TimelineEditResult SetTrackLocked(Guid trackId, bool locked) => SetTrackState(trackId, TrackStateFlag.Locked, locked);
+
+    public TimelineEditResult SetTrackSolo(Guid trackId, bool solo) => SetTrackState(trackId, TrackStateFlag.Solo, solo);
+
+    // --- Track mix and the master (D064 §1, §4) ----------------------------------------------------------------------
+
+    public TimelineEditResult SetTrackVolume(Guid trackId, double volume, object? gesture = null)
+    {
+        if (FindTrack(trackId) is not { } track) return TimelineEditResult.Fail(Messages.Edit_TrackGone);
+        if (!double.IsFinite(volume) || volume < ClipPropertyLimits.MinVolume || volume > ClipPropertyLimits.MaxVolume)
+            return TimelineEditResult.Fail(string.Format(Messages.Prop_Volume, "0 %", "200 %"));
+        if (track.Volume.Equals(volume)) return TimelineEditResult.Unchanged();
+        var before = TrackMix.Of(track);
+        ExecuteTracked(new NotifyingCommand(new SetTrackMixCommand(track, before, before with { Volume = volume }, gesture),
+            _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok();
+    }
+
+    public TimelineEditResult SetTrackDucking(Guid trackId, Core.Audio.DuckingSettings? ducking, object? gesture = null)
+    {
+        if (FindTrack(trackId) is not { } track) return TimelineEditResult.Fail(Messages.Edit_TrackGone);
+        if (ducking is not null)
+        {
+            if (!ducking.IsValid) return TimelineEditResult.Fail(Messages.Ducking_Invalid);
+            if (ducking.SpeechTrackId == track.Id || FindTrack(ducking.SpeechTrackId) is null)
+                return TimelineEditResult.Fail(Messages.Ducking_SpeechTrack);
+        }
+        if (track.Ducking == ducking) return TimelineEditResult.Unchanged();
+        var before = TrackMix.Of(track);
+        ExecuteTracked(new NotifyingCommand(new SetTrackMixCommand(track, before, before with { Ducking = ducking }, gesture),
+            _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok();
+    }
+
+    public TimelineEditResult SetMasterVolume(double volume, object? gesture = null)
+    {
+        if (!double.IsFinite(volume) || volume < ClipPropertyLimits.MinVolume || volume > ClipPropertyLimits.MaxVolume)
+            return TimelineEditResult.Fail(string.Format(Messages.Prop_Volume, "0 %", "200 %"));
+        if (Sequence.MasterVolume.Equals(volume)) return TimelineEditResult.Unchanged();
+        ExecuteTracked(new NotifyingCommand(new SetMasterVolumeCommand(Sequence, Sequence.MasterVolume, volume, gesture),
+            _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok();
+    }
+
+    public TimelineEditResult BakeDucking(Guid trackId, Core.Audio.DuckingCurve curve)
+    {
+        ArgumentNullException.ThrowIfNull(curve);
+        if (FindTrack(trackId) is not { } track) return TimelineEditResult.Fail(Messages.Edit_TrackGone);
+        if (track.IsLocked) return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
+        if (track.Ducking is null) return TimelineEditResult.Unchanged();
+
+        var commands = new List<IUndoableCommand>();
+        var changed = new List<Guid>();
+        foreach (var clip in track.Clips.OfType<MediaBackedClip>())
+        {
+            if (clip is VideoClip { IsAudioDetached: true } || AudioProperties.Of(clip) is not { } sound) continue;
+            var placement = Core.Playback.AudioPlacement.Of(clip.TimelineStart, clip.TimelineEnd, clip.SourceIn, clip.Speed);
+            if (placement.EndSample <= placement.FirstSample || !curve.Affects(placement.FirstSample, placement.EndSample)) continue;
+
+            // The curve's corners inside the clip, its edges and the clip's own points: the product of two curves even in dB
+            // between their corners is even in dB between the union of them, so the baked points sound as the ducking did.
+            var samples = new SortedSet<long> { placement.FirstSample, placement.EndSample - 1 };
+            foreach (var corner in curve.Corners()) if (corner > placement.FirstSample && corner < placement.EndSample - 1) samples.Add(corner);
+            var points = new List<Core.Audio.VolumePoint>();
+            var times = new HashSet<MediaTime>();
+            foreach (var k in samples)
+            {
+                var time = placement.SourcePositionAt(k);
+                if (!times.Add(time)) continue;
+                var own = sound.Volumes?.At(time) ?? 1;
+                points.Add(new Core.Audio.VolumePoint(Guid.NewGuid(), time,
+                    Math.Clamp(own * curve.Gain(k), Core.Audio.VolumeEnvelope.MinGain, Core.Audio.VolumeEnvelope.MaxGain)));
+            }
+            if (sound.Volumes is { } existing)
+                foreach (var point in existing.Points)
+                {
+                    var k = Core.Playback.AudioTiming.CeilingSample(clip.TimelineStart + new MediaTime(
+                        (long)Math.Round((point.Time - clip.SourceIn).Ticks / (double)clip.Speed.ToDecimal())));
+                    if (!times.Add(point.Time)) continue;
+                    // A point outside the used range is kept as it is (a trim back shows it again, D064 §1).
+                    if (k <= placement.FirstSample || k >= placement.EndSample - 1) { points.Add(point); continue; }
+                    points.Add(point with { Gain = Math.Clamp(point.Gain * curve.Gain(k), Core.Audio.VolumeEnvelope.MinGain, Core.Audio.VolumeEnvelope.MaxGain) });
+                }
+            var before = ClipPropertyValues.Capture(clip);
+            var after = before with { Audio = sound with { Volumes = Core.Audio.VolumeEnvelope.Of(points) } };
+            FollowSettings? followAfter = null;
+            if (clip is VideoClip synced && HasOwnSound(synced)) (after, followAfter) = KeyframeVolumeSync.Sync(before, after, synced.Follow, synced.Follow);   // amendment 1
+            if (clip is VideoClip withFollow && followAfter is not null && !Equals(withFollow.Follow, followAfter))
+                commands.Add(new Commands.SetClipFollowCommand(withFollow, withFollow.Follow, followAfter));
+            commands.Add(new SetClipPropertiesCommand(clip, before, after, ClipPropertyValues.Diff(before, after)));
+            changed.Add(clip.Id);
+        }
+        var mix = TrackMix.Of(track);
+        commands.Add(new SetTrackMixCommand(track, mix, mix with { Ducking = null }));
+        ExecuteTracked(new NotifyingCommand(new CompositeCommand("Bake Ducking", commands), _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok(changed);
+    }
 
     private TimelineEditResult SetTrackState(Guid trackId, TrackStateFlag flag, bool value)
     {
@@ -1769,16 +1877,31 @@ public sealed partial class TimelineEditService : ITimelineEditService
             fade = normalized;
         }
 
+        // D064 §1: a video clip's sound-only fades are whole frames up to the clip's length, as D025's.
+        var audio = change.Audio;
+        if (audio is { } sound && clip is VideoClip soundClip &&
+            (sound.SoundFadeIn != soundClip.SoundFadeIn || sound.SoundFadeOut != soundClip.SoundFadeOut))
+        {
+            if (NormalizeFades(clip, new FadeProperties(sound.SoundFadeIn, sound.SoundFadeOut), plan.Rate, out var soundFades,
+                    new FadeProperties(soundClip.SoundFadeIn, soundClip.SoundFadeOut)) is { } soundFadeError)
+                return TimelineEditResult.Fail(soundFadeError);
+            audio = sound with { SoundFadeIn = soundFades.FadeIn, SoundFadeOut = soundFades.FadeOut };
+        }
+
         // Timing is untouched, so no timeline validation is needed: the clip's placement,
         // grid alignment and source range stay exactly as they are.
         var before = ClipPropertyValues.Capture(clip);
         var after = new ClipPropertyValues(
             change.Visual ?? before.Visual,
-            change.Audio ?? before.Audio,
+            audio ?? before.Audio,
             change.Text ?? before.Text,
             fade ?? before.Fade,
             change.Template ?? before.Template,
             change.Keyframes ?? before.Keyframes);
+
+        // D064 amendment 1: a video clip's own keyframes and its volume points are one set of keyframes.
+        var followAfter = (clip as VideoClip)?.Follow;
+        if (clip is VideoClip synced && HasOwnSound(synced)) (after, followAfter) = KeyframeVolumeSync.Sync(before, after, synced.Follow, synced.Follow);
 
         // D053: Top / Attempt chosen where the status moment gives no lilac is put where the layout puts it.
         if (clip is TemplateClip placed && after.Template is { } wanted && before.Template is { } had)
@@ -1791,7 +1914,11 @@ public sealed partial class TimelineEditService : ITimelineEditService
             return TimelineEditResult.Fail(overlap);
 
         var command = new SetClipPropertiesCommand(clip, before, after, fields, change.Gesture);
-        ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
+        // Amendment 1: a point inside a followed part is that part's keyframe — the sound and the Follow in one step.
+        IUndoableCommand step = clip is VideoClip followed && !Equals(followed.Follow, followAfter)
+            ? new SetSoundAndFollowCommand(command, new Commands.SetClipFollowCommand(followed, followed.Follow, followAfter, change.Gesture))
+            : command;
+        ExecuteTracked(new NotifyingCommand(step, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(new[] { clip.Id });
     }
 
@@ -2048,16 +2175,18 @@ public sealed partial class TimelineEditService : ITimelineEditService
     /// (nearest, ties up), from 0 to the clip's length, stored as exactly that many frames. A fade that is not
     /// changed is kept as stored (it may exceed a clip trimmed shorter since: clamped when rendered).
     /// </summary>
-    private static string? NormalizeFades(Clip clip, FadeProperties requested, FrameRate rate, out FadeProperties normalized)
+    private static string? NormalizeFades(Clip clip, FadeProperties requested, FrameRate rate, out FadeProperties normalized,
+        FadeProperties? current = null)
     {
-        normalized = FadeProperties.Of(clip);
+        var stored = current ?? FadeProperties.Of(clip);   // D064: a video clip's sound-only fades follow the same rule
+        normalized = stored;
         if (requested.FadeIn < MediaTime.Zero || requested.FadeOut < MediaTime.Zero) return Messages.Edit_FadeNegative;
 
         var frames = TransitionRules.ClipFrames(clip, rate);
-        var fadeIn = requested.FadeIn == clip.FadeIn ? clip.FadeIn : Normalize(requested.FadeIn);
-        var fadeOut = requested.FadeOut == clip.FadeOut ? clip.FadeOut : Normalize(requested.FadeOut);
-        if (fadeIn != clip.FadeIn && TransitionRules.Frames(fadeIn, rate) > frames) return Messages.Edit_FadeInTooLong;
-        if (fadeOut != clip.FadeOut && TransitionRules.Frames(fadeOut, rate) > frames) return Messages.Edit_FadeOutTooLong;
+        var fadeIn = requested.FadeIn == stored.FadeIn ? stored.FadeIn : Normalize(requested.FadeIn);
+        var fadeOut = requested.FadeOut == stored.FadeOut ? stored.FadeOut : Normalize(requested.FadeOut);
+        if (fadeIn != stored.FadeIn && TransitionRules.Frames(fadeIn, rate) > frames) return Messages.Edit_FadeInTooLong;
+        if (fadeOut != stored.FadeOut && TransitionRules.Frames(fadeOut, rate) > frames) return Messages.Edit_FadeOutTooLong;
 
         normalized = new FadeProperties(fadeIn, fadeOut);
         return null;
@@ -2406,6 +2535,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     private MediaAsset? FindAsset(Guid id) => Project.MediaAssets.FirstOrDefault(a => a.Id == id);
 
+    /// <summary>D064 amendment 1: the video clip plays its own sound (not unlinked; its media has an audio stream).</summary>
+    private bool HasOwnSound(VideoClip clip) => !clip.IsAudioDetached && FindAsset(clip.MediaAssetId)?.Metadata?.AudioCodec is not null;
+
     private Track? FindTrack(Guid id) =>
         Sequence.VideoTracks.Concat(Sequence.AudioTracks).FirstOrDefault(t => t.Id == id);
 
@@ -2581,6 +2713,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 MediaAssetId = v.MediaAssetId, Speed = v.Speed, PositionX = v.PositionX, PositionY = v.PositionY,
                 Scale = v.Scale, RotationDegrees = v.RotationDegrees, Opacity = v.Opacity, Volume = v.Volume, IsMuted = v.IsMuted,
                 Crop = v.Crop, IsAudioDetached = v.IsAudioDetached,
+                // D064 §1: the volume points (source time), the sound-only fades (a split clears the inner edges) and the clean-up.
+                Volumes = v.Volumes, SoundFadeIn = v.SoundFadeIn, SoundFadeOut = v.SoundFadeOut, Cleanup = v.Cleanup,
                 // D061: Follow (its target is a source time of the same video) and Occlusion go with the copy.
                 Follow = v.Follow, HidesOutlinesBehindPeople = v.HidesOutlinesBehindPeople,
                 // D063: the transform keyframes (source time, immutable) go with the copy — a split's two parts keep the same
@@ -2589,7 +2723,10 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 // D034 §6 / D053: the routes go with the copy; they are immutable, so the two clips stay independent.
                 Routes = v.Routes
             },
-            AudioClip a => new AudioClip { MediaAssetId = a.MediaAssetId, Speed = a.Speed, Volume = a.Volume, IsMuted = a.IsMuted },
+            AudioClip a => new AudioClip
+            {
+                MediaAssetId = a.MediaAssetId, Speed = a.Speed, Volume = a.Volume, IsMuted = a.IsMuted, Volumes = a.Volumes, Cleanup = a.Cleanup
+            },
             ImageClip i => new ImageClip
             {
                 MediaAssetId = i.MediaAssetId, Speed = i.Speed, PositionX = i.PositionX, PositionY = i.PositionY,

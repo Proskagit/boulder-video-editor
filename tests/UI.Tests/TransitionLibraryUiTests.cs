@@ -506,7 +506,7 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
             Assert.Null(items.Attribute("MaxWidth"));
             Assert.Equal("1", (string?)items.Attribute("Grid.Column"));
             Assert.Equal(Ui + "Grid", items.Parent!.Name);
-            Assert.Equal("124,*", (string?)items.Parent.Attribute("ColumnDefinitions"));
+            Assert.Equal("144,*", (string?)items.Parent.Attribute("ColumnDefinitions"));
         }
         Assert.DoesNotContain(section.Descendants(Ui + "StackPanel"),
             p => (string?)p.Attribute("Orientation") == "Horizontal" && p.Descendants(Ui + "ItemsControl").Any());

@@ -3,10 +3,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:rendering="using:AiVideoEditor.UI.Rendering"
              xmlns:controls="using:AiVideoEditor.UI.Controls"
+             xmlns:panels="using:AiVideoEditor.UI.Views.Panels"
              x:Class="AiVideoEditor.UI.Views.Panels.TimelineView"
              Focusable="True">
 
   <UserControl.Resources>
+    <!-- D064: the mixer flyout of the tool bar. -->
+    <Flyout x:Key="MixerFlyout" Placement="BottomEdgeAlignedLeft">
+      <panels:MixerPanel DataContext="{Binding Mixer}"/>
+    </Flyout>
     <!-- D044 §6: the menu of the library's five types under "Transition" (shown by the view when the view model asks). -->
     <MenuFlyout x:Key="TransitionMenu" Placement="BottomEdgeAlignedLeft">
       <MenuItem Header="{x:Static l:Strings.TransitionType_CrossDissolve}" Command="{Binding AddTransitionCommand}" CommandParameter="crossDissolve"/>
@@ -125,6 +130,9 @@
     <Style Selector="Button.trackState.hide.on /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#3A66B0"/>
     </Style>
+    <Style Selector="Button.trackState.solo.on /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#C9A227"/>
+    </Style>
     <Style Selector="Button.trackState.lock.on /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#D0921E"/>
     </Style>
@@ -188,6 +196,13 @@
               <StackPanel Orientation="Horizontal" Spacing="4">
                 <controls:IconPath Glyph="{x:Static controls:Icons.Keyframe}" Width="12" Height="12"/>
                 <TextBlock Text="{x:Static l:Strings.Timeline_Keyframe}"/>
+              </StackPanel>
+            </Button>
+            <!-- D064: the mixer — the master, every track's volume, M and S, the comparison with the original sound. -->
+            <Button ToolTip.Tip="{x:Static l:Strings.Timeline_MixerTip}" FontSize="11" Flyout="{StaticResource MixerFlyout}">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.Mixer}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_Mixer}"/>
               </StackPanel>
             </Button>
             <Button Command="{Binding SplitAtPlayheadCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_SplitTip}" FontSize="11">
@@ -306,6 +321,10 @@
                           <Button Classes="trackState mute" Classes.on="{Binding IsMuted}" Content="M"
                                   ToolTip.Tip="{x:Static l:Strings.Track_MuteTip}"
                                   Command="{Binding $parent[ItemsControl].DataContext.ToggleTrackMuteCommand}" CommandParameter="{Binding}"/>
+                          <!-- D064 §1: solo — only the solo tracks sound (the Preview and the export) -->
+                          <Button Classes="trackState solo" Classes.on="{Binding Mix.IsSolo}" Content="S"
+                                  ToolTip.Tip="{x:Static l:Strings.Track_SoloTip}"
+                                  Command="{Binding $parent[ItemsControl].DataContext.ToggleTrackSoloCommand}" CommandParameter="{Binding}"/>
                           <Button Classes="trackState hide" Classes.on="{Binding IsHidden}" IsVisible="{Binding CanHide}"
                                   ToolTip.Tip="{x:Static l:Strings.Track_HideTip}"
                                   Command="{Binding $parent[ItemsControl].DataContext.ToggleTrackHiddenCommand}" CommandParameter="{Binding}">
@@ -335,6 +354,14 @@
                                 Command="{Binding $parent[ItemsControl].DataContext.MoveTrackDownCommand}" CommandParameter="{Binding}"/>
                         <Button Content="✕" ToolTip.Tip="{x:Static l:Strings.Track_DeleteTip}"
                                 Command="{Binding $parent[ItemsControl].DataContext.DeleteTrackCommand}" CommandParameter="{Binding}"/>
+                        <!-- D064 §2 / §4: the track's volume and ducking -->
+                        <Button Content="🔊" ToolTip.Tip="{x:Static l:Strings.Track_MixTip}" Classes.on="{Binding Mix.IsDucking}">
+                          <Button.Flyout>
+                            <Flyout Placement="RightEdgeAlignedTop">
+                              <panels:TrackMixPanel DataContext="{Binding Mix}"/>
+                            </Flyout>
+                          </Button.Flyout>
+                        </Button>
                       </StackPanel>
                     </StackPanel>
                   </Border>
@@ -455,6 +482,9 @@
                                   </LinearGradientBrush>
                                 </Border.Background>
                               </Border>
+                              <!-- D064 §2: the volume line (the clip's volume × its points), on the selected clip its points and the
+                                   sound's fade handles; the timeline asks its shape what a press is on. -->
+                              <rendering:VolumeEnvelopeView Grid.ColumnSpan="3" Shape="{Binding VolumeShape}" IsVisible="{Binding HasVolumeLine}"/>
                               <!-- D045 §17: «Боулдер»'s status moment, a line on the clip at the frame its status appears. -->
                               <Canvas Grid.ColumnSpan="3" IsVisible="{Binding HasStatusMark}" IsHitTestVisible="False" ClipToBounds="True">
                                 <Border Name="StatusMark" Canvas.Left="{Binding StatusMarkLeft}" Width="2" Height="44"

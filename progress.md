@@ -2,6 +2,39 @@
 
 ## Current phase
 
+**Acceptance and docs sync (2026-11-17, docs only).** The product owner accepted Phases 39, 40, 41, 42, 43, 44 and 45, and
+Phases 33 / 34; the R2 → E manual plan `docs/R2E_MANUAL_TEST_PLAN.md` closed as not needed (covered by the Phase 42 checks).
+`docs/DEVELOPMENT_PLAN.md` "Official phases" brought up to Phase 45 (the highest phase number 45; complete: 1–29, 31, 33, 34,
+37–45), `ROADMAP.md` statuses synced; `CLAUDE.md` §10: commit / push / PR as the task allows, the merge only by the product
+owner. Phase 45's PR #72 is merged by the owner after CI.
+
+**Phase 45 — amendment 1, second round (2026-11-17).** The keyframes of a followed part (the cyan diamonds) are tied to the volume
+points too: a part's keyframe brings, moves and removes its point; a point added inside a part becomes the part's keyframe; Follow
+off keeps the points; a change of the sound and a part is one undo step (`SetSoundAndFollowCommand`, a drag merges). Manual row G9.
+Gates: Debug and Release `-warnaserror` 0 / 0; every suite green (Timeline 1 194, UI 1 269, others as above). Portable build 0.45.2.
+**Phase 45 — amendment 1 after the owner's first check (D064 am. 1, 2026-11-17).** A video clip's own transform keyframes and its
+volume points are one set (added, moved, removed together; `KeyframeVolumeSync` in the edit service); an audio clip's keyframes are
+its volume points (the tool bar's «Ключ. кадр», diamonds, drag, Delete); points on frames; «Сбросить точки»; the Inspector's
+«Громкость» with points shows the playhead's value and raises the whole segment around it; the Inspector 360 px by default (at least
+340 px), labels 136 px. Manual rows G1–G8. Gates (2026-11-17): Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff
+--check` clean; Debug and Release every suite green — Core 1 913, Timeline 1 191, Project 749, Rendering 257, UI 1 269, Export 142,
+Vision 24, Video 411 + 1 skipped, ExportEndToEnd 186 + 3 skipped (heavy 4K). Portable build 0.45.1 for the owner's check.
+**Phase 45 — Audio editing, mixing and clean-up (D064, 2026-11-17) — on `feat/phase-45-audio-mixing`.** Track volume / solo /
+ducking and a master volume; volume points (source time, relative to the clip's volume) with the line, points and fade handles on
+the timeline; a video clip's sound-only fades; noise reduction (FFmpeg `afftdn`, its 1 200-sample delay compensated) and voice
+enhancement (DeepFilterNet3, CPU, 30 s chunks in parallel) computed once per file and setting into the application's cache;
+ducking under the speech of another track (Silero VAD) with «Закрепить в точки»; the «Исходный звук» comparison; one per-sample
+gain curve and a stateless soft clip at −1 dBFS for the Preview and the export; the export waits for a running clean-up / speech
+analysis and warns for a failed one and for solo; `project.json` v25. The models (owner's permission, 2026-11-17) are in
+`%LOCALAPPDATA%\AiVideoEditor\models\audio-v1` (hashes in `docs/AI_MODEL.md`). Docs and benchmark: `docs/PHASE45_AUDIO.md`
+(30 min: NR ×298, voice ×29, speech ×204 real time on the 5800X); manual plan: `docs/PHASE45_MANUAL_TEST_PLAN.md`. Phase review:
+FAIL (a cleaned sound becoming ready kept the old reader; the mixer ignored the export's lock; a project change during a job left
+the new project's jobs waiting; FFmpeg tests with an early return; a blank line at a file's end) — fixed with tests (the coordinator
+test fails without its fix); re-review: PASS WITH NOTES. Gates (2026-11-17, after the fixes): Debug and Release `--no-incremental
+-warnaserror` 0 / 0; `git diff --check` clean; Debug and Release every suite green — Core 1 913, Timeline 1 186, Project 749,
+Rendering 257, UI 1 264, Export 142, Vision 24, Video 411 + 1 skipped (as before), ExportEndToEnd 186 + 3 skipped (the heavy 4K
+ones, `AIVE_HEAVY_TESTS` not set). Local real-model suite: `AudioModelBenchmarkTests` 2 / 2. Not done: the owner's manual run
+(listening, the real app); a run of the app was only a start-up smoke (the check project opened, no errors in the log).
 **Phase 44 — amendment 1 after the owner's first check (D063 §10, 2026-11-17) — on `feat/phase-44-transform-keyframes`,
 PR #71.** The Preview's corner scale holds the opposite corner (the picture grows towards the dragged corner; snapping keeps
 a held canvas edge exact, so corner → opposite corner fills the canvas); the heart rate on a landscape canvas 1.5 times

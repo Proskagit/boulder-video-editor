@@ -181,6 +181,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
     {
         if (_syncing || value is not { } volume) return;
         var whole = WholePercent(volume);
+        if (EditVolumeAtPlayhead((double)(whole / 100m))) return;   // D064 amendment 1: with points, the segment at the playhead
         EditAudio(a => a with { Volume = (double)(whole / 100m) });
         if (whole != volume) ShowModelAfterRejection();   // the field shows the whole value that was applied
     }
@@ -690,6 +691,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
                 VolumePercent = (decimal)audio.Volume * 100m;
                 IsMuted = audio.IsMuted;
             }
+            SyncAudioExtras(_clip);   // D064
             if (VisualProperties.Of(_clip) is { } visual)
             {
                 PositionX = (decimal)visual.PositionX;

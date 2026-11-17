@@ -100,20 +100,25 @@ internal sealed class AudioPipeline : IAsyncDisposable
         {
             if (!_readers.TryGetValue(key, out var reader))
             {
-                reader = new AudioSpanReader(span, _snapshot.Assets[span.AssetId], position,
+                reader = new AudioSpanReader(span, SourceOf(span), position,
                     (int)(_settings.AudioBuffer.TotalSeconds * AudioFormat.SampleRate), _decoder, _logger);
                 _readers[key] = reader;
             }
-            entries.Add(new MixEntry(reader, AudioMix.Gain(span), AudioFadeEnvelope.Of(span, _snapshot.FrameRate)));
+            entries.Add(new MixEntry(reader, AudioGainCurve.Of(span, _snapshot.FrameRate)));
         }
         _mixer.SetEntries(entries.ToArray());
     }
 
     private static bool IsPlayable(AudioSpan span) => span.Status == SpanStatus.Audio;
 
+    /// <summary>D064 §5: the file the span's sound is decoded from — its cleaned sound when ready, else its source.</summary>
+    private PlaybackAsset SourceOf(AudioSpan span) => span.CleanedSource ?? _snapshot.Assets[span.AssetId];
+
     private ReaderKey Key(AudioSpan span)
     {
-        var asset = _snapshot.Assets[span.AssetId];
+        // D064 §5: the file actually decoded — a cleaned sound that becomes ready (or the comparison with the original) is
+        // another reader, never the old one taken over.
+        var asset = SourceOf(span);
         return new ReaderKey(span.ClipId, span.AssetId, span.TimelineStart, span.TimelineEnd, span.SourceIn, asset.FilePath, asset.StartTime,
             span.PlayStart, span.PlayEnd);
     }

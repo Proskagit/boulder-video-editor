@@ -270,13 +270,19 @@ public sealed class PreviewLayersTests : IAsyncLifetime
     {
         var (_, asset) = Video(V1, "scrub.mp4");
         await TickUntil(Settled, "first picture");
-        var gate = _decoder.Gate(asset.FilePath);
+        var opens = _decoder.OpenCount(asset.FilePath);
+        var first = _decoder.Gate(asset.FilePath);
         Preview.Seek(F(200));
         Preview.Seek(F(120));                                              // waits for the first one's picture
-        gate.SetResult();
+        await TickUntil(() => _decoder.OpenCount(asset.FilePath) > opens, "the first seek's open");
+        // The newest seek's open is held until the interim picture has been seen: without it, on a slow machine both
+        // seeks could finish between two ticks and the interim picture would never be observable.
+        var newest = _decoder.Gate(asset.FilePath);
+        first.SetResult();
 
         await TickUntil(() => Preview.Layers.Length == 1 && Preview.Layers[0].Frame is { } f && FakeVideoDecoder.Number(f) == 200,
             "the interim picture");
+        newest.SetResult();
         await TickUntil(() => Settled() && FakeVideoDecoder.Number(Preview.Layers[0].Frame!) == 120, "the newest");
     }
 }

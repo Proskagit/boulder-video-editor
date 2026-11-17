@@ -42,11 +42,24 @@ public readonly record struct KeyframeValues(TransformKeyframes? Keys)
 /// state: muting never changes <see cref="Volume"/>.</summary>
 public readonly record struct AudioProperties(double Volume, bool IsMuted)
 {
+    /// <summary>D064 §1: the volume points (source time), relative to <see cref="Volume"/>; null — none.</summary>
+    public Audio.VolumeEnvelope? Volumes { get; init; }
+
+    /// <summary>D064 §1: a video clip's sound-only fades (always zero for an audio clip, whose sound fades are its D025 fades).</summary>
+    public MediaTime SoundFadeIn { get; init; }
+    public MediaTime SoundFadeOut { get; init; }
+
+    /// <summary>D064 §5: the clean-up; null — none.</summary>
+    public Audio.AudioCleanup? Cleanup { get; init; }
+
     /// <summary>The clip's current values, or null when the clip has no audio (image, text).</summary>
     public static AudioProperties? Of(Clip clip) => clip switch
     {
-        VideoClip v => new AudioProperties(v.Volume, v.IsMuted),
-        AudioClip a => new AudioProperties(a.Volume, a.IsMuted),
+        VideoClip v => new AudioProperties(v.Volume, v.IsMuted)
+        {
+            Volumes = v.Volumes, SoundFadeIn = v.SoundFadeIn, SoundFadeOut = v.SoundFadeOut, Cleanup = v.Cleanup
+        },
+        AudioClip a => new AudioProperties(a.Volume, a.IsMuted) { Volumes = a.Volumes, Cleanup = a.Cleanup },
         _ => null
     };
 }

@@ -56,6 +56,7 @@ public sealed partial class InspectorViewModel
     /// <summary>The keyframe section from the model (the clip, the timeline, the playhead changed).</summary>
     private void RefreshKeyframes()
     {
+        ShowVolumeAtPlayhead();   // D064 amendment 1: with points, the volume field shows the playhead's value
         var wasSyncing = _syncing;
         _syncing = true;
         try

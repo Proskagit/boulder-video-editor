@@ -3473,4 +3473,202 @@
   <data name="Timeline_Keyframe" xml:space="preserve">
     <value>Ключ. кадр</value>
   </data>
+  <data name="Volume_FadeLabel" xml:space="preserve">
+    <value>Затухание {0}</value>
+  </data>
+  <data name="Volume_TrackLocked" xml:space="preserve">
+    <value>Дорожка заблокирована: точки громкости менять нельзя.</value>
+  </data>
+  <data name="Volume_PointAdded" xml:space="preserve">
+    <value>Точка громкости добавлена — перетащите её вверх или вниз.</value>
+  </data>
+  <data name="Volume_PointRemoved" xml:space="preserve">
+    <value>Точка громкости удалена.</value>
+  </data>
+  <data name="Volume_LineTip" xml:space="preserve">
+    <value>Перетаскивание — громкость клипа. Двойной щелчок — точка громкости.</value>
+  </data>
+  <data name="Volume_PointTip" xml:space="preserve">
+    <value>Перетаскивание — сдвинуть точку. Двойной щелчок или Delete — удалить.</value>
+  </data>
+  <data name="Volume_FadeInTip" xml:space="preserve">
+    <value>Перетащите внутрь — плавное появление звука.</value>
+  </data>
+  <data name="Volume_FadeOutTip" xml:space="preserve">
+    <value>Перетащите внутрь — плавное затухание звука.</value>
+  </data>
+  <data name="Mixer_Milliseconds" xml:space="preserve">
+    <value>{0:0} мс</value>
+  </data>
+  <data name="Mixer_DuckingDetecting" xml:space="preserve">
+    <value>Определение речи… {0:0} %</value>
+  </data>
+  <data name="Mixer_DuckingWaiting" xml:space="preserve">
+    <value>Определение речи ждёт очереди.</value>
+  </data>
+  <data name="Mixer_DuckingCancelled" xml:space="preserve">
+    <value>Определение речи остановлено.</value>
+  </data>
+  <data name="Mixer_DuckingFailed" xml:space="preserve">
+    <value>Определение речи не удалось.</value>
+  </data>
+  <data name="Mixer_DuckingReady" xml:space="preserve">
+    <value>Речь найдена — дорожка приглушается, пока она звучит.</value>
+  </data>
+  <data name="Mixer_DuckingNoSpeech" xml:space="preserve">
+    <value>На дорожке с речью нет клипов со звуком.</value>
+  </data>
+  <data name="Mixer_NoSpeechTrack" xml:space="preserve">
+    <value>Сначала добавьте другую дорожку с речью.</value>
+  </data>
+  <data name="Mixer_DuckingOn" xml:space="preserve">
+    <value>Дорожка {0} приглушается во время речи.</value>
+  </data>
+  <data name="Mixer_DuckingOff" xml:space="preserve">
+    <value>Приглушение дорожки {0} выключено.</value>
+  </data>
+  <data name="Mixer_DuckingBaked" xml:space="preserve">
+    <value>Приглушение дорожки {0} закреплено в точках громкости.</value>
+  </data>
+  <data name="Track_Soloed" xml:space="preserve">
+    <value>Дорожка {0}: Solo — слышны только дорожки Solo.</value>
+  </data>
+  <data name="Track_Unsoloed" xml:space="preserve">
+    <value>Дорожка {0}: Solo выключено.</value>
+  </data>
+  <data name="Track_SoloTip" xml:space="preserve">
+    <value>Solo: слышны только дорожки Solo (и в экспорте)</value>
+  </data>
+  <data name="Track_MixTip" xml:space="preserve">
+    <value>Громкость и приглушение дорожки</value>
+  </data>
+  <data name="Timeline_Mixer" xml:space="preserve">
+    <value>Микшер</value>
+  </data>
+  <data name="Timeline_MixerTip" xml:space="preserve">
+    <value>Общая громкость, громкость, Mute и Solo каждой дорожки</value>
+  </data>
+  <data name="Mixer_TrackVolume" xml:space="preserve">
+    <value>Громкость</value>
+  </data>
+  <data name="Mixer_TrackVolumeTip" xml:space="preserve">
+    <value>Громкость всей дорожки (0–200 %)</value>
+  </data>
+  <data name="Mixer_Mute" xml:space="preserve">
+    <value>Без звука</value>
+  </data>
+  <data name="Mixer_Solo" xml:space="preserve">
+    <value>Соло</value>
+  </data>
+  <data name="Mixer_Ducking" xml:space="preserve">
+    <value>Приглушать во время речи (Ducking)</value>
+  </data>
+  <data name="Mixer_DuckingTip" xml:space="preserve">
+    <value>Дорожка автоматически приглушается, пока на выбранной дорожке звучит речь; ваши точки громкости сохраняются</value>
+  </data>
+  <data name="Mixer_SpeechTrack" xml:space="preserve">
+    <value>Речь на</value>
+  </data>
+  <data name="Mixer_Depth" xml:space="preserve">
+    <value>Глубина</value>
+  </data>
+  <data name="Mixer_Attack" xml:space="preserve">
+    <value>Начало</value>
+  </data>
+  <data name="Mixer_Release" xml:space="preserve">
+    <value>Восстановление</value>
+  </data>
+  <data name="Mixer_Sensitivity" xml:space="preserve">
+    <value>Чувствительность</value>
+  </data>
+  <data name="Mixer_Cancel" xml:space="preserve">
+    <value>Остановить</value>
+  </data>
+  <data name="Mixer_Retry" xml:space="preserve">
+    <value>Повторить</value>
+  </data>
+  <data name="Mixer_Bake" xml:space="preserve">
+    <value>Закрепить в точки</value>
+  </data>
+  <data name="Mixer_BakeTip" xml:space="preserve">
+    <value>Записать приглушение в точки громкости дорожки, чтобы поправить вручную; приглушение выключится</value>
+  </data>
+  <data name="Mixer_Master" xml:space="preserve">
+    <value>Общая громкость</value>
+  </data>
+  <data name="Mixer_MasterTip" xml:space="preserve">
+    <value>Громкость всего проекта (0–200 %); микс никогда не перегружается</value>
+  </data>
+  <data name="Mixer_OriginalSound" xml:space="preserve">
+    <value>Исходный звук (сравнение)</value>
+  </data>
+  <data name="Mixer_OriginalSoundTip" xml:space="preserve">
+    <value>Preview воспроизводит клипы без шумоподавления и улучшения речи; не сохраняется и не экспортируется</value>
+  </data>
+  <data name="Mixer_Note" xml:space="preserve">
+    <value>Громкость выше 100 % защищена от перегрузки на уровне −1 дБ.</value>
+  </data>
+  <data name="Plural_VolumePoints" xml:space="preserve">
+    <value>{0} точка громкости|{0} точки громкости|{0} точек громкости</value>
+  </data>
+  <data name="Inspector_NoVolumePoints" xml:space="preserve">
+    <value>Точек громкости нет — двойной щелчок по линии на таймлайне добавит точку.</value>
+  </data>
+  <data name="Inspector_ClearVolumePoints" xml:space="preserve">
+    <value>Сбросить точки</value>
+  </data>
+  <data name="Inspector_SoundFadeIn" xml:space="preserve">
+    <value>Появление звука</value>
+  </data>
+  <data name="Inspector_SoundFadeOut" xml:space="preserve">
+    <value>Затухание звука</value>
+  </data>
+  <data name="Inspector_SoundFadeTip" xml:space="preserve">
+    <value>Затухания только звука клипа (в кадрах); затухание изображения — отдельно, выше</value>
+  </data>
+  <data name="Inspector_CleanupHeading" xml:space="preserve">
+    <value>Очистка звука</value>
+  </data>
+  <data name="Inspector_NoiseReduction" xml:space="preserve">
+    <value>Шумоподавление</value>
+  </data>
+  <data name="Inspector_NoiseReductionTip" xml:space="preserve">
+    <value>Уменьшает постоянный шум — зал, вентиляцию, гул, шипение, низкий шум ветра (0 — выключено)</value>
+  </data>
+  <data name="Inspector_VoiceEnhancement" xml:space="preserve">
+    <value>Улучшение речи</value>
+  </data>
+  <data name="Inspector_VoiceEnhancementTip" xml:space="preserve">
+    <value>Отделяет голос от шума, музыки и зала локальной нейросетью (0 — выключено)</value>
+  </data>
+  <data name="Inspector_CleanupProcessing" xml:space="preserve">
+    <value>Обработка… {0:0} %</value>
+  </data>
+  <data name="Inspector_CleanupWaiting" xml:space="preserve">
+    <value>Ожидает обработки — пока звучит исходный звук.</value>
+  </data>
+  <data name="Inspector_CleanupReady" xml:space="preserve">
+    <value>Очищено — исходный файл не изменён.</value>
+  </data>
+  <data name="Inspector_CleanupCancelled" xml:space="preserve">
+    <value>Остановлено — звучит исходный звук.</value>
+  </data>
+  <data name="Inspector_CleanupFailed" xml:space="preserve">
+    <value>Не очищено — звучит исходный звук: {0}</value>
+  </data>
+  <data name="Inspector_CleanupStop" xml:space="preserve">
+    <value>Остановить</value>
+  </data>
+  <data name="Inspector_CleanupRetry" xml:space="preserve">
+    <value>Повторить</value>
+  </data>
+  <data name="Mixer_Locked" xml:space="preserve">
+    <value>Микс нельзя менять, пока проект экспортируется.</value>
+  </data>
+  <data name="Keyframe_AddedVolume" xml:space="preserve">
+    <value>Ключевой кадр добавлен — перетащите его точку на линии громкости вверх или вниз.</value>
+  </data>
+  <data name="Keyframe_TipVolume" xml:space="preserve">
+    <value>Ключевой кадр {0}: громкость {1}</value>
+  </data>
 </root>

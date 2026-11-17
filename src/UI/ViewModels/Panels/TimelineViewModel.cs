@@ -66,9 +66,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
         InOutRangeService? inOut = null,
         SourceViewerService? source = null,
         ITextBoxMeasurer? textBoxes = null,
-        IUserSettingsService? userSettings = null)
+        IUserSettingsService? userSettings = null,
+        AudioProcessingCoordinator? audio = null)
     {
         if (userSettings is not null) FollowsPlayheadSetting = () => userSettings.Current.TimelineFollowsPlayhead;
+        Mixer = new MixerViewModel(projectService, edit, status, audio, () => !(editingLock?.IsLocked ?? false));
         _source = source;
         _textBoxes = textBoxes;
         if (source is not null) source.SourceChanged += (_, _) => NotifySourceCommands();
@@ -220,6 +222,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
             Tracks[i].HasTrackBelow = i < Tracks.Count - 1 && Tracks[i + 1].Type == Tracks[i].Type;
             Tracks[i].SyncState();
         }
+        // D064: the mixer follows the model (the master, every track's volume, solo and ducking).
+        Mixer.Sync(Tracks.Select(t => t.Track));
+        foreach (var track in Tracks) track.Mix = Mixer.MixOf(track.Track);
         MoveTrackUpCommand.NotifyCanExecuteChanged();
         MoveTrackDownCommand.NotifyCanExecuteChanged();
         DeleteTrackCommand.NotifyCanExecuteChanged();
@@ -406,6 +411,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
             vm.Layout(PixelsPerSecond);
         RefreshWaveforms();
         RefreshFades();
+        RefreshVolumeShapes();
         RefreshStatusMarks();
         foreach (var vm in _transitionViewModels.Values)
             vm.Layout(PixelsPerSecond, FrameRate);
@@ -695,7 +701,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private bool CanEdit() => !_editingLock.IsLocked;
 
-    private bool CanDeleteSelected() => CanEdit() && (HasSelection || HasTransitionSelection || SelectedOrangeClipId is not null || SelectedKeyframe is not null);
+    private bool CanDeleteSelected() => CanEdit() && (HasSelection || HasTransitionSelection || SelectedOrangeClipId is not null || SelectedKeyframe is not null || _selectedVolumePoint is not null);
 
     /// <summary>The Dissolve command needs two selected clips on one track (a linked clip brings its partner into the
     /// selection, AQ1: the clips of the primary's track count); whether they meet and how long a dissolve — a crossfade on
@@ -718,6 +724,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
             CancelGesture();
             CancelFollowDrag();
             CancelKeyframeDrag();
+            CancelVolumeDrag();   // D064 §2: the values before the drag come back
         }
         OnPropertyChanged(nameof(IsEditingAllowed));
         NotifyKeyframeCommands();
@@ -788,6 +795,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void DeleteSelected()
     {
         if (DeleteSelectedKeyframe()) return;   // D063 §2: the selected keyframe, not its clip
+        if (DeleteSelectedVolumePoint()) return;   // D064 §2: the selected volume point, not its clip
         if (SelectedOrangeClipId is { } markupClip)
         {
             DeleteSelectedOrange(markupClip);   // D048 §3.9: the strip's selection, not the clip's
@@ -1045,6 +1053,14 @@ public sealed partial class TimelineViewModel : ViewModelBase
         if (track is null) return;
         var muted = !track.Track.IsMuted;
         Report(_edit.SetTrackMuted(track.Track.Id, muted), successMessage: string.Format(muted ? Strings.Track_Muted : Strings.Track_Unmuted, track.Track.Name));
+    }
+
+    /// <summary>D064 §1: the header's S — solo on / off (one undo step, allowed on a locked track).</summary>
+    [RelayCommand(CanExecute = nameof(CanEdit))]
+    private void ToggleTrackSolo(TimelineTrackViewModel? track)
+    {
+        if (track?.Mix is not { } mix) return;
+        mix.IsSolo = !mix.IsSolo;
     }
 
     [RelayCommand(CanExecute = nameof(CanToggleTrackHidden))]

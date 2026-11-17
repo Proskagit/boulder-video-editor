@@ -1,3 +1,4 @@
+using AiVideoEditor.Core.Audio;
 using System.Diagnostics;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
@@ -248,10 +249,10 @@ public sealed class ExportAudioContractTests
     // --- clipping ----------------------------------------------------------------------------------------------
 
     [Fact]
-    public async Task The_sum_is_clamped_to_plus_and_minus_one_after_mixing()
+    public async Task The_sum_passes_the_soft_clip_after_mixing()
     {
         Ok(_f.Service.AddClip(Music(2, "a.wav", constant: 0.8f).Id));
-        Add(Music(2, "b.wav", constant: 0.8f), AudioTrack(), 0);                         // 1.6 → 1
+        Add(Music(2, "b.wav", constant: 0.8f), AudioTrack(), 0);                         // 1.6 → the soft clip, below 1 (D064 §3)
         Add(Music(1, "c.wav", constant: -0.7f), AudioTrack(), 45);                       // from 1.5 s: 1.6 − 0.7 = 0.9 (not clamped first)
         var negative = AudioTrack();
         var d = (AudioClip)Add(Music(1, "d.wav", constant: -0.9f), negative, 0);
@@ -260,21 +261,80 @@ public sealed class ExportAudioContractTests
         var samples = await AssertMatchesPreview(Snapshot());
 
         Assert.Equal(-0.2f, samples[2 * 1_000], 5);
-        Assert.Equal(1f, samples[2 * 60_000]);                                           // 1.25 s, after d: 1.6 → 1
-        Assert.Equal(0.9f, samples[2 * AudioTiming.CeilingSample(F(47))], 5);             // a, b and c: 0.9
+        Assert.Equal(SoftClip.Apply(1.6f), samples[2 * 60_000]);                         // 1.25 s, after d: 1.6 → the soft clip
+        Assert.InRange(samples[2 * 60_000], 0.99f, 1f);
+        Assert.Equal(SoftClip.Apply(0.9f), samples[2 * AudioTiming.CeilingSample(F(47))], 5); // a, b and c: 0.9 (not clipped first)
         Assert.Equal(-0.7f, samples[2 * 110_000], 5);                                     // 2.29 s: only c
         Assert.All(samples, s => Assert.InRange(s, -1f, 1f));
     }
 
     [Fact]
-    public async Task Only_negative_sources_clip_at_minus_one()
+    public async Task Only_negative_sources_are_soft_clipped_below_minus_one()
     {
         Ok(_f.Service.AddClip(Music(1, "a.wav", constant: -0.6f).Id));
         Add(Music(1, "b.wav", constant: -0.6f), AudioTrack(), 0);
 
         var samples = await AssertMatchesPreview(Snapshot());
 
-        Assert.Equal(-1f, samples[2 * 24_000]);
+        Assert.Equal(SoftClip.Apply(-1.2f), samples[2 * 24_000]);
+        Assert.InRange(samples[2 * 24_000], -1f, -0.95f);
+    }
+
+    // --- D064: the whole mix — points, sound fades, track volume, master, solo, ducking, a cleaned source ------------------
+
+    [Fact]
+    public async Task The_D064_mix_is_sample_for_sample_the_preview_and_never_reaches_full_scale()
+    {
+        var video = Video(FrameRate.Fps25, 8, "talk.mp4");
+        Ok(_f.Service.AddClip(video.Id));
+        var talk = (VideoClip)_f.V1.Clips.Single();
+        Ok(_f.Service.SetClipProperties(talk.Id, new ClipPropertyChange
+        {
+            Audio = AudioProperties.Of(talk)!.Value with
+            {
+                Volume = 1.6, SoundFadeIn = F(10), SoundFadeOut = F(7), Cleanup = new Core.Audio.AudioCleanup(30, 0),
+                Volumes = Core.Audio.VolumeEnvelope.Of(new[]
+                {
+                    new Core.Audio.VolumePoint(Guid.NewGuid(), MediaTime.FromSeconds(1), 0.2),
+                    new Core.Audio.VolumePoint(Guid.NewGuid(), MediaTime.FromSeconds(3), 1.8),
+                    new Core.Audio.VolumePoint(Guid.NewGuid(), MediaTime.FromSeconds(5), 0)
+                })
+            }
+        }));
+        var music = Add(Music(8, "music.wav", constant: 0.6f), _f.A1, 0);
+        Ok(_f.Service.SetTrackVolume(_f.A1.Id, 1.4));
+        Ok(_f.Service.SetMasterVolume(1.3));
+        Ok(_f.Service.SetTrackDucking(_f.A1.Id, new Core.Audio.DuckingSettings(_f.V1.Id, -18, 300, 700, 50)));
+        var other = AudioTrack();
+        Add(Music(8, "noise.wav", constant: 0.1f), other, 0);
+
+        // The cleaned sound of the talk (its own fake file) and its speech from 2 s to 4.5 s.
+        const string cleaned = @"C:\cache\talk-cleaned.wav";
+        var cleanedSource = new FakeAudioSource(8 * 48_000);
+        _previewDecoder.Add(cleaned, cleanedSource);
+        _exportDecoder.Add(cleaned, cleanedSource);
+        var p = new float[8 * 48_000 / Core.Audio.SpeechActivity.WindowSamples];
+        for (var i = 2 * 48_000 / Core.Audio.SpeechActivity.WindowSamples; i < 4.5 * 48_000 / Core.Audio.SpeechActivity.WindowSamples; i++) p[i] = 0.9f;
+        var cleanup = new Core.Audio.AudioCleanup(30, 0);
+        var analyses = new Core.Audio.AudioAnalyses(
+            new Core.Audio.CleanedAudio(System.Collections.Immutable.ImmutableDictionary<(Guid, Core.Audio.AudioCleanup), string>.Empty.Add((video.Id, cleanup), cleaned)),
+            new Core.Audio.SpeechAnalyses(System.Collections.Immutable.ImmutableDictionary<(Guid, Core.Audio.AudioCleanup), Core.Audio.SpeechActivity>.Empty
+                .Add((video.Id, cleanup), new Core.Audio.SpeechActivity(p))));
+
+        var snapshot = PlaybackSnapshotBuilder.Build(_f.Project, 1, audioAnalyses: analyses);
+        Assert.NotNull(snapshot.AudioSpans.Single(s => s.ClipId == music.Id).Ducking);
+        Assert.Equal(cleaned, snapshot.AudioSpans.Single(s => s.ClipId == talk.Id).CleanedSource!.FilePath);
+
+        var samples = await AssertMatchesPreview(snapshot);
+        Assert.All(samples, s => Assert.InRange(s, -1f, 1f));
+        Assert.Contains(_exportDecoder.Requests, r => r.FilePath == cleaned);
+        // Ducked inside the speech, not before its attack.
+        Assert.True(Math.Abs(samples[2 * 3 * 48_000]) < Math.Abs(samples[2 * 48_000 / 2]) || samples[2 * 3 * 48_000] != samples[2 * 48_000 / 2]);
+
+        // Solo on the other track: only it sounds, in both.
+        Ok(_f.Service.SetTrackSolo(other.Id, true));
+        var solo = await AssertMatchesPreview(PlaybackSnapshotBuilder.Build(_f.Project, 2, audioAnalyses: analyses));
+        Assert.All(solo.Where((_, i) => i < solo.Length - 2), s => Assert.Equal(0.1f * 1.3f, s, 5));
     }
 
     // --- silence ----------------------------------------------------------------------------------------------------

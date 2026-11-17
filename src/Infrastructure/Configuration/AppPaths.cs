@@ -52,6 +52,9 @@ public static class AppPaths
     /// <summary>D061: the people analyses (tracks, masks) kept between sessions, keyed by the video's content.</summary>
     public static string PeopleCacheFolder => Path.Combine(AppDataRoot, "cache", "people");
 
+    /// <summary>D064 §5: the cleaned sounds and the speech analyses, keyed by the source's content and the settings.</summary>
+    public static string AudioCacheFolder => Path.Combine(AppDataRoot, "cache", "audio");
+
     public static string ProjectMediaFolder(string projectFolderPath) =>
         EnsureExists(Path.Combine(projectFolderPath, "media"));
 

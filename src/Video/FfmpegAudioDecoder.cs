@@ -86,7 +86,7 @@ public sealed partial class FfmpegAudioDecoder : IAudioDecoder
         {
             var seekTicks = request.SourcePosition.Ticks - preroll;
             var fromStart = seekTicks <= 0;
-            var arguments = BuildArguments(request.FilePath, fromStart ? null : seekTicks, request.Speed);
+            var arguments = BuildArguments(request.FilePath, fromStart ? null : seekTicks, request.Speed, request.Filter);
             var stream = await StartAsync(ffmpeg, arguments, originSamples - latency, requestedSample, request.StrictEnd, ct);
 
             if (fromStart || stream.FirstSampleIndex <= requestedSample || preroll >= _settings.MaxPreroll.Ticks)
@@ -172,7 +172,7 @@ public sealed partial class FfmpegAudioDecoder : IAudioDecoder
         return pts;
     }
 
-    internal static List<string> BuildArguments(string filePath, long? seekTicks, ClipSpeed speed = default)
+    internal static List<string> BuildArguments(string filePath, long? seekTicks, ClipSpeed speed = default, string? filter = null)
     {
         var args = new List<string> { "-hide_banner", "-nostdin", "-nostats", "-loglevel", "info", "-copyts" };
         if (seekTicks is { } seek)
@@ -180,7 +180,7 @@ public sealed partial class FfmpegAudioDecoder : IAudioDecoder
         args.AddRange(new[]
         {
             "-i", filePath, "-map", "0:a:0", "-vn", "-sn", "-dn",
-            "-af", $"aresample={AudioFormat.SampleRate}:async=1,aformat=sample_fmts=flt:channel_layouts=stereo,ashowinfo{TempoFilters(speed)}",
+            "-af", $"aresample={AudioFormat.SampleRate}:async=1,aformat=sample_fmts=flt:channel_layouts=stereo,ashowinfo{(string.IsNullOrEmpty(filter) ? "" : "," + filter)}{TempoFilters(speed)}",
             "-f", "f32le", "pipe:1"
         });
         return args;

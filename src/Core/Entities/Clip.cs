@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using AiVideoEditor.Core.Audio;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
 
@@ -70,6 +71,19 @@ public sealed class VideoClip : MediaBackedClip
     /// <summary>Silences the clip's own audio without touching <see cref="Volume"/>.</summary>
     public bool IsMuted { get; set; }
 
+    /// <summary>D064 §1 (format v25): the volume points of the clip's own sound (source time), relative to
+    /// <see cref="Volume"/>; null — none. Immutable, replaced as a whole by each edit; Split, Duplicate and Paste copy them.</summary>
+    public VolumeEnvelope? Volumes { get; set; }
+
+    /// <summary>D064 §1: the fades of the clip's sound only (whole frames, as D025), on top of <see cref="Clip.FadeIn"/> /
+    /// <see cref="Clip.FadeOut"/>, which fade the picture and the sound together.</summary>
+    public MediaTime SoundFadeIn { get; set; }
+
+    public MediaTime SoundFadeOut { get; set; }
+
+    /// <summary>D064 §5: the clean-up of the clip's own sound; null — none.</summary>
+    public AudioCleanup? Cleanup { get; set; }
+
     /// <summary>Crop expressed as normalized (0..1) insets from each edge.</summary>
     public CropRect Crop { get; set; } = CropRect.None;
 
@@ -116,6 +130,13 @@ public sealed class AudioClip : MediaBackedClip
 {
     public double Volume { get; set; } = 1.0;
     public bool IsMuted { get; set; }
+
+    /// <summary>D064 §1 (format v25): the volume points (source time), relative to <see cref="Volume"/>; null — none. An audio
+    /// clip's sound fades are its D025 <see cref="Clip.FadeIn"/> / <see cref="Clip.FadeOut"/>.</summary>
+    public VolumeEnvelope? Volumes { get; set; }
+
+    /// <summary>D064 §5: the clean-up of the clip's sound; null — none.</summary>
+    public AudioCleanup? Cleanup { get; set; }
 }
 
 public sealed class ImageClip : MediaBackedClip

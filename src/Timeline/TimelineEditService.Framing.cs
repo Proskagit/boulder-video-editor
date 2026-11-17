@@ -47,7 +47,17 @@ public sealed partial class TimelineEditService
         var occlusion = hideOutlinesBehindPeople is { } hides && hides != clip.HidesOutlinesBehindPeople;
         if (Equals(clip.Follow, follow) && !occlusion) return TimelineEditResult.Unchanged();
         var commands = new List<IUndoableCommand>();
-        if (!Equals(clip.Follow, follow)) commands.Add(new Commands.SetClipFollowCommand(clip, clip.Follow, follow, gesture));
+        if (!Equals(clip.Follow, follow))
+        {
+            var followCommand = new Commands.SetClipFollowCommand(clip, clip.Follow, follow, gesture);
+            // D064 amendment 1: a part's keyframe added, moved or removed brings its volume point along — one step (a drag merges).
+            var values = ClipPropertyValues.Capture(clip);
+            var synced = HasOwnSound(clip) ? KeyframeVolumeSync.Sync(values, values, clip.Follow, follow).Values : values;
+            var fields = ClipPropertyValues.Diff(values, synced);
+            commands.Add(fields == ClipPropertyFields.None
+                ? followCommand
+                : new Commands.SetSoundAndFollowCommand(new Commands.SetClipPropertiesCommand(clip, values, synced, fields, gesture), followCommand));
+        }
         if (occlusion) commands.Add(new Commands.SetClipOcclusionCommand(clip, hideOutlinesBehindPeople!.Value));
         IUndoableCommand command = commands.Count == 1 ? commands[0] : new CompositeCommand(commands[0].Description, commands);
         ExecuteTracked(new Commands.NotifyingCommand(command, _projectService.NotifyTimelineChanged));
