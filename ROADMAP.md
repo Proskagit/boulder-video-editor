@@ -101,8 +101,10 @@ everything after it is development.
 `docs/PHASE47_MANUAL_TEST_PLAN.md`) on `feat/s1-release-1.0`: the owner's minimal FFmpeg recipe merged and extended with NVENC
 and the noise reduction filters; the AI models as a separate archive with an installer (the people detector re-exported from
 Roboflow's checkpoint — `people-v2`); the portable 1.0.0 with FFmpeg; Phase 45's leftovers; the local test baseline green; a
-Windows Sandbox configuration for the clean-machine check. Open: the owner's clean-machine check, the legal review of the
-notices and the source offer, the GitHub Release `v1.0.0` (published by the owner).
+Windows Sandbox configuration for the clean-machine check. Merged with PR #74 (`d287c16`); the clean-machine check passed on 2026-11-18 in a new Windows account of the owner's PC (Windows Sandbox could not start there: system PnP buses disabled) — A1–A5, A7–A10 and B1–B3 PASS, A6 not confirmed (a GPU present, Occlusion worked instead of its CPU message); the notices accepted as they are.
+**Phases 46 and 47 accepted by the product owner on 2026-11-18 — the MVP (S1, release 1.0) is closed.** The GitHub Release
+`v1.0.0` is drafted with its assets; the owner publishes it (after the fixes of a few behaviour defects, or as 1.0.1). Everything
+after it is development: the UX phase first (1.1), then «Development after the release» below.
 
 **Phase 45 — Audio editing, mixing and clean-up (DECISIONS.md D064, 2026-11-17) — accepted by the product owner on 2026-11-17; PR #72, the merge by the owner after CI.** The
 volume line with points and fade handles inside audio clips and video clips with sound, track volume / mute / solo, a master and

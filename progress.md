@@ -2,6 +2,11 @@
 
 ## Current phase
 
+**MVP closed (2026-11-18).** The product owner accepted Phases 46 and 47 (S1, the release 1.0): the clean-machine check in a
+new Windows account (Windows Sandbox would not start on this PC) — A1–A5, A7–A10, B1–B3 PASS, A6 not confirmed (GPU present);
+the notices accepted as they are. The GitHub Release `v1.0.0` drafted with its four assets (built from `d287c16`); the owner
+publishes it after fixing a few behaviour defects (or as 1.0.1). Next: development — the UX phase (1.1).
+
 **Phase 47 — S1, the release 1.0 (D066, 2026-11-17 / 18) — on `feat/s1-release-1.0`.** The owner's minimal FFmpeg recipe
 (`build/ffmpeg-minimal`, `c31a816`) merged and extended: `h264_nvenc` (nv-codec-headers 12.2.72.0, MIT per header; driver 551.76+),
 `highpass` / `afftdn` (Phase 45), `testsrc2`, `lavfi`, `null` and `wrapped_avframe` (the application's NVENC trial — the last one
