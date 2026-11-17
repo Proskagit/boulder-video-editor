@@ -10815,3 +10815,77 @@ baseline, Phase 45's leftovers, the version and the owner's sign-off. Its scope 
 
 Smoothing the holds already in a project (the owner: left as they are); a per-clip or per-hold strength; changing the mask
 (SAM) itself; the people's masks of D061.
+
+## D066 — Phase 47: S1, the release 1.0 — FFmpeg in the delivery, the models archive, the clean-machine check *(set by the owner on 2026-11-17)*
+
+Date: 2026-11-17. **Status: the scope set by the product owner on 2026-11-17** («Сначала S1» after D065 §6, and the owner's
+answers below). Completes Phase 30's open part (D046: the FFmpeg distribution, the licence notices, the clean-environment
+check, the owner's sign-off). Branch `feat/s1-release-1.0`. **No format change** (`project.json` v25). Manual plan:
+`docs/PHASE47_MANUAL_TEST_PLAN.md`. After this phase the MVP is closed (D065 §6); what follows is development.
+
+### 0. What existed
+
+The owner's minimal FFmpeg recipe (D046 §13, branch `build/ffmpeg-minimal`, `c31a816`: FFmpeg 9.0.2 with x264, zimg, dav1d,
+zlib, reproducible in a pinned container, notices, a source tar, `Test-MinimalFfmpeg.ps1`) and its release-plan draft
+(`docs/drafts/ffmpeg-minimal-9.0.2-1`) — made before Phases 40 and 45, so without NVENC (D059) and without `afftdn` /
+`highpass` (D064). The portable build `tools/portable/Publish-Portable.ps1` (FFmpeg only for a local check). The models
+installed by hand into `%LOCALAPPDATA%\AiVideoEditor\models` (about 1.2 GB). The people detector a third-party conversion
+(docs/AI_MODEL.md: «re-export before a distribution»).
+
+### 1. The owner's answers (2026-11-17)
+
+- FFmpeg: **the minimal build, extended** with what Phases 40 and 45 use (§2).
+- The models: **a separate archive** with an installer (§3).
+- The release: **a GitHub Release** (tag `v1.0.0`) — prepared here, **published by the owner**.
+- The clean machine: **Windows Sandbox** (§5).
+- The people detector: **re-exported** from Roboflow's official checkpoint (§3).
+
+### 2. The minimal FFmpeg for 1.0
+
+The owner's recipe merged into the branch (`build/ffmpeg-minimal`; the drafts of `main`, newer, kept) and extended:
+`h264_nvenc` with `--enable-ffnvcodec --enable-nvenc` (nv-codec-headers 12.2.72.0, MIT, headers only — the NVIDIA driver
+551.76+ is loaded at run time; NVENC selects the `cuda` driver loader, no CUDA SDK); the filters `highpass`, `afftdn`,
+`testsrc2`, the input device `lavfi` and the muxer `null` (the application's NVENC check). nv-codec-headers has no licence
+file: each header's MIT terms are copied into the notices (as the IJG headers). `Test-MinimalFfmpeg.ps1` checks the noise
+reduction graph and the NVENC trial by the application's own command lines (a SKIP where the reference cannot encode
+either). The portable build takes the workflow's package with `-FfmpegPackage` (`ffmpeg\`, its notices and licences,
+`appsettings.json` pointing at it). Still GPL-2.0-or-later, without version3 / nonfree.
+
+### 3. The models archive
+
+`tools/models`: `models.json` (every folder and file with its size and SHA-256 — Vision.Tests checks it against `HoldModel`,
+`PeopleModel`, `AudioModel`), `Pack-Models.ps1` → `AiVideoEditor-1.0.0-models.zip` (stored, every file checked, 1 185 MB),
+`Install-Models.cmd` / `.ps1` (copies into `%LOCALAPPDATA%\AiVideoEditor\models`, checks before and after, Windows
+PowerShell 5.1), README, THIRD-PARTY-NOTICES and the licence texts (SAM 2.1, RF-DETR, MMPose — Apache-2.0; DeepFilterNet —
+MIT OR Apache-2.0; Silero VAD — MIT). **The people detector** re-exported by `tools/people-models/export_rfdetr.py` (rfdetr
+1.12.1, the official `rf-detr-medium.pth`); on 180 frames of three real clips it finds the same 291 people as the old
+conversion, every box matched (IoU 1.000); the people models become **`people-v2`** (only the detector's file differs; the
+cached people analyses are made again).
+
+### 4. Phase 45's leftovers and the test baseline
+
+The decibel unit localized («дБ» / «dB»); a clean-up badge («Очистка» / «Clean-up») on a timeline clip whose own sound has
+noise reduction or voice enhancement. `Telemetry.LocalTests` (local, outside the solution) brought to D054 / D055 —
+`Phase354RealProjectTests` C1 / C8 / C12 were written before them: 34 passed, 3 skipped (were 3 failing). The rare failure
+of `ExportServiceTests.A_video_decode_failure_stops_the_export_at_that_frame` (once in a full run) was not reproduced in 54
+runs (alone, the suite, under the Video suite's load): recorded, not changed blindly. Step 35.4's C5 accepted by its
+automated test (D065 §5).
+
+### 5. The clean-machine check
+
+`tools/portable/New-SandboxCheck.ps1 -Media <copies>` writes `artifacts/release/S1-clean-check.wsb`: a fresh Windows without
+.NET, FFmpeg, models or this machine's settings, the release and the media mapped read-only, **the graphics card off** (so the
+CPU fallbacks of DirectML and NVENC are checked; the GPU paths on the owner's machine). Windows Sandbox is a Windows feature
+the owner enables (it needs administrator rights and a restart). The rows: `docs/PHASE47_MANUAL_TEST_PLAN.md`.
+
+### 6. The release
+
+Assets: `AiVideoEditor-1.0.0-win-x64.zip` (with FFmpeg), `AiVideoEditor-1.0.0-models.zip`,
+`aive-ffmpeg-minimal-9.0.2-sources.tar` (the complete corresponding source of the FFmpeg binaries — GPLv2 §3: the source
+offered from the same place as the binaries), `SHA256SUMS`; release notes. The GitHub Release is published by the owner;
+before it the owner's legal review of the notices and of the source offer (the written offer of the draft
+`SOURCE-OFFER.txt` §3 is needed only when the binaries are passed on without the release's source).
+
+### Out of scope
+
+An installer; code signing; automatic updates; models downloaded by the application; HEVC / AV1 encoding (FU-EX.1).
