@@ -296,12 +296,13 @@ $nr = Invoke-Tool $cand.ffmpeg @('-hide_banner', '-nostdin', '-nostats', '-logle
     '-map', '0:a:0', '-vn', '-af', 'aresample=48000:async=1,aformat=sample_fmts=flt:channel_layouts=stereo,ashowinfo,apad=pad_len=1200,highpass=f=80,afftdn=nr=14:nf=-50:tn=1',
     '-f', 'f32le', 'pipe:1') $null $nrOut
 Add-Result 'noise reduction (highpass + afftdn)' $(if ($nr.Code -eq 0 -and (Get-Item $nrOut).Length -gt 0) { 'PASS' } else { 'FAIL' }) "exit $($nr.Code)"
-$nvenc = Invoke-Tool $cand.ffmpeg @('-hide_banner', '-nostats', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc2=s=640x360:r=30',
-    '-frames:v', '10', '-c:v', 'h264_nvenc', '-f', 'null', '-') $null $null
+$nvencArgs = @('-hide_banner', '-nostats', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc2=s=640x360:r=30',
+    '-frames:v', '10', '-c:v', 'h264_nvenc', '-f', 'null', '-')
+$nvenc = Invoke-Tool $cand.ffmpeg $nvencArgs $null $null
+$nvencRef = Invoke-Tool $ref.ffmpeg $nvencArgs $null $null   # the reference has NVENC: whether this machine can encode with it
 if ($nvenc.Code -eq 0) { Add-Result 'NVENC trial encoding' 'PASS' 'h264_nvenc works here' }
-elseif ($nvenc.Err -match 'Cannot load nvcuda|Cannot load nvEncodeAPI|No capable devices|No NVENC capable|OpenEncodeSessionEx failed|Driver does not support|minimum required Nvidia driver') {
-    Add-Result 'NVENC trial encoding' 'SKIP' 'no NVIDIA encoder or driver here (the application falls back to libx264)'
-} else { Add-Result 'NVENC trial encoding' 'FAIL' "exit $($nvenc.Code): $(($nvenc.Err -split "`r?`n" | Select-Object -Last 2) -join ' | ')" }
+elseif ($nvencRef.Code -ne 0) { Add-Result 'NVENC trial encoding' 'SKIP' 'no NVIDIA encoder here: the reference cannot encode either (the application falls back to libx264)' }
+else { Add-Result 'NVENC trial encoding' 'FAIL' "the reference encodes, the candidate not - exit $($nvenc.Code): $(($nvenc.Err -split "`r?`n" | Select-Object -Last 2) -join ' | ')" }
 
 # --- 7. Sizes and checksums --------------------------------------------------------------------------------------------
 foreach ($exe in $cand.ffmpeg, $cand.ffprobe) {
