@@ -705,6 +705,27 @@ on the project grid (D006).
   `TimelineViewModel.SelectClipFromPreview`); `ShortcutRouter` gives a running gesture Esc and swallows every other key; the
   tools and the hold markup mode exclude each other (`MainWindowViewModel`). The frame and handles never reach the export.
 
+## Audio editing, mixing and clean-up (Phase 45, D064)
+
+- Model (Core): `Track.Volume` / `IsSolo` / `Ducking`, `Sequence.MasterVolume`, `VolumeEnvelope` (`Core.Audio`, source time,
+  relative to the clip's volume) on `VideoClip` / `AudioClip`, `VideoClip.SoundFadeIn` / `SoundFadeOut`, `AudioCleanup`. Edits:
+  `SetClipProperties` (the `Audio` group), `SetTrackSolo` / `SetTrackVolume` / `SetTrackDucking` / `SetMasterVolume` /
+  `BakeDucking` (`SetTrackMixCommand`, `SetMasterVolumeCommand`; a gesture merges a drag). `project.json` v25.
+- Mix (one rule, Core `AudioMix` + `AudioGainCurve`): per sample `volume × track × master × D025 fade × sound fade ×
+  points(source time) × ducking`, summed, then the stateless `SoftClip` (−1 dBFS knee). The Preview's `AudioMixer` and the export's
+  `ExportAudioSource` call it; a mix change is `DiffersOnlyInPresentation` (no decoder restarts).
+- Ducking: `PlaybackSnapshotBuilder.DuckingCurveOf` maps the speech track's clips' `SpeechActivity` to timeline samples →
+  `DuckingCurve` (closed form) on every span of the ducked track.
+- Clean-up: `AudioCleanupProcessor` (Media, implements Core `IAudioCleanupService`) decodes a whole source with the D013 decoder
+  (`AudioDecodeRequest.Filter` = `NoiseReductionFilter`, its 1 200-sample delay compensated), runs `IVoiceEnhancer`
+  (Vision `DeepFilterNetEnhancer`) in parallel 30 s chunks and writes an aligned WAV; `ISpeechModel` (Vision `SileroSpeechModel`)
+  gives `SpeechActivity`. `AudioAnalysisCacheStore` keeps both in `cache\audio`. `AudioProcessingCoordinator` (UI) schedules the
+  jobs, publishes `AudioAnalyses` (cleaned files, speech, the «Исходный звук» comparison) to the Preview's snapshot and
+  `ExportAudioAnalyses` to the preflight (pending = error, failed = warning, solo = warning). A span plays `AudioSpan.CleanedSource`
+  when ready.
+- UI: `ClipVolumeShape` + `VolumeEnvelopeView` (the line, points, fade handles; hit test shared with the drawing),
+  `TimelineViewModel.Volume` (drags as one gesture, double click, Delete), `MixerViewModel` / `TrackMixViewModel` (header S and 🔊
+  flyout, the tool bar's «Микшер»), the Inspector's «Звук» (sound fades, points, clean-up, status, compare).
 ## Transform keyframes, canvas snapping, the corner plates (Phase 44, D063)
 
 - Core model: `Composition/TransformKeyframes` — `TransformKeyframe` (id, **source time**, X, Y, Scale, the easing of its

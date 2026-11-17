@@ -10697,7 +10697,10 @@ the same output wherever playback starts (no limiter state: the task's «лим�
 
 - `AudioMix` gains the per-sample gain curve and the soft clip; the Preview's mixer and the export call it as before.
 - `IAudioDecoder` requests gain an optional `Filter` (an FFmpeg audio filter after the placement's `ashowinfo`, so the sample
-  positions stay exact; `afftdn` keeps the sample count and the alignment — tested).
-- ONNX Runtime is referenced by the Audio project as well (the same package and version as Vision; one native copy).
+  positions stay exact). `afftdn` keeps the sample count but delays its raw output by a constant 1 200 samples at 48 kHz (half
+  its 50 ms window, measured with FFmpeg 9.0.1): the filter pads 1 200 samples after the source and the processor drops 1 200 at
+  the start — aligned to ±1 sample, guarded by `AudioCleanupIntegrationTests`.
+- The audio models live in the Vision project (it already ships ONNX Runtime and the pinned-model check); the processor in
+  Media, the contracts in Core, the coordinator in UI. No new package.
 - Out of scope (part 13): equaliser, compressor, a limiter as an effect, transcription, subtitles, translation, voice
   generation and cloning, music generation.

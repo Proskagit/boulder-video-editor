@@ -84,6 +84,12 @@ deferred to a separate release-preparation task. Details: `progress.md`, `docs/P
 
 ## Current
 
+**Phase 45 — Audio editing, mixing and clean-up (DECISIONS.md D064, 2026-11-17) — implemented, the owner's check open.** The
+volume line with points and fade handles inside audio clips and video clips with sound, track volume / mute / solo, a master and
+a mixer, ducking under a speech track (Silero VAD) with «Закрепить в точки», non-destructive noise reduction (FFmpeg `afftdn`) and
+voice enhancement (DeepFilterNet3, local, CPU) cached per file and setting, the comparison with the original sound; the Preview and
+the export mix sample for sample alike with a soft clip at −1 dBFS; `project.json` v25. Docs: `docs/PHASE45_AUDIO.md`; manual plan:
+`docs/PHASE45_MANUAL_TEST_PLAN.md`.
 **Phase 44 — Transform keyframes & canvas snapping (DECISIONS.md D063, 2026-11-17) — implemented, the owner's check open.**
 Keyframes of Position X / Y and Scale for a video clip and, independently, for each followed part (the climber's place and
 the scale while following), Linear / Ease In / Ease Out / Ease In-Out, a button on the timeline's tool bar, diamonds that

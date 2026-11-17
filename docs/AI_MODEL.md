@@ -246,3 +246,36 @@ files (its download cache `%USERPROFILE%\.cache\rtmlib\hub\checkpoints\`), copie
   tracks and masks.
 - On the target machine with the models: `tools/people-bench` (the product's analyzer on real clips, timings, Follow's
   metrics), `tools/people-models/compare_sam.py` (the C# segmenter against PyTorch) and `people_sheet.py` (contact sheets).
+
+# Audio models (D064, Phase 45: voice enhancement and ducking)
+
+The audio clean-up's voice enhancement and the ducking's speech detection use two pinned local models "audio-v1". The
+application never downloads, writes, replaces or repairs them; the noise reduction needs no model (FFmpeg `afftdn`).
+
+| | |
+|---|---|
+| Folder | `%LOCALAPPDATA%\AiVideoEditor\models\audio-v1\` (one copy per machine; never in the repository or a project) |
+| `denoiser_model.onnx` | DeepFilterNet3, the torchDF streaming single-graph export (github.com/grazder/DeepFilterNet), from `https://huggingface.co/kimtos-labs/denoiser-dfn3/resolve/main/denoiser_model.onnx` (commit `ffc593dc7a6443fe0f2a8fc93b90f32c4afc9e0e`) — 16 104 687 bytes, SHA-256 `fe5eb64fa2e4154c83f8e4935e82871c850c154387ee892e0ab65fe179e7d8c9` (equal to the digest the model card publishes) |
+| `silero_vad.onnx` | Silero VAD v5, from `https://raw.githubusercontent.com/snakers4/silero-vad/master/src/silero_vad/data/silero_vad.onnx` (downloaded 2026-11-17) — 2 327 524 bytes, SHA-256 `1a153a22f4509e292a94e67d6f9b85e8deb25b4988682b7e174c65279d8788e3` |
+| Runtime | ONNX Runtime 1.24.4 (the Vision package), CPU execution provider, one thread per session run; DeepFilterNet3 fails to initialise under DirectML (AccessViolation), so both models run on the CPU |
+
+Interfaces measured with ONNX Runtime 1.24.4: DeepFilterNet3 — inputs `input_frame` float[480], `states` float[45304],
+`atten_lim_db` float scalar; outputs `enhanced_audio_frame` float[480], `new_states` float[45304], `lsnr` float[1]; 48 kHz mono;
+the output 1 440 samples behind the input (cross-correlation on a camera recording). Silero VAD v5 — inputs `input` float[1, 576]
+(64 samples of context + 512), `state` float[2, 1, 128], `sr` int64 scalar (16000); outputs `output` float[1, 1] (the speech
+probability), `stateN`.
+
+Messages: *The audio model … could not be loaded* (a load failure), and the D034 messages for a missing or another-version file
+(the model id `audio-v1`). Without the voice model the voice enhancement fails with its reason and the clip plays (and exports)
+its original sound; without the speech model the ducking is unavailable (the export warns and mixes without it).
+
+## Licences (checked 2026-11-17)
+
+| Component | Source | Licence | Conclusion |
+|---|---|---|---|
+| DeepFilterNet3 weights and code | github.com/Rikorose/DeepFilterNet README: "All code and model weights in this repository are dual-licensed under either MIT … or Apache 2.0, at your option" | MIT OR Apache-2.0 | Usable; its notice travels with a distribution |
+| The ONNX export | huggingface.co/kimtos-labs/denoiser-dfn3 (metadata `apache-2.0`, text "MIT OR Apache-2.0") via the torchDF path of grazder/DeepFilterNet | as above | Usable |
+| Silero VAD v5 | github.com/snakers4/silero-vad | MIT | Usable; its notice travels with a distribution |
+| ONNX Runtime 1.24.4 | as for the hold model | MIT | Already shipped |
+
+Benchmark and quality notes: `docs/PHASE45_AUDIO.md`.
