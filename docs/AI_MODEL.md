@@ -15,7 +15,9 @@ it; without it only the hold markup is unavailable — everything else works.
 
 ## Installing
 
-1. Produce the two files with the recipe below (or copy them from a machine that has them).
+1. **Release 1.0 (D066 §3):** unpack the models archive `AiVideoEditor-1.0.0-models.zip` and run `Install-Models.cmd` — it
+   installs every model below (also the people and audio models) with their sizes and SHA-256s checked
+   (`tools/models`). Otherwise produce the two files with the recipe below (or copy them from a machine that has them).
 2. Put both into `%LOCALAPPDATA%\AiVideoEditor\models\sam2.1-large\` with exactly these names.
 3. The size and the SHA-256 of both files are checked at the first "Mark holds" of a session (with progress); a file of
    any other size or checksum is never loaded.
@@ -96,9 +98,9 @@ including the UI), a later one 1.1 s (one sample). Profile: `tests/Vision.ModelT
 | ONNX Runtime 1.24.4 (`Microsoft.ML.OnnxRuntime.DirectML`) | NuGet; `LICENSE`, `ThirdPartyNotices.txt` in the package | MIT | `ThirdPartyNotices.txt` | Shipped (`onnxruntime.dll`); its notices travel with any distribution |
 | DirectML redistributable 1.15.4 (`Microsoft.AI.DirectML`) | NuGet; `LICENSE.txt` | Microsoft Software License Terms | `ThirdPartyNotices.txt` | **Not shipped** (see Runtime) |
 
-The weights are not distributed by this project. Should they ever be: the Apache-2.0 text, the attribution notices
-(SAM 2 has no NOTICE file at the pinned commit) and a statement that the files are an ONNX conversion of the SAM 2.1
-Hiera Large checkpoint made with samexporter 0.5.0.
+**Distributed since release 1.0** (D066 §3) in the separate models archive, with the Apache-2.0 text, the attribution
+(SAM 2 has no NOTICE file at the pinned commit) and the statement that the files are an ONNX conversion of the SAM 2.1
+Hiera Large checkpoint made with samexporter 0.5.0 (`tools/models/THIRD-PARTY-NOTICES.txt`, `tools/models/licenses`).
 
 ## Export recipe (gives the SHA-256s above)
 
@@ -148,13 +150,13 @@ replaces or repairs it.
 
 | | |
 |---|---|
-| Id | `people-v1` (part of every cached people analysis's key) |
-| Folder | `%LOCALAPPDATA%\AiVideoEditor\models\people-v1\` (one copy per machine; never in the repository or a project) |
+| Id | `people-v2` (part of every cached people analysis's key; `people-v1` until S1 — only the detector's file differed) |
+| Folder | `%LOCALAPPDATA%\AiVideoEditor\models\people-v2\` (one copy per machine; never in the repository or a project) |
 | Verified | size and SHA-256 of every file, once per session, before the first use (`HoldModelVerifier`) |
 
 | File | Network | Bytes | SHA-256 |
 |---|---|---|---|
-| `rfdetr_m_576.onnx` | RF-DETR-M (Roboflow), COCO, 576 × 576 — the person detector; the ONNX conversion distributed with rtmlib 0.0.16 (`rfdetr_m_v142_576x576.onnx`) | 126 347 989 | `7fc5834e2fc7205e399a77d29dd0e89b694b075eeb496d5c8464d25137cad788` |
+| `rfdetr_m_576.onnx` | RF-DETR-M (Roboflow), COCO, 576 × 576 — the person detector; exported from the official checkpoint `rf-detr-medium.pth` with `rfdetr` 1.12.1 (`tools/people-models/export_rfdetr.py`, S1) | 133 424 287 | `ec23de6746c6737b47c34fd24f06583e80a2253924efc32c27b716157ae1632a` |
 | `rtmpose_m_body7_256x192.onnx` | RTMPose-m body7 (OpenMMLab) — 17 COCO keypoints, the torso centre (`rtmpose-m_simcc-body7_pt-body7_420e-256x192-e48f03d0_20230504.onnx`) | 54 330 655 | `5c0a4bf67953e6d2ac43ce15e77dc9d5d354ae18430a47d2c5963a7bc5683e3c` |
 | `sam2.1_tiny_video.encoder.onnx` | SAM 2.1 Hiera tiny — the image encoder (+ the high-resolution projections) | 109 408 012 | `8bd43ed78fb7c56eebec730592003a8b795604a61c22f9a68229c3da770016cf` |
 | `sam2.1_tiny_video.memory_attention.onnx` | the memory attention, RoPE without complex numbers, **float16** inside (float32 inputs / outputs) | 16 238 215 | `5b3e99ecba4374f0b7e3adfafa956909a874673a14852ae2853c4c571f40b7df` |
@@ -165,9 +167,9 @@ replaces or repairs it.
 | `sam2.1_tiny_video.constants.bin` | `no_mem_embed` [256], `maskmem_tpos_enc` [7 × 64] (float32 LE, `SAM2CST1`) | 2 832 | `3ffeae7ff4579e5913f8fbf4de1a6ae0e1ccc7a09157052d7d14da19736ab61b` |
 
 Total ≈ 348 MB. Messages (the Inspector, the export's warnings):
-- *The people models people-v1 are not installed in `<folder>`: Follow and the outlines hidden behind people are
+- *The people models people-v2 are not installed in `<folder>`: Follow and the outlines hidden behind people are
   unavailable. See docs/AI_MODEL.md.*
-- *A file of the people models people-v1 in `<folder>` is damaged or another version. It was not loaded.*
+- *A file of the people models people-v2 in `<folder>` is damaged or another version. It was not loaded.*
 - *Hiding the outlines behind people needs a DirectML graphics card; on this computer only Follow is available.*
 
 ## Runtime
@@ -209,8 +211,8 @@ Total ≈ 348 MB. Messages (the Inspector, the export's warnings):
 | ONNX Runtime 1.24.4 | MIT | shipped (as for the hold model) |
 
 Not used (licence): Ultralytics YOLO (AGPL-3.0), RVM (GPL-3.0), the YOLOX HumanArt weights (dataset terms unverified) —
-research B.3. The weights are not distributed by this project; should they be: the Apache-2.0 texts and a statement of the
-conversions.
+research B.3. **Distributed since release 1.0** (D066 §3) in the models archive with the Apache-2.0 texts, the copyright
+notices and the statement of the conversions (`tools/models/THIRD-PARTY-NOTICES.txt`).
 
 **RF-DETR-M, confirmed 2026-11-16 from the primary sources:** the repository's `LICENSE` (github.com/roboflow/rf-detr, branch
 `develop`) is the plain Apache License 2.0 ("Copyright 2025 Roboflow, Inc.", no NOTICE file); its README lists «RF-DETR Nano,
@@ -223,7 +225,13 @@ conversion (rtmlib's download from the Hugging Face repository `saifkhichi96/ope
 card): its descent from Roboflow's official Medium checkpoint is consistent with what the file is (COCO, 91 classes with the
 background, 300 queries, 576 × 576 — the README's RF-DETR-M) but not documented. Before a distribution (S1), re-export it from
 the official `rfdetr` package (`model.export()`), check the people boxes against this file on the benchmark clips, and pin the
-new file — a step for S1, not needed for development.
+new file — a step for S1, not needed for development. **Done in S1 (2026-11-17, D066 §3):** `tools/people-models/export_rfdetr.py`
+with `rfdetr` 1.12.1 and `torch` 2.15.0 (CPU) exported the official checkpoint `rf-detr-medium.pth` (404 992 918 bytes,
+SHA-256 `749ff6071828aaffac63e204c4f4135ed3d6cdae4d702e086c360edc3b5768c8`, its MD5 checked by the package) — the same
+interface (`input` [1, 3, 576, 576], `dets` [1, 300, 4], `labels` [1, 300, 91]); `tools/people-models/compare_detector.py` on 180
+frames of three real clips (2026-09-27, 1 fps): the same 291 confident people as the old conversion, every box matched (IoU
+1.000) — so the old file was the official model too. The new file is pinned as `people-v2`; `tools/people-bench` on the
+reference part of `video_20260927_101034` (9.6–25.2 s): 156 frames, one track, on the GPU.
 
 ## Export recipe (gives the SHA-256s above)
 
