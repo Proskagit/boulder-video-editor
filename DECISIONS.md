@@ -10736,3 +10736,82 @@ moved the whole curve, which is not what is expected on a clip with points. Deci
    part's keyframe moved in the timeline, the Inspector or the Preview moves its point; a part removed (or Follow switched off)
    keeps its points (the sound does not change). A change of both the sound and a part is one undo step
    (`SetSoundAndFollowCommand`; a drag merges).
+
+## D065 — Phase 46: Smooth hold outlines; the closure of the open items before the release *(set by the owner on 2026-11-17)*
+
+Date: 2026-11-17. **Status: the scope set by the product owner on 2026-11-17** (the review of the open items before the MVP
+and the owner's answers). Branch `feat/phase-46-contour-smoothing`. **No format change** (`project.json` stays v25; the setting
+of §3 is a per-user setting, not a project's). Manual plan: `docs/PHASE46_MANUAL_TEST_PLAN.md`. After this phase the next
+phase is S1, the release preparation (§6).
+
+### 0. What already existed (inspected before building)
+
+A hold's contour (D034 §6, `MaskContour.Outer`) is the SAM mask's outer boundary traced through its pixel centres and
+simplified with Douglas–Peucker at 1 px — hundreds of vertices that keep the mask's jagged edge; one painter
+(`CompositionPainter`, D036) draws it as straight segments in the Preview and the export alike; the markup mode
+(`HoldMarkupOverlay`) draws the same polygon. On a round hold with badly recognised edges the outline is a small
+«ёжик» (the owner, 2026-11-17).
+
+### 1. The owner's answers (2026-11-17)
+
+- Where: **both** — a new contour is smoothed when it is created (§2) **and** every contour is drawn as a smooth curve
+  through its vertices (§4).
+- The holds already marked in a project: **left as they are** — their saved vertices are never changed; only the drawing
+  of §4 applies to them (a curve through the same vertices; a dense contour draws as before, §4).
+- The strength: **a slider** (§3).
+
+### 2. Smoothing a new contour
+
+`ContourSmoothing.Smooth(contour, width, height, strength)`: the contour resampled every pixel along its length; a circular
+Gaussian with σ = max(s · 2 px, s · 0.12 · D), where s = strength / 100 and D the hold's equivalent diameter (so a large and a
+small hold are smoothed alike); scaled about its centroid back to its area (a Gaussian pulls a shape in); Douglas–Peucker at
+0.25 px (fine enough that the smoothed contour turns by less than about 26° at a vertex even on a small hold, so §4 draws it
+as a curve). Checked on synthetic «ёжики» (radius 40 px, the edge jumping ±3 px every degree): at 50 the radius stays within
+38–40 px instead of 36–43 px; coarse bumps (every 12°) become a smooth «amoeba». A round hold becomes a circle, an uneven one a smooth «amoeba». Strength 0, a contour of fewer than three vertices,
+without area or under a pixel is returned unchanged. Applied to every new hold — a click's candidate (smoothed while it is
+shown, so the user sees what is confirmed), the accepted proposals (D047) and a route's holds (D048) — on the markup frame's
+pixels. A contour edited by hand (D035) is never smoothed again.
+
+### 3. The setting
+
+«Сглаживание» 0…100 (step 5 on the slider; default **50**) under «Толщина» in the hold markup section of the Inspector; one
+global setting of the user (`UserSettings.HoldContourSmoothing`, kept across restarts), not a project's or a clip's. Moving it
+re-smooths the shown candidate at once; confirmed holds never change. A value out of bounds in the settings file is clamped.
+
+### 4. The smooth curve
+
+`ContourCurve.Flatten`: a closed cubic Hermite curve through every vertex with Catmull–Rom tangents scaled by the sides'
+lengths, cut into pieces of about 3 target pixels (at most 24 per side). **A corner stays a corner**: at a vertex where the
+contour turns by more than 30° the tangent is zero, so a straight side between two corners stays exactly straight — a
+rectangle, the box of a tiny mask or a polygon edited by hand is drawn exactly as its vertices say and never bulges out (a
+plain Catmull–Rom curve bulged a square's sides by up to a tenth of their length; found by the rendering tests and rejected).
+Coincident vertices are safe. Used by the draw plan
+(`CompositionDrawPlan.Outline`, after the hold tracking's motion — so the Preview, the export and the occlusion of D061 work on
+the same pieces) and by the markup mode's overlay. A side shorter than one piece stays straight, so a dense contour of an
+earlier version is drawn exactly as before; only a smooth run of long sides (turns under 30°) is drawn rounded. The handles of D035 stay on the vertices, which the curve passes through.
+
+### 5. The closure of the open items (the owner's decisions of 2026-11-17)
+
+- **Phase 32** (route selection at `T`, «Авторазметка») and **Phase 31's D3 / C5**: Phases 31 and 32 fold into one **future
+  research** — the user points at the first hold of a route on the frame, the editor proposes the route from its colour and
+  selects the holds of the same colour. Not implemented; deferred. Phase 32 is closed as «deferred to that research» (its
+  code and `docs/HOLD_AUTO_DETECTION_RESEARCH.md` kept). Phase 31's **D3** (the 500-hold limit) is **closed without a check**:
+  a clip has 10–20 holds, the limit is more than enough. **C5** (proposals on a 1080p source) is **dropped**: not checked.
+- **Phase 35**: Step 35.4's **C5** (a new FIT export of the same activity) is **accepted by its automated test**
+  (`TrainingProjectAcceptanceTests`.C5), recorded with S1. Steps **35.3e** (the automatic zero) and **35.3b2b** (the matching
+  proposals of the research window) are **cancelled**: the experiment 35.3d gave a negative result (B6 not met, §12 of
+  `docs/PHASE_COROS.md`); the zero stays manual or from the Phase 37 calibration. Phase 35 is complete with these.
+- **Phase 36**: its YouTube chapters (Steps 36.1–36.2) are **done** — the export dialog's YouTube timestamps (D057 §3.9);
+  Steps **36.3** (`PassId` and the «Итоги» template) and **36.4** (the heart rate in the summary) are **deferred to the
+  backlog** (development after the release).
+
+### 6. Next
+
+S1 — the release preparation (Phase 30's open part): the FFmpeg distribution, the licence notices (FFmpeg, the AI models, the
+packages, the fonts), the portable build on a clean machine with the main path and a smoke run of Phases 38–45, a green test
+baseline, Phase 45's leftovers, the version and the owner's sign-off. Its scope is set by its own task.
+
+### Out of scope
+
+Smoothing the holds already in a project (the owner: left as they are); a per-clip or per-hold strength; changing the mask
+(SAM) itself; the people's masks of D061.

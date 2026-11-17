@@ -878,6 +878,17 @@
                           Maximum="{Binding MaxStrokeWidth, Converter={x:Static common:DecimalDouble.Instance}}"
                           Value="{Binding StrokeWidth, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
                           ToolTip.Tip="{x:Static l:Strings.Holds_Width}"/>
+                  <!-- D065 §3: the smoothing of a new hold's contour, a global setting. -->
+                  <StackPanel Orientation="Horizontal" Spacing="8" ToolTip.Tip="{x:Static l:Strings.Holds_SmoothingTip}">
+                    <TextBlock Text="{x:Static l:Strings.Holds_Smoothing}" Classes="label"/>
+                    <controls:CommitNumericUpDown Value="{Binding ContourSmoothing, Mode=TwoWay}" Increment="5" Minimum="{Binding MinContourSmoothing}" Maximum="{Binding MaxContourSmoothing}"
+                                   FormatString="0" Width="104"/>
+                  </StackPanel>
+                  <Slider x:Name="ContourSmoothingSlider" Classes="under" Focusable="False" TickFrequency="5" IsSnapToTickEnabled="True"
+                          Minimum="{Binding MinContourSmoothing, Converter={x:Static common:DecimalDouble.Instance}}"
+                          Maximum="{Binding MaxContourSmoothing, Converter={x:Static common:DecimalDouble.Instance}}"
+                          Value="{Binding ContourSmoothing, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
+                          ToolTip.Tip="{x:Static l:Strings.Holds_SmoothingTip}"/>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Holds_Colour}" Classes="label"/>
                     <!-- D062 amendment 1: one list — «Авто», then the palette's colours. -->

@@ -48,6 +48,10 @@ public sealed record UserSettings
     /// pixels (0: off).</summary>
     public double CanvasSnapPixels { get; init; } = Composition.CanvasSnap.DefaultThresholdPixels;
 
+    /// <summary>D065 §3: the smoothing of a new hold's contour (0 — the mask's own boundary … 100), the slider «Сглаживание»
+    /// of the hold markup.</summary>
+    public int HoldContourSmoothing { get; init; } = Holds.ContourSmoothing.DefaultStrength;
+
     /// <summary>D057 §3.8: the interface language («ru» / «en»), or null for the application's configuration
     /// (<c>App:Language</c>). Applied at the next start.</summary>
     public string? Language { get; init; }
@@ -82,6 +86,7 @@ public sealed record UserSettings
         CanvasSnapPixels = double.IsFinite(CanvasSnapPixels)
             ? Math.Clamp(CanvasSnapPixels, Composition.CanvasSnap.MinThresholdPixels, Composition.CanvasSnap.MaxThresholdPixels)
             : Composition.CanvasSnap.DefaultThresholdPixels,
+        HoldContourSmoothing = Math.Clamp(HoldContourSmoothing, Holds.ContourSmoothing.MinStrength, Holds.ContourSmoothing.MaxStrength),
         Language = string.IsNullOrWhiteSpace(Language) ? null : Language.Trim(),
         FfmpegPath = string.IsNullOrWhiteSpace(FfmpegPath) ? null : FfmpegPath.Trim(),
         FfprobePath = string.IsNullOrWhiteSpace(FfprobePath) ? null : FfprobePath.Trim()

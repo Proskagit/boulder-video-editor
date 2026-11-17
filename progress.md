@@ -2,6 +2,25 @@
 
 ## Current phase
 
+**Phase 46 — Smooth hold outlines; the closure before the release (D065, 2026-11-17) — on `feat/phase-46-contour-smoothing`,
+not committed.** The owner's review of the open items (D065 §5): Phase 32 closed as deferred and folded with Phase 31 into a
+future research (the route from its first hold's colour); Phase 31's D3 closed without a check, C5 dropped; Phase 35 complete
+(35.4's C5 accepted by its automated test, 35.3e and 35.3b2b cancelled); Phase 36's chapters done (D057 §3.9), 36.3 / 36.4 to
+the backlog; DEVELOPMENT_PLAN "Official phases" and ROADMAP synced. The phase: a new hold's contour smoothed when it is created
+(`ContourSmoothing`: per-pixel resampling, a circular Gaussian with σ by the strength and the hold's size, the area restored,
+Douglas–Peucker 0.25 px) — a click's candidate (re-smoothed live by the slider), accepted proposals and a route's holds; the
+slider «Сглаживание» 0…100 (default 50) in the Inspector's hold markup section, a global user setting
+(`UserSettings.HoldContourSmoothing`); every contour drawn as a smooth curve (`ContourCurve`: Hermite with Catmull–Rom
+tangents, corners over 30° kept, a straight side between corners straight, sides under 3 target px unchanged) in the draw plan
+(Preview = export, after the tracking, before the occlusion) and the markup overlay. Holds already marked never change (the
+owner); no format change (v25). A plain Catmull–Rom curve was tried first and rejected: it bulged a rectangle's sides (16
+Rendering and 8 ExportEndToEnd tests caught it). Tests: `ContourSmoothingTests` (10), a UI test of the slider; the D035 vertex
+tests run with smoothing 0; the Inspector's field count 38. Gates (2026-11-17): Debug and Release `--no-incremental
+-warnaserror` 0 / 0; `git diff --check` clean; Debug and Release every suite green — Core 1 923, Timeline 1 194, Project 749,
+Rendering 257, UI 1 270, Export 142, Vision 24, Video 411 + 1 skipped, ExportEndToEnd 186 + 3 skipped (heavy 4K,
+`AIVE_HEAVY_TESTS` not set). Not done: the phase review, the owner's manual check (`docs/PHASE46_MANUAL_TEST_PLAN.md`) on real
+footage, a portable build, commit / PR. Next after it: S1 (D065 §6).
+
 **Acceptance and docs sync (2026-11-17, docs only).** The product owner accepted Phases 39, 40, 41, 42, 43, 44 and 45, and
 Phases 33 / 34; the R2 → E manual plan `docs/R2E_MANUAL_TEST_PLAN.md` closed as not needed (covered by the Phase 42 checks).
 `docs/DEVELOPMENT_PLAN.md` "Official phases" brought up to Phase 45 (the highest phase number 45; complete: 1–29, 31, 33, 34,

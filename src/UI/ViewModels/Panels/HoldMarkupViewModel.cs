@@ -265,6 +265,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         MaxProposalsToShow = 30;
         // D057 §3.15: off by default; the user's choice is kept across restarts.
         IsProposalGenerationEnabled = _settings.Current.HoldProposalsEnabled;
+        ContourSmoothing = _settings.Current.HoldContourSmoothing;
         InitTracking(cameraMotion);
         InitRoute(routeSelection);
     }
@@ -303,6 +304,42 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
     partial void OnIsProposalGenerationEnabledChanged(bool value) =>
         _settings?.Update(s => s with { HoldProposalsEnabled = value });
+
+    /// <summary>D065 §3: «Сглаживание» of a new hold's contour (0…100), a global setting; moving it re-smooths the shown
+    /// candidate at once. Confirmed holds never change.</summary>
+    [ObservableProperty] private decimal? _contourSmoothing = ContourSmoothingDefault;
+
+    private const int ContourSmoothingDefault = Core.Holds.ContourSmoothing.DefaultStrength;
+    public decimal MinContourSmoothing => Core.Holds.ContourSmoothing.MinStrength;
+    public decimal MaxContourSmoothing => Core.Holds.ContourSmoothing.MaxStrength;
+
+    /// <summary>The candidate's contour as its mask gives it, before the smoothing, and that mask's size.</summary>
+    private ImmutableArray<NormalizedPoint> _rawCandidate = ImmutableArray<NormalizedPoint>.Empty;
+    private (int Width, int Height) _rawCandidateSize;
+
+    partial void OnContourSmoothingChanged(decimal? value)
+    {
+        if (value is not { } v) return;
+        var strength = (int)Math.Clamp(Math.Round(v, MidpointRounding.AwayFromZero), MinContourSmoothing, MaxContourSmoothing);
+        _settings?.Update(s => s with { HoldContourSmoothing = strength });
+        if (HasCandidate && !_rawCandidate.IsDefaultOrEmpty)
+            CandidateContour = SmoothContour(_rawCandidate, _rawCandidateSize.Width, _rawCandidateSize.Height);
+    }
+
+    private int SmoothingStrength => _settings?.Current.HoldContourSmoothing ?? ContourSmoothingDefault;
+
+    /// <summary>D065 §2: a new contour smoothed with the current setting.</summary>
+    private ImmutableArray<NormalizedPoint> SmoothContour(ImmutableArray<NormalizedPoint> contour, int width, int height) =>
+        Core.Holds.ContourSmoothing.Smooth(contour, width, height, SmoothingStrength);
+
+    /// <summary>D065 §2: new holds (accepted proposals, a route's holds) with their contours smoothed on the markup frame.</summary>
+    private List<Hold> SmoothHolds(IEnumerable<Hold> holds) =>
+        MarkupFrame is { } f ? SmoothHolds(holds, f.Width, f.Height) : holds.ToList();
+
+    private List<Hold> SmoothHolds(IEnumerable<Hold> holds, int w, int h)
+    {
+        return holds.Select(hold => new Hold(hold.Id, SmoothContour(hold.Points, w, h), hold.SurfaceLab, hold.WallLab, hold.SourceTime)).ToList();
+    }
     [ObservableProperty] private bool _canShowProposalToggle;
     [ObservableProperty] private bool _isGeneratingProposals;
     [ObservableProperty] private bool isRefiningProposals;
@@ -1088,7 +1125,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
                 .Where(pair => pair.Second.IsSuccess)
                 .Take(room)
                 .ToList();
-            var holds = accepted.Select(pair => pair.Second.Hold!).ToList();
+            var holds = SmoothHolds(accepted.Select(pair => pair.Second.Hold!));
             var skipped = proposals.Count - holds.Count;
 
             if (holds.Count > 0)
@@ -1247,7 +1284,9 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         });
         if (generation != _generation || !IsActive) return;
         _componentMask = component;
-        CandidateContour = contour;
+        _rawCandidate = contour;
+        _rawCandidateSize = (mask.Width, mask.Height);
+        CandidateContour = SmoothContour(contour, mask.Width, mask.Height);
         HasCandidate = contour.Length >= 3;
         AlternativeText = _visible.Length > 1 ? string.Format(Strings.Holds_OutlineOf, _alternative + 1, _visible.Length) : null;
         RefreshCommands();
@@ -1360,6 +1399,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         _visible = ImmutableArray<int>.Empty;
         _componentMask = null;
         CandidateContour = ImmutableArray<NormalizedPoint>.Empty;
+        _rawCandidate = ImmutableArray<NormalizedPoint>.Empty;
         HasCandidate = false;
         AlternativeText = null;
         SelectedHoldId = null;
@@ -1389,6 +1429,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         _visible = ImmutableArray<int>.Empty;
         _componentMask = null;
         CandidateContour = ImmutableArray<NormalizedPoint>.Empty;
+        _rawCandidate = ImmutableArray<NormalizedPoint>.Empty;
         HasCandidate = false;
         AlternativeText = null;
         RefreshCommands();
