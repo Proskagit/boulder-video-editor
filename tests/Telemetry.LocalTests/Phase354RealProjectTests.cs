@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Text.Json;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;

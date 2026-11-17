@@ -1,7 +1,8 @@
 # Minimal FFmpeg for the portable build
 
-The recipe of the FFmpeg the portable build is to ship (DECISIONS.md D046 §13). **Not integrated**: the application, its
-tests and `ci.yml` keep using the pinned gyan.dev 9.0.1; nothing here is released or copied into the portable folder.
+The recipe of the FFmpeg the portable build ships (DECISIONS.md D046 §13, D066 §2). The release's portable folder takes this
+workflow's package with `tools/portable/Publish-Portable.ps1 -FfmpegPackage`; the application's tests and `ci.yml` keep using
+the pinned gyan.dev 9.0.1 (their fixtures need encoders and sources this build leaves out).
 
 | File | Purpose |
 |---|---|

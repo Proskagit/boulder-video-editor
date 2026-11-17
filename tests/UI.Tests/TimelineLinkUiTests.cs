@@ -1,4 +1,4 @@
-﻿using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Audio;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;

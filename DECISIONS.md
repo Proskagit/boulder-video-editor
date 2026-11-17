@@ -10884,7 +10884,9 @@ Assets: `AiVideoEditor-1.0.0-win-x64.zip` (with FFmpeg), `AiVideoEditor-1.0.0-mo
 `aive-ffmpeg-minimal-9.0.2-sources.tar` (the complete corresponding source of the FFmpeg binaries — GPLv2 §3: the source
 offered from the same place as the binaries), `SHA256SUMS`; release notes. The GitHub Release is published by the owner;
 before it the owner's legal review of the notices and of the source offer (the written offer of the draft
-`SOURCE-OFFER.txt` §3 is needed only when the binaries are passed on without the release's source).
+`SOURCE-OFFER.txt` §3 is needed only when the binaries are passed on without the release's source). The review takes the files of
+the 1.0 package — its generated `ffmpeg\THIRD-PARTY-NOTICES.txt` and `ffmpeg\licenses\` (with nv-codec-headers) and the
+portable folder's notices; the drafts in `docs/drafts/ffmpeg-minimal-9.0.2-1` describe the build before NVENC and are history.
 
 ### Out of scope
 

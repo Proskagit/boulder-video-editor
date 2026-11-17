@@ -204,7 +204,7 @@ Total ≈ 348 MB. Messages (the Inspector, the export's warnings):
 
 | Component | Licence | Conclusion |
 |---|---|---|
-| RF-DETR (Roboflow) — code and the N–L weights | Apache-2.0 | the detector; the conversion distributed with rtmlib (Apache-2.0) |
+| RF-DETR (Roboflow) — code and the N–L weights | Apache-2.0 | the detector; since S1 (`people-v2`) exported from the official checkpoint with `rfdetr` 1.12.1 (until then the conversion distributed with rtmlib, Apache-2.0) |
 | RTMPose (OpenMMLab mmpose) — code and weights | Apache-2.0 | the pose |
 | SAM 2.1 (Meta) — `sam2` 1.1.0 and the checkpoint `sam2.1_hiera_tiny.pt` | Apache-2.0 | the source of the six graphs |
 | PyTorch 2.11 / onnx 1.19.1 | BSD-3-Clause / Apache-2.0 | export only |

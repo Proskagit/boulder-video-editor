@@ -5,7 +5,7 @@
 **Phase 47 — S1, the release 1.0 (D066, 2026-11-17 / 18) — on `feat/s1-release-1.0`.** The owner's minimal FFmpeg recipe
 (`build/ffmpeg-minimal`, `c31a816`) merged and extended: `h264_nvenc` (nv-codec-headers 12.2.72.0, MIT per header; driver 551.76+),
 `highpass` / `afftdn` (Phase 45), `testsrc2`, `lavfi`, `null` and `wrapped_avframe` (the application's NVENC trial — the last one
-found only on the owner's GPU: the CI runner without a GPU had shown it as a SKIP). CI run `44177756256`: built twice identically,
+found only on the owner's GPU: the CI runner without a GPU had shown it as a SKIP). CI run `44177756256` (at `64ec6d8`, the `wrapped_avframe` commit): built twice identically,
 Windows check passed; locally (RTX) `Test-MinimalFfmpeg` 50 PASS, 0 FAIL, 2 DIFF (AAC bytes 9.0.2 vs 9.0.1), NVENC and AV1 d3d11va
 PASS. The test suites cannot run on the minimal build itself (their fixtures need `sine`, `aevalsrc`, `color`, `geq`, PNG — left
 out by design); the application's command lines are what `Test-MinimalFfmpeg` checks. The models archive (`tools/models`: manifest
@@ -14,7 +14,7 @@ temporary folder with every file checked. The people detector re-exported from R
 on 180 real frames the same 291 people, IoU 1.000 → `people-v2`; people-bench on the Phase 42 reference part: 156 frames, one
 track, GPU. Phase 45 leftovers: «дБ» localized, the clean-up badge on timeline clips (UI test). `Telemetry.LocalTests` brought to
 D054 / D055: 34 passed, 3 skipped (were 3 failing). The rare `ExportServiceTests` failure not reproduced in 54 runs. The portable
-`AiVideoEditor-1.0.0-win-x64` (155 MiB, zip 65 MiB) with `-FfmpegPackage`: started from its folder, used its `ffmpegin`, NVENC
+`AiVideoEditor-1.0.0-win-x64` (155 MiB, zip 65 MiB) with `-FfmpegPackage`: started from its folder, used its `ffmpeg\bin`, NVENC
 detected. Release assets in `artifacts/release` with `SHA256SUMS`; notes draft `docs/RELEASE_NOTES_1.0.md`; Windows Sandbox
 configuration `tools/portable/New-SandboxCheck.ps1` (Windows Sandbox is not enabled on this machine — the owner enables it).
 Not done: the owner's clean-machine check (`docs/PHASE47_MANUAL_TEST_PLAN.md`), the legal review of the notices and the source

@@ -324,9 +324,10 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 | 47 — S1, the release 1.0 | D066 | in work on `feat/s1-release-1.0`: the minimal FFmpeg with NVENC and the noise reduction, the models archive (people-v2), the portable 1.0.0 with FFmpeg, the Phase 45 leftovers, the local test baseline, the Windows Sandbox check; the owner's clean-machine check, legal review and the GitHub Release open | — |
 | H — Final UX Pass | D042 §7, D057 | its goal covered by Phase 38 (D057); the former scope not restored | — |
 
-**State on 2026-11-17 (after D065):** the **highest phase number in use is 46** (in work); the **complete phases** (merged and
-accepted) are **1–29, 31, 33–35 and 37–45**; Phase 32 closed as deferred, Phase 36 done in its chapters with 36.3 / 36.4 in the
-backlog, Phase 31's D3 closed and C5 dropped (D065 §5). Not complete: Phase 30 (the S1 acceptance) and Phase 46.
+**State on 2026-11-18 (after D066):** the **highest phase number in use is 47** (in work, S1 = Phase 30's open part); the
+**complete phases** (merged and accepted) are **1–29, 31, 33–35 and 37–45**; Phase 46 merged (PR #73), its acceptance not
+recorded; Phase 32 closed as deferred, Phase 36 done in its chapters with 36.3 / 36.4 in the backlog, Phase 31's D3 closed and
+C5 dropped (D065 §5). Not complete: Phase 30 / 47 (S1).
 **Next:** Phase 46 is in `main` (PR #73); **Phase 47 = S1, the release 1.0** (D066) in work — the last step before the MVP;
 everything after it is development.
 
