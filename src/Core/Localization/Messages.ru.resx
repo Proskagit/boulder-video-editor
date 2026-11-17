@@ -1420,4 +1420,22 @@
   <data name="Audio_ModelFailed" xml:space="preserve">
     <value>Аудиомодель {0} не удалось загрузить: {1}</value>
   </data>
+  <data name="Audio_ProcessingFailed" xml:space="preserve">
+    <value>Звук не удалось обработать: {0}</value>
+  </data>
+  <data name="Preflight_AudioCleanupPending" xml:space="preserve">
+    <value>Звук {0} ({1}) ещё очищается. Экспорт можно начать, когда очистка закончится, — тогда он прозвучит как в Preview.</value>
+  </data>
+  <data name="Preflight_AudioCleanupFailed" xml:space="preserve">
+    <value>Звук {0} ({1}) не удалось очистить, он будет экспортирован как записан: {2}</value>
+  </data>
+  <data name="Preflight_DuckingPending" xml:space="preserve">
+    <value>Речь для приглушения дорожки {0} ещё определяется. Экспорт можно начать, когда определение закончится.</value>
+  </data>
+  <data name="Preflight_DuckingFailed" xml:space="preserve">
+    <value>Дорожка {0} будет экспортирована без приглушения: {1}</value>
+  </data>
+  <data name="Preflight_SoloActive" xml:space="preserve">
+    <value>Включено Solo ({0}): в экспорте будет слышно только дорожки Solo.</value>
+  </data>
 </root>

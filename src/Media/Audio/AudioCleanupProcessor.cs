@@ -16,7 +16,7 @@ namespace AiVideoEditor.Media.Audio;
 /// each, in parallel on the CPU — the chunks are fixed from the source's start, so the result never depends on the machine.
 /// The output is a 48 kHz stereo float WAV.
 /// </summary>
-public sealed class AudioCleanupProcessor
+public sealed class AudioCleanupProcessor : IAudioCleanupService
 {
     /// <summary>Changes whenever the cleaned sound or the speech analysis of the same settings would change (part of the cache
     /// key).</summary>
@@ -39,6 +39,9 @@ public sealed class AudioCleanupProcessor
     private readonly ISpeechModel? _speech;
     private readonly ILogger _logger;
     private readonly int _parallelism;
+
+    /// <summary>The algorithms and the pinned models (the cache key's part).</summary>
+    public string Version => $"clean-v{AlgorithmVersion}|audio-v1";
 
     public AudioCleanupProcessor(IAudioDecoder decoder, IVoiceEnhancer? voice = null, ISpeechModel? speech = null,
         ILogger<AudioCleanupProcessor>? logger = null, int? parallelism = null)
@@ -298,5 +301,3 @@ public sealed class AudioCleanupProcessor
     }
 }
 
-/// <summary>A clean-up or speech analysis that can't be done (no model, a file too long), with the user-facing reason.</summary>
-public sealed class AudioCleanupException(string message) : Exception(message);

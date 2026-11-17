@@ -67,6 +67,26 @@ public interface ISpeechModelStream : IDisposable
     float Process(ReadOnlySpan<float> window16k);
 }
 
+/// <summary>D064 §4–§5: computes a file's cleaned sound and the speech in a sound (implemented by the Media project's
+/// processor); the UI's coordinator schedules it.</summary>
+public interface IAudioCleanupService
+{
+    /// <summary>The identity of the algorithms and models (part of every cache key).</summary>
+    string Version { get; }
+
+    /// <summary>Null when <paramref name="cleanup"/> can be computed here; otherwise the reason (the voice model).</summary>
+    Task<string?> CheckAsync(AudioCleanup cleanup, CancellationToken ct);
+
+    /// <summary>Null when speech can be detected here; otherwise the reason (the speech model).</summary>
+    Task<string?> CheckSpeechAsync(CancellationToken ct);
+
+    Task ProduceAsync(string filePath, Common.MediaTime startTime, Common.MediaTime duration, AudioCleanup cleanup, string outputPath,
+        IProgress<double>? progress, CancellationToken ct);
+
+    Task<SpeechActivity> AnalyseSpeechAsync(string filePath, Common.MediaTime startTime, Common.MediaTime duration, IProgress<double>? progress,
+        CancellationToken ct);
+}
+
 /// <summary>D064 §5: the cleaned sounds and the speech analyses kept between sessions (in the application's cache, never the
 /// project), by the source file's content, the settings and the algorithm version.</summary>
 public interface IAudioAnalysisCache
@@ -87,4 +107,18 @@ public interface IAudioAnalysisCache
     SpeechActivity? TryLoadSpeech(string key);
 
     void SaveSpeech(string key, SpeechActivity activity);
+}
+
+/// <summary>A clean-up or speech analysis that can't be done (no model, a file too long), with the user-facing reason.</summary>
+public sealed class AudioCleanupException(string message) : Exception(message);
+
+/// <summary>What the export's preflight uses (D064 §5): the Preview's own results, the clean-ups and speech still pending
+/// (waiting, running or stopped — the export never mixes without them) and the failed ones (exported with the original sound /
+/// without the ducking, as the Preview plays them).</summary>
+public sealed record ExportAudioAnalyses(AudioAnalyses Analyses, IReadOnlySet<(Guid Asset, AudioCleanup Cleanup)> PendingCleanups,
+    IReadOnlyDictionary<(Guid Asset, AudioCleanup Cleanup), string> FailedCleanups, IReadOnlySet<Guid> PendingDucking,
+    IReadOnlyDictionary<Guid, string> FailedDucking)
+{
+    public static readonly ExportAudioAnalyses None = new(AudioAnalyses.None, new HashSet<(Guid, AudioCleanup)>(),
+        new Dictionary<(Guid, AudioCleanup), string>(), new HashSet<Guid>(), new Dictionary<Guid, string>());
 }

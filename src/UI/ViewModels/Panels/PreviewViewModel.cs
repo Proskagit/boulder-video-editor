@@ -91,13 +91,22 @@ public sealed partial class PreviewViewModel : ViewModelBase
     public event EventHandler<MediaTime>? PlaybackPositionChanged;
 
     private readonly IUserSettingsService? _settings;
+    private readonly AudioProcessingCoordinator? _audio;
+
+    private void OnAudioAnalysesChanged(object? sender, EventArgs e)
+    {
+        if (!_released && !IsSourceMode) RebuildSnapshot();
+    }
 
     public PreviewViewModel(StatusService status, IPlaybackService playback, IProjectService projectService,
         ILogger<PreviewViewModel> logger, InOutRangeService? inOut = null, SourceViewerService? source = null,
         CameraMotionCoordinator? cameraMotion = null, TrainingSessionService? training = null, IUserSettingsService? settings = null,
-        PeopleAnalysisCoordinator? people = null)
+        PeopleAnalysisCoordinator? people = null, AudioProcessingCoordinator? audio = null)
     {
         InitPeople(people);
+        // D064 §5: a cleaned sound or a speech analysis that appears (or the comparison with the original sound) rebuilds the mix.
+        _audio = audio;
+        if (_audio is not null) _audio.AnalysesChanged += OnAudioAnalysesChanged;
         _inOut = inOut;
         // D057 §3.8: the heart rate's display offset; a change shows at once (the export takes the same value).
         _settings = settings;
@@ -237,6 +246,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
     public async Task ReleasePlaybackAsync()
     {
         _released = true;
+        if (_audio is not null) _audio.AnalysesChanged -= OnAudioAnalysesChanged;
         // The coordinator is a singleton: stop it from reaching this view model (and its released playback).
         if (_cameraMotion is not null)
         {
@@ -340,7 +350,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
         _assetStates = PlaybackSnapshotBuilder.CaptureAssetStates(_projectService.Current);
         _playback.UpdateSnapshot(PlaybackSnapshotBuilder.Build(_projectService.Current, ++_snapshotVersion, _cameraMotion?.Tracks,
             _settings?.Current.HeartRateDisplayOffsetFor(_projectService.Current.Training?.Activity.Manufacturer) ?? MediaTime.Zero,
-            _people?.Analyses));
+            _people?.Analyses, _audio?.Analyses));
         _needsTick = true;
     }
 

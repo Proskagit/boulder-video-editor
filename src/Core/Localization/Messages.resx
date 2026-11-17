@@ -1420,4 +1420,22 @@
   <data name="Audio_ModelFailed" xml:space="preserve">
     <value>The audio model {0} could not be loaded: {1}</value>
   </data>
+  <data name="Audio_ProcessingFailed" xml:space="preserve">
+    <value>The sound could not be processed: {0}</value>
+  </data>
+  <data name="Preflight_AudioCleanupPending" xml:space="preserve">
+    <value>The sound of {0} ({1}) is still being cleaned. The export starts once it is ready, so it sounds as in the Preview.</value>
+  </data>
+  <data name="Preflight_AudioCleanupFailed" xml:space="preserve">
+    <value>The sound of {0} ({1}) could not be cleaned and is exported as recorded: {2}</value>
+  </data>
+  <data name="Preflight_DuckingPending" xml:space="preserve">
+    <value>The speech for the ducking of track {0} is still being detected. The export starts once it is ready.</value>
+  </data>
+  <data name="Preflight_DuckingFailed" xml:space="preserve">
+    <value>Track {0} is exported without ducking: {1}</value>
+  </data>
+  <data name="Preflight_SoloActive" xml:space="preserve">
+    <value>Solo is on ({0}): only the solo tracks are heard in the export.</value>
+  </data>
 </root>
