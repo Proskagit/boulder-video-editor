@@ -2,6 +2,12 @@
 
 ## Current phase
 
+**Acceptance and docs sync (2026-11-17, docs only).** The product owner accepted Phases 39, 40, 41, 42, 43, 44 and 45, and
+Phases 33 / 34; the R2 → E manual plan `docs/R2E_MANUAL_TEST_PLAN.md` closed as not needed (covered by the Phase 42 checks).
+`docs/DEVELOPMENT_PLAN.md` "Official phases" brought up to Phase 45 (the highest phase number 45; complete: 1–29, 31, 33, 34,
+37–45), `ROADMAP.md` statuses synced; `CLAUDE.md` §10: commit / push / PR as the task allows, the merge only by the product
+owner. Phase 45's PR #72 is merged by the owner after CI.
+
 **Phase 45 — amendment 1, second round (2026-11-17).** The keyframes of a followed part (the cyan diamonds) are tied to the volume
 points too: a part's keyframe brings, moves and removes its point; a point added inside a part becomes the part's keyframe; Follow
 off keeps the points; a change of the sound and a part is one undo step (`SetSoundAndFollowCommand`, a drag merges). Manual row G9.

@@ -192,7 +192,10 @@ Before substantial changes, inspect:
 git status
 git diff
 
-Do not commit automatically unless the user explicitly asks for automatic commits or the project workflow explicitly requires it.
+Commit, push and open a pull request only as far as the user's task allows (a phase task usually allows: commit, push, a PR into
+`main`, waiting for CI; research and audit tasks often allow none of it).
+
+Never merge a pull request: the product owner merges.
 
 Never force-push.
 
