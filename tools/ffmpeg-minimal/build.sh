@@ -175,7 +175,13 @@ copy_licence zimg     "$WORK/src/zimg" COPYING
 copy_licence graphengine "$WORK/src/zimg/graphengine" COPYING
 copy_licence zlib     "$WORK/src/zlib-1.3.2" LICENSE
 copy_licence dav1d    "$WORK/src/dav1d-1.5.4" COPYING
-copy_licence nv-codec-headers "$WORK/src/nv-codec-headers" LICENSE
+# nv-codec-headers has no licence file: each header carries its MIT terms and copyright in its first comment block, copied
+# here verbatim (as the IJG headers below).
+mkdir -p "$OUT/licenses/nv-codec-headers"
+for f in dynlink_cuda.h dynlink_cuviddec.h dynlink_loader.h dynlink_nvcuvid.h nvEncodeAPI.h; do
+    awk '{ print } /\*\// { exit }' "$WORK/src/nv-codec-headers/include/ffnvcodec/$f" > "$OUT/licenses/nv-codec-headers/$f.header.txt"
+    grep -q "Permission is hereby granted" "$OUT/licenses/nv-codec-headers/$f.header.txt"         || { echo "No MIT licence header in nv-codec-headers/$f" >&2; exit 1; }
+done
 
 # The toolchain runtime linked statically: mingw-w64's notices (its licence asks for them with binaries) and GCC's runtime
 # library exception with the GPL version 3 it refers to — read from the Debian source packages in SOURCES, the same ones

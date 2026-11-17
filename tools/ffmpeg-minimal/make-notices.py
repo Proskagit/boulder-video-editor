@@ -87,7 +87,7 @@ def main():
         'mingw-w64 runtime: Copyright (c) 2009, 2010, 2011, 2012, 2013 by the mingw-w64 project, and the further notices',
         '    in licenses/mingw-w64-runtime/COPYING.MinGW-w64-runtime.txt',
         'zimg, graphengine: no copyright notice in their sources (WTFPL)',
-        'nv-codec-headers: the copyright notice in licenses/nv-codec-headers/LICENSE (NVIDIA Corporation)',
+        'nv-codec-headers: the copyright notices in licenses/nv-codec-headers/*.header.txt (NVIDIA Corporation and others)',
     ])
 
     head = f"""\
@@ -174,9 +174,10 @@ LICENCE FILES IN THIS PACKAGE
                 else text(lic / 'zimg' / 'COPYING') + '\n\n--- graphengine ---\n\n' + text(lic / 'graphengine' / 'COPYING')),
         section('zlib 1.3.2 — Zlib licence (licenses/zlib/LICENSE)', text(lic / 'zlib' / 'LICENSE')),
         section('dav1d 1.5.4 — BSD-2-Clause (licenses/dav1d/COPYING)', text(lic / 'dav1d' / 'COPYING')),
-        section('nv-codec-headers 12.2.72.0 — MIT (licenses/nv-codec-headers/LICENSE); the NVENC interface headers, the NVIDIA '
-                'driver itself is not part of these programs and is loaded at run time',
-                text(lic / 'nv-codec-headers' / 'LICENSE')),
+        *[section(f'nv-codec-headers 12.2.72.0 — MIT terms of include/ffnvcodec/{h.name.removesuffix(".header.txt")} '
+                  f'(licenses/nv-codec-headers/{h.name}); the NVENC interface headers — the NVIDIA driver is not part of these '
+                  'programs and is loaded at run time', text(h))
+          for h in sorted((lic / 'nv-codec-headers').glob('*.header.txt'))],
         section('Alliance for Open Media Patent License 1.0 — AV1 (licenses/dav1d/AOM-PATENT-LICENSE-1.0.txt)',
                 text(lic / 'dav1d' / 'AOM-PATENT-LICENSE-1.0.txt')),
         *[section(f'Independent JPEG Group — licence terms in FFmpeg libavcodec/{h.name.removesuffix(".header.txt")} '
