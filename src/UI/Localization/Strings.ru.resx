@@ -3728,4 +3728,7 @@
   <data name="Inspector_ImportTraining" xml:space="preserve">
     <value>Импортировать FIT-тренировку…</value>
   </data>
+  <data name="Holds_ClickKept" xml:space="preserve">
+    <value>Щелчок принят — контур появится, как только модель будет готова…</value>
+  </data>
 </root>

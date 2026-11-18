@@ -85,7 +85,8 @@
           </TextBlock>
           <TextBlock Text="{Binding Transform.ModeText}" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{DynamicResource FontSizeCaption}" TextTrimming="CharacterEllipsis"
                      IsVisible="{Binding Transform.IsActive, FallbackValue=False}"/>
-          <TextBlock Text="{Binding HoldMarkup.ModeText}" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{DynamicResource FontSizeCaption}" TextTrimming="CharacterEllipsis"
+          <!-- D068 item 9: the markup's hint is the mode's colour and the body size — the mode is seen, not guessed. -->
+          <TextBlock x:Name="HoldMarkupHint" Text="{Binding HoldMarkup.ModeText}" Foreground="{DynamicResource AccentTextBrush}" FontSize="{DynamicResource FontSizeBody}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
                      ToolTip.Tip="{Binding HoldMarkup.ModeHelp}"
                      IsVisible="{Binding HoldMarkup.IsActive, FallbackValue=False}"/>
         </Panel>
@@ -96,6 +97,9 @@
          in the available space; every layer is drawn by CompositionView (D018/D019). -->
     <Grid Grid.Row="1" Margin="16">
       <rendering:CompositionView Layers="{Binding Layers}" Canvas="{Binding Canvas}"/>
+      <!-- D068 item 9: the hold markup mode frames the picture in the mode's green. -->
+      <Border x:Name="HoldMarkupFrame" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="2" CornerRadius="4" Margin="-8"
+              IsHitTestVisible="False" IsVisible="{Binding HoldMarkup.IsActive, FallbackValue=False}"/>
       <!-- AI hold markup (Phase 19, D034): clicks, the candidate, the selected hold and the loupe (status and buttons in
            the bar above). -->
       <rendering:HoldMarkupOverlay Markup="{Binding HoldMarkup}"/>

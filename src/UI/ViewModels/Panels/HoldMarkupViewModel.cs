@@ -784,6 +784,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         ResolveRoute();
         LoadStyle();
         IsActive = true;
+        _pendingClick = null;
         IsPreparing = true;
         PrepareProgress = 0;
         ModeText = Strings.Holds_CheckingModel;
@@ -834,6 +835,11 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             LoadStyle();   // the dashed contours of an animated route (D036)
             UpdateOverlay();
             ModeText = HasProposals ? Strings.Holds_ReviewProposals : ReadyText;
+            if (_pendingClick is { } pending)
+            {
+                _pendingClick = null;
+                await OnClickAsync(pending.Point, pending.Additive);
+            }
         }
         catch (OperationCanceledException) when (cts.IsCancellationRequested)
         {
@@ -1176,6 +1182,8 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
     /// <summary>A click on the Preview at <paramref name="point"/> (normalized source coordinates of the clip's frame);
     /// <paramref name="additive"/>: Shift was held.</summary>
+    private (NormalizedPoint Point, bool Additive)? _pendingClick;
+
     public async Task OnClickAsync(NormalizedPoint point, bool additive)
     {
         // A confirm still sampling the colours finishes first: a quick next click never drops it.
@@ -1183,6 +1191,14 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (_routePhase == RoutePhase.Picking)
         {
             if (point.X is >= 0 and <= 1 && point.Y is >= 0 and <= 1) await PickControlAsync(point);
+            return;
+        }
+        if (IsActive && IsPreparing && _routePhase == RoutePhase.None && point.X is >= 0 and <= 1 && point.Y is >= 0 and <= 1)
+        {
+            // D068 item 9: a click while the model or the frame is still being prepared is kept and applied once ready — it
+            // never vanishes without a trace.
+            _pendingClick = (point, additive);
+            ModeText = Strings.Holds_ClickKept;
             return;
         }
         if (!IsActive || IsPreparing || _encoded is null || MarkupFrame is null) return;

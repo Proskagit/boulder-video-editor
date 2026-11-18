@@ -3724,4 +3724,7 @@ If you don't save, your changes will be lost.</value>
   <data name="Inspector_ImportTraining" xml:space="preserve">
     <value>Import FIT training…</value>
   </data>
+  <data name="Holds_ClickKept" xml:space="preserve">
+    <value>Click kept — the outline appears as soon as the model is ready…</value>
+  </data>
 </root>

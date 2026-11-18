@@ -19,6 +19,7 @@ using AiVideoEditor.UI.ViewModels.Panels;
 using Avalonia;
 using Avalonia.Input;
 using Microsoft.Extensions.Logging.Abstractions;
+using AiVideoEditor.UI.Localization;
 using Xunit;
 
 namespace AiVideoEditor.UI.Tests;
@@ -288,6 +289,27 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
         Assert.True(Markup.StartCommand.CanExecute(null));
         Markup.SetClip(null);
         Assert.False(Markup.StartCommand.CanExecute(null));
+    }
+
+    /// <summary>D068 item 9: a click made while the model is still loading is kept (and said so) and gives its outline once the
+    /// mode is ready — it never vanishes without a trace.</summary>
+    [Fact]
+    public async Task A_click_while_the_model_loads_is_kept_and_applied_when_ready()
+    {
+        var clip = AddVideo();
+        _vm.Timeline.SetPlayhead(clip.TimelineStart + MediaTime.FromSeconds(1));
+        _model.Gate = new TaskCompletionSource();
+        var start = Markup.StartCommand.ExecuteAsync(null);
+        Assert.True(Markup.IsPreparing);
+
+        await Markup.OnClickAsync(new NormalizedPoint(0.5, 0.5), additive: false);
+        Assert.False(Markup.HasCandidate);
+        Assert.Equal(Strings.Holds_ClickKept, Markup.ModeText);
+
+        _model.Gate.SetResult();
+        await start;
+        Assert.False(Markup.IsPreparing);
+        Assert.True(Markup.HasCandidate);                            // the kept click, applied
     }
 
     [Fact]
