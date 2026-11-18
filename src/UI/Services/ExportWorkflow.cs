@@ -391,7 +391,7 @@ public sealed class ExportWorkflow
 
     private async Task<ExportDialogResult?> ChooseOutputAsync(Core.Entities.Project project, ExportRange? range)
     {
-        var request = OutputRequest(project);
+        var request = OutputRequest(project, DateTime.Now);
         if (_exportDialog is null)
             return await _picker.PickSaveFileAsync(request) is { } picked ? new ExportDialogResult(picked) : null;
 
@@ -407,16 +407,22 @@ public sealed class ExportWorkflow
         return await _exportDialog.ShowAsync(dialog);
     }
 
-    private static SaveFilePickerRequest OutputRequest(Core.Entities.Project project)
+    /// <summary>D067 §4: the name an export suggests — the local date and time it is chosen at, <c>yyyyMMdd_HHmm</c>.</summary>
+    public static string SuggestedFileName(DateTime now) =>
+        now.ToString("yyyyMMdd_HHmm", System.Globalization.CultureInfo.InvariantCulture) + ExportFormat.FileExtension;
+
+    /// <summary>The picker's start: the folder of the last export (else the project's), and always a new name by the time
+    /// (D067 §4) — never the last file's name, which a second export would replace.</summary>
+    public static SaveFilePickerRequest OutputRequest(Core.Entities.Project project, DateTime now)
     {
         var last = project.LastExportSettings.OutputPath;
-        string? folder = null, name = null;
+        string? folder = null;
+        var name = SuggestedFileName(now);
         if (!string.IsNullOrWhiteSpace(last))
         {
             try
             {
                 folder = Path.GetDirectoryName(last);
-                name = Path.GetFileName(last);
             }
             catch (ArgumentException)
             {
@@ -427,7 +433,7 @@ public sealed class ExportWorkflow
         {
             Title = Strings.Export_PickerTitle,
             StartFolder = folder ?? project.ProjectFolderPath,
-            SuggestedFileName = string.IsNullOrEmpty(name) ? project.Name + ExportFormat.FileExtension : name,
+            SuggestedFileName = name,
             DefaultExtension = ExportFormat.FileExtension.TrimStart('.'),
             FileTypeFilters = new[] { new FilePickerFileTypeFilter { Name = Strings.Export_Mp4Filter, Patterns = new[] { "*" + ExportFormat.FileExtension } } }
         };

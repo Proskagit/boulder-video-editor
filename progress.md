@@ -2,6 +2,20 @@
 
 ## Current phase
 
+**Phase 48 — the owner's fixes before publishing 1.0 (D067, 2026-11-18) — on `feat/phase-48-release-fixes`.** Rubber-band
+selection in the Media Browser (from a blank place; Ctrl adds), the export's suggested name `yyyyMMdd_HHmm.mp4` (the last export's
+folder), Space = Play / Pause on the window's tunnel (only text inputs type it), Save As through the save dialog — a place and a
+name, the project saved into a folder of that name (versions side by side), the application's icon (`tools/icon/make_icon.py`,
+the exe and the main window). §2 (a pushed clip staying shifted) not reproduced — the timeline's preview returns it with
+snapping on / off and with own / linked sound; the owner's steps asked. §3 (clean-up by keyframes) → backlog. Tests: the band
+(VM), Save As versions, the export name; ScriptedPicker answers Save As from its folders. Three timing flakes under a loaded
+full run fixed: the decode-failure frame count (0..10, in order), A10's progress (waited for — `Progress<T>` is asynchronous),
+the background-close export fake (a release racing a requested cancellation is a cancellation). Still flaky under a loaded full
+run: `ExportServiceTests` rasterizer-failure tests (A_failure_in_one_of_several_rasterizers…, A_rasterizer_failure_while_the_writer_waits…)
+— pass alone; a task of their own. Gates (2026-11-18): Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check`
+clean; Release suites green except the decode-failure flake fixed since; alone: Export 142, UI 1 273. Not done: the owner's manual
+check (`docs/PHASE48_MANUAL_TEST_PLAN.md`), the phase review.
+
 **MVP closed (2026-11-18).** The product owner accepted Phases 46 and 47 (S1, the release 1.0): the clean-machine check in a
 new Windows account (Windows Sandbox would not start on this PC) — A1–A5, A7–A10, B1–B3 PASS, A6 not confirmed (GPU present);
 the notices accepted as they are. The GitHub Release `v1.0.0` drafted with its four assets (built from `d287c16`); the owner

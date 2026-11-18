@@ -1064,8 +1064,11 @@
   <data name="Project_ReplaceTitle" xml:space="preserve">
     <value>Заменить проект?</value>
   </data>
+  <data name="Project_SaveAsFileExists" xml:space="preserve">
+    <value>Там уже есть файл «{0}»; введите другое имя.</value>
+  </data>
   <data name="Project_SaveAsPickerTitle" xml:space="preserve">
-    <value>Сохранить проект как — выберите или создайте папку для проекта</value>
+    <value>Сохранить проект как — выберите место и введите имя проекта (будет создана папка с этим именем)</value>
   </data>
   <data name="Project_Saved" xml:space="preserve">
     <value>Проект «{0}» сохранён.</value>

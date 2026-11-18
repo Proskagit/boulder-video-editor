@@ -192,6 +192,25 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
         SelectedItem ??= Items.FirstOrDefault();
     }
 
+    /// <summary>D067 §1: a rubber band dragged over the list — the selection becomes <paramref name="kept"/> (the selection
+    /// before the drag, with Ctrl; empty without) plus the files <paramref name="touched"/>, in the list's order; the first
+    /// touched file is the primary one when the old primary is no longer selected.</summary>
+    public void SelectByMarquee(IReadOnlyCollection<MediaBrowserItemViewModel> touched, IReadOnlyCollection<MediaBrowserItemViewModel> kept)
+    {
+        var wanted = Items.Where(i => touched.Contains(i) || kept.Contains(i)).ToList();
+        if (wanted.SequenceEqual(SelectedItems)) return;
+        foreach (var item in SelectedItems.Where(i => !wanted.Contains(i)).ToList()) SelectedItems.Remove(item);
+        for (var i = 0; i < wanted.Count; i++)
+        {
+            var at = SelectedItems.IndexOf(wanted[i]);
+            if (at == i) continue;
+            if (at >= 0) SelectedItems.RemoveAt(at);
+            SelectedItems.Insert(i, wanted[i]);
+        }
+        if (SelectedItem is null || !SelectedItems.Contains(SelectedItem))
+            SelectedItem = Items.FirstOrDefault(touched.Contains) ?? SelectedItems.FirstOrDefault();
+    }
+
     // --- The context menu of a file (the owner's check of 0.38.1, 2026-11-10) ---------------------------------------------
 
     /// <summary>The file the context menu was opened on (null: the list's empty part).</summary>

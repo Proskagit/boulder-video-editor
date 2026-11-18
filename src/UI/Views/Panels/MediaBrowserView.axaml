@@ -95,6 +95,10 @@
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
+        <!-- D067 §1: the rubber band of a selection dragged from a blank place of the list. -->
+        <Canvas IsHitTestVisible="False">
+          <Border x:Name="Marquee" IsVisible="False" Background="#332F80ED" BorderBrush="#2F80ED" BorderThickness="1"/>
+        </Canvas>
       </Panel>
 
     </DockPanel>

@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 
 namespace AiVideoEditor.UI.Views.Panels;
 
@@ -78,6 +79,17 @@ public partial class MediaBrowserView : UserControl
     private void OnPressed(object? sender, PointerPressedEventArgs e)
     {
         if (!e.GetCurrentPoint(MediaList).Properties.IsLeftButtonPressed) return;
+        // D067 §1: a press on a blank place — below the files or in a row beside its picture and text — starts a rubber band
+        // (as Explorer does); a press on a file's picture or text stays the start of dragging it to the timeline.
+        if (DataContext is MediaBrowserViewModel marqueeVm && IsBlank(e.Source) && e.KeyModifiers is KeyModifiers.None or KeyModifiers.Control)
+        {
+            _marqueeStart = e.GetPosition(MarqueeLayer);
+            _marqueeKept = e.KeyModifiers == KeyModifiers.Control ? marqueeVm.SelectedItems.ToList() : new List<MediaBrowserItemViewModel>();
+            _marqueeMoved = false;
+            e.Pointer.Capture(MediaList);
+            e.Handled = true;
+            return;
+        }
         _pressedItem = ItemFrom(e.Source);
         _pressPoint = _pressedItem is null ? null : e.GetPosition(MediaList);
         // The owner's acceptance of 2026-11-10: a plain press on a file of a group selection keeps the group — it may be the
@@ -95,6 +107,15 @@ public partial class MediaBrowserView : UserControl
 
     private void OnReleased(object? sender, PointerReleasedEventArgs e)
     {
+        if (_marqueeStart is not null)
+        {
+            // A click on a blank place without dragging clears the selection (Ctrl keeps it), as Explorer does.
+            if (!_marqueeMoved && DataContext is MediaBrowserViewModel clickVm)
+                clickVm.SelectByMarquee(Array.Empty<MediaBrowserItemViewModel>(), _marqueeKept);
+            EndMarquee(e.Pointer);
+            e.Handled = true;
+            return;
+        }
         if (_deferredSelect && _pressedItem is { } item && DataContext is MediaBrowserViewModel vm)
         {
             vm.SelectedItems.Clear();
@@ -107,6 +128,24 @@ public partial class MediaBrowserView : UserControl
 
     private async void OnMoved(object? sender, PointerEventArgs e)
     {
+        if (_marqueeStart is { } from)
+        {
+            if (!e.GetCurrentPoint(MediaList).Properties.IsLeftButtonPressed)
+            {
+                EndMarquee(e.Pointer);
+                return;
+            }
+            var to = e.GetPosition(MarqueeLayer);
+            if (!_marqueeMoved && Math.Abs(to.X - from.X) < DragStartDistance && Math.Abs(to.Y - from.Y) < DragStartDistance) return;
+            _marqueeMoved = true;
+            var band = new Rect(from, to).Normalize();
+            Canvas.SetLeft(Marquee, band.X);
+            Canvas.SetTop(Marquee, band.Y);
+            (Marquee.Width, Marquee.Height, Marquee.IsVisible) = (band.Width, band.Height, true);
+            if (DataContext is MediaBrowserViewModel bandVm) bandVm.SelectByMarquee(ItemsIn(band), _marqueeKept);
+            e.Handled = true;
+            return;
+        }
         if (_pressPoint is not { } start || _pressedItem is not { } item) return;
         if (!e.GetCurrentPoint(MediaList).Properties.IsLeftButtonPressed)
         {
@@ -125,6 +164,48 @@ public partial class MediaBrowserView : UserControl
         if (DataContext is MediaBrowserViewModel vm && vm.DraggedGroup(item) is { Count: > 1 } group)
             data.Set(DragFormats.MediaAssetIds, string.Join(",", group.Select(a => a.Id)));
         await DragDrop.DoDragDrop(e, data, DragDropEffects.Copy);
+    }
+
+    // --- D067 §1: the rubber band ---------------------------------------------------------------------------------------
+
+    private Point? _marqueeStart;
+    private bool _marqueeMoved;
+    private List<MediaBrowserItemViewModel> _marqueeKept = new();
+
+    private Visual MarqueeLayer => (Visual)Marquee.Parent!;
+
+    private void EndMarquee(IPointer pointer)
+    {
+        _marqueeStart = null;
+        _marqueeMoved = false;
+        Marquee.IsVisible = false;
+        if (pointer.Captured == MediaList) pointer.Capture(null);
+    }
+
+    /// <summary>The files whose rows the band touches (the realized rows — the band covers only what is on the screen).</summary>
+    private List<MediaBrowserItemViewModel> ItemsIn(Rect band)
+    {
+        var touched = new List<MediaBrowserItemViewModel>();
+        foreach (var container in MediaList.GetRealizedContainers())
+        {
+            if (container.DataContext is not MediaBrowserItemViewModel item) continue;
+            if (container.TranslatePoint(new Point(0, 0), MarqueeLayer) is not { } origin) continue;
+            if (new Rect(origin, container.Bounds.Size).Intersects(band)) touched.Add(item);
+        }
+        return touched;
+    }
+
+    /// <summary>A place of the list that is not a file's picture, text or button: the list's empty part, or a row's blank
+    /// part (the row's own background beside its content).</summary>
+    private static bool IsBlank(object? source)
+    {
+        for (var element = source as Visual; element is not null; element = element.GetVisualParent())
+        {
+            if (element is ListBoxItem) return true;
+            if (element is StackPanel or Button or Image or TextBlock) return false;
+            if (element is ListBox) return true;
+        }
+        return true;
     }
 
     private void Reset()

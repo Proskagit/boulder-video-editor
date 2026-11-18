@@ -122,4 +122,29 @@ public sealed class MediaBrowserMultiAddTests
         _undo.Undo();
         Assert.Empty(_projects.Current.Timeline.VideoTracks[0].Clips);
     }
+
+    [Fact]
+    public void A_rubber_band_selects_the_files_it_touches_and_with_ctrl_adds_them_to_the_selection()
+    {
+        // D067 §1: the band's files replace the selection (in the list's order); with Ctrl they join the kept ones; a band
+        // that shrinks drops the files it no longer touches.
+        var a = Video("a.mp4", W0.AddMinutes(1));
+        var b = Video("b.mp4", W0.AddMinutes(2));
+        var c = Video("c.mp4", W0.AddMinutes(3));
+        MediaBrowserItemViewModel Item(MediaAsset asset) => _browser.Items.First(i => i.Asset.Id == asset.Id);
+        _browser.SelectedItems.Add(Item(a));
+
+        _browser.SelectByMarquee(new[] { Item(c), Item(b) }, Array.Empty<MediaBrowserItemViewModel>());
+        Assert.Equal(new[] { b.Id, c.Id }, _browser.SelectedItems.Select(i => i.Asset.Id));
+        Assert.Contains(_browser.SelectedItem, _browser.SelectedItems);
+
+        _browser.SelectByMarquee(new[] { Item(c) }, Array.Empty<MediaBrowserItemViewModel>());   // the band shrinks
+        Assert.Equal(new[] { c.Id }, _browser.SelectedItems.Select(i => i.Asset.Id));
+
+        _browser.SelectByMarquee(new[] { Item(b) }, new[] { Item(a) });                          // Ctrl: a kept
+        Assert.Equal(new[] { a.Id, b.Id }, _browser.SelectedItems.Select(i => i.Asset.Id));
+
+        _browser.SelectByMarquee(Array.Empty<MediaBrowserItemViewModel>(), Array.Empty<MediaBrowserItemViewModel>());
+        Assert.Empty(_browser.SelectedItems);                                                     // a click on a blank place
+    }
 }

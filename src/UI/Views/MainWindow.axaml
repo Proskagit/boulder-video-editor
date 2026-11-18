@@ -7,6 +7,7 @@
         xmlns:l="using:AiVideoEditor.UI.Localization"
         x:Class="AiVideoEditor.UI.Views.MainWindow"
         Title="{Binding Title}"
+        Icon="/Assets/app.ico"
         Width="1440" Height="900"
         MinWidth="1024" MinHeight="640"
         Background="#1E1E1E">

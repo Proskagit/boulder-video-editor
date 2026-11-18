@@ -10900,3 +10900,64 @@ editor's behaviour noted by the owner are left for later (backlog); the release 
 ### Out of scope
 
 An installer; code signing; automatic updates; models downloaded by the application; HEVC / AV1 encoding (FU-EX.1).
+
+## D067 — Phase 48: the owner's fixes before publishing 1.0 *(set by the owner on 2026-11-18)*
+
+Date: 2026-11-18. **Status: the scope set by the product owner on 2026-11-18** (seven remarks after the clean-machine check,
+and the owner's answers). Branch `feat/phase-48-release-fixes`. **No format change** (`project.json` v25). Manual plan:
+`docs/PHASE48_MANUAL_TEST_PLAN.md`. After it the release `v1.0.0` is published by the owner (its assets rebuilt).
+
+### 1. Rubber-band selection in the Media Browser
+
+A press on a blank place of the list — below the files, or in a row beside the file's picture and text (as in Explorer's
+details view) — and a drag draws a band; the files whose rows it touches become the selection, in the list's order (a
+shrinking band drops the files it no longer touches); with Ctrl they join the selection the drag started with. A click on a
+blank place without a drag clears the selection (Ctrl keeps it). A press on a file's picture or text stays the start of
+dragging it (or its group) to the timeline. The band covers the rows on the screen (the list is not scrolled by it).
+
+### 2. A clip pushed by a drag that stays shifted
+
+Reported by the owner in a new Windows account (not in his own): dragging a video clip right pushes the next clip, and
+before the release the pushed clip keeps some shift. **Not reproduced**: the timeline's own preview, driven as the view drives
+it (right +10 … +35 frames into the next clip, then back to 0 without releasing), returns the pushed clip to its place with
+snapping on and off, with the clip's own sound and with a linked sound clip. Left open until the owner gives the steps (or a
+recording); no change made blindly.
+
+### 3. Noise reduction and voice enhancement by keyframes
+
+**Not now** (the owner): one strength per clip stays; a part is cleaned by splitting the clip. Keyframed strengths →
+the backlog (the clean-up is computed and cached per file and strength — not a small change).
+
+### 4. The export's suggested name
+
+`yyyyMMdd_HHmm.mp4` — the local date and time the export is chosen at (the owner: `20261118_1430.mp4`), always a new name —
+never the project's name or the last export's file, which a second export would replace; the folder stays the last export's
+(else the project's).
+
+### 5. Space is Play / Pause
+
+Space plays / pauses wherever the focus is — a list, a button, a slider or a colour the user changed last no longer takes it
+(the window handles Space on the tunnel, before the focused control); only a text input (a text field, a number's field)
+types it; the shortcut rules of D038 §1 (a Preview gesture) stay.
+
+### 6. Save As with a name
+
+Save As is the system's save dialog: the place and the project's name (the current name offered); the project is saved into a
+folder of that name there, created when it does not exist — versions of a project sit side by side as folders
+(«Проект v1», «Проект v2»). Another project in that folder asks before it is replaced; a file of that name refuses with the
+reason. A project is still a folder with `project.json`; Open is unchanged.
+
+### 7. The application's icon
+
+A route-orange climbing hold in the green outline the editor draws around a marked hold, a white Play triangle on it, on the
+editor's dark rounded square (`tools/icon/make_icon.py` → `src/UI/Assets/app.ico`, 16–256 px): `AiVideoEditor.exe`'s icon
+(Explorer, the taskbar) and the main window's.
+
+### 8. Acceptance (the product owner, 2026-11-18)
+
+The owner's check of the portable build of `feat/phase-48-release-fixes`: every remark closed — **Phase 48 accepted**. §2
+is closed with it (not seen again). The release `v1.0.0`'s assets are rebuilt from `main` after the merge.
+
+### Out of scope
+
+Keyframed clean-up (§3, backlog); the UX phase (1.1); the other windows' icons (dialogs keep the default).
