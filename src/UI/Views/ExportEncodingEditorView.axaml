@@ -3,11 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="AiVideoEditor.UI.Views.ExportEncodingEditorView">
 
-  <!-- D059 §4: the export settings (ExportEncodingEditorViewModel) — the profile, the encoder with its one-line description,
+  <!-- D068 item 13: the profile in plain words on top; the encoder and its parameters folded into «Подробные настройки»; the
+       expected size stays in view. D059 §4: the export settings (ExportEncodingEditorViewModel) — the profile, the encoder with its one-line description,
        the AAC bitrate; «Пользовательский» adds the quality, the speed, the rate control and the video bitrate. Below: the
        parameters actually used, what they mean for the speed, the expected size (an estimate) and an NVENC notice. -->
   <StackPanel Spacing="2">
-    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+    <Grid ColumnDefinitions="Auto,*">
       <Grid.Styles>
         <Style Selector="ComboBox.choice">
           <Setter Property="HorizontalAlignment" Value="Stretch"/>
@@ -26,39 +27,61 @@
       <ComboBox x:Name="ProfileBox" Grid.Row="0" Grid.Column="1" Classes="choice"
                 ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile, Mode=TwoWay}"/>
 
-      <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static l:Strings.ExportEncoder_Label}" VerticalAlignment="Center"/>
-      <ComboBox x:Name="EncoderBox" Grid.Row="1" Grid.Column="1" Classes="choice"
-                ItemsSource="{Binding Encoders}" SelectedItem="{Binding SelectedEncoder, Mode=TwoWay}"/>
-
-      <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static l:Strings.Settings_Quality}" VerticalAlignment="Center"
-                 IsVisible="{Binding IsCustom}"/>
-      <ComboBox x:Name="QualityBox" Grid.Row="2" Grid.Column="1" Classes="choice" IsVisible="{Binding IsCustom}"
-                ItemsSource="{Binding Qualities}" SelectedItem="{Binding SelectedQuality, Mode=TwoWay}"/>
-
-      <TextBlock Grid.Row="3" Grid.Column="0" Text="{x:Static l:Strings.Settings_EncodingSpeed}" VerticalAlignment="Center"
-                 IsVisible="{Binding IsCustom}"/>
-      <ComboBox x:Name="SpeedBox" Grid.Row="3" Grid.Column="1" Classes="choice" IsVisible="{Binding IsCustom}"
-                ItemsSource="{Binding Speeds}" SelectedItem="{Binding SelectedSpeed, Mode=TwoWay}"/>
-
-      <TextBlock Grid.Row="4" Grid.Column="0" Text="{x:Static l:Strings.ExportRate_Label}" VerticalAlignment="Center"
-                 IsVisible="{Binding IsCustom}"/>
-      <ComboBox x:Name="RateControlBox" Grid.Row="4" Grid.Column="1" Classes="choice" IsVisible="{Binding IsCustom}"
-                ItemsSource="{Binding RateControls}" SelectedItem="{Binding SelectedRateControl, Mode=TwoWay}"/>
-
-      <TextBlock Grid.Row="5" Grid.Column="0" Text="{x:Static l:Strings.ExportVideoBitrate_Label}" VerticalAlignment="Center"
-                 IsVisible="{Binding IsBitrate}"/>
-      <ComboBox x:Name="VideoBitrateBox" Grid.Row="5" Grid.Column="1" Classes="choice" IsVisible="{Binding IsBitrate}"
-                ItemsSource="{Binding VideoBitrates}" SelectedItem="{Binding SelectedVideoBitrate, Mode=TwoWay}"/>
-
-      <TextBlock Grid.Row="6" Grid.Column="0" Text="{x:Static l:Strings.Settings_AudioBitrate}" VerticalAlignment="Center"/>
-      <ComboBox x:Name="BitrateBox" Grid.Row="6" Grid.Column="1" Classes="choice"
-                ItemsSource="{Binding Bitrates}" SelectedItem="{Binding SelectedBitrate, Mode=TwoWay}"/>
     </Grid>
 
-    <TextBlock x:Name="EncoderDetailText" Text="{Binding SelectedEncoder.Detail}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"/>
-    <TextBlock Text="{x:Static l:Strings.ExportEncoder_Both}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap"/>
-    <TextBlock x:Name="PlanText" Text="{Binding PlanText}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
-    <TextBlock x:Name="SpeedNoteText" Text="{Binding SpeedNote}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+    <Expander x:Name="MoreSettings" Header="{x:Static l:Strings.ExportDialog_More}" IsExpanded="False" HorizontalAlignment="Stretch"
+              HorizontalContentAlignment="Stretch" Margin="0,2,0,4">
+      <StackPanel Spacing="2">
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
+          <Grid.Styles>
+            <Style Selector="ComboBox.choice">
+              <Setter Property="HorizontalAlignment" Value="Stretch"/>
+              <Setter Property="Margin" Value="10,0,0,6"/>
+              <Setter Property="ItemTemplate">
+                <DataTemplate>
+                  <StackPanel Orientation="Horizontal" Spacing="8" ToolTip.Tip="{Binding Detail}">
+                    <TextBlock Text="{Binding Label}"/>
+                    <TextBlock Text="{Binding Detail}" Foreground="{DynamicResource TextMutedBrush}" FontSize="{DynamicResource FontSizeCaption}" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </DataTemplate>
+              </Setter>
+            </Style>
+          </Grid.Styles>
+          <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static l:Strings.ExportEncoder_Label}" VerticalAlignment="Center"/>
+          <ComboBox x:Name="EncoderBox" Grid.Row="0" Grid.Column="1" Classes="choice"
+                    ItemsSource="{Binding Encoders}" SelectedItem="{Binding SelectedEncoder, Mode=TwoWay}"/>
+
+          <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static l:Strings.Settings_Quality}" VerticalAlignment="Center"
+                     IsVisible="{Binding IsCustom}"/>
+          <ComboBox x:Name="QualityBox" Grid.Row="1" Grid.Column="1" Classes="choice" IsVisible="{Binding IsCustom}"
+                    ItemsSource="{Binding Qualities}" SelectedItem="{Binding SelectedQuality, Mode=TwoWay}"/>
+
+          <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static l:Strings.Settings_EncodingSpeed}" VerticalAlignment="Center"
+                     IsVisible="{Binding IsCustom}"/>
+          <ComboBox x:Name="SpeedBox" Grid.Row="2" Grid.Column="1" Classes="choice" IsVisible="{Binding IsCustom}"
+                    ItemsSource="{Binding Speeds}" SelectedItem="{Binding SelectedSpeed, Mode=TwoWay}"/>
+
+          <TextBlock Grid.Row="3" Grid.Column="0" Text="{x:Static l:Strings.ExportRate_Label}" VerticalAlignment="Center"
+                     IsVisible="{Binding IsCustom}"/>
+          <ComboBox x:Name="RateControlBox" Grid.Row="3" Grid.Column="1" Classes="choice" IsVisible="{Binding IsCustom}"
+                    ItemsSource="{Binding RateControls}" SelectedItem="{Binding SelectedRateControl, Mode=TwoWay}"/>
+
+          <TextBlock Grid.Row="4" Grid.Column="0" Text="{x:Static l:Strings.ExportVideoBitrate_Label}" VerticalAlignment="Center"
+                     IsVisible="{Binding IsBitrate}"/>
+          <ComboBox x:Name="VideoBitrateBox" Grid.Row="4" Grid.Column="1" Classes="choice" IsVisible="{Binding IsBitrate}"
+                    ItemsSource="{Binding VideoBitrates}" SelectedItem="{Binding SelectedVideoBitrate, Mode=TwoWay}"/>
+
+          <TextBlock Grid.Row="5" Grid.Column="0" Text="{x:Static l:Strings.Settings_AudioBitrate}" VerticalAlignment="Center"/>
+          <ComboBox x:Name="BitrateBox" Grid.Row="5" Grid.Column="1" Classes="choice"
+                    ItemsSource="{Binding Bitrates}" SelectedItem="{Binding SelectedBitrate, Mode=TwoWay}"/>
+        </Grid>
+        <TextBlock x:Name="EncoderDetailText" Text="{Binding SelectedEncoder.Detail}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+        <TextBlock Text="{x:Static l:Strings.ExportEncoder_Both}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap"/>
+        <TextBlock x:Name="PlanText" Text="{Binding PlanText}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+        <TextBlock x:Name="SpeedNoteText" Text="{Binding SpeedNote}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+      </StackPanel>
+    </Expander>
+
     <TextBlock x:Name="EstimateText" Text="{Binding EstimateText}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap"
                IsVisible="{Binding EstimateText, Converter={x:Static ObjectConverters.IsNotNull}}"/>
     <TextBlock x:Name="UnavailableText" Text="{Binding UnavailableNote}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap"

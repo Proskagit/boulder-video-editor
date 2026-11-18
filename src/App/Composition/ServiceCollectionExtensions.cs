@@ -155,7 +155,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<InOutRangeService>();   // the session's In / Out range (D030 §8)
         services.AddSingleton<SourceViewerService>();  // the Source viewer's asset and source In / Out (D031)
         services.AddSingleton<IExportProgressDialog, AvaloniaExportProgressDialog>();
-        services.AddSingleton<ExportWorkflow>();
+        services.AddSingleton<ExportWorkflow>(sp =>
+        {
+            var workflow = ActivatorUtilities.CreateInstance<ExportWorkflow>(sp);
+            workflow.RevealFile = FileReveal.Select;                     // D068 item 13: «Показать в папке»
+            return workflow;
+        });
         services.AddSingleton<MediaAnalysisCoordinator>();
         services.AddSingleton<ThumbnailCoordinator>();
         services.AddSingleton<CameraMotionCoordinator>();   // hold tracking (R2 → E): camera motion of clips with holds

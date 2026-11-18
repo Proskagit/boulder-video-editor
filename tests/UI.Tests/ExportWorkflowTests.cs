@@ -74,10 +74,14 @@ public sealed class ExportWorkflowTests : IDisposable
     private string Output(string name = "out.mp4") => Path.Combine(_root, name);
 
     /// <summary>A project that can be exported: one text clip (no media); saved (D060 §2 asks about unsaved changes).</summary>
-    private void ExportableProject(bool saved = true)
+    /// <param name="saved">The project has no unsaved changes.</param>
+    /// <param name="hasFolder">The project was saved once (it has a folder); D068 Р1: a project never saved is exported
+    /// without the «unsaved changes» question.</param>
+    private void ExportableProject(bool saved = true, bool hasFolder = true)
     {
         Assert.True(_edit.AddTrack(TrackType.Video).Success);
         Assert.True(_edit.AddTextClip(MediaTime.Zero).Success);
+        if (hasFolder) _projects.Current.ProjectFolderPath = Path.Combine(Path.GetTempPath(), "aive-export-project");
         if (saved) _projects.Current.IsDirty = false;
     }
 
@@ -766,6 +770,22 @@ public sealed class ExportWorkflowTests : IDisposable
         Assert.Equal(ExportOutcomeKind.NotStarted, outcome.Kind);
         Assert.Equal(1, Saves);
         Assert.Empty(_export.Jobs);
+    }
+
+    /// <summary>D068 Р1: a new project (never saved, no folder) is exported at once — the job is the export's own snapshot
+    /// (D060 §2), nothing needs the project's file; nothing is saved.</summary>
+    [Fact]
+    public async Task A_project_never_saved_is_exported_without_the_question_and_without_saving()
+    {
+        ExportableProject(saved: false, hasFolder: false);
+        _picker.SaveFiles.Enqueue(Output());
+        var outcome = await Workflow().RunAsync();
+
+        Assert.Equal(ExportOutcomeKind.Succeeded, outcome.Kind);
+        Assert.DoesNotContain(_dialogs.Asked, d => d.Title == "Unsaved changes");
+        Assert.Equal(0, Saves);
+        Assert.True(_projects.Current.IsDirty);
+        Assert.Single(_export.Jobs);
     }
 
     [Fact]

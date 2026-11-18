@@ -3764,4 +3764,23 @@
   <data name="InspectorRail_Audio" xml:space="preserve">
     <value>Звук</value>
   </data>
+  <data name="Export_FinishedIn" xml:space="preserve">
+    <value>Экспорт готов за {0}:
+{1}</value>
+  </data>
+  <data name="Export_ShowInFolder" xml:space="preserve">
+    <value>Показать в папке</value>
+  </data>
+  <data name="Duration_MinSec" xml:space="preserve">
+    <value>{0} мин {1} с</value>
+  </data>
+  <data name="Duration_Sec" xml:space="preserve">
+    <value>{0} с</value>
+  </data>
+  <data name="ExportDialog_More" xml:space="preserve">
+    <value>Подробные настройки</value>
+  </data>
+  <data name="ExportDialog_Summary" xml:space="preserve">
+    <value>Длительность {0}</value>
+  </data>
 </root>

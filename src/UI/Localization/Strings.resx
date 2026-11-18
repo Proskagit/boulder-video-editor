@@ -3760,4 +3760,23 @@ If you don't save, your changes will be lost.</value>
   <data name="InspectorRail_Audio" xml:space="preserve">
     <value>Sound</value>
   </data>
+  <data name="Export_FinishedIn" xml:space="preserve">
+    <value>Exported in {0}:
+{1}</value>
+  </data>
+  <data name="Export_ShowInFolder" xml:space="preserve">
+    <value>Show in folder</value>
+  </data>
+  <data name="Duration_MinSec" xml:space="preserve">
+    <value>{0} min {1} s</value>
+  </data>
+  <data name="Duration_Sec" xml:space="preserve">
+    <value>{0} s</value>
+  </data>
+  <data name="ExportDialog_More" xml:space="preserve">
+    <value>More settings</value>
+  </data>
+  <data name="ExportDialog_Summary" xml:space="preserve">
+    <value>Duration {0}</value>
+  </data>
 </root>

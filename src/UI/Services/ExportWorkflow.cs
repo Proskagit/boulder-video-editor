@@ -24,7 +24,8 @@ public enum ExportOutcomeKind
     Failed
 }
 
-public sealed record ExportOutcome(ExportOutcomeKind Kind, string Message, string? OutputPath = null, ExportFailure? Failure = null);
+public sealed record ExportOutcome(ExportOutcomeKind Kind, string Message, string? OutputPath = null, ExportFailure? Failure = null,
+    TimeSpan? Elapsed = null);
 
 /// <summary>
 /// The UI side of an export (Phase 8 Step 7, D023), in the style of <see cref="ProjectFileWorkflow"/>:
@@ -301,13 +302,14 @@ public sealed class ExportWorkflow
         }) { SnapshotText = snapshotText };
         Progress = progress;
         _progressDialog.Show(progress);
+        var clock = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             await _export.ExportAsync(job, progress, cts.Token);
             var message = progress.Fallback is { } fallback
                 ? string.Format(Strings.Export_SucceededFallback, job.OutputPath, fallback)
                 : string.Format(Strings.Export_Succeeded, job.OutputPath);
-            return new ExportOutcome(ExportOutcomeKind.Succeeded, message, job.OutputPath);
+            return new ExportOutcome(ExportOutcomeKind.Succeeded, message, job.OutputPath, Elapsed: clock.Elapsed);
         }
         catch (OperationCanceledException)
         {
@@ -334,10 +336,12 @@ public sealed class ExportWorkflow
         }
     }
 
-    /// <summary>D060 §2: a project with unsaved changes — «Сохранить и экспортировать» saves it (a project never saved goes
-    /// through Save As), «Отмена» stops; true when there is nothing unsaved now. Edited again while saving: asked again.</summary>
+    /// <summary>D060 §2: a project with unsaved changes — «Сохранить и экспортировать» saves it, «Отмена» stops; true when there
+    /// is nothing unsaved now. Edited again while saving: asked again. D068 Р1: a project never saved (no folder) is exported
+    /// without the question — the job is the export's own snapshot (D060 §2), so nothing needs the project's file.</summary>
     private async Task<bool> SaveUnsavedChangesAsync(Core.Entities.Project project)
     {
+        if (project.ProjectFolderPath is null) return true;
         while (_projects.Current is { IsDirty: true } current && ReferenceEquals(current, project))
         {
             var choice = await _dialogs.AskAsync(new DialogRequest
@@ -432,11 +436,31 @@ public sealed class ExportWorkflow
         return new SaveFilePickerRequest
         {
             Title = Strings.Export_PickerTitle,
-            StartFolder = folder ?? project.ProjectFolderPath,
+            // D068 Р1: a project never saved exports to the user's Videos.
+            StartFolder = folder ?? project.ProjectFolderPath ?? VideosFolder(),
             SuggestedFileName = name,
             DefaultExtension = ExportFormat.FileExtension.TrimStart('.'),
             FileTypeFilters = new[] { new FilePickerFileTypeFilter { Name = Strings.Export_Mp4Filter, Patterns = new[] { "*" + ExportFormat.FileExtension } } }
         };
+    }
+
+    /// <summary>D068 item 13: shows a file in its folder (the app sets <see cref="FileReveal.Select"/>; null: the button does
+    /// nothing, as in the tests).</summary>
+    public Action<string>? RevealFile { get; set; }
+
+    /// <summary>«1 мин 12 с» / «45 с».</summary>
+    public static string Duration(TimeSpan took)
+    {
+        var seconds = (long)Math.Round(took.TotalSeconds);
+        return seconds >= 60
+            ? string.Format(Strings.Duration_MinSec, seconds / 60, seconds % 60)
+            : string.Format(Strings.Duration_Sec, Math.Max(seconds, 1));
+    }
+
+    private static string? VideosFolder()
+    {
+        var videos = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
+        return Directory.Exists(videos) ? videos : null;
     }
 
     private async Task<ExportOutcome> PreflightFailedAsync(IReadOnlyList<ExportIssue> errors, IReadOnlyList<ExportIssue> warnings)
@@ -482,7 +506,15 @@ public sealed class ExportWorkflow
         switch (outcome.Kind)
         {
             case ExportOutcomeKind.Succeeded:
-                await _dialogs.AskAsync(new DialogRequest { Title = Strings.Export_FinishedTitle, Message = string.Format(Strings.Export_Finished, outcome.OutputPath), Buttons = new[] { Strings.Common_OK } });
+                // D068 item 13: how long it took, and the file shown in its folder on request.
+                var finished = outcome.Elapsed is { } took
+                    ? string.Format(Strings.Export_FinishedIn, Duration(took), outcome.OutputPath)
+                    : string.Format(Strings.Export_Finished, outcome.OutputPath);
+                var shown = await _dialogs.AskAsync(new DialogRequest
+                {
+                    Title = Strings.Export_FinishedTitle, Message = finished, Buttons = new[] { Strings.Export_ShowInFolder, Strings.Common_OK }
+                });
+                if (shown == 0 && outcome.OutputPath is { } path) RevealFile?.Invoke(path);
                 break;
             case ExportOutcomeKind.Failed:
                 await _dialogs.AskAsync(new DialogRequest { Title = Strings.Export_FailedTitle, Message = outcome.Message, Buttons = new[] { Strings.Common_OK } });

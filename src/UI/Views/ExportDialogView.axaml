@@ -38,15 +38,16 @@
       <Button x:Name="ExportButton" Classes="accent" Content="{x:Static l:Strings.ExportDialog_Export}" Command="{Binding ExportCommand}" IsDefault="True"/>
       <Button Content="{x:Static l:Strings.Common_Cancel}" Command="{Binding CancelCommand}" IsCancel="True"/>
     </StackPanel>
-    <DockPanel>
-      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
-        <TextBlock Text="{x:Static l:Strings.ExportDialog_Timestamps}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-        <Button Grid.Column="1" x:Name="CopyButton" Content="{x:Static l:Strings.YouTube_Copy}" Command="{Binding CopyCommand}"
-                Padding="8,2" FontSize="{DynamicResource FontSizeCaption}"/>
-      </Grid>
-      <TextBox x:Name="TimestampsBox" Text="{Binding Timestamps, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
-               FontFamily="Consolas, Cascadia Mono, monospace" FontSize="{DynamicResource FontSizeCaption}" MinHeight="90"
-               ToolTip.Tip="{x:Static l:Strings.YouTube_Hint}"/>
-    </DockPanel>
+    <!-- D068 item 13: the YouTube timestamps stay one click away, folded. -->
+    <Expander x:Name="TimestampsExpander" Header="{x:Static l:Strings.ExportDialog_Timestamps}" IsExpanded="False"
+              HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Top">
+      <DockPanel>
+        <Button DockPanel.Dock="Top" HorizontalAlignment="Right" x:Name="CopyButton" Content="{x:Static l:Strings.YouTube_Copy}" Command="{Binding CopyCommand}"
+                Padding="8,2" FontSize="{DynamicResource FontSizeCaption}" Margin="0,0,0,4"/>
+        <TextBox x:Name="TimestampsBox" Text="{Binding Timestamps, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                 FontFamily="Consolas, Cascadia Mono, monospace" FontSize="{DynamicResource FontSizeCaption}" MinHeight="90"
+                 ToolTip.Tip="{x:Static l:Strings.YouTube_Hint}"/>
+      </DockPanel>
+    </Expander>
   </DockPanel>
 </UserControl>
