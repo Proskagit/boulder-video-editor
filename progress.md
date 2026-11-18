@@ -27,6 +27,16 @@ Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check` clea
 `--blame-hang`: Core 1 959, Timeline 1 231, Project 757, UI 1 319, Rendering 264, Export 142, Video 418 (+1 skipped),
 ExportEndToEnd 189, Vision 25 — all green. Portable `artifacts/portable/BoulderVideoEditor-1.2.1-win-x64`. Not done: the owner's
 re-check (plan rows R1–R10).
+**Amendment 2 (D069 §11, the owner's check of 2026-11-19, commits `f9b8b96`, `9b97791`, `1f4d6ea` + the Esc follow-up):** Save As
+always asks over a project (its own folder too); plates of different clips never push each other (relocated to a free track above
+or a new one, one Undo step); video transitions need no source handles — the edge frame is held, all-or-nothing per edge, with a
+frame of margin (Preview and export alike); every video type up to 5 s; a zone's edge dragged on the timeline; one clip — the
+cut nearest the playhead; several clips — the rail and collapsible sections. Review: FAIL (the zone drag not cancelled by Esc /
+a lost capture) → fixed → PASS WITH NOTES (notes taken: the window's Esc path, plan row S4a, S4's wording). **Gates (2026-11-19,
+`1f4d6ea`):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check` clean; Debug + `AIVE_HEAVY_TESTS=1`:
+Core 1 959, Timeline 1 241, Project 757, UI 1 324, Rendering 264, Export 142, Video 418 (+1 skipped), ExportEndToEnd 189,
+Vision 25 — all green. Known: the resource `Transition_NotEnoughMediaType` is no longer used (kept). Not done: the owner's
+re-check (plan rows S1–S7, S4a); not checked on screen by me.
 
 **Phase 49 — UX 1.1 (D068, 2026-11-18) — on `feat/phase-49-ux`.** The owner's answers: icon variant C, the name everywhere
 including the per-user folder, CapCut re-reviewed in full, the help inside the application, the rebranding in 1.1. **Step 1 (name
