@@ -2,6 +2,12 @@
 
 ## Current phase
 
+**Phase 50 — the 1.1 remarks, the magnetic main track, colour correction, more transitions (D069, 2026-11-18) — on
+`feat/phase-50-capcut-features`.** Step 0: Phase 49's acceptance recorded (D068 §8, DEVELOPMENT_PLAN, ROADMAP). The owner's answers
+(D069 §0): our own Save As window; «Пульс» without heart rate not created + a message; snapping always on, «Привязка» becomes the
+main track's magnet (on in new projects), other tracks' clips move with their V1 clip; eight colour sliders + «Автоулучшение» by the
+clip's frames; eight new transitions. In progress.
+
 **Phase 49 — UX 1.1 (D068, 2026-11-18) — on `feat/phase-49-ux`.** The owner's answers: icon variant C, the name everywhere
 including the per-user folder, CapCut re-reviewed in full, the help inside the application, the rebranding in 1.1. **Step 1 (name
 and icon):** «Boulder Video Editor» in the title, `App:Name`, messages, docs; `BoulderVideoEditor.exe`, portable / models archive
@@ -28,7 +34,7 @@ nested project, the field's spinner waiting for being shown, the phase-41 script
 (+1 skipped), ExportEndToEnd 189 — green; Export 141 / 142 under the full load (the known flake
 `A_rasterizer_failure_while_the_writer_waits_never_deadlocks`), 142 / 142 three times alone. The first full run before the fixes:
 Project.Tests hung under the full load (749 / 749 four times alone and in the second full run), the WASAPI device test failed
-once (passes alone; real audio device). **Re-review: PASS WITH NOTES** (no blocking issue; its two small notes fixed). PR #77. Not done: the owner's manual check of steps 3–4.
+once (passes alone; real audio device). **Re-review: PASS WITH NOTES** (no blocking issue; its two small notes fixed). PR #77. **The owner's manual check passed — accepted by the product owner on 2026-11-18** (merged, PR #77); its remarks → Phase 50 (D069 §1–§5).
 
 **Phase 48 — the owner's fixes before publishing 1.0 (D067, 2026-11-18) — on `feat/phase-48-release-fixes`.** Rubber-band
 selection in the Media Browser (from a blank place; Ctrl adds), the export's suggested name `yyyyMMdd_HHmm.mp4` (the last export's

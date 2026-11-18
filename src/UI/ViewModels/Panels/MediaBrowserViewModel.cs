@@ -256,14 +256,16 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
         if (ContextItem is { } item) RevealRequested?.Invoke(this, item.Asset.FilePath);
     }
 
-    /// <summary>The menu's «Удалить из проекта»: the file the menu was opened on (alone), by the rules of Remove.</summary>
+    /// <summary>The menu's «Удалить из проекта», by the rules of Remove: every selected file when the menu was opened on one of
+    /// them (D069 §1), else the file the menu was opened on alone.</summary>
     private bool CanRemoveContextItem() => ContextItem is not null && CanEdit() && _edit is not null && _relink is not { IsRunning: true };
 
     [RelayCommand(CanExecute = nameof(CanRemoveContextItem))]
     private Task RemoveContextItem()
     {
         if (ContextItem is not { } item) return Task.CompletedTask;
-        FocusOn(item);
+        if (SelectedItems.Contains(item)) SelectedItem = item;   // D069 §1: the group stays — Remove takes all of it
+        else FocusOn(item);
         return RemoveCommand.ExecuteAsync(null);
     }
 

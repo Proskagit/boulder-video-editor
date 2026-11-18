@@ -168,19 +168,24 @@ public sealed class Phase49ScenarioTests : IDisposable
         Assert.Equal(2, _projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips).Count());
     }
 
-    /// <summary>D068 amendment 1: «Пульс» is offered only with a training; added where there is no heart rate, it says so.</summary>
+    /// <summary>D068 amendment 1: «Пульс» is offered only with a training. D069 §5: where there is no heart rate it is not
+    /// created, and a window with «ОК» says why.</summary>
     [Fact]
-    public void The_heart_rate_template_needs_a_training_and_warns_where_there_is_no_heart_rate()
+    public async Task The_heart_rate_template_is_not_created_where_there_is_no_heart_rate_and_a_window_says_why()
     {
         var status = new StatusService();
-        var timeline = new TimelineViewModel(_projects, _edit, status, NullLogger<TimelineViewModel>.Instance);
+        var dialogs = new ScriptedDialogs(0);
+        var timeline = new TimelineViewModel(_projects, _edit, status, NullLogger<TimelineViewModel>.Instance, dialogs: dialogs);
         Assert.False(timeline.HasTraining);
         Assert.False(timeline.HasHeartRateAt(MediaTime.Zero));
 
-        timeline.AddTemplateCommand.Execute("HeartRate");
+        await timeline.AddTemplateCommand.ExecuteAsync("HeartRate");
 
-        Assert.True(status.IsWarning);
-        Assert.Equal(Strings.Template_NoHeartRateHere, status.Message);
+        var asked = Assert.Single(dialogs.Asked);
+        Assert.Equal(Strings.Template_NoHeartRateHere, asked.Message);
+        Assert.Equal(new[] { Strings.Common_OK }, asked.Buttons);
+        Assert.Empty(_projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<TemplateClip>());
+        Assert.False(_undo.CanUndo);
     }
 
     /// <summary>D068 item 18: «сбросить» of «Трансформация и кадрирование» and «Звук» — the defaults back, one undo step.</summary>

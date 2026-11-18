@@ -4,7 +4,9 @@ using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Project;
 using AiVideoEditor.Project.Persistence;
 using AiVideoEditor.Timeline;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Services;
+using AiVideoEditor.UI.ViewModels;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -601,5 +603,110 @@ public sealed class ProjectCommandsTests : IDisposable
         Assert.True(File.Exists(Path.Combine(v1, "project.json")));
         Assert.True(File.Exists(Path.Combine(v2, "project.json")));
         Assert.Equal(("Climb v2", v2), (_projects.Current.Name, _projects.Current.ProjectFolderPath));
+    }
+
+    // --- D069 §3: our own Save As window ----------------------------------------------------------------------------
+
+    /// <summary>Answers each shown window with the next (name, folder), or cancels it (null); records what it was offered.</summary>
+    private sealed class ScriptedSaveAs(params (string Name, string Folder)?[] answers) : IProjectSaveAsDialog
+    {
+        private readonly Queue<(string Name, string Folder)?> _answers = new(answers);
+        public List<(string Name, string Folder)> Offered { get; } = new();
+
+        public Task ShowAsync(SaveAsViewModel saveAs)
+        {
+            Offered.Add((saveAs.Name, saveAs.Folder));
+            if (_answers.Count > 0 && _answers.Dequeue() is { } answer)
+            {
+                (saveAs.Name, saveAs.Folder) = answer;
+                saveAs.SaveCommand.Execute(null);
+            }
+            else saveAs.CancelCommand.Execute(null);
+            return Task.CompletedTask;
+        }
+    }
+
+    private (ProjectFileWorkflow Workflow, ScriptedDialogs Dialogs) CreateWithWindow(ScriptedSaveAs window, params int?[] answers)
+    {
+        var dialogs = new ScriptedDialogs(answers);
+        var coordinator = new MediaAnalysisCoordinator(new NoAnalysis(), _projects, NullLogger<MediaAnalysisCoordinator>.Instance);
+        return (new ProjectFileWorkflow(_projects, coordinator, _autosave, dialogs, new ScriptedPicker(), _status,
+            NullLogger<ProjectFileWorkflow>.Instance, saveAsDialog: window), dialogs);
+    }
+
+    [Fact]
+    public async Task Save_as_window_saves_into_a_folder_of_the_typed_name()
+    {
+        Edit();
+        var window = new ScriptedSaveAs(("Climb", _root));
+        var (workflow, dialogs) = CreateWithWindow(window);
+
+        Assert.True(await workflow.SaveAsAsync());
+
+        Assert.Empty(dialogs.Asked);
+        Assert.Equal(Folder("Climb"), _projects.Current.ProjectFolderPath);
+        Assert.True(File.Exists(Path.Combine(Folder("Climb"), "project.json")));
+    }
+
+    [Fact]
+    public async Task Save_as_window_over_an_existing_project_asks_to_replace_at_once()
+    {
+        var other = WriteOtherProject("Other");
+        Edit();
+        var (workflow, dialogs) = CreateWithWindow(new ScriptedSaveAs(("Other", _root)), Replace);
+
+        Assert.True(await workflow.SaveAsAsync());
+
+        Assert.Equal("Replace project?", Assert.Single(dialogs.Asked).Title);
+        Assert.Equal(_projects.Current.Id, SavedFile(other).Id);
+    }
+
+    [Fact]
+    public async Task Save_as_window_comes_back_with_the_typed_name_when_replacing_is_declined()
+    {
+        var other = WriteOtherProject("Other");
+        var otherFile = File.ReadAllText(ProjectFileStore.ProjectFilePath(other));
+        Edit();
+        var window = new ScriptedSaveAs(("Other", _root), null);   // «no» to replacing, then the window is cancelled
+        var (workflow, dialogs) = CreateWithWindow(window, 1);
+
+        Assert.False(await workflow.SaveAsAsync());
+
+        Assert.Single(dialogs.Asked);
+        Assert.Equal(2, window.Offered.Count);
+        Assert.Equal(("Other", _root), window.Offered[1]);
+        Assert.Equal(otherFile, File.ReadAllText(ProjectFileStore.ProjectFilePath(other)));
+        Assert.True(_projects.Current.IsDirty);
+    }
+
+    [Fact]
+    public async Task Save_as_window_cancelled_changes_nothing()
+    {
+        Edit();
+        var (workflow, dialogs) = CreateWithWindow(new ScriptedSaveAs());
+
+        Assert.False(await workflow.SaveAsAsync());
+
+        Assert.Empty(dialogs.Asked);
+        Assert.Null(_projects.Current.ProjectFolderPath);
+        Assert.True(_projects.Current.IsDirty);
+    }
+
+    [Fact]
+    public void Save_as_window_refuses_an_empty_or_invalid_name_and_a_file_of_that_name()
+    {
+        File.WriteAllText(Folder("taken"), "x");
+        Assert.Equal(Strings.SaveAs_NameEmpty, SaveAsViewModel.ReasonAgainst("  ", _root));
+        Assert.Equal(Strings.SaveAs_NameInvalid, SaveAsViewModel.ReasonAgainst("a:b", _root));
+        Assert.Equal(Strings.SaveAs_NameInvalid, SaveAsViewModel.ReasonAgainst("name.", _root));
+        Assert.Equal(Strings.SaveAs_NoFolder, SaveAsViewModel.ReasonAgainst("ok", ""));
+        Assert.Equal(string.Format(Strings.Project_SaveAsFileExists, "taken"), SaveAsViewModel.ReasonAgainst("taken", _root));
+        Assert.Null(SaveAsViewModel.ReasonAgainst(" Climb v2 ", _root));
+
+        var vm = new SaveAsViewModel("", _root, null);
+        Assert.False(vm.SaveCommand.CanExecute(null));
+        vm.Name = "Climb";
+        Assert.True(vm.SaveCommand.CanExecute(null));
+        Assert.Equal(Folder("Climb"), vm.TargetFolder);
     }
 }

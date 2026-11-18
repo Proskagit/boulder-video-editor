@@ -680,13 +680,17 @@
           </Grid>
         </ScrollViewer>
 
-        <!-- Empty timeline (D024 Step 9.8): how to add a clip. Not hit-testable, so drops reach the tracks. -->
-        <StackPanel Grid.Column="1" IsVisible="{Binding IsEmpty}" IsHitTestVisible="False" Spacing="4" Margin="16,0,16,28"
-                    HorizontalAlignment="Center" VerticalAlignment="Bottom">
-          <TextBlock Text="{x:Static l:Strings.Timeline_Empty}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{DynamicResource FontSizeBody}" HorizontalAlignment="Center"/>
-          <TextBlock Text="{x:Static l:Strings.Timeline_EmptyHint}"
-                     Foreground="{DynamicResource TextMutedBrush}" FontSize="{DynamicResource FontSizeCaption}" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
-        </StackPanel>
+        <!-- Empty timeline (D024 Step 9.8): how to add a clip. Not hit-testable, so drops reach the tracks. D069 §2: in the middle
+             of the free area below the ruler and the tracks (the first row is their height), never on a track's line. -->
+        <Grid x:Name="EmptyTimelineHint" Grid.Column="1" IsVisible="{Binding IsEmpty}" IsHitTestVisible="False" ClipToBounds="True"
+              RowDefinitions="Auto,*">
+          <Border Height="{Binding PlayheadHeight}"/>
+          <StackPanel Grid.Row="1" Spacing="4" Margin="16,4" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock Text="{x:Static l:Strings.Timeline_Empty}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{DynamicResource FontSizeBody}" HorizontalAlignment="Center"/>
+            <TextBlock Text="{x:Static l:Strings.Timeline_EmptyHint}"
+                       Foreground="{DynamicResource TextMutedBrush}" FontSize="{DynamicResource FontSizeCaption}" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
+          </StackPanel>
+        </Grid>
 
       </Grid>
 

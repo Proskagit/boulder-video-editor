@@ -84,6 +84,11 @@ public class CommitNumericUpDown : NumericUpDown
         _stacked = StackButtons(this);
     }
 
+    /// <summary>D069 §4: how much smaller a stacked button's arrow glyph is than Fluent's, and its width when Fluent sets
+    /// none.</summary>
+    internal const double ArrowGlyphShrink = 1.5;
+    internal const double ArrowGlyphWidth = 8;
+
     private static bool StackButtons(Visual field)
     {
         var buttons = field.GetVisualDescendants().OfType<RepeatButton>().ToList();
@@ -110,6 +115,14 @@ public class CommitNumericUpDown : NumericUpDown
             button.Height = half;
             button.Padding = new Thickness(0);
             button.VerticalAlignment = VerticalAlignment.Stretch;
+            // D069 §4: Fluent's arrow glyph is sized for its wide button — in the 16 px column it filled the button and
+            // stuck out of it; about 1.5 times smaller, it fits.
+            foreach (var glyph in button.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Shape>())
+            {
+                glyph.Width = double.IsNaN(glyph.Width) ? ArrowGlyphWidth : Math.Round(glyph.Width / ArrowGlyphShrink, 1);
+                glyph.Height = double.IsNaN(glyph.Height) ? ArrowGlyphWidth / 2 : Math.Round(glyph.Height / ArrowGlyphShrink, 1);
+                glyph.Stretch = Avalonia.Media.Stretch.Uniform;
+            }
         }
         return true;
     }

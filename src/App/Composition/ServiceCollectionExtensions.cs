@@ -176,6 +176,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<MediaRelinkWorkflow>();
         services.AddSingleton<ProjectFileWorkflow>();
         services.AddSingleton<IProjectSettingsDialog, AvaloniaProjectSettingsDialog>();
+        services.AddSingleton<IProjectSaveAsDialog, AvaloniaProjectSaveAsDialog>();
         services.AddSingleton<ProjectSettingsWorkflow>();
 
         // --- UI view models -------------------------------------------------------

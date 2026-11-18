@@ -1172,16 +1172,27 @@ public sealed partial class TimelineViewModel : ViewModelBase
     /// <summary>«Шаблон ▾» (D045 §5): a template of the kind named by <paramref name="kind"/> ("Rec", "Vhs", "Boulder",
     /// "Highlight", "HeartRate") at the playhead on the topmost video track, selected.</summary>
     [RelayCommand(CanExecute = nameof(CanEdit))]
-    private void AddTemplate(string kind)
+    private async Task AddTemplate(string kind)
     {
         if (!Enum.TryParse<TemplateKind>(kind, out var parsed)) return;
         var at = EditPlayhead;
+        // D069 §5: a heart rate plate where the training has no samples would show nothing — it is not created, and a window
+        // with «ОК» says why (the status bar's warning was not noticed).
+        if (parsed == TemplateKind.HeartRate && !HasHeartRateAt(at))
+        {
+            _status.ReportWarning(Strings.Template_NoHeartRateHere);
+            if (_dialogs is not null)
+                await _dialogs.AskAsync(new DialogRequest
+                {
+                    Title = Strings.Template_NoHeartRateTitle,
+                    Message = Strings.Template_NoHeartRateHere,
+                    Buttons = new[] { Strings.Common_OK }
+                });
+            return;
+        }
         var result = _edit.AddTemplateClip(parsed, at);
         SelectAdded(result);
         Report(result, successMessage: Strings.Template_Added);
-        // D068 amendment 1: a heart rate plate where the training has no samples shows nothing — said at once.
-        if (result.Success && parsed == TemplateKind.HeartRate && !HasHeartRateAt(at))
-            _status.ReportWarning(Strings.Template_NoHeartRateHere);
     }
 
     /// <summary>D068 amendment 1: «Пульс» is offered only with a usable training (it shows nothing without one).</summary>

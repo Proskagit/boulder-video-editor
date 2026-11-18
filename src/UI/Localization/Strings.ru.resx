@@ -3787,7 +3787,10 @@
     <value>Файлов удалено из проекта: {0} (клипов удалено: {1}).</value>
   </data>
   <data name="Template_NoHeartRateHere" xml:space="preserve">
-    <value>Плашка пульса добавлена, но в тренировке нет пульса для видео в этом месте: здесь плашка ничего не покажет.</value>
+    <value>В тренировке нет пульса для этого места видео — плашка «Пульс» не добавлена.</value>
+  </data>
+  <data name="Template_NoHeartRateTitle" xml:space="preserve">
+    <value>Нет пульса</value>
   </data>
   <data name="Preview_EmptyTitle" xml:space="preserve">
     <value>Таймлайн пуст</value>
@@ -3815,5 +3818,32 @@
   </data>
   <data name="Export_SnapshotNotSaved" xml:space="preserve">
     <value>не сохранён — экспортируется как есть</value>
+  </data>
+  <data name="SaveAs_Title" xml:space="preserve">
+    <value>Сохранить проект как</value>
+  </data>
+  <data name="SaveAs_Name" xml:space="preserve">
+    <value>Имя проекта</value>
+  </data>
+  <data name="SaveAs_Folder" xml:space="preserve">
+    <value>Папка</value>
+  </data>
+  <data name="SaveAs_Change" xml:space="preserve">
+    <value>Изменить…</value>
+  </data>
+  <data name="SaveAs_Target" xml:space="preserve">
+    <value>Проект будет сохранён в: {0}</value>
+  </data>
+  <data name="SaveAs_NameEmpty" xml:space="preserve">
+    <value>Введите имя проекта.</value>
+  </data>
+  <data name="SaveAs_NameInvalid" xml:space="preserve">
+    <value>В имени не может быть \ / : * ? " &lt; &gt; | и точки в конце.</value>
+  </data>
+  <data name="SaveAs_NoFolder" xml:space="preserve">
+    <value>Выберите папку.</value>
+  </data>
+  <data name="SaveAs_FolderPickerTitle" xml:space="preserve">
+    <value>Папка для проекта</value>
   </data>
 </root>
