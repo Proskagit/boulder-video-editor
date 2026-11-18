@@ -93,7 +93,8 @@ public sealed partial class LocalizationGuardTests
         "TemplateStatus_Top",  // D045 §1.3: the climbers' word for a done route, written so in Russian too
         "ExportEncoder_Nvenc", "ExportEncoder_X264",  // D059: the encoders' own names
         "ExportResolution_Uhd4K", "ExportResolution_FullHd", "ExportResolution_Hd", "ExportResolution_Sd",  // D060: the standards' names
-        "AppSettings_Coros", "AppSettings_Garmin"   // D062 amendment 1: the watch makers' brand names
+        "AppSettings_Coros", "AppSettings_Garmin",   // D062 amendment 1: the watch makers' brand names
+        "InspectorRail_Fit"   // D068 item 8: the file format's name, as the rest of the interface says «FIT»
     };
 
     [Fact]

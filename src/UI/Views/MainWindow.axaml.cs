@@ -70,7 +70,7 @@ public partial class MainWindow : Window
         var state = _layout.Current;
         PanelsGrid.ColumnDefinitions[0].Width = new GridLength(WindowLayout.SidePanel(state.MediaBrowserWidth, 260));
         // Phase 45 amendment 1: the Inspector at least 340 px (its labels and fields fit; a narrower saved width is widened).
-        PanelsGrid.ColumnDefinitions[4].Width = new GridLength(Math.Max(WindowLayout.InspectorMin, WindowLayout.SidePanel(state.InspectorWidth, 360)));
+        PanelsGrid.ColumnDefinitions[4].Width = new GridLength(Math.Max(WindowLayout.InspectorMin, WindowLayout.SidePanel(state.InspectorWidth, 420)));
         PanelsGrid.ColumnDefinitions[4].MinWidth = WindowLayout.InspectorMin;   // the splitter never makes it narrower
         RootGrid.RowDefinitions[3].Height = new GridLength(WindowLayout.Timeline(state.TimelineHeight, 240));
         if (state.Window is not { } placement) return;

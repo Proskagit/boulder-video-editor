@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:common="using:AiVideoEditor.UI.Common"
              xmlns:controls="using:AiVideoEditor.UI.Controls"
+             xmlns:panels="using:AiVideoEditor.UI.ViewModels.Panels"
              x:Class="AiVideoEditor.UI.Views.Panels.InspectorView">
 
   <!-- The owner's acceptance of 2026-11-10: compact sections — a low header (Fluent's Expander is 48 px high) and little
@@ -73,6 +74,17 @@
       <Setter Property="TickFrequency" Value="1"/>
       <Setter Property="IsSnapToTickEnabled" Value="True"/>
     </Style>
+    <Style Selector="ToggleButton.rail">
+      <Setter Property="Width" Value="58"/>
+      <Setter Property="Height" Value="54"/>
+      <Setter Property="Margin" Value="3,2"/>
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="HorizontalContentAlignment" Value="Center"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+    </Style>
   </UserControl.Styles>
 
   <Border Background="{DynamicResource Surface1Brush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1,0,0,0">
@@ -80,6 +92,31 @@
 
       <Border DockPanel.Dock="Top" Padding="8" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,0,1">
         <TextBlock Text="{x:Static l:Strings.Inspector_Heading}" FontSize="{DynamicResource FontSizeCaption}" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"/>
+      </Border>
+
+      <!-- D068 item 8: the rail of a single clip's groups (as Insta360 Studio's): one group shown at a time. -->
+      <Border x:Name="InspectorRail" DockPanel.Dock="Right" Width="64" Background="{DynamicResource Surface0Brush}"
+              BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1,0,0,0">
+        <Border.IsVisible>
+          <MultiBinding Converter="{x:Static BoolConverters.And}">
+            <Binding Path="IsSingleClipSelected"/>
+            <Binding Path="!IsHoldsOnly"/>
+          </MultiBinding>
+        </Border.IsVisible>
+        <ItemsControl ItemsSource="{Binding Categories}" Margin="0,6">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="panels:InspectorCategoryItem">
+              <ToggleButton Classes="rail" IsVisible="{Binding IsAvailable}" IsChecked="{Binding IsSelected, Mode=OneWay}"
+                            Command="{Binding Select}" CommandParameter="{Binding Category}" ToolTip.Tip="{Binding Title}"
+                            AutomationProperties.Name="{Binding Title}">
+                <StackPanel Spacing="3" HorizontalAlignment="Center">
+                  <controls:IconPath Glyph="{Binding Glyph}" Width="18" Height="18" HorizontalAlignment="Center"/>
+                  <TextBlock Text="{Binding Title}" FontSize="11" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+              </ToggleButton>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
       </Border>
 
       <ScrollViewer x:Name="InspectorScroll">
@@ -285,6 +322,7 @@
             <StackPanel Spacing="16" IsVisible="{Binding !IsHoldsOnly}">
             <!-- Template (Phase 29, D045 §6): only the template's own fields. A typed field applies live and merges with the
                  next change of the same field; a status or a colour is one click, one undo step. -->
+            <Panel IsVisible="{Binding ShowsTextCategory}">   <!-- D068 item 8: the rail's group -->
             <controls:InspectorSection SectionId="template" CollapsedByDefault="False" Title="{x:Static l:Strings.Inspector_TemplateHeading}" IsVisible="{Binding HasTemplate}">
               <StackPanel x:Name="TemplateSection" Spacing="6">
                 <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowsTemplateDate}">
@@ -410,8 +448,10 @@
                 </StackPanel>
               </StackPanel>
             </controls:InspectorSection>
+            </Panel>
             <!-- Text (Phase 7 Step 8): text clips only. Every field applies live; consecutive changes of one
                  field merge into one undo step. The color applies once it is a complete #RRGGBB. -->
+            <Panel IsVisible="{Binding ShowsTextCategory}">   <!-- D068 item 8: the rail's group -->
             <controls:InspectorSection SectionId="text" Title="{x:Static l:Strings.Inspector_TextHeading}" IsVisible="{Binding HasTextProperties}">
               <StackPanel Spacing="6">
                 <TextBox Text="{Binding TextContent, Mode=TwoWay}" AcceptsReturn="True" TextWrapping="Wrap"
@@ -526,9 +566,11 @@
                 </StackPanel>
               </StackPanel>
             </controls:InspectorSection>
+            </Panel>
 
             <!-- Phase 27 (D043 §1, Q1–Q2): a text's appearance and disappearance — the kind and its duration, which is the
                  clip's fade (stored in whole frames, D025); a kind or a direction is one undo step, a duration merges. -->
+            <Panel IsVisible="{Binding ShowsTextCategory}">   <!-- D068 item 8: the rail's group -->
             <controls:InspectorSection SectionId="text.animation" Title="{x:Static l:Strings.Inspector_AnimationHeading}" IsVisible="{Binding HasTextProperties}">
               <StackPanel x:Name="TextAnimationSection" Spacing="6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
@@ -575,11 +617,13 @@
                            Foreground="{DynamicResource WarningTextBrush}" FontSize="{DynamicResource FontSizeCaption}" Margin="144,0,0,0" TextWrapping="Wrap"/>
               </StackPanel>
             </controls:InspectorSection>
+            </Panel>
 
             <!-- Transform and opacity (Phase 7): video, image and text clips. Every change is one edit;
                  consecutive changes of one field merge into one undo step. -->
 
             <!-- Crop (Phase 7): pictures only, fractions of the source per edge. -->
+            <Panel IsVisible="{Binding ShowsClipCategory}">   <!-- D068 item 8: the rail's group -->
             <controls:InspectorSection SectionId="frame" Title="{x:Static l:Strings.Inspector_FrameHeading}">
               <controls:InspectorSection.IsVisible>
                 <Binding Path="HasVisualProperties"/>
@@ -714,14 +758,19 @@
               </StackPanel>
               </StackPanel>
             </controls:InspectorSection>
+            </Panel>
 
             <!-- D061: Follow (the frame follows the chosen climber at the clip's scale) and the outlines hidden behind people
                  (Occlusion): one undo step per change; the analysis runs in the background with its progress, cancel and retry. -->
+            <Panel IsVisible="{Binding ShowsPeopleCategory}">   <!-- D068 item 8: the rail's group -->
             <controls:InspectorSection SectionId="people" Title="{x:Static l:Strings.Inspector_PeopleHeading}">
               <controls:InspectorSection.IsVisible>
                 <Binding Path="HasPeopleSection"/>
               </controls:InspectorSection.IsVisible>
               <StackPanel x:Name="PeoplePanel" Spacing="6">
+                <!-- D068 item 8: the switch first, «следить отсюда» after it. -->
+                <CheckBox x:Name="FollowToggle" Content="{x:Static l:Strings.Inspector_Follow}" IsChecked="{Binding FollowEnabled, Mode=TwoWay}"
+                          IsEnabled="{Binding IsEditingAllowed}" ToolTip.Tip="{x:Static l:Strings.Inspector_FollowTip}"/>
                 <!-- D061 amendment 1: Follow from the playhead while the timeline plays, ended where the user stops it. -->
                 <Button x:Name="FollowFromHereButton" Content="{x:Static l:Strings.Inspector_FollowFromHere}" Command="{Binding FollowFromHereCommand}"
                         IsVisible="{Binding !IsRecordingFollow}" IsEnabled="{Binding IsEditingAllowed}" FontSize="{DynamicResource FontSizeCaption}"
@@ -729,8 +778,6 @@
                 <Button x:Name="StopFollowHereButton" Content="{x:Static l:Strings.Inspector_StopFollowHere}" Command="{Binding StopFollowHereCommand}"
                         IsVisible="{Binding IsRecordingFollow}" FontSize="{DynamicResource FontSizeCaption}" Classes="accent"
                         ToolTip.Tip="{x:Static l:Strings.Inspector_StopFollowHereTip}"/>
-                <CheckBox x:Name="FollowToggle" Content="{x:Static l:Strings.Inspector_Follow}" IsChecked="{Binding FollowEnabled, Mode=TwoWay}"
-                          IsEnabled="{Binding IsEditingAllowed}" ToolTip.Tip="{x:Static l:Strings.Inspector_FollowTip}"/>
                 <StackPanel Spacing="6" IsVisible="{Binding FollowEnabled}">
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Inspector_FollowSmoothness}" Classes="label"/>
@@ -789,11 +836,20 @@
                         IsVisible="{Binding CanRetryPeopleAnalysis}" FontSize="{DynamicResource FontSizeCaption}"/>
               </StackPanel>
             </controls:InspectorSection>
+            </Panel>
 
             </StackPanel>
 
             <!-- Holds (Phase 19, D034): video clips only. The AI markup of the route on this clip and the outline's
                  style; every change is one undo step (consecutive changes of one field merge). -->
+            <!-- D068 item 8: the rail's «Зацепки»; a selected orange shows it alone (D062 amendment 1). -->
+            <Panel>
+              <Panel.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                  <Binding Path="ShowsHoldsCategory"/>
+                  <Binding Path="IsHoldsOnly"/>
+                </MultiBinding>
+              </Panel.IsVisible>
             <controls:InspectorSection x:Name="HoldsSection" SectionId="holds" Title="{x:Static l:Strings.Inspector_HoldsHeading}" Summary="{Binding HoldMarkup.HoldCount, FallbackValue={x:Null}}" IsVisible="{Binding HoldMarkup.HasClip, FallbackValue=False}">
               <StackPanel Spacing="6">
                 <StackPanel Spacing="6" DataContext="{Binding HoldMarkup}">
@@ -1006,6 +1062,7 @@
                 </StackPanel>
               </StackPanel>
             </controls:InspectorSection>
+            </Panel>
 
             <StackPanel Spacing="16" IsVisible="{Binding !IsHoldsOnly}">
 
@@ -1014,6 +1071,7 @@
 
             <!-- Speed (Phase 7 Step 9, D022): video and audio clips; 0.25×–4× in steps of 0.05×. The start and
                  the source range stay, the duration follows. Consecutive changes merge into one undo step. -->
+            <Panel IsVisible="{Binding ShowsClipCategory}">   <!-- D068 item 8: the rail's group -->
             <controls:InspectorSection SectionId="timing" Title="{x:Static l:Strings.Inspector_TimingHeading}" Summary="{Binding SpeedValue, StringFormat={}{0:0.##}×}">
               <controls:InspectorSection.IsVisible>
                 <MultiBinding Converter="{x:Static BoolConverters.Or}">
@@ -1066,11 +1124,13 @@
               </StackPanel>
               </StackPanel>
             </controls:InspectorSection>
+            </Panel>
 
             <!-- COROS training (Phase 35, D050 amendment B2 / B4 and its amendment of 2026-11-02): this video's recording
                  start Z, set by matching the playhead's frame to the end (default) or the start of a climb (one Undo step;
                  choosing the point changes nothing), and the read-only mapping at the playhead. The training's clock
                  correction is a setting of the toolbar's COROS menu, never here. -->
+            <Panel IsVisible="{Binding ShowsFitCategory}">   <!-- D068 item 8: the rail's group -->
             <controls:InspectorSection SectionId="training" Title="{x:Static l:Strings.Inspector_TrainingHeader}" IsVisible="{Binding ShowsTraining}">
               <StackPanel Spacing="6">
                 <!-- D068 item 14: no training yet — the import is offered here, where the training is shown. -->
@@ -1101,9 +1161,11 @@
                 <TextBlock Text="{Binding TrainingReadout}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{DynamicResource FontSizeCaption}" TextWrapping="Wrap"/>
               </StackPanel>
             </controls:InspectorSection>
+            </Panel>
 
             <!-- Phase 37 (D051 §8.2): the FIT marks of this clip's video and the link of its Duration animation; every
                  action one Undo step of the edit service. -->
+            <Panel IsVisible="{Binding ShowsFitCategory}">   <!-- D068 item 8: the rail's group -->
             <controls:InspectorSection SectionId="fit" CollapsedByDefault="True" Title="{x:Static l:Strings.Inspector_FitServiceHeader}">
               <controls:InspectorSection.IsVisible>
                 <MultiBinding Converter="{x:Static BoolConverters.Or}">
@@ -1133,8 +1195,10 @@
                 </StackPanel>
               </StackPanel>
             </controls:InspectorSection>
+            </Panel>
 
             <!-- Audio (Phase 7): volume and mute are independent; every change is one edit. -->
+            <Panel IsVisible="{Binding ShowsAudioCategory}">   <!-- D068 item 8: the rail's group -->
             <controls:InspectorSection SectionId="audio" Title="{x:Static l:Strings.Inspector_AudioHeading}" Summary="{Binding VolumePercent, StringFormat={}{0:0.##} %}" IsVisible="{Binding HasAudioProperties}">
               <StackPanel Spacing="6">
 
@@ -1196,7 +1260,9 @@
                           ToolTip.Tip="{x:Static l:Strings.Mixer_OriginalSoundTip}" Foreground="{DynamicResource TextPrimaryBrush}"/>
               </StackPanel>
             </controls:InspectorSection>
+            </Panel>
 
+            <Panel IsVisible="{Binding ShowsClipCategory}">   <!-- D068 item 8: the rail's group -->
             <controls:InspectorSection SectionId="clip" Title="{x:Static l:Strings.Inspector_ClipHeading}">
               <StackPanel Spacing="6">
 
@@ -1231,6 +1297,7 @@
                 </StackPanel>
               </StackPanel>
             </controls:InspectorSection>
+            </Panel>
             </StackPanel>
           </StackPanel>
 

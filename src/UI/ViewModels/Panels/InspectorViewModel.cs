@@ -623,6 +623,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasTechnicalInfo));
         ShowTraining(clip is VideoClip ? selection.Asset : null);
         RefreshPeople();
+        RefreshCategories();    // D068 item 8
     }
 
     /// <summary>Shows a Media Browser item's real properties, including whatever

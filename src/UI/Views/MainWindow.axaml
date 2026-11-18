@@ -20,7 +20,7 @@
     <panels:ToolbarView Grid.Row="0" DataContext="{Binding Toolbar}"/>
 
     <!-- Media Browser | Preview | Inspector -->
-    <Grid x:Name="PanelsGrid" Grid.Row="1" ColumnDefinitions="260,4,*,4,360">
+    <Grid x:Name="PanelsGrid" Grid.Row="1" ColumnDefinitions="260,4,*,4,420">
       <panels:MediaBrowserView Grid.Column="0" DataContext="{Binding MediaBrowser}"/>
       <GridSplitter Grid.Column="1" Background="{DynamicResource DividerBrush}" ResizeDirection="Columns"/>
       <panels:PreviewView Grid.Column="2" DataContext="{Binding Preview}"/>

@@ -3746,4 +3746,22 @@
   <data name="StartScreen_NoRecent" xml:space="preserve">
     <value>Недавних проектов пока нет. Создайте новый или откройте папку проекта.</value>
   </data>
+  <data name="InspectorRail_Clip" xml:space="preserve">
+    <value>Клип</value>
+  </data>
+  <data name="InspectorRail_Text" xml:space="preserve">
+    <value>Текст</value>
+  </data>
+  <data name="InspectorRail_People" xml:space="preserve">
+    <value>Люди</value>
+  </data>
+  <data name="InspectorRail_Holds" xml:space="preserve">
+    <value>Зацепки</value>
+  </data>
+  <data name="InspectorRail_Fit" xml:space="preserve">
+    <value>FIT</value>
+  </data>
+  <data name="InspectorRail_Audio" xml:space="preserve">
+    <value>Звук</value>
+  </data>
 </root>

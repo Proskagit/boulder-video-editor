@@ -3742,4 +3742,22 @@ If you don't save, your changes will be lost.</value>
   <data name="StartScreen_NoRecent" xml:space="preserve">
     <value>No recent projects yet. Create one or open a project folder.</value>
   </data>
+  <data name="InspectorRail_Clip" xml:space="preserve">
+    <value>Clip</value>
+  </data>
+  <data name="InspectorRail_Text" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="InspectorRail_People" xml:space="preserve">
+    <value>People</value>
+  </data>
+  <data name="InspectorRail_Holds" xml:space="preserve">
+    <value>Holds</value>
+  </data>
+  <data name="InspectorRail_Fit" xml:space="preserve">
+    <value>FIT</value>
+  </data>
+  <data name="InspectorRail_Audio" xml:space="preserve">
+    <value>Sound</value>
+  </data>
 </root>
