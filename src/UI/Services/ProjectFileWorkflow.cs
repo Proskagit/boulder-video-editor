@@ -128,19 +128,27 @@ public sealed class ProjectFileWorkflow
         return true;
     }
 
-    /// <summary>Save As: picks (or creates) a folder, confirms replacing another project that is
-    /// already there, and saves. Cancelling or a failure changes nothing. Returns true only if
-    /// project.json was actually written.</summary>
+    /// <summary>Save As (D067 §6): a save dialog — the place and the project's name; the project is saved into a folder of
+    /// that name there (created when it does not exist), so versions of a project sit side by side as folders. Confirms
+    /// replacing another project already in that folder; a file of that name refuses. Cancelling or a failure changes
+    /// nothing. Returns true only if project.json was actually written.</summary>
     public async Task<bool> SaveAsAsync()
     {
         BeforeSave?.Invoke(this, EventArgs.Empty);
         var current = _projectService.Current;
-        var folder = await _picker.PickFolderAsync(new FolderPickerRequest
+        var picked = await _picker.PickSaveFileAsync(new SaveFilePickerRequest
         {
             Title = Strings.Project_SaveAsPickerTitle,
-            StartFolder = ParentOf(current.ProjectFolderPath)
+            StartFolder = ParentOf(current.ProjectFolderPath),
+            SuggestedFileName = current.Name
         });
-        if (folder is null) return false;
+        if (picked is null) return false;
+        var folder = Path.TrimEndingDirectorySeparator(picked.Trim());
+        if (File.Exists(folder))
+        {
+            _status.Report(string.Format(Strings.Project_SaveFailed, current.Name, string.Format(Strings.Project_SaveAsFileExists, Path.GetFileName(folder))));
+            return false;
+        }
 
         var isCurrentFolder = current.ProjectFolderPath is { } own &&
                               string.Equals(Path.GetFullPath(own), Path.GetFullPath(folder), StringComparison.OrdinalIgnoreCase);

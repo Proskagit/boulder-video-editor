@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <!-- D067 §7: the icon of AiVideoEditor.exe (Explorer, the taskbar). -->
+    <ApplicationIcon>..\UI\Assets\app.ico</ApplicationIcon>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

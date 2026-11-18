@@ -73,6 +73,13 @@ internal sealed class ScriptedPicker : IFilePickerService
     public Task<string?> PickSaveFileAsync(SaveFilePickerRequest request, CancellationToken ct = default)
     {
         SaveRequests.Add(request);
+        // D067 §6: Save As asks a place and a name (the project's folder) through the save dialog; the scripted folders
+        // answer it as they answered the folder picker before, unless a save-file answer is queued.
+        if (SaveFiles.Count == 0 && request.Title == AiVideoEditor.UI.Localization.Strings.Project_SaveAsPickerTitle)
+        {
+            Titles.Add(request.Title);
+            return Task.FromResult(_folders.Count > 0 ? _folders.Dequeue() : null);
+        }
         return Task.FromResult(SaveFiles.Count > 0 ? SaveFiles.Dequeue() : null);
     }
 }

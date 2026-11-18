@@ -1062,8 +1062,11 @@ The file on disk is not deleted. You can undo this with Undo.</value>
   <data name="Project_ReplaceTitle" xml:space="preserve">
     <value>Replace project?</value>
   </data>
+  <data name="Project_SaveAsFileExists" xml:space="preserve">
+    <value>A file named «{0}» is already there; type another name.</value>
+  </data>
   <data name="Project_SaveAsPickerTitle" xml:space="preserve">
-    <value>Save Project As — select or create a folder for the project</value>
+    <value>Save Project As — choose the place and type the project's name (a folder of that name is created)</value>
   </data>
   <data name="Project_Saved" xml:space="preserve">
     <value>Saved project "{0}".</value>

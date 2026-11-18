@@ -273,7 +273,11 @@ public sealed partial class ExportServiceTests
         var error = await Assert.ThrowsAsync<ExportException>(() => Service().ExportAsync(new ExportJob(Snapshot(), Destination), _progress));
 
         Assert.Equal(ExportFailure.DecodeFailed, error.Failure);
-        Assert.Equal(10, _encoder.Encoding!.FrameMarkers.Count);                             // frame 10 needs frame 11 to be certain
+        // Frame 10 needs frame 11 to be certain, so never more than frames 0..9 reach the encoder; how many of them it got
+        // before the failure stopped the pipeline depends on its timing (9 under a loaded run — S1 / D066 §4's rare failure).
+        var markers = _encoder.Encoding!.FrameMarkers;
+        Assert.InRange(markers.Count, 0, 10);
+        Assert.Equal(Enumerable.Range(1, markers.Count), markers);                            // in order, none skipped
         AssertAbandoned();
     }
 

@@ -343,8 +343,8 @@ public sealed class ExportWorkflowTests : IDisposable
         _projects.Current.LastExportSettings.OutputPath = Output("last.mp4");
         _exportDialog = new ScriptedExportDialog(async d =>
         {
-            Assert.Equal(_root, d.Folder);
-            Assert.Equal("last.mp4", d.FileName);
+            Assert.Equal(_root, d.Folder);                                         // D067 §4: the last export's folder
+            Assert.Matches(TimestampName, d.FileName);                             // and a new name by the time
             Assert.Equal("00:00 Intro\n00:03 Трасса 1", d.Timestamps);
             Assert.Contains("1920 × 1080", d.Info);
             Assert.False(d.IsRange);
@@ -367,7 +367,7 @@ public sealed class ExportWorkflowTests : IDisposable
         Assert.Equal(Output("final.mp4"), Assert.Single(_export.Jobs).OutputPath);
         var browse = Assert.Single(_picker.SaveRequests);                          // only through «Обзор…»
         Assert.Equal(_root, browse.StartFolder);
-        Assert.Equal("last.mp4", browse.SuggestedFileName);
+        Assert.Matches(TimestampName, browse.SuggestedFileName);
     }
 
     [Fact]
@@ -451,20 +451,25 @@ public sealed class ExportWorkflowTests : IDisposable
     }
 
     [Fact]
-    public async Task The_picker_asks_for_an_mp4_named_after_the_project_or_the_last_export()
+    public async Task The_picker_asks_for_an_mp4_named_by_the_date_and_time_in_the_last_exports_folder()
     {
+        // D067 §4: yyyyMMdd_HHmm.mp4 — never the project's name or the last file's (a second export would replace it).
+        Assert.Equal("20261118_1430.mp4", ExportWorkflow.SuggestedFileName(new DateTime(2026, 11, 18, 14, 30, 59)));
         ExportableProject();
         await Workflow().RunAsync();
         var first = _picker.SaveRequests[^1];
-        Assert.Equal(_projects.Current.Name + ".mp4", first.SuggestedFileName);
+        Assert.Matches(TimestampName, first.SuggestedFileName);
         Assert.Equal("mp4", first.DefaultExtension);
         Assert.Equal(new[] { "*.mp4" }, Assert.Single(first.FileTypeFilters).Patterns);
 
         _projects.Current.LastExportSettings.OutputPath = Output("last.mp4");
         await Workflow().RunAsync();
         var second = _picker.SaveRequests[^1];
-        Assert.Equal(("last.mp4", _root), (second.SuggestedFileName, second.StartFolder));
+        Assert.Matches(TimestampName, second.SuggestedFileName);
+        Assert.Equal(_root, second.StartFolder);
     }
+
+    private const string TimestampName = @"^\d{8}_\d{4}\.mp4$";
 
     [Fact]
     public async Task Another_extension_is_not_replaced_but_reported()

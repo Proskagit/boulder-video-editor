@@ -647,6 +647,11 @@ tracking task. Sketch: `docs/DEVELOPMENT_PLAN.md`, "Future ideas (not phases)".
 
 ## Follow-ups and backlog
 
+**Phase 48 (D067, 2026-11-18) — the owner's fixes before publishing 1.0** on `feat/phase-48-release-fixes`: rubber-band
+selection in the Media Browser, the export named `yyyyMMdd_HHmm.mp4`, Space always Play / Pause, Save As with a name (a folder
+of that name), the application's icon. Open: the pushed clip that stays shifted (D067 §2, not reproduced — the owner's steps).
+Backlog: noise reduction / voice enhancement by keyframes (D067 §3).
+
 **Development after the release (D065 §5, 2026-11-17):** the route from its first hold (a research folding Phases 31 / 32:
 the user marks one hold, the editor proposes the holds of its colour); Phase 36's Steps 36.3 (`PassId`, the «Итоги» template)
 and 36.4 (the heart rate in the summary); FU-EX.1; Motion Tracking Camera (R4); more transitions; the clips' thumbnails

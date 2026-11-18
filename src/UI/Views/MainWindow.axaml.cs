@@ -42,6 +42,14 @@ public partial class MainWindow : Window
         _layout = layout;
         DataContext = viewModel;
         InitializeComponent();
+        // D067 §5: Space is Play / Pause wherever the focus is — a list, a button, a slider that took the focus last never
+        // keeps it (tunnel: before the focused control opens its list or presses itself); only a text input types it.
+        AddHandler(KeyDownEvent, (_, e) =>
+        {
+            if (e.Key != Key.Space || e.KeyModifiers != KeyModifiers.None || DataContext is not MainWindowViewModel spaceVm) return;
+            if (ShortcutRouter.Handle(spaceVm, e.Key, e.KeyModifiers, e.Source, FocusManager?.GetFocusedElement()))
+                e.Handled = true;
+        }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         RestoreLayout();
         Opened += async (_, _) => await viewModel.OnWindowOpenedAsync();
         Activated += (_, _) => viewModel.OnWindowActivated();

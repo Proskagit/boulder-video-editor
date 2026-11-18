@@ -564,4 +564,24 @@ public sealed class ProjectCommandsTests : IDisposable
         Assert.True(await workflow.NewProjectAsync());
         Assert.Empty(dialogs.Asked);
     }
+
+    [Fact]
+    public async Task Save_as_creates_a_folder_named_by_the_typed_name_so_versions_sit_side_by_side()
+    {
+        // D067 §6: the save dialog's place and name — the project's folder is created with that name.
+        Edit();
+        var v1 = Folder("Climb v1");
+        var v2 = Folder("Climb v2");
+        var (workflow, _, picker) = Create(null, v1, v2);
+
+        Assert.True(await workflow.SaveAsAsync());
+        Assert.True(await workflow.SaveAsAsync());
+
+        Assert.All(picker.SaveRequests, r => Assert.Equal(AiVideoEditor.UI.Localization.Strings.Project_SaveAsPickerTitle, r.Title));
+        Assert.Equal("Untitled Project", picker.SaveRequests[0].SuggestedFileName);              // the current name offered
+        Assert.Equal("Climb v1", picker.SaveRequests[1].SuggestedFileName);
+        Assert.True(File.Exists(Path.Combine(v1, "project.json")));
+        Assert.True(File.Exists(Path.Combine(v2, "project.json")));
+        Assert.Equal(("Climb v2", v2), (_projects.Current.Name, _projects.Current.ProjectFolderPath));
+    }
 }

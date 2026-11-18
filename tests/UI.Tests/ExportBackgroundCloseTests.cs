@@ -263,6 +263,9 @@ public sealed class ExportBackgroundCloseTests : IAsyncLifetime
             try
             {
                 await _release.Task.WaitAsync(ct);
+                // A release racing a cancellation already requested (the test releases once it sees the request) is still a
+                // cancellation, as the real service's next check makes it.
+                ct.ThrowIfCancellationRequested();
             }
             catch (OperationCanceledException)
             {

@@ -428,7 +428,7 @@ public sealed class HoldMarkupProposalUiTests : IAsyncLifetime
 
         var start = Markup.StartCommand.ExecuteAsync(null);
         Assert.True(Markup.IsGeneratingProposals);
-        Assert.Equal(0.5, Markup.ProposalProgress);
+        await WaitForProgress(0.5);                                            // Progress<T> reports asynchronously
         Markup.EscapeCommand.Execute(null);                                    // Esc while it runs: cancel and leave
         _generator.Gate.SetResult();
         await start;
@@ -590,4 +590,15 @@ public sealed class HoldMarkupProposalUiTests : IAsyncLifetime
         }
     }
 
+    /// <summary>Waits until the generation's progress (reported through <see cref="Progress{T}"/>, asynchronously) reaches
+    /// <paramref name="value"/> — under a loaded run it arrives after the start returns.</summary>
+    private async Task WaitForProgress(double value)
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        while (Markup.ProposalProgress != value)
+        {
+            if (watch.Elapsed > TimeSpan.FromSeconds(10)) Assert.Equal(value, Markup.ProposalProgress);
+            await Task.Delay(1);
+        }
+    }
 }
