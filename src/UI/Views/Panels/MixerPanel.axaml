@@ -8,19 +8,19 @@
        original sound (the Preview only). The DataContext is the timeline's MixerViewModel. -->
   <UserControl.Styles>
     <Style Selector="TextBlock.label">
-      <Setter Property="FontSize" Value="11"/>
-      <Setter Property="Foreground" Value="#C0C0C0"/>
+      <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
       <Setter Property="VerticalAlignment" Value="Center"/>
       <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
     </Style>
     <Style Selector="TextBlock.value">
-      <Setter Property="FontSize" Value="11"/>
-      <Setter Property="Foreground" Value="#E0E0E0"/>
+      <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
       <Setter Property="VerticalAlignment" Value="Center"/>
       <Setter Property="HorizontalAlignment" Value="Right"/>
     </Style>
     <Style Selector="ToggleButton.state">
-      <Setter Property="FontSize" Value="10"/>
+      <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}"/>
       <Setter Property="Padding" Value="5,0"/>
       <Setter Property="MinHeight" Value="0"/>
       <Setter Property="Height" Value="20"/>
@@ -51,6 +51,6 @@
     <Rectangle Height="1" Fill="#3A3A3A"/>
     <CheckBox Content="{x:Static l:Strings.Mixer_OriginalSound}" IsChecked="{Binding OriginalSound, Mode=TwoWay}"
               ToolTip.Tip="{x:Static l:Strings.Mixer_OriginalSoundTip}"/>
-    <TextBlock FontSize="10" Foreground="#9A9A9A" TextWrapping="Wrap" Text="{x:Static l:Strings.Mixer_Note}"/>
+    <TextBlock FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Text="{x:Static l:Strings.Mixer_Note}"/>
   </StackPanel>
 </UserControl>

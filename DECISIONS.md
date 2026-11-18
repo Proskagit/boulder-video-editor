@@ -10961,3 +10961,119 @@ is closed with it (not seen again). The release `v1.0.0`'s assets are rebuilt fr
 ### Out of scope
 
 Keyframed clean-up (§3, backlog); the UX phase (1.1); the other windows' icons (dialogs keep the default).
+
+## D068 — Phase 49: UX 1.1 — the product's name and icon, the in-app help, the UX research and audit, a small design system *(set by the owner on 2026-11-18)*
+
+Date: 2026-11-18. **Status: the scope set by the product owner on 2026-11-18** (the first development phase after the MVP;
+the owner's answers: icon variant C, the name everywhere including the per-user folder, CapCut re-reviewed in full, the help
+inside the application, the rebranding inside 1.1). Branch `feat/phase-49-ux`. **No format change** (`project.json` v25).
+Manual plan: `docs/PHASE49_MANUAL_TEST_PLAN.md`. Built in steps; this decision grows with them.
+
+### 1. The name — Boulder Video Editor
+
+The product is **Boulder Video Editor** (it was «AI Video Editor»): the window's title («Имя[*] — Boulder Video Editor»),
+`App:Name`, the messages that name the product, the documents. The executable is `BoulderVideoEditor.exe`, the portable
+folder and archives `BoulderVideoEditor-<version>-win-x64(.zip)` and `BoulderVideoEditor-<version>-models.zip`. Not translated
+(the product's name, as D039's list said of the old one).
+
+**The per-user folder** is `%LOCALAPPDATA%\BoulderVideoEditor` (settings, recent projects, the start calibration, the models,
+recovery, logs, caches). At startup, before the logger writes anything, the old `%LOCALAPPDATA%\AiVideoEditor` is moved into
+it (`AppDataMigration`): renamed whole when the new folder is absent (the same disk — the models are not copied); merged entry
+by entry when it exists (1.1's models installed before the first start): a missing entry is moved, a folder in both is merged,
+a file in both stays in the old folder (the new one wins; nothing is overwritten or deleted). The old folder is removed only
+when it is empty. An entry that cannot be moved (a file held by a running 1.0) stays for the next start; startup never fails
+because of it; the result is logged. `Install-Models` installs into the new folder.
+
+**Kept as they are** (invisible to the user, changing them would break compatibility): the namespaces and assembly names
+`AiVideoEditor.*`, the file format identifiers (`"format": "AiVideoEditor.Project"`, `.Recovery`, `.RecentProjects`,
+`.FitCalibration`), the solution `AiVideoEditor.sln`, the environment variables `AIVE_*`, the repository's folder.
+
+### 2. The application's icon — variant C, «a pinch hold in its contour»
+
+A green pinch hold (a lit top face, a dark grip pocket, a bolt hole, a darker lower side) inside the white contour the
+editor draws around a marked hold, on the editor's dark rounded square. `tools/icon/make_icon.py` (Pillow; the sketch's Bézier
+paths) → `src/UI/Assets/app.ico` (16–256 px) and `app-256.png`; the exe's and the main window's icon (D067 §7 replaced).
+
+### 3. The in-app help
+
+A help window inside the application, offline, in the interface's language (Russian / English): «?» on the toolbar and F1
+open it. A table of contents on the left, a short text on the right — what each feature does and how to use it, without
+going into details: getting started, the media and the timeline, marking holds, FIT trainings and routes, people (Follow /
+Occlusion), text and templates, audio, export, the shortcuts, where the files live. Written last in the phase (after the
+interface changes), the window and its structure first.
+
+### 4. The UX research (update) and the audit
+
+`docs/UX_CAPCUT_RESEARCH.md` (2026-11-09, the input of Phase 38) is updated, not rewritten: CapCut re-reviewed in full (not
+only the Inspector and the timeline), plus DaVinci Resolve (the Cut page), Shotcut and GoPro Quik (automatic editing from
+data — the closest to our idea). The target workflow (`docs/TARGET_WORKFLOW.md`: import → holds → FIT and routes → template →
+export) walked step by step: where there are many clicks, where it is unclear, where there is no feedback. An audit by
+screenshots: spacing, fonts and colours; icons instead of text buttons; the panels' hierarchy; empty states and a start
+screen with the recent projects; progress and error messages; shortcuts.
+
+### 5. The result of §4
+
+A small design system (colours, typography, spacing, one icon set with its licence checked), a prioritised list of changes,
+and their implementation in steps with «before / after» screenshots. The steps and their scope are recorded here as amendments
+once the list is agreed with the owner (the timeline clips' thumbnails, D058 §7, are a candidate).
+
+### 6. The owner's choice of the list (2026-11-18)
+
+The list of `docs/UX_AUDIT_1.1.md` §4 accepted whole: items **1–18** (P1 1–4, P2 5–14, P3 15–18) and **Р1** — a new project is
+exported without being saved first, provided the background export (D060's snapshot, parallel rasterizers) keeps working.
+**Rejected:** Р2 (an overview strip above the timeline — Resolve is overloaded), Р3 (an automatic cut of the best climbs from FIT —
+the FIT marks are not precise enough), Р4 (a bar of workflow stages — we edit everything on one canvas, Resolve's pages are
+separate interfaces). Implemented in that order, each item a commit `Phase 49 / D068 item N`.
+
+**Item 1 — the theme.** `src/UI/Themes/BoulderTheme.axaml` (included by `App.axaml`): surfaces, dividers, text, the accent, the
+message colours, four type sizes; every window the same background; Fluent's own accent is the product's green. The views take
+the tokens with `DynamicResource` (a view built without the theme, as in the tests, keeps its defaults). Data colours (routes,
+outlines, clip kinds, selection on the timeline) stay where they are. The icons stay the project's own set (`Icons.cs`, drawn
+here, no licence) instead of Lucide — the same line style, no third-party notice.
+**Item 2 — the accent** only on the main action of a place (Export on the tool bar, Export in its window; later the start
+screen); a switched-on toggle is lit (dark fill, green text and border), not filled; the status bar is neutral.
+**Item 3 — icons.** Over the timeline: Text, Template, Keyframe, Mixer keep their labels; the other commands are icon buttons
+naming their command in the tooltip and to UI Automation; Close gap, Paste, Link / Unlink are in the clip's context menu (which
+also gains Duplicate and Ripple delete).
+**Item 4 — message kinds.** `StatusService` reports Info / Warning (refused or limited) / Error (failed); the bar shows the
+warning's and the error's icon and colour; the kind is set before the text.
+
+**Items 5–18 and Р1** (implemented 2026-11-18): the start screen (5), the first clips shown whole (6), imported files selected
+(7), the Inspector's rail (8, changed by amendment 1), the markup mode seen and a click while the model loads kept (9),
+filmstrips on the video clips (10, `FilmstripService` / `FilmstripCoordinator`, `.strip` cache files), the save state on the
+tool bar (11), the pickers' folders (12), a plainer export window with «готово за …» and «Показать в папке» (13; the cover
+frame not done), FIT import from the Inspector (14), template descriptions in the menu instead of rendered previews (15), the
+languages by name (16), the empty Preview's hint (17), the section reset of «Трансформация и кадрирование» and «Звук» (18);
+Р1: a project never saved is exported without the «unsaved changes» question (a saved one is still asked); the progress
+window's snapshot line (D060 §2) says «не сохранён — экспортируется как есть» for it.
+
+### 7. Amendment 1 — the owner's check of 2026-11-18
+
+Fixed in this phase:
+- **Media removal:** several selected files are removed together after one question, with their clips, one Undo step
+  (`RemoveMediaMany`); only one was removed.
+- **The canvas offer:** made on every add to an empty timeline whose first video has another shape than the canvas — also
+  after the timeline was cleared and with a canvas the user set. D041 §1's «once per session, at the default canvas» is replaced.
+- **Save As over a project:** Windows' save dialog opens a folder whose name is typed; inside a project's folder its own name
+  typed again (or its `project.json` picked) means that folder — replaced after the question.
+- **The Inspector:** one list again (item 8 changed): the sections of a clip in the rail's groups (Clip, Text / Template, People,
+  Holds, FIT, Sound); the rail on the left only scrolls to a group and lights the group at the top.
+- **Fields (as CapCut):** a slider sits between the label and its field on one line (14 rows); a field's arrows are one column at
+  its right edge; fields 84 px, 72 on a slider's line; the keyframes' three buttons on one line, its label centred.
+- **Polish:** icons keep their 16 px grid (the eye toggle was off-centre); flyouts and menus have a raised surface and an edge,
+  dialogs a step lighter than the main window (Windows' own file dialogs cannot be framed by the app); track headers 112 px and
+  the mix button an icon; the track mix panel's labels wider; the AI models' messages no longer call every model «модель
+  зацепок»; the start screen's line reworded; «Пульс» in the template menu only with a training, and a warning when it is added
+  where the training has no heart rate; the help: automatic route marking «в разработке», no word on an older version's folder.
+
+**Not in this phase — separate phases (the owner decides when):**
+1. **The magnetic main track** (as CapCut's): clips on the main track always close up to the left — a clip dropped in the middle
+   or after a gap moves to the previous clip's end, a removal closes the gap. It changes the editing rules (D037 §3) and meets
+   the time-bound parts (FIT climbs, hold animations, Follow parts): a phase of its own with its decision.
+2. **Colour correction** of a video clip (brightness, contrast, saturation, temperature …) and an automatic picture improvement.
+3. **More transitions** (the library has five: dissolve, dip to black, flash, zoom, push) — the popular ones of CapCut.
+4. **The export window's cover frame** (item 13's rest).
+
+### Out of scope
+
+New editing features; changing the file formats; the release 1.1's packaging (after the phase); Р2–Р4 (§6); §7's separate phases.

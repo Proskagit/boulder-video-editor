@@ -14,7 +14,7 @@ using Xunit.Abstractions;
 namespace AiVideoEditor.Vision.ModelTests;
 
 /// <summary>
-/// D064 §4–§5, local only (the real models in <c>%LOCALAPPDATA%\AiVideoEditor\models\audio-v1</c>, ffmpeg on PATH, the test
+/// D064 §4–§5, local only (the real models in <c>%LOCALAPPDATA%\BoulderVideoEditor\models\audio-v1</c>, ffmpeg on PATH, the test
 /// videos in <c>VideosForTest</c>): the pinned models load and verify; DeepFilterNet3 lowers the noise of a camera recording and
 /// keeps the length; Silero finds speech in it; and the benchmark of docs/PHASE45_AUDIO.md — a 30-minute recording through the
 /// noise reduction, the voice enhancement and the speech analysis, with the time and the process's peak memory.
@@ -22,7 +22,7 @@ namespace AiVideoEditor.Vision.ModelTests;
 public sealed class AudioModelBenchmarkTests(ITestOutputHelper output)
 {
     private static readonly string ModelDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "AiVideoEditor", "models", AudioModel.FolderName);
+        "BoulderVideoEditor", "models", AudioModel.FolderName);
 
     private static string? Video(string name)
     {

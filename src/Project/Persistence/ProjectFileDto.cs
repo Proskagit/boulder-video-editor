@@ -16,7 +16,7 @@ namespace AiVideoEditor.Project.Persistence;
 
 internal sealed class ProjectFileDto
 {
-    /// <summary>Identifies the file as an AI Video Editor project.</summary>
+    /// <summary>Identifies the file as a Boulder Video Editor project.</summary>
     public string? Format { get; set; }
     public int FormatVersion { get; set; }
 

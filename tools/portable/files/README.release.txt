@@ -12,17 +12,17 @@ FIT-файла часов, текст, переходы, шаблоны, зву�
 - Windows 10 или 11, 64-бит (x64).
 - Для быстрого экспорта через NVENC — видеокарта NVIDIA с драйвером 551.76 или новее (без неё экспорт идёт на
   процессоре, медленнее).
-- Для AI-функций — архив моделей AiVideoEditor-1.0.0-models.zip (около 1,2 ГБ на диске), см. ниже.
+- Для AI-функций — архив моделей BoulderVideoEditor-1.0.0-models.zip (около 1,2 ГБ на диске), см. ниже.
 
 Запуск
 ------
-Запустите AiVideoEditor.exe.
+Запустите BoulderVideoEditor.exe.
 
 AI-модели
 ---------
-Модели поставляются отдельным архивом AiVideoEditor-1.0.0-models.zip:
+Модели поставляются отдельным архивом BoulderVideoEditor-1.0.0-models.zip:
 1. Распакуйте его в любую папку.
-2. Запустите Install-Models.cmd — модели скопируются в %LOCALAPPDATA%\AiVideoEditor\models с проверкой
+2. Запустите Install-Models.cmd — модели скопируются в %LOCALAPPDATA%\BoulderVideoEditor\models с проверкой
    каждого файла.
 3. Перезапустите редактор.
 Без моделей редактор работает; недоступны только разметка зацепок, Follow / Occlusion и улучшение голоса /
@@ -36,13 +36,13 @@ FFmpeg
 
 Где редактор хранит данные
 --------------------------
-%LOCALAPPDATA%\AiVideoEditor\ — журналы (logs), файлы восстановления (recovery), кэш, настройки, список
+%LOCALAPPDATA%\BoulderVideoEditor\ — журналы (logs), файлы восстановления (recovery), кэш, настройки, список
 недавних проектов, модели. Проекты сохраняются туда, куда вы их сохраняете; свои данные редактор в папке
 программы не хранит.
 
 Журналы
 -------
-%LOCALAPPDATA%\AiVideoEditor\logs — при проблеме приложите файлы app-*.log, errors-*.log и ffmpeg-*.log.
+%LOCALAPPDATA%\BoulderVideoEditor\logs — при проблеме приложите файлы app-*.log, errors-*.log и ffmpeg-*.log.
 
 Лицензии
 --------

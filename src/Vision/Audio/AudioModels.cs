@@ -23,7 +23,7 @@ public static class AudioModel
 {
     public const string Id = "audio-v1";
 
-    /// <summary>The folder name under %LOCALAPPDATA%\AiVideoEditor\models.</summary>
+    /// <summary>The folder name under %LOCALAPPDATA%\BoulderVideoEditor\models.</summary>
     public const string FolderName = "audio-v1";
 
     public static readonly HoldModelFile Voice =

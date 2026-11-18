@@ -2,6 +2,34 @@
 
 ## Current phase
 
+**Phase 49 — UX 1.1 (D068, 2026-11-18) — on `feat/phase-49-ux`.** The owner's answers: icon variant C, the name everywhere
+including the per-user folder, CapCut re-reviewed in full, the help inside the application, the rebranding in 1.1. **Step 1 (name
+and icon):** «Boulder Video Editor» in the title, `App:Name`, messages, docs; `BoulderVideoEditor.exe`, portable / models archive
+names, `Install-Models` target; `%LOCALAPPDATA%\BoulderVideoEditor` with `AppDataMigration` at startup (rename whole, or merge
+entry by entry — the new file wins, nothing overwritten or deleted, a held file left for the next start); namespaces, format ids,
+`AiVideoEditor.sln`, `AIVE_*` kept. Icon C by `tools/icon/make_icon.py` (Pillow from the E1 reference venv — the system Python has
+none). **Step 2 (help):** `HelpDocument` (a small Markdown subset, `Help/help.ru.md` / `help.en.md` embedded with
+`WithCulture=false`), `HelpViewModel` (search), `HelpView`, `AvaloniaHelpWindow` (one non-modal window, Esc closes), «?» on the
+toolbar, F1 everywhere (also in a text box). Tests: AppDataMigration 4, Help 3, F1 1. Gates (2026-11-18): Debug and Release
+`--no-incremental -warnaserror` 0 / 0; `git diff --check` clean; Release: Core 1 923, Project 749, Timeline 1 194, UI 1 281,
+Rendering 257, Export 142, Video 411 (+1 skipped), ExportEndToEnd 186 (+3 skipped), Vision 25 — all green. **Run (2026-11-18, the owner's yes; config and recovery copied first):** the owner's real folder moved whole ("moved 1, removed true", models intact); the title, the icon, «?», F1, the search, the topics, Esc checked on screen; the subheadings were not bold — fixed (`15f56c2`). 1.0 on this PC now has no models / settings (its folder is gone). **Research and audit (2026-11-18):** `docs/UX_CAPCUT_RESEARCH.md` part 2 (CapCut in full, Resolve Cut, Shotcut, GoPro Quik,
+Insta360 Studio — the latter seen live; CapCut and Resolve not opened live) and `docs/UX_AUDIT_1.1.md` (the workflow walked on copies of
+two 12x10 clips, the audit by screenshots in `docs/ux-1.1/before`, a design-system proposal, 15 prioritised changes + 3 owner
+decisions). Waiting for the owner's choice of the list before implementation (D068 §5). **Implementation (2026-11-18, the owner chose items 1–18 and R1; R2–R4 rejected, D068 §6):** done and committed —
+items 1–4 (theme, accent, icons, message kinds), 5 (start screen), 6, 7, 8 (Inspector rail), 9, 10 (filmstrips), 11, 12, 13 + R1, 14.
+Then P3 (15–18) and the owner's check of 2026-11-18 (D068 §7, amendment 1: media removal, the canvas offer, Save As over a
+project, the Inspector as one list with the rail on the left, sliders and compact fields as CapCut, polish); the help updated.
+Separate phases listed in D068 §7: the magnetic main track, colour correction, more transitions, the export's cover frame. **Review (phase-reviewer, 2026-11-18): FAIL** — the crash-recovery question still named «AI Video Editor»; under R1 the export's
+snapshot line said «сохранён» for a never-saved project. **Fixed:** the name (+ a guard test: no resource names the old product),
+«не сохранён — экспортируется как есть» (+ test); also «a Boulder…», the filmstrip reader's overflow, Save As keeping a real
+nested project, the field's spinner waiting for being shown, the phase-41 script's exe, «1 clips», DEVELOPMENT_PLAN row 49.
+**Gates (2026-11-18, after the fixes):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check` clean; Release
++ `AIVE_HEAVY_TESTS=1` with `--blame-hang`: Vision 25, Project 749, Core 1 923, Rendering 257, UI 1 299, Timeline 1 194, Video 418
+(+1 skipped), ExportEndToEnd 189 — green; Export 141 / 142 under the full load (the known flake
+`A_rasterizer_failure_while_the_writer_waits_never_deadlocks`), 142 / 142 three times alone. The first full run before the fixes:
+Project.Tests hung under the full load (749 / 749 four times alone and in the second full run), the WASAPI device test failed
+once (passes alone; real audio device). **Re-review: PASS WITH NOTES** (no blocking issue; its two small notes fixed). PR #77. Not done: the owner's manual check of steps 3–4.
+
 **Phase 48 — the owner's fixes before publishing 1.0 (D067, 2026-11-18) — on `feat/phase-48-release-fixes`.** Rubber-band
 selection in the Media Browser (from a blank place; Ctrl adds), the export's suggested name `yyyyMMdd_HHmm.mp4` (the last export's
 folder), Space = Play / Pause on the window's tunnel (only text inputs type it), Save As through the save dialog — a place and a

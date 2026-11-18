@@ -527,13 +527,13 @@
     <value>Can't {0}: there is no room to move linked clips aside while the frame rate is set.</value>
   </data>
   <data name="Model_LoadFailed" xml:space="preserve">
-    <value>The hold model could not be loaded on the {0}: {1}</value>
+    <value>The AI model could not be loaded on the {0}: {1}</value>
   </data>
   <data name="Model_Mismatch" xml:space="preserve">
-    <value>The hold model file {0} in {1} is damaged or another version (expected {2}, SHA-256 {3}). It was not loaded. See docs/AI_MODEL.md.</value>
+    <value>The AI model file {0} in {1} is damaged or another version (expected {2}, SHA-256 {3}). It was not loaded. See docs/AI_MODEL.md.</value>
   </data>
   <data name="Model_NotInstalled" xml:space="preserve">
-    <value>The hold model {0} is not installed: {1} is missing in {2}. See docs/AI_MODEL.md.</value>
+    <value>The AI model {0} is not installed: {1} is missing in {2}. See docs/AI_MODEL.md.</value>
   </data>
   <data name="Model_RunFailed" xml:space="preserve">
     <value>The hold model failed on the {0}: {1}</value>
@@ -656,7 +656,7 @@
     <value>"{0}" is not a valid folder path.</value>
   </data>
   <data name="ProjectFile_Newer" xml:space="preserve">
-    <value>This project was saved by a newer version of AI Video Editor and can't be opened.</value>
+    <value>This project was saved by a newer version of Boulder Video Editor and can't be opened.</value>
   </data>
   <data name="ProjectFile_NoFolder" xml:space="preserve">
     <value>No project folder was given.</value>
@@ -665,10 +665,10 @@
     <value>{0} was not found in {1}.</value>
   </data>
   <data name="ProjectFile_NotProject" xml:space="preserve">
-    <value>This file is not an AI Video Editor project.</value>
+    <value>This file is not a Boulder Video Editor project.</value>
   </data>
   <data name="ProjectFile_NotRecovery" xml:space="preserve">
-    <value>This file is not an AI Video Editor recovery file.</value>
+    <value>This file is not a Boulder Video Editor recovery file.</value>
   </data>
   <data name="ProjectFile_ReadFailed" xml:space="preserve">
     <value>The project file couldn't be read: {0}</value>
@@ -677,7 +677,7 @@
     <value>The recovery file is damaged and can't be used.</value>
   </data>
   <data name="ProjectFile_RecoveryNewer" xml:space="preserve">
-    <value>This recovery file was written by a newer version of AI Video Editor and can't be used.</value>
+    <value>This recovery file was written by a newer version of Boulder Video Editor and can't be used.</value>
   </data>
   <data name="ProjectFile_SaveFailed" xml:space="preserve">
     <value>The project couldn't be saved: {0}</value>

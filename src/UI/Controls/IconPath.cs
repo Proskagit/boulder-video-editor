@@ -16,13 +16,18 @@ public class IconPath : Avalonia.Controls.Shapes.Path
 
     private static readonly Dictionary<string, Geometry> Parsed = new();
 
+    /// <summary>The icons' design grid (<see cref="Icons"/>).</summary>
+    private const double GridSize = 16;
+
     protected override Type StyleKeyOverride => typeof(Avalonia.Controls.Shapes.Path);
 
     public IconPath()
     {
         Width = 14;
         Height = 14;
-        Stretch = Stretch.Uniform;
+        // D068 amendment 1: the glyph's 16 × 16 design grid is scaled to the icon's box (ShowGlyph), not stretched to the
+        // shape's own bounds — a flat glyph (the eye) stays centred as drawn instead of sitting at the top.
+        Stretch = Stretch.None;
         StrokeThickness = 1.5;
         StrokeLineCap = PenLineCap.Round;
         StrokeJoin = PenLineJoin.Round;
@@ -52,7 +57,8 @@ public class IconPath : Avalonia.Controls.Shapes.Path
         base.OnPropertyChanged(change);
         if (change.Property == FilledProperty || change.Property == StrokeProperty)
             Fill = Filled ? Stroke : null;
-        if (change.Property == GlyphProperty && VisualRoot is not null) ShowGlyph();
+        if ((change.Property == GlyphProperty || change.Property == WidthProperty || change.Property == HeightProperty) && VisualRoot is not null)
+            ShowGlyph();
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -65,6 +71,10 @@ public class IconPath : Avalonia.Controls.Shapes.Path
     {
         if (Glyph is not { } glyph) return;
         if (!Parsed.TryGetValue(glyph, out var geometry)) Parsed[glyph] = geometry = Geometry.Parse(glyph);
-        Data = geometry;
+        var shown = geometry.Clone();
+        var width = double.IsNaN(Width) ? 14 : Width;
+        var height = double.IsNaN(Height) ? 14 : Height;
+        shown.Transform = new ScaleTransform(width / GridSize, height / GridSize);
+        Data = shown;
     }
 }

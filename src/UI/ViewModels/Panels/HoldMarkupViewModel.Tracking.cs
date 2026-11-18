@@ -71,7 +71,7 @@ public sealed partial class HoldMarkupViewModel
     {
         if (_syncing || _clip is null) return;
         var result = _edit.SetHoldFollowsCamera(_clip.Id, value, _routeId);
-        if (!result.Success) _status.Report(result.Message ?? Strings.Holds_OutlineNotChanged);
+        if (!result.Success) _status.ReportWarning(result.Message ?? Strings.Holds_OutlineNotChanged);
         RefreshTracking();
     }
 

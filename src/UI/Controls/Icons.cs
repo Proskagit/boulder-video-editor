@@ -46,4 +46,16 @@ public static class Icons
     public const string Link = "M6.5,9.5 L9.5,6.5 M7,4.5 L8.5,3 A3.2,3.2 0 0 1 13,7.5 L11.5,9 M9,11.5 L7.5,13 A3.2,3.2 0 0 1 3,8.5 L4.5,7";
     public const string Unlink = "M7,4.5 L8.5,3 A3.2,3.2 0 0 1 13,7.5 L11.5,9 M9,11.5 L7.5,13 A3.2,3.2 0 0 1 3,8.5 L4.5,7 M1.5,1.5 L3.5,3.5 M12.5,12.5 L14.5,14.5";
     public const string Fit = "M1.5,3 V13 M14.5,3 V13 M4,8 H12 M5.5,6.5 L4,8 L5.5,9.5 M10.5,6.5 L12,8 L10.5,9.5";
+
+    // D068 item 4: the status bar's message kinds.
+    public const string Warning = "M8,1.8 L14.6,13.6 H1.4 Z M8,6 V9.4 M8,11.6 V11.7";
+    public const string Error = "M8,1.5 A6.5,6.5 0 1 1 7.99,1.5 Z M5.6,5.6 L10.4,10.4 M10.4,5.6 L5.6,10.4";
+
+    // D068 item 8: the Inspector rail's groups.
+    public const string Hold = "M2.8,9.2 C2.6,5.6 5.4,3 8.8,3.3 C12.2,3.6 14,6.4 13.2,9.6 C12.4,12.6 9.2,13.8 6.2,13.2 C4.2,12.8 2.9,11.2 2.8,9.2 Z M6.2,8.3 C7.6,7.4 9.6,7.3 11,8";
+    public const string Person = "M8,2 A2.2,2.2 0 1 0 8.01,2 Z M3.5,14.5 V11 A4.5,4.5 0 0 1 12.5,11 V14.5";
+    public const string Pulse = "M1.5,8.5 H4.5 L6,4.5 L8.5,12.5 L10.5,6.5 L11.6,8.5 H14.5";
+
+    // D068 item 18: reset a section.
+    public const string Reset = "M3,8 A5,5 0 1 0 4.6,4.3 M2.5,2 V5 H5.5";
 }

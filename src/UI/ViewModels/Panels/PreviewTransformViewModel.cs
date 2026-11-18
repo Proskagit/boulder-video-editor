@@ -330,7 +330,7 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         var result = WriteScale(target, scale, _wheelUndo);
         if (!result.Success)
         {
-            _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
+            _status.ReportWarning(result.Message ?? Strings.Inspector_ClipNotChanged);
             return false;
         }
         ModeText = string.Format(Strings.Transform_ScaleValue, Num(scale * 100));
@@ -408,7 +408,7 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
     /// <summary>A press on a locked target: says why nothing happens.</summary>
     public void ReportLocked()
     {
-        if (Target is { IsLocked: true } t) _status.Report(string.Format(Messages.Edit_TrackLocked, t.Track.Name));
+        if (Target is { IsLocked: true } t) _status.ReportWarning(string.Format(Messages.Edit_TrackLocked, t.Track.Name));
     }
 
     // ---- gestures ---------------------------------------------------------------------------------------------------
@@ -534,7 +534,7 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
             var result = WriteScale(g.Target, next.Scale, g.Undo);
             if (!result.Success)
             {
-                _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
+                _status.ReportWarning(result.Message ?? Strings.Inspector_ClipNotChanged);
                 CancelGesture();
                 return;
             }
@@ -616,7 +616,7 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
             var keyed = _keyframes.SetValue(video, owner, g.Target.TimelineFrame, shown with { X = moved.OffsetX, Y = moved.OffsetY }, g.Undo);
             if (!keyed.Success)
             {
-                _status.Report(keyed.Message ?? Strings.Inspector_ClipNotChanged);
+                _status.ReportWarning(keyed.Message ?? Strings.Inspector_ClipNotChanged);
                 CancelGesture();
                 return;
             }
@@ -629,7 +629,7 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
             var result = _edit.SetClipFollow(video.Id, next, gesture: g.Undo);
             if (!result.Success)
             {
-                _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
+                _status.ReportWarning(result.Message ?? Strings.Inspector_ClipNotChanged);
                 CancelGesture();
                 return;
             }
@@ -663,7 +663,7 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
                 });
                 if (!keyedResult.Success)
                 {
-                    _status.Report(keyedResult.Message ?? Strings.Inspector_ClipNotChanged);
+                    _status.ReportWarning(keyedResult.Message ?? Strings.Inspector_ClipNotChanged);
                     CancelGesture();
                     return;
                 }
@@ -676,7 +676,7 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
             var result = _edit.SetClipProperties(g.Clip.Id, new ClipPropertyChange { Visual = next, Gesture = g.Undo });
             if (!result.Success)
             {
-                _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
+                _status.ReportWarning(result.Message ?? Strings.Inspector_ClipNotChanged);
                 CancelGesture();
                 return;
             }

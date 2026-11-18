@@ -53,7 +53,8 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
         _timelineFollowsPlayhead = current.TimelineFollowsPlayhead;
         _canvasSnapPixels = (decimal)current.CanvasSnapPixels;
         _showPeopleMasks = current.ShowPeopleMasks;
-        _languageIndex = current.Language switch { "en" => 2, "ru" => 1, _ => 0 };
+        // D068 item 16: the two languages by name; no choice set yet shows the language the interface has now.
+        _languageIndex = (current.Language ?? System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName) == "ru" ? 0 : 1;
         _ffmpegPath = current.FfmpegPath ?? "";
         _ffprobePath = current.FfprobePath ?? "";
         FfmpegFound = ffmpegFound ?? Strings.AppSettings_NotFound;
@@ -89,12 +90,12 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
 
     public event EventHandler? CloseRequested;
 
-    public IReadOnlyList<string> Languages { get; } = new[] { Strings.AppSettings_LanguageDefault, "Русский", "English" };
+    public IReadOnlyList<string> Languages { get; } = new[] { "Русский", "English" };
 
     [ObservableProperty] private int _languageIndex;
 
     partial void OnLanguageIndexChanged(int value) =>
-        _settings.Update(s => s with { Language = value switch { 1 => "ru", 2 => "en", _ => null } });
+        _settings.Update(s => s with { Language = value == 1 ? "en" : "ru" });
 
     private readonly ITrainingClockCorrection? _training;
 

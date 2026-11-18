@@ -36,10 +36,11 @@ public sealed class IconViewTests
         Assert.All(buttons, b => Assert.False(string.IsNullOrWhiteSpace(ToolTip.GetTip(b) as string)));
     }
 
-    /// <summary>D040 §5: every command of the timeline's tool bar shows an icon and its localized label, with a tooltip —
-    /// only zoom − / + stay glyphs. Read from the AXAML (the timeline view needs a headless window to be built).</summary>
+    /// <summary>D040 §5, D068 item 3: every command of the timeline's tool bar shows an icon and has a tooltip. Adding content and
+    /// the panels (Text, Template, Keyframe, Mixer) keep their labels; the frequent edits are icon buttons that name their command
+    /// to UI Automation; only zoom − / + stay glyphs. Read from the AXAML (the timeline view needs a headless window to be built).</summary>
     [Fact]
-    public void Every_command_of_the_timeline_tool_bar_has_an_icon_a_label_and_a_tooltip()
+    public void Every_command_of_the_timeline_tool_bar_has_an_icon_and_a_tooltip()
     {
         var root = new DirectoryInfo(AppContext.BaseDirectory);
         while (root is not null && !File.Exists(Path.Combine(root.FullName, "AiVideoEditor.sln"))) root = root.Parent;
@@ -47,21 +48,23 @@ public sealed class IconViewTests
         System.Xml.Linq.XNamespace ui = "https://github.com/avaloniaui";
         var bar = xaml.Descendants(ui + "WrapPanel").First();
         var buttons = bar.Elements().Where(e => e.Name == ui + "Button" || e.Name == ui + "ToggleButton").ToList();
+        Assert.All(buttons, b => Assert.StartsWith("{x:Static l:Strings.Timeline_", (string?)b.Attribute("ToolTip.Tip")));
 
-        var withIcons = buttons.Where(b => b.Attribute("Content") is null).ToList();
-        Assert.Equal(new[] { "−", "+" }, buttons.Except(withIcons).Select(b => (string)b.Attribute("Content")!));
-        Assert.Equal(18, withIcons.Count);                     // + V / A / Text, Template (D045), Keyframe (D063), Mixer (D064), Split … Link, Snap, D048's Debug prototype, Fit
-        foreach (var button in withIcons)
+        var glyphs = buttons.Where(b => b.Attribute("Content") is not null).ToList();
+        Assert.Equal(new[] { "−", "+" }, glyphs.Select(b => (string)b.Attribute("Content")!));
+
+        var labelled = buttons.Where(b => b.Elements().SingleOrDefault()?.Name == ui + "StackPanel").ToList();
+        Assert.Equal(new[] { "Timeline_AddText", "Timeline_Template", "Timeline_Keyframe", "Timeline_Mixer" },
+            labelled.Select(b => ((string)b.Elements().Single().Elements().Last().Attribute("Text")!).Replace("{x:Static l:Strings.", "").TrimEnd('}')));
+
+        var icons = buttons.Except(glyphs).Except(labelled).ToList();
+        Assert.Equal(10, icons.Count);                  // + V / A, Split, Delete, Ripple delete, Duplicate, Transition, Snap, D048's Debug switch, Fit
+        Assert.All(icons, b =>
         {
-            var panel = Assert.Single(button.Elements());
-            var parts = panel.Elements().ToList();
-            Assert.Equal(2, parts.Count);
-            Assert.Equal("IconPath", parts[0].Name.LocalName);
-            Assert.StartsWith("{x:Static controls:Icons.", (string?)parts[0].Attribute("Glyph"));
-            Assert.Equal("TextBlock", parts[1].Name.LocalName);
-            Assert.Matches(@"^\{(x:Static l:Strings\.Timeline_|Binding UnlinkLabel)", (string?)parts[1].Attribute("Text"));
-            Assert.StartsWith("{x:Static l:Strings.Timeline_", (string?)button.Attribute("ToolTip.Tip"));
-        }
-        Assert.Equal(withIcons.Count, withIcons.Select(b => (string?)b.Elements().Single().Elements().First().Attribute("Glyph")).Distinct().Count());
+            Assert.Equal("IconPath", b.Elements().Single().Name.LocalName);
+            Assert.StartsWith("{x:Static l:Strings.Timeline_", (string?)b.Attribute("AutomationProperties.Name"));
+        });
+        var all = buttons.Except(glyphs).Select(b => (string?)b.Descendants().First(d => d.Name.LocalName == "IconPath").Attribute("Glyph")).ToList();
+        Assert.Equal(all.Count, all.Distinct().Count());
     }
 }

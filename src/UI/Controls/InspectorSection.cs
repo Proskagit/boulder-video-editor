@@ -36,6 +36,23 @@ public sealed class InspectorSection : Expander
     };
     private bool _loading;
 
+    /// <summary>D068 item 18: «сбросить» in the header — the section's values back to their defaults (one undo step); no
+    /// button without a command.</summary>
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> ResetCommandProperty =
+        AvaloniaProperty.Register<InspectorSection, System.Windows.Input.ICommand?>(nameof(ResetCommand));
+
+    public System.Windows.Input.ICommand? ResetCommand
+    {
+        get => GetValue(ResetCommandProperty);
+        set => SetValue(ResetCommandProperty, value);
+    }
+
+    private readonly Button _reset = new()
+    {
+        Padding = new Thickness(4, 0), MinHeight = 0, Height = 18, Background = Brushes.Transparent, BorderThickness = new Thickness(0),
+        VerticalAlignment = VerticalAlignment.Center, IsVisible = false, Content = new IconPath { Glyph = Icons.Reset, Width = 12, Height = 12 }
+    };
+
     public InspectorSection()
     {
         HorizontalAlignment = HorizontalAlignment.Stretch;
@@ -44,6 +61,10 @@ public sealed class InspectorSection : Expander
         MinHeight = 0;
         var header = new DockPanel { LastChildFill = true };
         DockPanel.SetDock(_title, Dock.Left);
+        DockPanel.SetDock(_reset, Dock.Right);
+        ToolTip.SetTip(_reset, AiVideoEditor.UI.Localization.Strings.Inspector_ResetSectionTip);
+        Avalonia.Automation.AutomationProperties.SetName(_reset, AiVideoEditor.UI.Localization.Strings.Inspector_ResetSectionTip);
+        header.Children.Add(_reset);
         header.Children.Add(_title);
         header.Children.Add(_summary);
         Header = header;
@@ -79,7 +100,12 @@ public sealed class InspectorSection : Expander
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == TitleProperty) _title.Text = Title;
+        if (change.Property == ResetCommandProperty)
+        {
+            _reset.Command = ResetCommand;
+            _reset.IsVisible = ResetCommand is not null;
+        }
+        else if (change.Property == TitleProperty) _title.Text = Title;
         else if (change.Property == SummaryProperty) UpdateSummary();
         else if (change.Property == SectionIdProperty || change.Property == CollapsedByDefaultProperty) LoadState();
         else if (change.Property == IsExpandedProperty)

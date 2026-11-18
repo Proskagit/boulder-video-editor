@@ -43,10 +43,13 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// <summary>Asks, then cancels the running export.</summary>
     public IAsyncRelayCommand CancelExportCommand { get; }
 
-    /// <summary>"Name — AI Video Editor", with a "*" after the name while there are unsaved changes.</summary>
-    public string Title => $"{_projectService.Current.Name}{(_projectService.Current.IsDirty ? "*" : "")} — AI Video Editor";
+    /// <summary>"Name — Boulder Video Editor", with a "*" after the name while there are unsaved changes.</summary>
+    public string Title => $"{_projectService.Current.Name}{(_projectService.Current.IsDirty ? "*" : "")} — Boulder Video Editor";
 
     public ToolbarViewModel Toolbar { get; }
+
+    /// <summary>D068 item 5: the first screen at startup.</summary>
+    public StartScreenViewModel StartScreen { get; }
     public MediaBrowserViewModel MediaBrowser { get; }
     public PreviewViewModel Preview { get; }
     public InspectorViewModel Inspector { get; }
@@ -94,7 +97,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             };
         // A file found not to fit its clips after a later analysis (D026 §3, Step 11.4): said, never undone by itself.
         if (relink is not null)
-            relink.RelinkedMediaFoundIncompatible += (_, e) => status.Report(e.Message);
+            relink.RelinkedMediaFoundIncompatible += (_, e) => status.ReportError(e.Message);
         _thumbnails = thumbnails;
         _waveforms = waveforms;
         _mediaAvailability = mediaAvailability;
@@ -106,6 +109,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         Status = status;
         _projectFiles = projectFiles;
         _projectService = projectService;
+        StartScreen = new StartScreenViewModel(toolbar.Recent, toolbar.OpenCommand, projectService);   // D068 item 5
         _logger = logger;
         _projectService.SaveStateChanged += (_, _) => OnPropertyChanged(nameof(Title));
 
@@ -169,7 +173,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         // Overwrite are the timeline's commands (the target track, the playhead, the selection are the timeline's).
         MediaBrowser.OpenInSourceRequested += (_, asset) =>
         {
-            if (Preview.OpenSource(asset) is { } reason) Status.Report(reason);
+            if (Preview.OpenSource(asset) is { } reason) Status.ReportWarning(reason);
         };
         Preview.InsertCommand = Timeline.InsertFromSourceCommand;
         Preview.OverwriteCommand = Timeline.OverwriteFromSourceCommand;
@@ -181,6 +185,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         Inspector.Playhead = () => Timeline.Playhead;
         // Phase 35 (D050 amendment B4): the clip's training readout follows the playhead.
         Inspector.Training = training;
+        Inspector.ImportTrainingCommand = Toolbar.ImportTrainingCommand;   // D068 item 14
         WirePeople(people);
         Inspector.AudioProcessing = audioProcessing;   // D064: the clean-up's state in «Звук»
         Timeline.PlayheadChanged += (_, _) => Inspector.OnPlayheadMoved();

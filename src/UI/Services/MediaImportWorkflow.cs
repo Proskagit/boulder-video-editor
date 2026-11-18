@@ -52,6 +52,9 @@ public sealed class MediaImportWorkflow
     /// <summary>Status message when the project changed while the import ran (D027 §7).</summary>
     public static string ProjectChangedMessage => Strings.Import_ProjectChanged;
 
+    /// <summary>D068 item 7: the ids of the files an import added (the Media Browser selects them).</summary>
+    public event EventHandler<IReadOnlyList<Guid>>? Imported;
+
     public async Task RunAsync(CancellationToken ct = default)
     {
         // The import belongs to this project (D027 §7); checked after every await below.
@@ -101,7 +104,7 @@ public sealed class MediaImportWorkflow
         }
         catch
         {
-            _status.Report(Strings.Import_DidntFinish);
+            _status.ReportError(Strings.Import_DidntFinish);
             throw;
         }
         if (ProjectChanged(project)) return;
@@ -112,6 +115,7 @@ public sealed class MediaImportWorkflow
         // each asset in place as it completes (see MediaAnalysisCoordinator).
         // Import itself must finish immediately — never block on analysis here.
         _analysisCoordinator.QueueAnalysis(addResult.Added);
+        if (addResult.Added.Count > 0) Imported?.Invoke(this, addResult.Added.Select(a => a.Id).ToList());
 
         _status.Report(BuildStatusMessage(
             addResult.Added.Count,

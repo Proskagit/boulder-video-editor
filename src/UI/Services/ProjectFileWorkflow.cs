@@ -120,12 +120,27 @@ public sealed class ProjectFileWorkflow
         catch (ProjectFileException ex)
         {
             _logger.LogWarning(ex, "Save failed.");
-            _status.Report(string.Format(Strings.Project_SaveFailed, _projectService.Current.Name, ex.Message));
+            _status.ReportError(string.Format(Strings.Project_SaveFailed, _projectService.Current.Name, ex.Message));
             return false;
         }
 
         _status.Report(SavedMessage(string.Format(Strings.Project_Saved, _projectService.Current.Name)));
         return true;
+    }
+
+    /// <summary>D068 amendment 1: the save dialog of Windows opens a folder whose name is typed instead of returning it, so a
+    /// project is replaced from inside its own folder — the name typed there is the folder's own («Проект\Проект»), or its
+    /// <c>project.json</c> is picked; both mean that folder. Any other path is the folder to save into.</summary>
+    internal static string ProjectFolderFor(string picked)
+    {
+        var parent = Path.GetDirectoryName(picked);
+        if (string.IsNullOrEmpty(parent) || !File.Exists(Path.Combine(parent, "project.json"))) return picked;
+        if (File.Exists(Path.Combine(picked, "project.json"))) return picked;     // a real project of that name inside: itself
+        var name = Path.GetFileName(picked);
+        return string.Equals(name, "project.json", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(name, Path.GetFileName(Path.TrimEndingDirectorySeparator(parent)), StringComparison.OrdinalIgnoreCase)
+            ? parent
+            : picked;
     }
 
     /// <summary>Save As (D067 §6): a save dialog — the place and the project's name; the project is saved into a folder of
@@ -143,10 +158,10 @@ public sealed class ProjectFileWorkflow
             SuggestedFileName = current.Name
         });
         if (picked is null) return false;
-        var folder = Path.TrimEndingDirectorySeparator(picked.Trim());
+        var folder = ProjectFolderFor(Path.TrimEndingDirectorySeparator(picked.Trim()));
         if (File.Exists(folder))
         {
-            _status.Report(string.Format(Strings.Project_SaveFailed, current.Name, string.Format(Strings.Project_SaveAsFileExists, Path.GetFileName(folder))));
+            _status.ReportError(string.Format(Strings.Project_SaveFailed, current.Name, string.Format(Strings.Project_SaveAsFileExists, Path.GetFileName(folder))));
             return false;
         }
 
@@ -170,7 +185,7 @@ public sealed class ProjectFileWorkflow
         catch (ProjectFileException ex)
         {
             _logger.LogWarning(ex, "Save As to {Folder} failed.", folder);
-            _status.Report(string.Format(Strings.Project_SaveFailed, current.Name, ex.Message));
+            _status.ReportError(string.Format(Strings.Project_SaveFailed, current.Name, ex.Message));
             return false;
         }
 
@@ -247,7 +262,7 @@ public sealed class ProjectFileWorkflow
         catch (ProjectFileException ex)
         {
             _logger.LogWarning(ex, "Couldn't open project from {Folder}.", projectFolderPath);
-            _status.Report(string.Format(Strings.Project_OpenFailed, ex.Message));
+            _status.ReportError(string.Format(Strings.Project_OpenFailed, ex.Message));
             return false;
         }
         catch (OperationCanceledException)
@@ -302,7 +317,7 @@ public sealed class ProjectFileWorkflow
         catch (ProjectFileException ex)
         {
             _logger.LogWarning(ex, "Couldn't recover from {File}.", candidate.FilePath);
-            _status.Report(string.Format(Strings.Recovery_Failed, candidate.ProjectName, ex.Message) + suffix);
+            _status.ReportError(string.Format(Strings.Recovery_Failed, candidate.ProjectName, ex.Message) + suffix);
             return;
         }
 

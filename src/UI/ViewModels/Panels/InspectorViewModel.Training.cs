@@ -40,6 +40,24 @@ public sealed partial class InspectorViewModel
     /// <summary>A video clip is shown and a training service exists.</summary>
     [ObservableProperty] private bool _showsTraining;
 
+    /// <summary>D068 item 14: a video clip of a project without a training offers the import here, where the training is shown
+    /// (as Insta360 Studio's dashboard asks for its data source), not only in the tool bar's menu.</summary>
+    [ObservableProperty] private bool _showsTrainingImport;
+
+    private System.Windows.Input.ICommand? _importTrainingCommand;
+
+    /// <summary>The tool bar's «Импортировать…» of the FIT training (set by the main window).</summary>
+    public System.Windows.Input.ICommand? ImportTrainingCommand
+    {
+        get => _importTrainingCommand;
+        set
+        {
+            _importTrainingCommand = value;
+            OnPropertyChanged();
+            RefreshTraining();
+        }
+    }
+
     /// <summary>«Тренировка в позиции плейхеда: …» (B4).</summary>
     [ObservableProperty] private string _trainingReadout = "";
 
@@ -163,6 +181,7 @@ public sealed partial class InspectorViewModel
     private void RefreshTraining()
     {
         ShowsTraining = _training is not null && _clip is VideoClip && _trainingAsset is not null;
+        ShowsTrainingImport = ShowsTraining && _training is { Training: null } && _importTrainingCommand is not null;
         var workout = _training?.Training is { IsUsable: true } t ? t.Workout : null;
         var climbs = workout?.Climbs.ToList() ?? new List<WorkoutSegment>();
         if (!climbs.SequenceEqual(_climbs))
@@ -226,7 +245,7 @@ public sealed partial class InspectorViewModel
         var frame = exact.ToFrameFloor(_rate);
         if (!TrainingAlignment.Covers(clip, frame, _rate))
         {
-            _status.Report(Strings.Inspector_AlignPlayheadOutside);
+            _status.ReportWarning(Strings.Inspector_AlignPlayheadOutside);
             return;
         }
         var chosen = SelectedClimbIndex;
@@ -250,7 +269,8 @@ public sealed partial class InspectorViewModel
         var zero = TrainingAlignment.ZeroForClimb(climb, anchor, training.ClockCorrection, FrameNavigation.SourceAt(clip, exact));
         var result = _edit.SetRecordingZeroOverride(_trainingAsset!.Id, zero);
         var done = anchor == ClimbAnchor.End ? Strings.Inspector_AlignedToClimbEnd : Strings.Inspector_AlignedToClimb;
-        _status.Report(result.Success ? string.Format(done, climb.ClimbNumber) : result.Message ?? "");
+        if (result.Success) _status.Report(string.Format(done, climb.ClimbNumber));
+        else _status.ReportWarning(result.Message ?? "");
     }
 
     private bool CanAlignToClimb() =>

@@ -78,7 +78,7 @@ public sealed class MediaRelinkWorkflow
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Relinking failed unexpectedly.");
-            _status.Report(Strings.Relink_Unexpected);
+            _status.ReportError(Strings.Relink_Unexpected);
             return false;
         }
         finally
@@ -91,7 +91,7 @@ public sealed class MediaRelinkWorkflow
     private bool ExportRunning()
     {
         if (!_editingLock.IsLocked) return false;
-        _status.Report(Strings.Relink_ExportRunning);
+        _status.ReportWarning(Strings.Relink_ExportRunning);
         return true;
     }
 
@@ -133,7 +133,7 @@ public sealed class MediaRelinkWorkflow
         if (_projects.Current.MediaAssets.FirstOrDefault(a => a.Id == assetId) is not { } asset) return false;
         if (!asset.IsMissing)
         {
-            _status.Report(string.Format(Strings.Relink_NotOffline, asset.FileName));
+            _status.ReportWarning(string.Format(Strings.Relink_NotOffline, asset.FileName));
             return false;
         }
 
@@ -152,7 +152,7 @@ public sealed class MediaRelinkWorkflow
         if (ExportRunning()) return false;
         if (!check.CanApply)
         {
-            _status.Report(string.Format(Strings.Relink_NotRelinked, asset.FileName));
+            _status.ReportError(string.Format(Strings.Relink_NotRelinked, asset.FileName));
             await Tell(Strings.Relink_CantTitle, check.Message);
             return false;
         }
@@ -182,7 +182,7 @@ public sealed class MediaRelinkWorkflow
         var result = await _relink.ApplyAsync(check);
         if (!result.Applied)
         {
-            _status.Report(string.Format(Strings.Relink_NotRelinked, asset.FileName));
+            _status.ReportError(string.Format(Strings.Relink_NotRelinked, asset.FileName));
             await Tell(Strings.Relink_NotAppliedTitle, result.Message);
             return false;
         }
@@ -215,7 +215,7 @@ public sealed class MediaRelinkWorkflow
         var offline = _projects.Current.MediaAssets.FirstOrDefault(a => a.IsMissing);
         if (offline is null)
         {
-            _status.Report(Strings.Relink_NoneOffline);
+            _status.ReportWarning(Strings.Relink_NoneOffline);
             return false;
         }
 
@@ -253,7 +253,7 @@ public sealed class MediaRelinkWorkflow
         {
             // Matches that can't be used are not "nothing found" (D5).
             var unusable = search.Entries.Any(e => e.Outcome is RelinkSearchOutcome.Rejected or RelinkSearchOutcome.Ambiguous);
-            _status.Report(search.Problem ?? (unusable
+            _status.ReportWarning(search.Problem ?? (unusable
                 ? Strings.Relink_FoundUnusable
                 : Strings.Relink_NothingFound));
             await Tell(Strings.Relink_FindTitle, search.Summary());
@@ -268,7 +268,7 @@ public sealed class MediaRelinkWorkflow
         });
         if (choice != 0)
         {
-            _status.Report(Strings.Relink_NothingRelinked);
+            _status.ReportWarning(Strings.Relink_NothingRelinked);
             return false;
         }
 

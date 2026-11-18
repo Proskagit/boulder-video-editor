@@ -5,21 +5,22 @@
              xmlns:controls="using:AiVideoEditor.UI.Controls"
              x:Class="AiVideoEditor.UI.Views.Panels.PreviewView">
 
-  <Grid RowDefinitions="Auto,*,Auto,Auto" Background="#1E1E1E">
+  <Grid RowDefinitions="Auto,*,Auto,Auto" Background="{DynamicResource Surface1Brush}">
 
     <!-- Timeline / Source (Phase 16, D031 SQ1): one panel, two modes; Source plays the asset opened from the Media
          Browser (double click). -->
-    <Border Grid.Row="0" Background="#252526" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1" Padding="8,4">
+    <Border Grid.Row="0" Background="{DynamicResource Surface1Brush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,0,1" Padding="8,4">
       <DockPanel>
         <StackPanel Orientation="Horizontal" Spacing="2" DockPanel.Dock="Left">
           <StackPanel.Styles>
             <Style Selector="Button.mode">
-              <Setter Property="FontSize" Value="11"/>
+              <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}"/>
               <Setter Property="Padding" Value="8,2"/>
             </Style>
             <Style Selector="Button.mode.shown /template/ ContentPresenter">
-              <Setter Property="Background" Value="#0E639C"/>
-              <Setter Property="Foreground" Value="#FFFFFF"/>
+              <!-- D068 item 2: the shown mode is lit, not filled with the accent. -->
+              <Setter Property="Background" Value="{DynamicResource Surface3Brush}"/>
+              <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}"/>
             </Style>
           </StackPanel.Styles>
           <Button Classes="mode" Classes.shown="{Binding IsTimelineMode}" Content="{x:Static l:Strings.Preview_TimelineMode}"
@@ -35,7 +36,7 @@
                     IsVisible="{Binding Transform, Converter={x:Static ObjectConverters.IsNotNull}}">
           <StackPanel.Styles>
             <Style Selector="ToggleButton.tool">
-              <Setter Property="FontSize" Value="11"/>
+              <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}"/>
               <Setter Property="Padding" Value="8,2"/>
             </Style>
           </StackPanel.Styles>
@@ -60,21 +61,21 @@
              size and nothing covers a hold. -->
         <StackPanel Orientation="Horizontal" Spacing="6" DockPanel.Dock="Right" Margin="8,0,0,0"
                     IsVisible="{Binding HoldMarkup.IsActive, FallbackValue=False}">
-          <TextBlock Text="{Binding HoldMarkup.AlternativeText}" Foreground="#00E5FF" FontSize="11" VerticalAlignment="Center"
+          <TextBlock Text="{Binding HoldMarkup.AlternativeText}" Foreground="{DynamicResource AccentTextBrush}" FontSize="{DynamicResource FontSizeCaption}" VerticalAlignment="Center"
                      IsVisible="{Binding HoldMarkup.AlternativeText, Converter={x:Static ObjectConverters.IsNotNull}}"/>
           <ProgressBar IsVisible="{Binding HoldMarkup.IsPreparing}" Minimum="0" Maximum="1" Width="80" MinWidth="0" Height="4"
                        Value="{Binding HoldMarkup.PrepareProgress}" VerticalAlignment="Center"/>
-          <ToggleButton Content="{x:Static l:Strings.Holds_Loupe}" FontSize="11" Padding="6,2" IsChecked="{Binding HoldMarkup.IsLoupeOn, Mode=TwoWay}"
+          <ToggleButton Content="{x:Static l:Strings.Holds_Loupe}" FontSize="{DynamicResource FontSizeCaption}" Padding="6,2" IsChecked="{Binding HoldMarkup.IsLoupeOn, Mode=TwoWay}"
                         IsVisible="{Binding !HoldMarkup.IsPreparing}" ToolTip.Tip="{x:Static l:Strings.Holds_LoupeTip}"/>
-          <Button Content="{x:Static l:Strings.Holds_Confirm}" FontSize="11" Padding="6,2" Command="{Binding HoldMarkup.ConfirmCommand}"
+          <Button Content="{x:Static l:Strings.Holds_Confirm}" FontSize="{DynamicResource FontSizeCaption}" Padding="6,2" Command="{Binding HoldMarkup.ConfirmCommand}"
                   IsVisible="{Binding !HoldMarkup.IsPreparing}" ToolTip.Tip="{x:Static l:Strings.Holds_ConfirmTip}"/>
-          <Button Content="{x:Static l:Strings.Common_Cancel}" FontSize="11" Padding="6,2" Command="{Binding HoldMarkup.EscapeCommand}"
+          <Button Content="{x:Static l:Strings.Common_Cancel}" FontSize="{DynamicResource FontSizeCaption}" Padding="6,2" Command="{Binding HoldMarkup.EscapeCommand}"
                   IsVisible="{Binding HoldMarkup.IsPreparing}" ToolTip.Tip="{x:Static l:Strings.Holds_CancelTip}"/>
-          <Button Content="{x:Static l:Strings.Holds_Done}" FontSize="11" Padding="6,2" Command="{Binding HoldMarkup.DoneCommand}"
+          <Button Content="{x:Static l:Strings.Holds_Done}" FontSize="{DynamicResource FontSizeCaption}" Padding="6,2" Command="{Binding HoldMarkup.DoneCommand}"
                   ToolTip.Tip="{x:Static l:Strings.Holds_DoneTip}"/>
         </StackPanel>
         <Panel Margin="8,0,0,0" VerticalAlignment="Center">
-          <TextBlock Text="{Binding SourceName}" Foreground="#9A9A9A" FontSize="11" TextTrimming="CharacterEllipsis">
+          <TextBlock Text="{Binding SourceName}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{DynamicResource FontSizeCaption}" TextTrimming="CharacterEllipsis">
             <TextBlock.IsVisible>
               <MultiBinding Converter="{x:Static BoolConverters.And}">
                 <Binding Path="HoldMarkup.IsActive" Converter="{x:Static BoolConverters.Not}" FallbackValue="True"/>
@@ -82,9 +83,10 @@
               </MultiBinding>
             </TextBlock.IsVisible>
           </TextBlock>
-          <TextBlock Text="{Binding Transform.ModeText}" Foreground="#DDDDDD" FontSize="11" TextTrimming="CharacterEllipsis"
+          <TextBlock Text="{Binding Transform.ModeText}" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{DynamicResource FontSizeCaption}" TextTrimming="CharacterEllipsis"
                      IsVisible="{Binding Transform.IsActive, FallbackValue=False}"/>
-          <TextBlock Text="{Binding HoldMarkup.ModeText}" Foreground="#DDDDDD" FontSize="11" TextTrimming="CharacterEllipsis"
+          <!-- D068 item 9: the markup's hint is the mode's colour and the body size — the mode is seen, not guessed. -->
+          <TextBlock x:Name="HoldMarkupHint" Text="{Binding HoldMarkup.ModeText}" Foreground="{DynamicResource AccentTextBrush}" FontSize="{DynamicResource FontSizeBody}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
                      ToolTip.Tip="{Binding HoldMarkup.ModeHelp}"
                      IsVisible="{Binding HoldMarkup.IsActive, FallbackValue=False}"/>
         </Panel>
@@ -95,6 +97,17 @@
          in the available space; every layer is drawn by CompositionView (D018/D019). -->
     <Grid Grid.Row="1" Margin="16">
       <rendering:CompositionView Layers="{Binding Layers}" Canvas="{Binding Canvas}"/>
+      <!-- D068 item 17: an empty timeline's Preview says what to do. -->
+      <StackPanel x:Name="EmptyHint" IsVisible="{Binding ShowsEmptyHint}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                  Spacing="6" IsHitTestVisible="False">
+        <TextBlock Text="{x:Static l:Strings.Preview_EmptyTitle}" FontSize="{DynamicResource FontSizeHeading}" FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
+        <TextBlock Text="{x:Static l:Strings.Preview_EmptyHint}" Foreground="{DynamicResource TextMutedBrush}"
+                   HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="420"/>
+      </StackPanel>
+      <!-- D068 item 9: the hold markup mode frames the picture in the mode's green. -->
+      <Border x:Name="HoldMarkupFrame" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="2" CornerRadius="4" Margin="-8"
+              IsHitTestVisible="False" IsVisible="{Binding HoldMarkup.IsActive, FallbackValue=False}"/>
       <!-- AI hold markup (Phase 19, D034): clicks, the candidate, the selected hold and the loupe (status and buttons in
            the bar above). -->
       <rendering:HoldMarkupOverlay Markup="{Binding HoldMarkup}"/>
@@ -106,20 +119,20 @@
       <!-- Hold tracking (R2 → E, K2): the outlines shown now do not get a correct camera-motion compensation. -->
       <Border Background="#C0202020" CornerRadius="3" Padding="6,3" Margin="8" HorizontalAlignment="Left" VerticalAlignment="Top"
               IsVisible="{Binding TrackingNotice, Converter={x:Static ObjectConverters.IsNotNull}}" IsHitTestVisible="False">
-        <TextBlock Text="{Binding TrackingNotice}" Foreground="#E0A040" FontSize="12" TextWrapping="Wrap" MaxWidth="420"/>
+        <TextBlock Text="{Binding TrackingNotice}" Foreground="{DynamicResource WarningTextBrush}" FontSize="{DynamicResource FontSizeCaption}" TextWrapping="Wrap" MaxWidth="420"/>
       </Border>
       <!-- D061: Follow / Occlusion — the climber not seen on this frame, the people analysis running, the pick. -->
       <Border Background="#C0202020" CornerRadius="3" Padding="6,3" Margin="8" HorizontalAlignment="Left" VerticalAlignment="Bottom"
               IsVisible="{Binding PeopleNotice, Converter={x:Static ObjectConverters.IsNotNull}}" IsHitTestVisible="False">
-        <TextBlock Text="{Binding PeopleNotice}" Foreground="#80D8FF" FontSize="12" TextWrapping="Wrap" MaxWidth="420"/>
+        <TextBlock Text="{Binding PeopleNotice}" Foreground="{DynamicResource AccentTextBrush}" FontSize="{DynamicResource FontSizeCaption}" TextWrapping="Wrap" MaxWidth="420"/>
       </Border>
       <TextBlock Text="{x:Static l:Strings.Preview_Buffering}" IsVisible="{Binding IsBuffering}"
-                 Foreground="#7A7A7A" FontSize="12" Margin="8"
+                 Foreground="{DynamicResource TextMutedBrush}" FontSize="{DynamicResource FontSizeCaption}" Margin="8"
                  HorizontalAlignment="Right" VerticalAlignment="Top"/>
     </Grid>
 
     <!-- The source bar (Source mode only): position and In / Out on the asset, Insert (,) / Overwrite (.). -->
-    <Border Grid.Row="2" Background="#252526" BorderBrush="#1A1A1A" BorderThickness="0,1,0,0" Padding="8,4"
+    <Border Grid.Row="2" Background="{DynamicResource Surface1Brush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0" Padding="8,4"
             IsVisible="{Binding IsSourceMode}">
       <StackPanel Spacing="4">
         <controls:SourceRangeBar x:Name="SourceBar" Height="16" Cursor="Hand"
@@ -127,20 +140,20 @@
                                  InFrame="{Binding SourceInFrame}" OutFrame="{Binding SourceOutFrame}"/>
         <DockPanel>
           <StackPanel Orientation="Horizontal" Spacing="4" DockPanel.Dock="Right">
-            <ToggleButton Content="{x:Static l:Strings.Source_SoundOnly}" FontSize="11" Padding="6,2" IsVisible="{Binding CanSourceSoundOnly}"
+            <ToggleButton Content="{x:Static l:Strings.Source_SoundOnly}" FontSize="{DynamicResource FontSizeCaption}" Padding="6,2" IsVisible="{Binding CanSourceSoundOnly}"
                           IsChecked="{Binding IsSourceSoundOnly, Mode=TwoWay}"
                           ToolTip.Tip="{x:Static l:Strings.Source_SoundOnlyTip}"/>
-            <Button Content="{x:Static l:Strings.Source_Insert}" FontSize="11" Padding="6,2" Command="{Binding InsertCommand}"
+            <Button Content="{x:Static l:Strings.Source_Insert}" FontSize="{DynamicResource FontSizeCaption}" Padding="6,2" Command="{Binding InsertCommand}"
                     ToolTip.Tip="{x:Static l:Strings.Source_InsertTip}"/>
-            <Button Content="{x:Static l:Strings.Source_Overwrite}" FontSize="11" Padding="6,2" Command="{Binding OverwriteCommand}"
+            <Button Content="{x:Static l:Strings.Source_Overwrite}" FontSize="{DynamicResource FontSizeCaption}" Padding="6,2" Command="{Binding OverwriteCommand}"
                     ToolTip.Tip="{x:Static l:Strings.Source_OverwriteTip}"/>
           </StackPanel>
           <StackPanel Orientation="Horizontal" Spacing="4">
-            <Button Content="{x:Static l:Strings.Source_In}" FontSize="11" Padding="6,2" Command="{Binding SetSourceInCommand}" ToolTip.Tip="{x:Static l:Strings.Source_InTip}"/>
-            <Button Content="{x:Static l:Strings.Source_Out}" FontSize="11" Padding="6,2" Command="{Binding SetSourceOutCommand}" ToolTip.Tip="{x:Static l:Strings.Source_OutTip}"/>
-            <TextBlock Text="{Binding SourceRangeDisplay}" Foreground="#9A9A9A" FontSize="11" VerticalAlignment="Center"
+            <Button Content="{x:Static l:Strings.Source_In}" FontSize="{DynamicResource FontSizeCaption}" Padding="6,2" Command="{Binding SetSourceInCommand}" ToolTip.Tip="{x:Static l:Strings.Source_InTip}"/>
+            <Button Content="{x:Static l:Strings.Source_Out}" FontSize="{DynamicResource FontSizeCaption}" Padding="6,2" Command="{Binding SetSourceOutCommand}" ToolTip.Tip="{x:Static l:Strings.Source_OutTip}"/>
+            <TextBlock Text="{Binding SourceRangeDisplay}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{DynamicResource FontSizeCaption}" VerticalAlignment="Center"
                        Margin="4,0,0,0"/>
-            <Button Content="✕" FontSize="10" Padding="5,1" VerticalAlignment="Center" IsVisible="{Binding HasSourceRange}"
+            <Button Content="✕" FontSize="{DynamicResource FontSizeCaption}" Padding="5,1" VerticalAlignment="Center" IsVisible="{Binding HasSourceRange}"
                     Command="{Binding ClearSourceRangeCommand}" ToolTip.Tip="{x:Static l:Strings.Source_ClearRangeTip}"/>
           </StackPanel>
         </DockPanel>
@@ -148,7 +161,7 @@
     </Border>
 
     <!-- Transport controls -->
-    <Border Grid.Row="3" Background="#252526" BorderBrush="#1A1A1A" BorderThickness="0,1,0,0" Padding="8">
+    <Border Grid.Row="3" Background="{DynamicResource Surface1Brush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0" Padding="8">
       <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
         <!-- D039 §7: the transport as icons (Play / Pause one button of one width); names and shortcuts in the tooltips. -->
         <Button Command="{Binding PreviousFrameCommand}" ToolTip.Tip="{x:Static l:Strings.Transport_PrevTip}" Padding="10,6">
@@ -173,9 +186,9 @@
           <controls:IconPath Glyph="{x:Static controls:Icons.Loop}"/>
         </ToggleButton>
 
-        <TextBlock Text="{Binding CurrentTimeDisplay}" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="6,0,0,0"/>
-        <TextBlock Text="/" Foreground="#6A6A6A" VerticalAlignment="Center"/>
-        <TextBlock Text="{Binding DurationDisplay}" Foreground="#8A8A8A" VerticalAlignment="Center"/>
+        <TextBlock Text="{Binding CurrentTimeDisplay}" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" Margin="6,0,0,0"/>
+        <TextBlock Text="/" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
+        <TextBlock Text="{Binding DurationDisplay}" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
       </StackPanel>
     </Border>
 

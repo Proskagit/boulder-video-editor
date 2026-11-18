@@ -109,7 +109,7 @@ per-frame value in `LayersAt`, and Preview = export (D018 / D023) holds by const
   (pyramidal Lucas–Kanade on wall corners, `FeatureTracker`; RANSAC similarity / homography). It does **not** track an
   object; a moving climber is exactly what it rejects as an outlier.
 - Reusable patterns: the analysis track keyed by the video fingerprint, the request and an `AnalysisVersion`, kept in an app
-  cache (`ICameraMotionCache` / `CameraMotionCacheStore`, `%LOCALAPPDATA%\AiVideoEditor\cache\camera-motion`, LRU), not in
+  cache (`ICameraMotionCache` / `CameraMotionCacheStore`, `%LOCALAPPDATA%\BoulderVideoEditor\cache\camera-motion`, LRU), not in
   `project.json`; `CameraMotionCoordinator` running the analysis with a status and the export waiting for it
   (`ExportWorkflow`, `ExportPreflight`); per-sample reliability with the lookup states `NoData` / `Hidden` / `Aligned` — a
   ready model for "object lost / re-found".

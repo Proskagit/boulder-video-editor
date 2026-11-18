@@ -1168,7 +1168,7 @@ The project can't be found there now. Remove it from the list with ✕.</value>
     <value>The project had not been saved yet.</value>
   </data>
   <data name="Recovery_Question" xml:space="preserve">
-    <value>AI Video Editor didn't close normally. Unsaved changes to "{0}" were autosaved at {1}.
+    <value>Boulder Video Editor didn't close normally. Unsaved changes to "{0}" were autosaved at {1}.
 {2}
 
 Recover them now? Discarded changes can't be restored.</value>
@@ -2071,9 +2071,6 @@ If you don't save, your changes will be lost.</value>
   </data>
   <data name="AppSettings_Language" xml:space="preserve">
     <value>Interface language</value>
-  </data>
-  <data name="AppSettings_LanguageDefault" xml:space="preserve">
-    <value>As configured</value>
   </data>
   <data name="AppSettings_RestartNote" xml:space="preserve">
     <value>Applies after a restart.</value>
@@ -3681,5 +3678,138 @@ If you don't save, your changes will be lost.</value>
   </data>
   <data name="Keyframe_TipVolume" xml:space="preserve">
     <value>Keyframe {0}: volume {1}</value>
+  </data>
+  <data name="Toolbar_Help" xml:space="preserve">
+    <value>Help</value>
+  </data>
+  <data name="Toolbar_HelpTip" xml:space="preserve">
+    <value>Help: how the editor works (F1)</value>
+  </data>
+  <data name="Help_Title" xml:space="preserve">
+    <value>Help — Boulder Video Editor</value>
+  </data>
+  <data name="Help_SearchWatermark" xml:space="preserve">
+    <value>Search the help</value>
+  </data>
+  <data name="Help_NothingFound" xml:space="preserve">
+    <value>Nothing found. Try another word.</value>
+  </data>
+  <data name="SaveState_NotSaved" xml:space="preserve">
+    <value>Project not saved</value>
+  </data>
+  <data name="SaveState_NotSavedTip" xml:space="preserve">
+    <value>The project has no folder yet: Save (Ctrl+S) chooses where it lives</value>
+  </data>
+  <data name="SaveState_Unsaved" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+  <data name="SaveState_UnsavedTip" xml:space="preserve">
+    <value>Save (Ctrl+S) writes them to the project's file</value>
+  </data>
+  <data name="SaveState_RecoveryAt" xml:space="preserve">
+    <value>Not saved to the project yet; a recovery copy was written at {0}</value>
+  </data>
+  <data name="SaveState_Saved" xml:space="preserve">
+    <value>Saved</value>
+  </data>
+  <data name="SaveState_SavedAt" xml:space="preserve">
+    <value>Saved at {0}</value>
+  </data>
+  <data name="Inspector_NoTraining" xml:space="preserve">
+    <value>No training from a watch in this project. A FIT file (COROS, Garmin and others) lays the climbs out on the clips.</value>
+  </data>
+  <data name="Inspector_ImportTraining" xml:space="preserve">
+    <value>Import FIT training…</value>
+  </data>
+  <data name="Holds_ClickKept" xml:space="preserve">
+    <value>Click kept — the outline appears as soon as the model is ready…</value>
+  </data>
+  <data name="StartScreen_Tagline" xml:space="preserve">
+    <value>A video editor for bouldering — with marked routes and the heart rate from your watch</value>
+  </data>
+  <data name="StartScreen_New" xml:space="preserve">
+    <value>Create project</value>
+  </data>
+  <data name="StartScreen_Open" xml:space="preserve">
+    <value>Open…</value>
+  </data>
+  <data name="StartScreen_Recent" xml:space="preserve">
+    <value>Recent projects</value>
+  </data>
+  <data name="StartScreen_NoRecent" xml:space="preserve">
+    <value>No recent projects yet. Create one or open a project folder.</value>
+  </data>
+  <data name="InspectorRail_Clip" xml:space="preserve">
+    <value>Clip</value>
+  </data>
+  <data name="InspectorRail_Text" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="InspectorRail_People" xml:space="preserve">
+    <value>People</value>
+  </data>
+  <data name="InspectorRail_Holds" xml:space="preserve">
+    <value>Holds</value>
+  </data>
+  <data name="InspectorRail_Fit" xml:space="preserve">
+    <value>FIT</value>
+  </data>
+  <data name="InspectorRail_Audio" xml:space="preserve">
+    <value>Sound</value>
+  </data>
+  <data name="Export_FinishedIn" xml:space="preserve">
+    <value>Exported in {0}:
+{1}</value>
+  </data>
+  <data name="Export_ShowInFolder" xml:space="preserve">
+    <value>Show in folder</value>
+  </data>
+  <data name="Duration_MinSec" xml:space="preserve">
+    <value>{0} min {1} s</value>
+  </data>
+  <data name="Duration_Sec" xml:space="preserve">
+    <value>{0} s</value>
+  </data>
+  <data name="ExportDialog_More" xml:space="preserve">
+    <value>More settings</value>
+  </data>
+  <data name="ExportDialog_Summary" xml:space="preserve">
+    <value>Duration {0}</value>
+  </data>
+  <data name="Media_RemoveQuestionFiles" xml:space="preserve">
+    <value>Remove {0} files from the project? Clips on the timeline that use them ({1}) will be removed too. The files on disk stay.</value>
+  </data>
+  <data name="Media_RemovedFiles" xml:space="preserve">
+    <value>Files removed from the project: {0} (clips removed: {1}).</value>
+  </data>
+  <data name="Template_NoHeartRateHere" xml:space="preserve">
+    <value>The heart rate plate was added, but the training has no heart rate for the video at this place: the plate will show nothing here.</value>
+  </data>
+  <data name="Preview_EmptyTitle" xml:space="preserve">
+    <value>The timeline is empty</value>
+  </data>
+  <data name="Preview_EmptyHint" xml:space="preserve">
+    <value>Import videos in «Media» and add them to the timeline — the picture appears here.</value>
+  </data>
+  <data name="TemplateType_Rec_Desc" xml:space="preserve">
+    <value>A camera's REC mark with the date and time</value>
+  </data>
+  <data name="TemplateType_Vhs_Desc" xml:space="preserve">
+    <value>A videotape's date and time</value>
+  </data>
+  <data name="TemplateType_Boulder_Desc" xml:space="preserve">
+    <value>The route, its grade and the result: TOP or attempt</value>
+  </data>
+  <data name="TemplateType_Highlight_Desc" xml:space="preserve">
+    <value>A large title and subtitle</value>
+  </data>
+  <data name="TemplateType_HeartRate_Desc" xml:space="preserve">
+    <value>The heart rate from your watch's training</value>
+  </data>
+  <data name="Inspector_ResetSectionTip" xml:space="preserve">
+    <value>Reset the section's values</value>
+  </data>
+  <data name="Export_SnapshotNotSaved" xml:space="preserve">
+    <value>not saved — exported as it is now</value>
   </data>
 </root>

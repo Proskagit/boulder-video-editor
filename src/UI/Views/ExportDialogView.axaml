@@ -8,13 +8,13 @@
        is exported, to copy. D059 §4: the export settings — profile, encoder, «Пользовательский» fields, the expected size. -->
   <DockPanel Margin="16">
     <StackPanel DockPanel.Dock="Top" Spacing="6">
-      <TextBlock Text="{x:Static l:Strings.ExportDialog_Folder}" FontSize="11" Foreground="#AAAAAA"/>
+      <TextBlock Text="{x:Static l:Strings.ExportDialog_Folder}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}"/>
       <Grid ColumnDefinitions="*,Auto">
         <TextBox x:Name="FolderBox" Text="{Binding Folder, Mode=TwoWay}"/>
         <Button Grid.Column="1" x:Name="BrowseButton" Content="{x:Static l:Strings.ExportDialog_Browse}" Command="{Binding BrowseCommand}"
                 IsVisible="{Binding CanBrowse}" Margin="6,0,0,0"/>
       </Grid>
-      <TextBlock Text="{x:Static l:Strings.ExportDialog_FileName}" FontSize="11" Foreground="#AAAAAA" Margin="0,4,0,0"/>
+      <TextBlock Text="{x:Static l:Strings.ExportDialog_FileName}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"/>
       <TextBox x:Name="FileNameBox" Text="{Binding FileName, Mode=TwoWay}"/>
       <!-- D060 §3: the size of the exported file; the canvas and the composition are not changed. -->
       <Grid ColumnDefinitions="Auto,*" Margin="0,4,0,0" ToolTip.Tip="{x:Static l:Strings.ExportResolution_Hint}">
@@ -25,28 +25,29 @@
             <DataTemplate>
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{Binding Label}"/>
-                <TextBlock Text="{Binding Detail}" Foreground="#8A8A8A" FontSize="11" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding Detail}" Foreground="{DynamicResource TextMutedBrush}" FontSize="{DynamicResource FontSizeCaption}" VerticalAlignment="Center"/>
               </StackPanel>
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>
       </Grid>
-      <TextBlock x:Name="InfoText" Text="{Binding Info}" FontSize="11" Foreground="#AAAAAA" TextWrapping="Wrap" Margin="0,4,0,8"/>
+      <TextBlock x:Name="InfoText" Text="{Binding Info}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
       <views:ExportEncodingEditorView x:Name="SettingsEditor" DataContext="{Binding Settings}" Margin="0,0,0,8"/>
     </StackPanel>
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,12,0,0">
-      <Button x:Name="ExportButton" Content="{x:Static l:Strings.ExportDialog_Export}" Command="{Binding ExportCommand}" IsDefault="True"/>
+      <Button x:Name="ExportButton" Classes="accent" Content="{x:Static l:Strings.ExportDialog_Export}" Command="{Binding ExportCommand}" IsDefault="True"/>
       <Button Content="{x:Static l:Strings.Common_Cancel}" Command="{Binding CancelCommand}" IsCancel="True"/>
     </StackPanel>
-    <DockPanel>
-      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
-        <TextBlock Text="{x:Static l:Strings.ExportDialog_Timestamps}" FontSize="11" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-        <Button Grid.Column="1" x:Name="CopyButton" Content="{x:Static l:Strings.YouTube_Copy}" Command="{Binding CopyCommand}"
-                Padding="8,2" FontSize="11"/>
-      </Grid>
-      <TextBox x:Name="TimestampsBox" Text="{Binding Timestamps, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
-               FontFamily="Consolas, Cascadia Mono, monospace" FontSize="12" MinHeight="90"
-               ToolTip.Tip="{x:Static l:Strings.YouTube_Hint}"/>
-    </DockPanel>
+    <!-- D068 item 13: the YouTube timestamps stay one click away, folded. -->
+    <Expander x:Name="TimestampsExpander" Header="{x:Static l:Strings.ExportDialog_Timestamps}" IsExpanded="False"
+              HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Top">
+      <DockPanel>
+        <Button DockPanel.Dock="Top" HorizontalAlignment="Right" x:Name="CopyButton" Content="{x:Static l:Strings.YouTube_Copy}" Command="{Binding CopyCommand}"
+                Padding="8,2" FontSize="{DynamicResource FontSizeCaption}" Margin="0,0,0,4"/>
+        <TextBox x:Name="TimestampsBox" Text="{Binding Timestamps, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                 FontFamily="Consolas, Cascadia Mono, monospace" FontSize="{DynamicResource FontSizeCaption}" MinHeight="90"
+                 ToolTip.Tip="{x:Static l:Strings.YouTube_Hint}"/>
+      </DockPanel>
+    </Expander>
   </DockPanel>
 </UserControl>

@@ -77,6 +77,13 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
 
     public bool HasWaveform => Waveform is not null;
 
+    /// <summary>D068 item 10: the video clip's strip of pictures; null until its filmstrip is ready (and for other clips).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasFilmstrip))]
+    private Rendering.ClipFilmstrip? _filmstrip;
+
+    public bool HasFilmstrip => Filmstrip is not null;
+
     /// <summary>Width in pixels of the fade in / fade out ramp drawn on the clip (D025 §2): the effective fade — clamped to
     /// the clip, none on an edge with a dissolve (PO-8) —, 0 without one.</summary>
     [ObservableProperty]

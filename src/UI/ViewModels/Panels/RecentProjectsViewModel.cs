@@ -169,7 +169,7 @@ public sealed partial class RecentProjectsViewModel : ViewModelBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Opening the recent project {Folder} failed.", item.FolderPath);
-            _status.Report(string.Format(Strings.Recent_OpenFailed, ex.Message));
+            _status.ReportError(string.Format(Strings.Recent_OpenFailed, ex.Message));
         }
         finally
         {
@@ -208,7 +208,7 @@ public sealed partial class RecentProjectsViewModel : ViewModelBase
             }
             else
             {
-                _status.Report(string.Format(Strings.Recent_RemoveFailed, item.Name));
+                _status.ReportError(string.Format(Strings.Recent_RemoveFailed, item.Name));
             }
         }
         finally
@@ -256,6 +256,9 @@ public sealed partial class RecentProjectItemViewModel : ViewModelBase
     public string FolderPath { get; }
     public string Name { get; }
     public DateTimeOffset LastUsedAt { get; }
+
+    /// <summary>D068 item 5: when the project was last used, for the start screen (local time).</summary>
+    public string LastUsedText => LastUsedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture);
 
     public IAsyncRelayCommand OpenCommand { get; }
     public IAsyncRelayCommand RemoveCommand { get; }

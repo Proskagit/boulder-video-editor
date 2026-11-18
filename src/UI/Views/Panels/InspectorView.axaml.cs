@@ -22,7 +22,42 @@ public partial class InspectorView : UserControl
 
         // D057 §3.1: the scroll position per kind of item, kept in the user's layout (the same store as the sections).
         _scroll = new InspectorScrollMemory(InspectorSectionStates.Store);
-        InspectorScroll.ScrollChanged += (_, _) => _scroll.Scrolled(InspectorScroll.Offset.Y);
+        InspectorScroll.ScrollChanged += (_, _) =>
+        {
+            _scroll.Scrolled(InspectorScroll.Offset.Y);
+            NoteCategoryAtTop();
+        };
+    }
+
+    /// <summary>D068 amendment 1: the first shown section of a group (a <c>Panel.category</c> whose Tag is its name).</summary>
+    private Control? CategoryPanel(InspectorCategory category) =>
+        InspectorScroll.GetVisualDescendants().OfType<Panel>()
+            .FirstOrDefault(p => p.Classes.Contains("category") && p.Tag as string == category.ToString() && p.IsEffectivelyVisible &&
+                                 p.Bounds.Height > 0);
+
+    private double TopOf(Control panel) =>
+        panel.TranslatePoint(default, (Visual)InspectorScroll.Content!) is { } at ? at.Y : 0;
+
+    private void OnScrollToCategory(object? sender, InspectorCategory category)
+    {
+        if (CategoryPanel(category) is not { } panel) return;
+        var max = Math.Max(0, InspectorScroll.Extent.Height - InspectorScroll.Viewport.Height);
+        InspectorScroll.Offset = InspectorScroll.Offset.WithY(Math.Min(max, Math.Max(0, TopOf(panel) - 4)));
+    }
+
+    /// <summary>The group whose section is at the top of the visible list is lit on the rail.</summary>
+    private void NoteCategoryAtTop()
+    {
+        if (_viewModel is not { IsSingleClipSelected: true }) return;
+        var top = InspectorScroll.Offset.Y + 12;
+        InspectorCategory? atTop = null;
+        foreach (var category in Enum.GetValues<InspectorCategory>())
+        {
+            if (CategoryPanel(category) is { } panel && TopOf(panel) <= top) atTop = category;
+        }
+        // At the end of the list the last group can't reach the top: the one whose button was pressed stays lit.
+        var atEnd = InspectorScroll.Offset.Y >= InspectorScroll.Extent.Height - InspectorScroll.Viewport.Height - 1;
+        if (atTop is { } shown && !(atEnd && _viewModel.SelectedCategory > shown)) _viewModel.NoteCategoryAtTop(shown);
     }
 
     private readonly InspectorScrollMemory _scroll;
@@ -35,12 +70,14 @@ public partial class InspectorView : UserControl
         {
             _viewModel.Shown -= OnShown;
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            _viewModel.ScrollToCategoryRequested -= OnScrollToCategory;
         }
         _viewModel = DataContext as InspectorViewModel;
         if (_viewModel is not null)
         {
             _viewModel.Shown += OnShown;
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            _viewModel.ScrollToCategoryRequested += OnScrollToCategory;
         }
     }
 

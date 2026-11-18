@@ -134,7 +134,7 @@ public sealed partial class InspectorViewModel
         var frame = Playhead().ToFrameFloor(_rate);
         if (!TrainingAlignment.Covers(clip, frame, _rate))
         {
-            _status.Report(Strings.Inspector_AlignPlayheadOutside);
+            _status.ReportWarning(Strings.Inspector_AlignPlayheadOutside);
             return;
         }
         Report(FitEdit!.MoveFitMark(mark.Climb, TrainingAlignment.SourceTimeAt(clip, frame, _rate)), Strings.Inspector_FitMoved);
@@ -167,7 +167,7 @@ public sealed partial class InspectorViewModel
 
     private void Report(TimelineEditResult result, string success)
     {
-        if (!result.Success) _status.Report(result.Message ?? "");
+        if (!result.Success) _status.ReportWarning(result.Message ?? "");
         else if (result.Message is { } note) _status.Report(note);
         else if (!result.NoChange) _status.Report(success);
     }

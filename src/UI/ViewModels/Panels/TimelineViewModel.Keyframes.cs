@@ -73,7 +73,7 @@ public sealed partial class TimelineViewModel
         }
         if (KeyframeClip() is not { } clip)
         {
-            _status.Report(_selection.Count == 0 ? Core.Localization.Messages.Keyframe_NoClip : Core.Localization.Messages.Keyframe_NotUnderPlayhead);
+            _status.ReportWarning(_selection.Count == 0 ? Core.Localization.Messages.Keyframe_NoClip : Core.Localization.Messages.Keyframe_NotUnderPlayhead);
             return;
         }
         var frame = EditPlayhead.ToFrameFloor(FrameRate);

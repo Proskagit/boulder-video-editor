@@ -81,6 +81,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<FitCalibrationSaveSync>();     // Step 37.5: the saves' observations
         services.AddSingleton<IFitSettingsDialog, AvaloniaFitSettingsDialog>();
         services.AddSingleton<IAppSettingsDialog, AvaloniaAppSettingsDialog>();   // D057 §3.8: «Настройки…»
+        services.AddSingleton<IHelpWindow, AvaloniaHelpWindow>();                // D068 §3: the in-app help
         services.AddSingleton<IExportDialog, AvaloniaExportDialog>();   // the export dialog with the YouTube timestamps
         services.AddSingleton<FitSettingsWorkflow>();        // Step 37.6: «Настройки FIT…»
         // D057 §3.8: the user's FFmpeg paths (settings.json) win over the application's (appsettings.json); applied at start.
@@ -103,6 +104,7 @@ public static class ServiceCollectionExtensions
         // current project (saved: <project>/cache/thumbnails, unsaved: %LOCALAPPDATA%\…\cache\unsaved\<id>\thumbnails)
         // is ThumbnailCacheLocation's.
         services.AddSingleton<IThumbnailService, ThumbnailService>();
+        services.AddSingleton<IFilmstripService, FilmstripService>();          // D068 item 10
         services.AddSingleton<IThumbnailCacheLocation>(sp => new ThumbnailCacheLocation(
             sp.GetRequiredService<IProjectService>(), sp.GetRequiredService<RecoveryStore>(), AppPaths.UnsavedCacheRoot,
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ThumbnailCacheLocation>>()));
@@ -154,13 +156,19 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<InOutRangeService>();   // the session's In / Out range (D030 §8)
         services.AddSingleton<SourceViewerService>();  // the Source viewer's asset and source In / Out (D031)
         services.AddSingleton<IExportProgressDialog, AvaloniaExportProgressDialog>();
-        services.AddSingleton<ExportWorkflow>();
+        services.AddSingleton<ExportWorkflow>(sp =>
+        {
+            var workflow = ActivatorUtilities.CreateInstance<ExportWorkflow>(sp);
+            workflow.RevealFile = FileReveal.Select;                     // D068 item 13: «Показать в папке»
+            return workflow;
+        });
         services.AddSingleton<MediaAnalysisCoordinator>();
         services.AddSingleton<ThumbnailCoordinator>();
         services.AddSingleton<CameraMotionCoordinator>();   // hold tracking (R2 → E): camera motion of clips with holds
         services.AddSingleton<PeopleAnalysisCoordinator>();   // D061: the people of videos with Follow / Occlusion
         services.AddSingleton<AudioProcessingCoordinator>();  // D064: the clean-ups and the speech of the ducking
         services.AddSingleton<WaveformCoordinator>();
+        services.AddSingleton<FilmstripCoordinator>();                         // D068 item 10
         services.AddSingleton<MediaAvailabilityMonitor>();
         services.AddSingleton<MediaImportWorkflow>();
         services.AddSingleton<TrainingSessionService>();   // Phase 35: the project's training, its FIT resolved at runtime (D049)
@@ -172,6 +180,7 @@ public static class ServiceCollectionExtensions
 
         // --- UI view models -------------------------------------------------------
         services.AddTransient<RecentProjectsViewModel>();
+        services.AddSingleton<SaveStateViewModel>();                   // D068 item 11
         services.AddTransient<ToolbarViewModel>();
         services.AddTransient<MediaBrowserViewModel>();
         services.AddTransient<PreviewViewModel>();

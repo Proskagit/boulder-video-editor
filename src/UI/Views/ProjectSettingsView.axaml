@@ -13,18 +13,18 @@
       <Setter Property="ParsingNumberStyle" Value="{x:Static common:NumericInput.ParsingStyle}"/>
     </Style>
     <Style Selector="TextBlock.heading">
-      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}"/>
       <Setter Property="FontWeight" Value="Bold"/>
-      <Setter Property="Foreground" Value="#9A9A9A"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
     </Style>
     <Style Selector="TextBlock.note">
-      <Setter Property="FontSize" Value="11"/>
-      <Setter Property="Foreground" Value="#AAAAAA"/>
+      <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
       <Setter Property="TextWrapping" Value="Wrap"/>
     </Style>
     <Style Selector="TextBlock.error">
-      <Setter Property="FontSize" Value="11"/>
-      <Setter Property="Foreground" Value="#F08A6C"/>
+      <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}"/>
+      <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}"/>
       <Setter Property="TextWrapping" Value="Wrap"/>
     </Style>
   </UserControl.Styles>

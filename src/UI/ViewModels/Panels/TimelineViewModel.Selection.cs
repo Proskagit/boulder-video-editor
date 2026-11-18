@@ -37,7 +37,7 @@ public sealed partial class TimelineViewModel
         var clips = Tracks.Where(t => !t.Track.IsLocked).SelectMany(t => t.Clips).ToList();
         if (clips.Count == 0)
         {
-            _status.Report(Strings.Selection_NothingToSelect);
+            _status.ReportWarning(Strings.Selection_NothingToSelect);
             return;
         }
         SetSelection(clips);

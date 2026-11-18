@@ -4,7 +4,15 @@
              RequestedThemeVariant="Dark">
 
   <Application.Styles>
-    <FluentTheme />
+    <!-- D068 §5 item 1: Fluent's own controls (check boxes, sliders, list selection) take the product's green accent and the
+         theme's surfaces; the rest of the design system is BoulderTheme. -->
+    <FluentTheme>
+      <FluentTheme.Palettes>
+        <ColorPaletteResources x:Key="Dark" Accent="#43A047" RegionColor="#16191D" AltHigh="#16191D"
+                               ChromeMediumLow="#1E2328" ChromeMedium="#262C33" ChromeLow="#1E2328"/>
+      </FluentTheme.Palettes>
+    </FluentTheme>
+    <StyleInclude Source="avares://AiVideoEditor.UI/Themes/BoulderTheme.axaml"/>
   </Application.Styles>
 
 </Application>

@@ -3,11 +3,19 @@ namespace AiVideoEditor.Infrastructure.Configuration;
 /// <summary>Central place for all "where does this file live on disk" decisions.</summary>
 public static class AppPaths
 {
-    public const string AppFolderName = "AiVideoEditor";
+    /// <summary>D068 §1: the folder carries the product's name, Boulder Video Editor.</summary>
+    public const string AppFolderName = "BoulderVideoEditor";
 
-    /// <summary>%LOCALAPPDATA%\AiVideoEditor (Windows) or the XDG-equivalent elsewhere.</summary>
+    /// <summary>The folder of 1.0 and earlier, moved into <see cref="AppDataRoot"/> at startup (<see cref="AppDataMigration"/>).</summary>
+    public const string LegacyAppFolderName = "AiVideoEditor";
+
+    /// <summary>%LOCALAPPDATA%\BoulderVideoEditor (Windows) or the XDG-equivalent elsewhere.</summary>
     public static string AppDataRoot { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppFolderName);
+
+    /// <summary>%LOCALAPPDATA%\AiVideoEditor — read only by <see cref="AppDataMigration"/>.</summary>
+    public static string LegacyAppDataRoot { get; } =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), LegacyAppFolderName);
 
     public static string LogsFolder => EnsureExists(Path.Combine(AppDataRoot, "logs"));
 

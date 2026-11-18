@@ -121,7 +121,7 @@ public sealed partial class InspectorViewModel
         if (_syncing || value is not { } seconds || _clip is null || RejectWhileLocked()) return;
         if (seconds < (decimal)TextAnimationLimits.MinSeconds || seconds > (decimal)TextAnimationLimits.MaxSeconds)
         {
-            _status.Report(string.Format(Strings.Inspector_MotionDurationRange, TextAnimationLimits.MinSeconds, TextAnimationLimits.MaxSeconds));
+            _status.ReportWarning(string.Format(Strings.Inspector_MotionDurationRange, TextAnimationLimits.MinSeconds, TextAnimationLimits.MaxSeconds));
             ShowModelAfterRejection();
             return;
         }
@@ -218,7 +218,7 @@ public sealed partial class InspectorViewModel
         var result = _edit.SetClipProperties(_clip.Id, change);
         if (!result.Success)
         {
-            _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
+            _status.ReportWarning(result.Message ?? Strings.Inspector_ClipNotChanged);
             ShowModelAfterRejection(); // the fields show what the model really has
         }
     }

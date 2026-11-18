@@ -260,7 +260,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         _projects.ProjectChanged += (_, _) => { Exit(); SetClip(null); };
         _lock.PropertyChanged += (_, _) => { if (_lock.IsLocked) Exit(); RefreshCommands(); };
         if (_segmentation is not null)
-            _segmentation.DeviceChanged += (_, _) => OnUi(() => _status.Report(CpuMessage));
+            _segmentation.DeviceChanged += (_, _) => OnUi(() => _status.ReportWarning(CpuMessage));
 
         MaxProposalsToShow = 30;
         // D057 §3.15: off by default; the user's choice is kept across restarts.
@@ -463,13 +463,13 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (_clip is null) return;
         if (_lock.IsLocked)
         {
-            _status.Report(Strings.Holds_OutlineExportRunning);
+            _status.ReportWarning(Strings.Holds_OutlineExportRunning);
             LoadStyle();
             return;
         }
         var current = HoldStyle.Of(Markup ?? new HoldMarkup());
         var result = _edit.SetHoldStyle(_clip.Id, change(current), RouteForEdit());
-        if (!result.Success) _status.Report(result.Message ?? Strings.Holds_OutlineNotChanged);
+        if (!result.Success) _status.ReportWarning(result.Message ?? Strings.Holds_OutlineNotChanged);
         LoadStyle();
     }
 
@@ -629,11 +629,11 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (_clip is null) return;
         if (_lock.IsLocked)
         {
-            _status.Report(Strings.Holds_AnimationExportRunning);
+            _status.ReportWarning(Strings.Holds_AnimationExportRunning);
             return;
         }
         var result = _edit.LayOutIntroAndFinal(_clip.Id, Playhead(), _routeId);
-        if (!result.Success || result.Message is not null) _status.Report(result.Message ?? Strings.Holds_AnimationNotChanged);
+        if (!result.Success || result.Message is not null) _status.ReportWarning(result.Message ?? Strings.Holds_AnimationNotChanged);
         LoadStyle();
         RefreshCommands();
     }
@@ -662,7 +662,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (_clip is null) return;
         if (_lock.IsLocked)
         {
-            _status.Report(Strings.Holds_AnimationExportRunning);
+            _status.ReportWarning(Strings.Holds_AnimationExportRunning);
             LoadStyle();
             return;
         }
@@ -673,7 +673,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             return;
         }
         var result = _edit.SetHoldAnimation(_clip.Id, change(current ?? new HoldAnimation()), RouteForEdit());
-        if (!result.Success) _status.Report(result.Message ?? Strings.Holds_AnimationNotChanged);
+        if (!result.Success) _status.ReportWarning(result.Message ?? Strings.Holds_AnimationNotChanged);
         LoadStyle();
         RefreshCommands();
     }
@@ -784,6 +784,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         ResolveRoute();
         LoadStyle();
         IsActive = true;
+        _pendingClick = null;
         IsPreparing = true;
         PrepareProgress = 0;
         ModeText = Strings.Holds_CheckingModel;
@@ -801,11 +802,11 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             if (_modeCts != cts) return;   // left (and maybe restarted) meanwhile
             if (!status.IsReady)
             {
-                _status.Report(status.Message ?? Strings.Holds_ModelUnavailable);
+                _status.ReportError(status.Message ?? Strings.Holds_ModelUnavailable);
                 Exit();
                 return;
             }
-            if (_segmentation.Device == InferenceDevice.Cpu) _status.Report(CpuMessage);
+            if (_segmentation.Device == InferenceDevice.Cpu) _status.ReportWarning(CpuMessage);
 
             if (CanGenerateProposals(clip))
             {
@@ -834,6 +835,11 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             LoadStyle();   // the dashed contours of an animated route (D036)
             UpdateOverlay();
             ModeText = HasProposals ? Strings.Holds_ReviewProposals : ReadyText;
+            if (_pendingClick is { } pending)
+            {
+                _pendingClick = null;
+                await OnClickAsync(pending.Point, pending.Additive);
+            }
         }
         catch (OperationCanceledException) when (cts.IsCancellationRequested)
         {
@@ -841,7 +847,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         }
         catch (Exception ex) when (_modeCts == cts)
         {
-            _status.Report(string.Format(Strings.Holds_NotPossible, ex.Message));
+            _status.ReportWarning(string.Format(Strings.Holds_NotPossible, ex.Message));
             Exit();
         }
         catch (Exception)
@@ -889,7 +895,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             _proposalSource.AddRange(result.Proposals);
             if (_proposalSource.Count == 0)
             {
-                _status.Report(Strings.Holds_NoProposals);
+                _status.ReportWarning(Strings.Holds_NoProposals);
             }
             else
             {
@@ -904,7 +910,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         }
         catch (Exception ex) when (_modeCts == cts)
         {
-            _status.Report(string.Format(Strings.Holds_ProposalsError, ex.Message));
+            _status.ReportError(string.Format(Strings.Holds_ProposalsError, ex.Message));
             ClearProposals();
         }
         finally
@@ -953,7 +959,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         Exit();
         if (!layOut) return;
         var result = _edit.LayOutIntroAndFinal(clip!.Id, at, route);
-        if (!result.Success) _status.Report(result.Message ?? Strings.Holds_AnimationNotChanged);
+        if (!result.Success) _status.ReportWarning(result.Message ?? Strings.Holds_AnimationNotChanged);
         LoadStyle();
         RefreshCommands();
     }
@@ -1133,7 +1139,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
                 var result = _edit.AddHolds(clip.Id, holds, RouteForEdit());
                 if (!result.Success)
                 {
-                    _status.Report(result.Message ?? Strings.Holds_NotAdded);
+                    _status.ReportWarning(result.Message ?? Strings.Holds_NotAdded);
                 }
                 else
                 {
@@ -1143,12 +1149,12 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             }
             else if (skipped > 0)
             {
-                _status.Report(Messages.Holds_RefinementFailed);
+                _status.ReportError(Messages.Holds_RefinementFailed);
             }
 
             if (room < proposals.Count && holds.Count == room)
             {
-                _status.Report(string.Format(Messages.Holds_MaxHolds, HoldMarkupRules.MaxHolds));
+                _status.ReportWarning(string.Format(Messages.Holds_MaxHolds, HoldMarkupRules.MaxHolds));
             }
 
             RefreshProposals();
@@ -1158,7 +1164,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            _status.Report(string.Format(Strings.Holds_RefinementFailedFor, ex.Message));
+            _status.ReportError(string.Format(Strings.Holds_RefinementFailedFor, ex.Message));
         }
         finally
         {
@@ -1176,6 +1182,8 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
     /// <summary>A click on the Preview at <paramref name="point"/> (normalized source coordinates of the clip's frame);
     /// <paramref name="additive"/>: Shift was held.</summary>
+    private (NormalizedPoint Point, bool Additive)? _pendingClick;
+
     public async Task OnClickAsync(NormalizedPoint point, bool additive)
     {
         // A confirm still sampling the colours finishes first: a quick next click never drops it.
@@ -1183,6 +1191,14 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (_routePhase == RoutePhase.Picking)
         {
             if (point.X is >= 0 and <= 1 && point.Y is >= 0 and <= 1) await PickControlAsync(point);
+            return;
+        }
+        if (IsActive && IsPreparing && _routePhase == RoutePhase.None && point.X is >= 0 and <= 1 && point.Y is >= 0 and <= 1)
+        {
+            // D068 item 9: a click while the model or the frame is still being prepared is kept and applied once ready — it
+            // never vanishes without a trace.
+            _pendingClick = (point, additive);
+            ModeText = Strings.Holds_ClickKept;
             return;
         }
         if (!IsActive || IsPreparing || _encoded is null || MarkupFrame is null) return;
@@ -1230,13 +1246,13 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
                 // Enter pressed meanwhile is dropped (it meant the refined outline, which does not exist).
                 if (_points.Count == points.Count) _points.RemoveAt(_points.Count - 1);
                 _confirmPending = false;
-                _status.Report(RefineRejectedMessage);
+                _status.ReportWarning(RefineRejectedMessage);
                 return;
             }
             if (visible.IsEmpty)
             {
                 ClearCandidate();
-                _status.Report(Strings.Holds_NoHoldThere);
+                _status.ReportWarning(Strings.Holds_NoHoldThere);
                 return;
             }
             _maskSet = set;
@@ -1254,7 +1270,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
                 // A failed refinement keeps the candidate as it was, without the new point.
                 if (points.Count > 1 && _points.Count == points.Count) _points.RemoveAt(_points.Count - 1);
                 _confirmPending = false;
-                _status.Report(string.Format(Strings.Holds_Failed, ex.Message));
+                _status.ReportError(string.Format(Strings.Holds_Failed, ex.Message));
             }
         }
         finally
@@ -1322,7 +1338,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            _status.Report(string.Format(Strings.Holds_AddFailed, ex.Message));
+            _status.ReportError(string.Format(Strings.Holds_AddFailed, ex.Message));
         }
     }
 
@@ -1344,7 +1360,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         var result = _edit.AddHold(clip.Id, new Hold(Guid.NewGuid(), contour, surface, wall, _sourceTime), RouteForEdit());
         if (!result.Success)
         {
-            _status.Report(result.Message ?? Strings.Holds_NotAdded);
+            _status.ReportWarning(result.Message ?? Strings.Holds_NotAdded);
             return;
         }
         ClearCandidate();
@@ -1364,7 +1380,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             return;
         }
         var result = _edit.RemoveHold(_clip.Id, id, _routeId);
-        if (!result.Success) _status.Report(result.Message ?? Strings.Holds_NotRemoved);
+        if (!result.Success) _status.ReportWarning(result.Message ?? Strings.Holds_NotRemoved);
         Select(null);
     }
 
@@ -1531,7 +1547,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (edge < 0 || edge >= current.Points.Length) return;
         if (ContourEditing.InsertVertex(current, edge, t, frame.Width, frame.Height) is not { } inserted)
         {
-            if (current.Points.Length >= HoldMarkupRules.MaxPoints) _status.Report(string.Format(Strings.Holds_MaxPoints, HoldMarkupRules.MaxPoints));
+            if (current.Points.Length >= HoldMarkupRules.MaxPoints) _status.ReportWarning(string.Format(Strings.Holds_MaxPoints, HoldMarkupRules.MaxPoints));
             return;   // otherwise a handle is there already
         }
         if (inserted.Points == current.Points)
@@ -1574,7 +1590,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (_lock.IsLocked)
         {
             Restore(before);
-            _status.Report(Strings.Holds_OutlineExportRunning);
+            _status.ReportWarning(Strings.Holds_OutlineExportRunning);
             return;
         }
         SelectedContour = edited.Points;
@@ -1584,7 +1600,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (!result.Success)
         {
             Restore(before);
-            _status.Report(result.Message ?? Strings.Holds_OutlineNotChanged);
+            _status.ReportWarning(result.Message ?? Strings.Holds_OutlineNotChanged);
         }
         else if (Markup?.Holds.FirstOrDefault(h => h.Id == id)?.Points != edited.Points)
         {

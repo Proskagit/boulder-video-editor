@@ -1,10 +1,10 @@
-THIRD-PARTY NOTICES - AiVideoEditor 1.0, AI models archive
+THIRD-PARTY NOTICES - Boulder Video Editor 1.0, AI models archive
 ==========================================================
 
-This archive holds the AI models AiVideoEditor uses locally (DECISIONS.md D066 par. 3). They are ONNX conversions of the
-third-party models below, made for AiVideoEditor by the recipes named; the weights are the original authors' work and stay
-under their licences. AiVideoEditor never downloads them; Install-Models.cmd copies them into
-%LOCALAPPDATA%\AiVideoEditor\models after checking every file's size and SHA-256 (models.json).
+This archive holds the AI models Boulder Video Editor uses locally (DECISIONS.md D066 par. 3). They are ONNX conversions of the
+third-party models below, made for Boulder Video Editor by the recipes named; the weights are the original authors' work and stay
+under their licences. Boulder Video Editor never downloads them; Install-Models.cmd copies them into
+%LOCALAPPDATA%\BoulderVideoEditor\models after checking every file's size and SHA-256 (models.json).
 
 The licence texts are in licenses\.
 
@@ -15,7 +15,7 @@ SAM 2.1 Hiera Large (Segment Anything Model 2), Meta Platforms, Inc. and affilia
 Source: https://github.com/facebookresearch/sam2, checkpoint sam2.1_hiera_large.pt (092824).
 Licence: Apache License 2.0 (licenses\SAM2-LICENSE-Apache-2.0.txt); the repository has no NOTICE file.
 Modification: converted to ONNX (an image encoder and a prompt decoder) with samexporter 0.5.0 (MIT) - recipe in
-docs/AI_MODEL.md, "Export recipe", of the AiVideoEditor repository.
+docs/AI_MODEL.md, "Export recipe", of the Boulder Video Editor repository.
 
 
 people-v2\  - Follow and Occlusion

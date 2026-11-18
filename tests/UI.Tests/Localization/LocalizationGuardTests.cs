@@ -25,7 +25,8 @@ public sealed partial class LocalizationGuardTests
     private static readonly HashSet<string> AxamlAllowed = new(StringComparer.Ordinal)
     {
         "M",  // the mute button of a track header (as in other editors; its tooltip is translated)
-        "S"   // D064: the solo button of a track header and the mixer (as in other editors; its tooltip is translated)
+        "S",  // D064: the solo button of a track header and the mixer (as in other editors; its tooltip is translated)
+        "Boulder Video Editor"   // D068 §1: the product's name on the start screen — not translated
     };
 
     [Fact]
@@ -92,8 +93,25 @@ public sealed partial class LocalizationGuardTests
         "TemplateStatus_Top",  // D045 §1.3: the climbers' word for a done route, written so in Russian too
         "ExportEncoder_Nvenc", "ExportEncoder_X264",  // D059: the encoders' own names
         "ExportResolution_Uhd4K", "ExportResolution_FullHd", "ExportResolution_Hd", "ExportResolution_Sd",  // D060: the standards' names
-        "AppSettings_Coros", "AppSettings_Garmin"   // D062 amendment 1: the watch makers' brand names
+        "AppSettings_Coros", "AppSettings_Garmin",   // D062 amendment 1: the watch makers' brand names
+        "InspectorRail_Fit"   // D068 item 8: the file format's name, as the rest of the interface says «FIT»
     };
+
+    /// <summary>D068 §1: no user-visible text names the old product.</summary>
+    [Theory]
+    [InlineData("src/UI/Localization/Strings")]
+    [InlineData("src/Core/Localization/Messages")]
+    public void No_resource_names_the_old_product(string basePath)
+    {
+        var root = new DirectoryInfo(AppContext.BaseDirectory);
+        while (root is not null && !File.Exists(Path.Combine(root.FullName, "AiVideoEditor.sln"))) root = root.Parent;
+        foreach (var suffix in new[] { ".resx", ".ru.resx" })
+        {
+            var text = File.ReadAllText(Path.Combine(root!.FullName, basePath + suffix));
+            Assert.DoesNotContain("AI Video Editor", text);
+            Assert.DoesNotContain("AiVideoEditor ", text);
+        }
+    }
 
     [Fact]
     public void Source_literals_are_translated_or_listed()

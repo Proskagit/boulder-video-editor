@@ -31,7 +31,7 @@ if (args.Length < 1)
     return 2;
 }
 double D(string s) => double.Parse(s, CultureInfo.InvariantCulture);
-var models = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AiVideoEditor", "models", PeopleModel.FolderName);
+var models = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BoulderVideoEditor", "models", PeopleModel.FolderName);
 var locator = new FfmpegLocator(Options.Create(new FfmpegOptions()), NullLogger<FfmpegLocator>.Instance);
 var decoder = new FfmpegVideoDecoder(locator, NullLogger<FfmpegVideoDecoder>.Instance);
 using var vision = new OnnxPeopleVision(models);

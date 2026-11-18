@@ -40,6 +40,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private readonly EditingLock _editingLock;
     private readonly InOutRangeService _inOut;
     private readonly WaveformCoordinator? _waveforms;
+    private readonly FilmstripCoordinator? _filmstrips;
     private readonly IDialogService? _dialogs;
 
     private readonly Dictionary<Guid, TimelineClipViewModel> _clipViewModels = new();
@@ -67,7 +68,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         SourceViewerService? source = null,
         ITextBoxMeasurer? textBoxes = null,
         IUserSettingsService? userSettings = null,
-        AudioProcessingCoordinator? audio = null)
+        AudioProcessingCoordinator? audio = null,
+        FilmstripCoordinator? filmstrips = null)
     {
         if (userSettings is not null) FollowsPlayheadSetting = () => userSettings.Current.TimelineFollowsPlayhead;
         Mixer = new MixerViewModel(projectService, edit, status, audio, () => !(editingLock?.IsLocked ?? false));
@@ -84,22 +86,27 @@ public sealed partial class TimelineViewModel : ViewModelBase
         _editingLock.PropertyChanged += (_, _) => OnEditingLockChanged();
 
         _projectService.TimelineChanged += (_, _) => Refresh();
-        _projectService.TimelineChanged += (_, _) => NoteCanvasChange();
+        _projectService.TimelineChanged += (_, _) => FitWhenTheFirstClipsArrive();
         _projectService.ProjectChanged += (_, _) => OnProjectReplaced();
         _projectService.MediaAssetsChanged += (_, _) =>
         {
             RefreshClipNames();
             RefreshWaveforms(); // a relinked file's old waveform is gone (D026 §3) — not only replaced by a new one
+            RefreshFilmstrips();
         };
         _waveforms = waveforms;
+        _filmstrips = filmstrips;
+        if (filmstrips is not null)
+            filmstrips.FilmstripReady += (_, _) => RefreshFilmstrips();
         _dialogs = dialogs;
         if (waveforms is not null)
             waveforms.WaveformReady += (_, _) => RefreshWaveforms();
 
         _pixelsPerSecond = Sequence.ZoomPixelsPerSecond;
         _snappingEnabled = Sequence.SnappingEnabled;
-        ResetCanvasOffer();
         Refresh();
+        _hadClips = HasClips();     // an opened project keeps its saved zoom
+        _userZoomed = false;
         PrepareInitialZoom();
     }
 
@@ -190,8 +197,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
         Clipboard = null;   // copied clips refer to the previous project's media and tracks (D027 §5)
         PixelsPerSecond = Sequence.ZoomPixelsPerSecond;
         SnappingEnabled = Sequence.SnappingEnabled;
-        ResetCanvasOffer();
         Refresh();
+        _hadClips = HasClips();     // D068 item 6: an opened project keeps its saved zoom
+        _userZoomed = false;
         PrepareInitialZoom();
     }
 
@@ -416,6 +424,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         foreach (var vm in _clipViewModels.Values)
             vm.Layout(PixelsPerSecond);
         RefreshWaveforms();
+        RefreshFilmstrips();
         RefreshFades();
         RefreshVolumeShapes();
         RefreshStatusMarks();
@@ -528,6 +537,18 @@ public sealed partial class TimelineViewModel : ViewModelBase
         {
             foreach (var vm in track.Clips)
                 vm.Waveform = WaveformOf(vm.Clip, track.Track);
+        }
+    }
+
+    /// <summary>D068 item 10: every video clip's strip of pictures, from its video's filmstrip, its timing and the zoom.</summary>
+    private void RefreshFilmstrips()
+    {
+        foreach (var track in Tracks)
+        {
+            foreach (var vm in track.Clips)
+                vm.Filmstrip = vm.Clip is VideoClip video && _filmstrips?.Get(video.MediaAssetId) is { } strip
+                    ? new Rendering.ClipFilmstrip(strip, video.SourceIn, video.Speed, PixelsPerSecond)
+                    : null;
         }
     }
 
@@ -661,6 +682,22 @@ public sealed partial class TimelineViewModel : ViewModelBase
     [RelayCommand] private void ZoomIn() => ZoomAroundPlayhead(ZoomStep);
     [RelayCommand] private void ZoomOut() => ZoomAroundPlayhead(1 / ZoomStep);
 
+    private bool _hadClips;
+    private bool _userZoomed;     // the user zoomed this project's timeline (wheel, − / +): the first clips keep that zoom
+
+    private bool HasClips() =>
+        Sequence.VideoTracks.Any(t => t.Clips.Count > 0) || Sequence.AudioTracks.Any(t => t.Clips.Count > 0);
+
+    /// <summary>D068 item 6 (changes D058's «adding clips keeps the zoom» for the first clips only): the first clips put on an
+    /// empty timeline are shown whole — they were a sliver at the start of the ten-minute ruler — unless the user already chose
+    /// a zoom; every later edit keeps the zoom.</summary>
+    private void FitWhenTheFirstClipsArrive()
+    {
+        var has = HasClips();
+        if (has && !_hadClips && !_userZoomed) ZoomToFit();
+        _hadClips = has;
+    }
+
     [RelayCommand]
     private void ZoomToFit()
     {
@@ -675,6 +712,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     public void ZoomAtPointer(double factor, double contentX)
     {
         SuspendFollowing();
+        _userZoomed = true;
         var anchorTime = TimelineCoordinateMapper.XToTime(Math.Max(0, contentX), PixelsPerSecond);
         var anchorViewportX = contentX - _scrollOffsetX;
         ApplyZoom(PixelsPerSecond * factor);
@@ -684,6 +722,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void ZoomAroundPlayhead(double factor)
     {
         SuspendFollowing();
+        _userZoomed = true;
         var playheadViewportX = PlayheadX - _scrollOffsetX;
         if (playheadViewportX < 0 || playheadViewportX > _viewportWidth)
             playheadViewportX = _viewportWidth / 2; // off-screen playhead: bring it to the centre
@@ -846,12 +885,12 @@ public sealed partial class TimelineViewModel : ViewModelBase
         var selectVideo = typeId == TransitionRules.CrossDissolve ? Strings.Dissolve_SelectVideo : Strings.Transition_SelectVideo;
         if (left is AudioClip && typeId != TransitionRules.Crossfade)
         {
-            _status.Report(selectVideo);
+            _status.ReportWarning(selectVideo);
             return;
         }
         if (_edit.MaxTransitionFrames(left.Id, right.Id, typeId) is null)   // the clips don't meet on one track
         {
-            _status.Report(left is AudioClip ? Strings.Dissolve_SelectAudio : selectVideo);
+            _status.ReportWarning(left is AudioClip ? Strings.Dissolve_SelectAudio : selectVideo);
             return;
         }
 
@@ -963,7 +1002,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         if (_edit.CopyClips(_selection.ToList()) is not { } copied)
         {
-            _status.Report(Strings.Copy_NothingCopied);
+            _status.ReportWarning(Strings.Copy_NothingCopied);
             return;
         }
         Clipboard = copied;
@@ -1012,7 +1051,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         if (marker is not { } at)
         {
-            _status.Report(refusal);
+            _status.ReportWarning(refusal);
             return;
         }
         SetPlayhead(at);
@@ -1095,7 +1134,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         var clipCount = track.Track.Clips.Count;
         if (_edit.GetDeleteTrackBlockReason(track.Track.Id) is { } blocked)
         {
-            _status.Report(blocked);
+            _status.ReportWarning(blocked);
             return;
         }
         if (clipCount > 0)
@@ -1136,9 +1175,35 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void AddTemplate(string kind)
     {
         if (!Enum.TryParse<TemplateKind>(kind, out var parsed)) return;
-        var result = _edit.AddTemplateClip(parsed, EditPlayhead);
+        var at = EditPlayhead;
+        var result = _edit.AddTemplateClip(parsed, at);
         SelectAdded(result);
         Report(result, successMessage: Strings.Template_Added);
+        // D068 amendment 1: a heart rate plate where the training has no samples shows nothing — said at once.
+        if (result.Success && parsed == TemplateKind.HeartRate && !HasHeartRateAt(at))
+            _status.ReportWarning(Strings.Template_NoHeartRateHere);
+    }
+
+    /// <summary>D068 amendment 1: «Пульс» is offered only with a usable training (it shows nothing without one).</summary>
+    public bool HasTraining => _projectService.Current.Training is { IsUsable: true };
+
+    /// <summary>The template menu is opening: its «Пульс» follows the training.</summary>
+    public void RefreshTemplateMenu() => OnPropertyChanged(nameof(HasTraining));
+
+    /// <summary>Whether the training has a heart rate for the picture of the topmost video clip at <paramref name="at"/>
+    /// (D055 §1: the file's time and the training's clock correction).</summary>
+    internal bool HasHeartRateAt(MediaTime at)
+    {
+        if (_projectService.Current.Training is not { Workout: { } workout } training) return false;
+        foreach (var track in Sequence.VideoTracks.OrderByDescending(t => t.Order))
+        {
+            if (track.Clips.OfType<VideoClip>().FirstOrDefault(c => c.TimelineStart <= at && at < c.TimelineEnd) is not { } clip) continue;
+            if (FindAsset(clip.MediaAssetId) is not { } asset || FitRouteBinding.FileTimeOf(asset, workout) is not { Zero: var zero }) continue;
+            var offset = at - clip.TimelineStart;
+            var source = new MediaTime(clip.SourceIn.Ticks + offset.Ticks * clip.Speed.Numerator / clip.Speed.Denominator);
+            if (TrainingAlignment.HeartRateAtSource(workout, zero, training.ClockCorrection, source) is not null) return true;
+        }
+        return false;
     }
 
     /// <summary>"Add to Timeline" from the Media Browser: end of V1 / A1.</summary>
@@ -1233,7 +1298,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         if (reason == _lastDragRefusal) return;
         _lastDragRefusal = reason;
-        if (reason is not null) _status.Report(reason);
+        if (reason is not null) _status.ReportWarning(reason);
     }
 
     /// <summary>Where a drop at <paramref name="contentX"/> puts the new clip (D037 §2): with Snap on, onto a track with no
@@ -1316,7 +1381,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void Report(TimelineEditResult result, string? successMessage = null)
     {
         if (!result.Success)
-            _status.Report(result.Message ?? Strings.Timeline_EditNotPossible);
+            _status.ReportWarning(result.Message ?? Strings.Timeline_EditNotPossible);
         else if (result.Message is not null)
             _status.Report(result.Message);
         else if (successMessage is not null && !result.NoChange)
@@ -1583,7 +1648,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         SelectOnly(clip.Id);
         if (clip.Clip is not (VideoClip or AudioClip))
         {
-            _status.Report(Strings.Slip_OnlyMedia);
+            _status.ReportWarning(Strings.Slip_OnlyMedia);
             return false;
         }
         _gesture = new Gesture

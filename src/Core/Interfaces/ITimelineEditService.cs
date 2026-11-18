@@ -307,6 +307,10 @@ public interface ITimelineEditService
     /// when clips use the asset is the caller's part.</summary>
     TimelineEditResult RemoveMedia(Guid mediaAssetId);
 
+    /// <summary>D068 amendment 1: several media assets removed together (the Media Browser's selection), with their clips and
+    /// dissolves, as one Undo step; by the rules of <see cref="RemoveMedia"/> — refused whole when any of them is refused.</summary>
+    TimelineEditResult RemoveMediaMany(IReadOnlyList<Guid> mediaAssetIds);
+
     /// <summary>Sets absolute property values of one clip: every group given in
     /// <paramref name="change"/> replaces the clip's current values of that group exactly (no
     /// rounding or recomputation). Rejected when a group doesn't apply to the clip's kind, a value

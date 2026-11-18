@@ -11,8 +11,26 @@ namespace AiVideoEditor.UI.Services;
 /// place in the whole solution that touches Avalonia's file-dialog types —
 /// everything upstream of it (view models, Core) only ever sees <see cref="IFilePickerService"/>.
 /// </summary>
+/// D068 item 12: a picker the caller gives no folder opens where the user picked last in this session, else in the user's
+/// Videos (files to import) or Documents (projects, exports) — never the program's own folder, Windows' fallback.
 public sealed class AvaloniaFilePickerService : IFilePickerService
 {
+    private string? _lastFolder;
+
+    private string? StartFolder(string? requested, Environment.SpecialFolder fallback)
+    {
+        foreach (var candidate in new[] { requested, _lastFolder, Environment.GetFolderPath(fallback),
+                     Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) })
+            if (!string.IsNullOrEmpty(candidate) && Directory.Exists(candidate)) return candidate;
+        return null;
+    }
+
+    private void Remember(string? path, bool isFolder)
+    {
+        var folder = isFolder ? path : Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(folder)) _lastFolder = folder;
+    }
+
     public async Task<IReadOnlyList<string>> PickFilesAsync(FilePickerRequest request, CancellationToken ct = default)
     {
         var topLevel = GetTopLevel();
@@ -28,7 +46,7 @@ public sealed class AvaloniaFilePickerService : IFilePickerService
                 .Select(f => new FilePickerFileType(f.Name) { Patterns = f.Patterns.ToArray() })
                 .ToArray()
         };
-        if (request.StartFolder is { } start && Directory.Exists(start))
+        if (StartFolder(request.StartFolder, Environment.SpecialFolder.MyVideos) is { } start)
             options.SuggestedStartLocation = await storageProvider.TryGetFolderFromPathAsync(start);
 
         var files = await storageProvider.OpenFilePickerAsync(options);
@@ -40,6 +58,7 @@ public sealed class AvaloniaFilePickerService : IFilePickerService
             if (localPath is not null)
                 paths.Add(localPath);
         }
+        if (paths.Count > 0) Remember(paths[0], isFolder: false);
         return paths;
     }
 
@@ -50,11 +69,13 @@ public sealed class AvaloniaFilePickerService : IFilePickerService
             return null;
 
         var options = new FolderPickerOpenOptions { Title = request.Title, AllowMultiple = false };
-        if (request.StartFolder is { } start && Directory.Exists(start))
+        if (StartFolder(request.StartFolder, Environment.SpecialFolder.MyDocuments) is { } start)
             options.SuggestedStartLocation = await storageProvider.TryGetFolderFromPathAsync(start);
 
         var folders = await storageProvider.OpenFolderPickerAsync(options);
-        return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+        var picked = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+        Remember(picked, isFolder: true);
+        return picked;
     }
 
     public async Task<string?> PickSaveFileAsync(SaveFilePickerRequest request, CancellationToken ct = default)
@@ -73,11 +94,13 @@ public sealed class AvaloniaFilePickerService : IFilePickerService
                 .Select(f => new FilePickerFileType(f.Name) { Patterns = f.Patterns.ToArray() })
                 .ToArray()
         };
-        if (request.StartFolder is { } start && Directory.Exists(start))
+        if (StartFolder(request.StartFolder, Environment.SpecialFolder.MyDocuments) is { } start)
             options.SuggestedStartLocation = await storageProvider.TryGetFolderFromPathAsync(start);
 
         var file = await storageProvider.SaveFilePickerAsync(options);
-        return file?.TryGetLocalPath();
+        var path = file?.TryGetLocalPath();
+        Remember(path, isFolder: false);
+        return path;
     }
 
     private static TopLevel? GetTopLevel()

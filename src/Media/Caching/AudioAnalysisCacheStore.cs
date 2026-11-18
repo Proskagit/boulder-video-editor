@@ -8,7 +8,7 @@ namespace AiVideoEditor.Media.Caching;
 /// <summary>
 /// D064 §5: the cleaned sounds (48 kHz stereo float WAVs aligned to the source's sample 0) and the speech analyses kept between
 /// sessions — the rules of <see cref="PeopleAnalysisCacheStore"/>: one file per key in a folder of the application's cache
-/// (<c>%LOCALAPPDATA%\AiVideoEditor\cache\audio</c>, never the project); the file name is the SHA-256 of the key (the source's
+/// (<c>%LOCALAPPDATA%\BoulderVideoEditor\cache\audio</c>, never the project); the file name is the SHA-256 of the key (the source's
 /// content fingerprint, the settings, the algorithm version); a speech file repeats its key and ends with the SHA-256 of its
 /// content (a damaged one is deleted and analysed again); written atomically; above the size limit the least recently used files
 /// are removed; any failure is logged and treated as "not cached".

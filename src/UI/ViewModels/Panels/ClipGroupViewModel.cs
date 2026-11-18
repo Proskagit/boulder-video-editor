@@ -167,7 +167,7 @@ public sealed partial class ClipGroupViewModel : ViewModelBase
             return;
         }
         var result = _edit.EditAsOneStep(description, mergeKey, () => edits().ToList());
-        if (!result.Success) _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
+        if (!result.Success) _status.ReportWarning(result.Message ?? Strings.Inspector_ClipNotChanged);
         Load();
     }
 

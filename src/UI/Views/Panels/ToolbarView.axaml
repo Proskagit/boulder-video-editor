@@ -4,7 +4,18 @@
              xmlns:controls="using:AiVideoEditor.UI.Controls"
              x:Class="AiVideoEditor.UI.Views.Panels.ToolbarView">
 
-  <Border Background="#2D2D30" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1" Padding="8,6">
+  <Border Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,0,1" Padding="8,6">
+    <DockPanel>
+    <!-- D068 item 11: the project's save state, at the right end of the bar. -->
+    <TextBlock x:Name="SaveStateText" DockPanel.Dock="Right" DataContext="{Binding SaveState}"
+               IsVisible="{Binding $self.DataContext, Converter={x:Static ObjectConverters.IsNotNull}}"
+               Text="{Binding Text}" ToolTip.Tip="{Binding ToolTip}" VerticalAlignment="Center" Margin="12,0,4,0"
+               FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"
+               Classes.unsaved="{Binding HasUnsavedChanges}">
+      <TextBlock.Styles>
+        <Style Selector="TextBlock.unsaved"><Setter Property="Foreground" Value="{DynamicResource WarningTextBrush}"/></Style>
+      </TextBlock.Styles>
+    </TextBlock>
     <!-- D039 §6: the commands wrap onto a second row rather than push the window's layout wider (Russian labels are longer). -->
     <WrapPanel Orientation="Horizontal">
       <WrapPanel.Styles>
@@ -14,7 +25,7 @@
         <Style Selector="WrapPanel > Rectangle">
           <Setter Property="Width" Value="1"/>
           <Setter Property="Height" Value="22"/>
-          <Setter Property="Fill" Value="#444444"/>
+          <Setter Property="Fill" Value="{DynamicResource ControlBorderBrush}"/>
           <Setter Property="Margin" Value="0,0,6,0"/>
           <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
@@ -31,9 +42,9 @@
           <Flyout Placement="BottomEdgeAlignedLeft">
             <!-- 400: inside the Fluent flyout's maximum width (456 with its padding), so the ✕ column is never cut off. -->
             <StackPanel Width="400" Spacing="2">
-              <TextBlock Text="{x:Static l:Strings.Recent_Heading}" FontSize="10" FontWeight="Bold" Foreground="#9A9A9A" Margin="6,2,6,4"/>
+              <TextBlock Text="{x:Static l:Strings.Recent_Heading}" FontSize="{DynamicResource FontSizeCaption}" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="6,2,6,4"/>
               <TextBlock Text="{x:Static l:Strings.Recent_Empty}"
-                         IsVisible="{Binding IsEmpty}" Foreground="#AAAAAA" FontSize="12"
+                         IsVisible="{Binding IsEmpty}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{DynamicResource FontSizeCaption}"
                          TextWrapping="Wrap" Margin="6,2,6,6"/>
               <ItemsControl ItemsSource="{Binding Items}">
                 <ItemsControl.ItemTemplate>
@@ -45,10 +56,10 @@
                         <Grid ColumnDefinitions="*,Auto">
                           <StackPanel Grid.Column="0" Spacing="1">
                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                            <TextBlock Text="{Binding FolderPath}" FontSize="11" Foreground="#8A8A8A"
+                            <TextBlock Text="{Binding FolderPath}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"
                                        TextTrimming="PrefixCharacterEllipsis"/>
                           </StackPanel>
-                          <TextBlock Grid.Column="1" Text="{Binding StateText}" FontSize="11" Foreground="#C0864A"
+                          <TextBlock Grid.Column="1" Text="{Binding StateText}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource WarningTextBrush}"
                                      VerticalAlignment="Center" Margin="8,0,0,0"/>
                         </Grid>
                       </Button>
@@ -93,7 +104,7 @@
               <!-- D062 amendment 1: the training's clock correction and the FIT settings are in «Настройки» → «FIT-тренировки».
                    D051 §5.7: the declined FIT climbs, each with «Вернуть». -->
               <StackPanel Spacing="2" Margin="0,6,0,0" IsVisible="{Binding HasDeclinedClimbs}">
-                <TextBlock Text="{x:Static l:Strings.Toolbar_DeclinedClimbs}" FontSize="11"/>
+                <TextBlock Text="{x:Static l:Strings.Toolbar_DeclinedClimbs}" FontSize="{DynamicResource FontSizeCaption}"/>
                 <ItemsControl ItemsSource="{Binding DeclinedClimbs}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
@@ -118,7 +129,8 @@
 
       <Rectangle/>
 
-      <Button Content="{x:Static l:Strings.Toolbar_Export}" Command="{Binding ExportCommand}" ToolTip.Tip="{x:Static l:Strings.Toolbar_ExportTip}"/>
+      <!-- D068 item 2: the main action of the window — the one accent. -->
+      <Button x:Name="ExportButton" Classes="accent" Content="{x:Static l:Strings.Toolbar_Export}" Command="{Binding ExportCommand}" ToolTip.Tip="{x:Static l:Strings.Toolbar_ExportTip}"/>
 
       <Rectangle IsVisible="{Binding HasAppSettings}"/>
 
@@ -126,7 +138,13 @@
       <Button x:Name="AppSettingsButton" Content="{x:Static l:Strings.Toolbar_AppSettings}" Command="{Binding AppSettingsCommand}"
               IsVisible="{Binding HasAppSettings}" ToolTip.Tip="{x:Static l:Strings.Toolbar_AppSettingsTip}"/>
 
+      <!-- D068 §3: the in-app help (also F1). -->
+      <Button x:Name="HelpButton" Content="?" Command="{Binding HelpCommand}" IsVisible="{Binding HasHelp}" MinWidth="30"
+              FontWeight="SemiBold" HorizontalContentAlignment="Center"
+              ToolTip.Tip="{x:Static l:Strings.Toolbar_HelpTip}" AutomationProperties.Name="{x:Static l:Strings.Toolbar_Help}"/>
+
     </WrapPanel>
+    </DockPanel>
   </Border>
 
 </UserControl>

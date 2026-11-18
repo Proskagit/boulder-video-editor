@@ -162,20 +162,21 @@ public sealed class VerticalVideoUiTests
     }
 
     [Fact]
-    public async Task A_canvas_changed_in_the_session_makes_no_offer_even_back_at_the_default()
+    public async Task A_canvas_changed_in_the_session_is_still_offered_when_the_first_video_does_not_fit()
     {
+        // D068 amendment 1: an empty timeline is a fresh start, whatever the canvas went through before.
         Assert.True(_edit.SetCanvasSize(1280, 720).Success);
         Assert.True(_edit.SetCanvasSize(1920, 1080).Success);
         await AddAsync(Video(1080, 1920));
-        Assert.Empty(_dialogs.Asked);
+        Assert.Single(_dialogs.Asked);
     }
 
     [Fact]
-    public async Task A_canvas_other_than_the_default_makes_no_offer()
+    public async Task A_canvas_other_than_the_default_is_offered_too_when_the_video_has_another_shape()
     {
         _projects.CreateNew("p", new ProjectSettings { FrameWidth = 1280, FrameHeight = 720 });
         await AddAsync(Video(1080, 1920));
-        Assert.Empty(_dialogs.Asked);
+        Assert.Single(_dialogs.Asked);                      // D068 amendment 1
     }
 
     // --- §1: declining, closing, the session --------------------------------------------------------------------------
@@ -183,18 +184,32 @@ public sealed class VerticalVideoUiTests
     [Theory]
     [InlineData(1)]       // «Оставить»
     [InlineData(null)]    // closed
-    public async Task Declining_or_closing_changes_nothing_and_the_offer_is_not_made_again(int? answer)
+    public async Task Declining_or_closing_changes_nothing_and_an_emptied_timeline_asks_again(int? answer)
     {
-        var t = With(answer);
+        var t = With(answer, answer);
         await t.AddAsync(t.Video(1080, 1920));
         Assert.Single(t._dialogs.Asked);
         Assert.Equal((1920, 1080), t.Canvas);
 
-        // The timeline emptied and a portrait clip added again: still the same session — no second offer.
+        // D068 amendment 1: the timeline emptied and a portrait clip added again — a first clip again, asked again.
         t._undo.Undo();
         Assert.Empty(t.Clips);
         await t.AddAsync(t.Video(1080, 1920));
-        Assert.Single(t._dialogs.Asked);
+        Assert.Equal(2, t._dialogs.Asked.Count);
+    }
+
+    [Fact]
+    public async Task A_cleared_timeline_offers_the_next_videos_shape_after_an_accepted_portrait_canvas()
+    {
+        var t = With(0, 0);
+        await t.AddAsync(t.Video(1080, 1920));
+        Assert.Equal((1080, 1920), t.Canvas);
+        t._undo.Undo();                                      // the canvas change
+        t._undo.Undo();                                      // the add: the timeline is empty, the canvas landscape again
+        Assert.True(t._edit.SetCanvasSize(1080, 1920).Success);   // the portrait canvas kept by the user
+        await t.AddAsync(t.Video(1920, 1080));
+        Assert.Equal(2, t._dialogs.Asked.Count);
+        Assert.Equal((1920, 1080), t.Canvas);
     }
 
     [Fact]

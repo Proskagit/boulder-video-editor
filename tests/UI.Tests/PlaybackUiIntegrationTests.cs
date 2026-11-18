@@ -361,23 +361,23 @@ public sealed class PlaybackUiIntegrationTests : IAsyncLifetime
         _vm.PropertyChanged += (_, e) => changes.Add(e.PropertyName);
         try
         {
-            Assert.Equal("Untitled Project — AI Video Editor", _vm.Title);
+            Assert.Equal("Untitled Project — Boulder Video Editor", _vm.Title);
 
             _edit.AddTrack(TrackType.Video);
-            Assert.Equal("Untitled Project* — AI Video Editor", _vm.Title);
+            Assert.Equal("Untitled Project* — Boulder Video Editor", _vm.Title);
             Assert.Contains(nameof(MainWindowViewModel.Title), changes);
 
             await _projects.SaveAsAsync(folder);
-            Assert.Equal("My Film — AI Video Editor", _vm.Title);
+            Assert.Equal("My Film — Boulder Video Editor", _vm.Title);
 
             _edit.AddTrack(TrackType.Video);
-            Assert.Equal("My Film* — AI Video Editor", _vm.Title);
+            Assert.Equal("My Film* — Boulder Video Editor", _vm.Title);
 
             _undoRedo.Undo(); // back to the save point
-            Assert.Equal("My Film — AI Video Editor", _vm.Title);
+            Assert.Equal("My Film — Boulder Video Editor", _vm.Title);
 
             _projects.CreateNew("Untitled Project");
-            Assert.Equal("Untitled Project — AI Video Editor", _vm.Title);
+            Assert.Equal("Untitled Project — Boulder Video Editor", _vm.Title);
         }
         finally
         {

@@ -1,6 +1,9 @@
 using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Layout;
+using Avalonia.VisualTree;
 
 namespace AiVideoEditor.UI.Controls;
 
@@ -47,6 +50,67 @@ public class CommitNumericUpDown : NumericUpDown
         if (StepCommand is not { } command) return false;
         var step = direction == SpinDirection.Increase ? 1 : -1;
         if (command.CanExecute(step)) command.Execute(step);
+        return true;
+    }
+
+    /// <summary>D068 amendment 1 (as CapCut): the two spinner buttons are one narrow column at the field's right edge — the
+    /// upper half steps up, the lower half down — instead of two buttons side by side, so the field is compact.</summary>
+    private bool _stacked;
+
+    protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
+    {
+        base.OnApplyTemplate(e);
+        _stacked = false;
+        EffectiveViewportChanged -= OnShown;
+        LayoutUpdated -= OnFirstLayout;
+        LayoutUpdated += OnFirstLayout;
+    }
+
+    // The spinner's own template is applied during the first layout: the buttons are found once they exist.
+    private void OnFirstLayout(object? sender, EventArgs e)
+    {
+        // A field in a collapsed section has no height yet: it waits for being shown (EffectiveViewportChanged), it does not
+        // walk its tree on every layout pass of the window.
+        LayoutUpdated -= OnFirstLayout;
+        if (_stacked) return;
+        _stacked = StackButtons(this);
+        if (!_stacked) EffectiveViewportChanged += OnShown;
+    }
+
+    private void OnShown(object? sender, Avalonia.Layout.EffectiveViewportChangedEventArgs e)
+    {
+        if (Bounds.Height <= 0) return;
+        EffectiveViewportChanged -= OnShown;
+        _stacked = StackButtons(this);
+    }
+
+    private static bool StackButtons(Visual field)
+    {
+        var buttons = field.GetVisualDescendants().OfType<RepeatButton>().ToList();
+        if (buttons.Count != 2 || buttons[0].GetVisualParent() is not Panel panel || buttons[1].GetVisualParent() != panel) return false;
+        if (field.Bounds.Height <= 0) return false;
+        var half = Math.Max(8, Math.Floor((field.Bounds.Height - 2) / 2));
+        switch (panel)
+        {
+            case StackPanel stack: stack.Orientation = Orientation.Vertical; break;
+            case UniformGrid grid: grid.Rows = 2; grid.Columns = 1; break;
+            case Grid grid:
+                grid.ColumnDefinitions.Clear();
+                grid.RowDefinitions = new RowDefinitions("*,*");
+                for (var i = 0; i < 2; i++) { Grid.SetColumn(buttons[i], 0); Grid.SetRow(buttons[i], i); }
+                break;
+            default: return false;
+        }
+        panel.VerticalAlignment = VerticalAlignment.Center;
+        foreach (var button in buttons)
+        {
+            button.Width = 16;
+            button.MinWidth = 0;
+            button.MinHeight = 0;
+            button.Height = half;
+            button.Padding = new Thickness(0);
+            button.VerticalAlignment = VerticalAlignment.Stretch;
+        }
         return true;
     }
 

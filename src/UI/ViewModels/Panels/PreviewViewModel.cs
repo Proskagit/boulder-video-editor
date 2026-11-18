@@ -132,6 +132,8 @@ public sealed partial class PreviewViewModel : ViewModelBase
 
         _playback.StateChanged += (_, _) => { IsPlaying = _playback.State == PlaybackState.Playing; _needsTick = true; };
         _projectService.TimelineChanged += (_, _) => OnTimelineChanged();
+        _projectService.TimelineChanged += (_, _) => OnPropertyChanged(nameof(ShowsEmptyHint));
+        _projectService.ProjectChanged += (_, _) => OnPropertyChanged(nameof(ShowsEmptyHint));
         if (_inOut is not null) _inOut.RangeChanged += (_, _) => ApplyPlaybackRange();
         _projectService.MediaAssetsChanged += (_, _) => OnMediaAssetsChanged();
         _projectService.ProjectChanged += (_, _) => OnProjectChanged();
@@ -217,7 +219,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
         if (!_playback.IsAvailable && !_reportedUnavailable)
         {
             _reportedUnavailable = true;
-            _status.Report(Strings.Playback_NoFfmpeg);
+            _status.ReportError(Strings.Playback_NoFfmpeg);
         }
 
         if (IsPlaying && !_playback.IsAudioAvailable && !_reportedNoAudio)
@@ -362,6 +364,12 @@ public sealed partial class PreviewViewModel : ViewModelBase
     /// reported, so the playhead follows) if not. Otherwise the resync stays where playback is (D010), so edits inside the
     /// sequence never seek and an extension never moves the playhead.
     /// </summary>
+    /// <summary>D068 item 17: an empty timeline's Preview says what to do instead of showing a black frame.</summary>
+    public bool ShowsEmptyHint => !IsSourceMode &&
+        _projectService.Current.Timeline.VideoTracks.Concat(_projectService.Current.Timeline.AudioTracks).All(t => t.Clips.Count == 0);
+
+    partial void OnIsSourceModeChanged(bool value) => OnPropertyChanged(nameof(ShowsEmptyHint));
+
     private void OnTimelineChanged()
     {
         if (IsSourceMode) return;  // applied when Timeline mode returns (D031 SQ2)

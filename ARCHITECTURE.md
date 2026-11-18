@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the verified architecture of the AI Video Editor.
+This document describes the verified architecture of the Boulder Video Editor.
 
 ## Current known stack
 
@@ -404,7 +404,7 @@ One rule for every picture consumer (the Preview, the Source viewer, the thumbna
   `MediaAnalysisCoordinator` (not dirty; `MediaAsset.IsMetadataRefreshing` meanwhile — the export preflight waits).
 - Decoding: the asset's `HdrConversion` travels in `PlaybackAsset.Hdr` / `VideoDecodeRequest.Hdr`;
   `FfmpegVideoDecoder` builds the HDR graph (scale with even sizes → `zscale` Y'CbCr → R'G'B' float only → `lut3d`
-  tetrahedral → BGRA) from the LUT of `IHdrLutStore` (`HdrLutStore`, `%LOCALAPPDATA%\AiVideoEditor\cache\color-luts`,
+  tetrahedral → BGRA) from the LUT of `IHdrLutStore` (`HdrLutStore`, `%LOCALAPPDATA%\BoulderVideoEditor\cache\color-luts`,
   one file per key, verified per session); without it the open fails — never a silent SDR decode. Requests without
   `Hdr` take the SDR graph, unchanged since Phase 17. A colour change rebuilds the Preview (`AssetState.Hdr`) and
   remakes the thumbnail (`ThumbnailCoordinator`).
@@ -417,7 +417,7 @@ One rule for every picture consumer (the Preview, the Source viewer, the thumbna
 ## AI hold markup (Phase 19, D034)
 
 The product's main AI function: the route's holds outlined on a video clip, one colour for the route.
-- Model: SAM 2.1 Large as ONNX (`sam2.1-large-v1`), placed by hand in `%LOCALAPPDATA%\AiVideoEditor\models\sam2.1-large\`
+- Model: SAM 2.1 Large as ONNX (`sam2.1-large-v1`), placed by hand in `%LOCALAPPDATA%\BoulderVideoEditor\models\sam2.1-large\`
   (`AppPaths.ModelsFolder`), never downloaded or replaced; `docs/AI_MODEL.md` (files, checksums, licences, the export
   recipe). Missing or mismatching files disable only the markup.
 - Core: `HoldMarkup` / `Hold` (normalized outer contour, `SurfaceLab` / `WallLab` OKLab samples, `SourceTime`) on
@@ -457,7 +457,7 @@ The product's main AI function: the route's holds outlined on a video clip, one 
     `UI/Services/CameraMotionCoordinator` (singleton) analyses every video clip with holds that follows the camera, in the
     background (software decode at 960 px with the D033 HDR rule, through `CameraMotionSampler`, one analysis at a time),
     kept in memory by the file (path, size, last write time), range and reference, and between sessions in
-    `ICameraMotionCache` (D4; `Media/Caching/CameraMotionCacheStore`, `%LOCALAPPDATA%\AiVideoEditor\cache\camera-motion`, keyed
+    `ICameraMotionCache` (D4; `Media/Caching/CameraMotionCacheStore`, `%LOCALAPPDATA%\BoulderVideoEditor\cache\camera-motion`, keyed
     by the video's content fingerprint, the request and `AnalysisVersion`; checksummed, atomic, ≤ 512 MB LRU; a damaged or
     stale entry is analysed again) → `PlaybackSnapshotBuilder.Build(project, version, motion)` puts the track on
     `HoldOutline.Motion` → `CompositionDrawPlan.Outline(…, frameTimestamp)` maps each contour by the **shown frame's own
@@ -517,7 +517,7 @@ IVideoDecoder (1024 px, hardware decoding) ─► PeopleAnalyzer (Core/People)
   `PersonMaskTrack` / `MaskCodec` / `OcclusionMask` (separate per-person masks, deflated, blended between analysed frames),
   `OutlineOcclusion` (the visibility of the outline's pieces), `PeopleAnalyzer` (the two passes), `PeopleAnalyses`.
 - **Interfaces**: `IPeopleVision` / `IPersonSegmenter` (Vision), `IPeopleAnalysisCache` (Media: `PeopleAnalysisCacheStore`,
-  `%LOCALAPPDATA%\AiVideoEditor\cache\people`, the camera-motion cache's rules, LRU 2 GB).
+  `%LOCALAPPDATA%\BoulderVideoEditor\cache\people`, the camera-motion cache's rules, LRU 2 GB).
 - **Project** (v20; v23 — D061 amendment 1): `VideoClip.Follow` (`FollowSettings`: independent `FollowPart`s — `From` /
   `To` in source time, each its own picked person and its offset, the person's place in the frame — and the smoothness) and `VideoClip.HidesOutlinesBehindPeople`;
   `ITimelineEditService.SetClipFollow` (with Occlusion in the same undo step when Follow switches it on) /
@@ -606,7 +606,7 @@ IVideoDecoder (1024 px, hardware decoding) ─► PeopleAnalyzer (Core/People)
 ## Phase 38 — UX Improvements (D057)
 
 *Approved 2026-11-09; in progress — this section is completed block by block.* Global settings and UI state are per-user
-files under `%LOCALAPPDATA%\AiVideoEditor\config\`, never in `project.json`; the only format change is v19 (a video
+files under `%LOCALAPPDATA%\BoulderVideoEditor\config\`, never in `project.json`; the only format change is v19 (a video
 clip's background). The playhead may lie between the project's frames (D057 §3.14); clip edges and grid-bound edits stay
 on the project grid (D006).
 
@@ -671,7 +671,7 @@ on the project grid (D006).
   `Telemetry/FitMarks` (`FitMark`, `FitMarkPosition`, `DeclinedClimb`) and `Telemetry/FitMarkRules` — the proposals and
   the choice of the video and position (D051 §5.5.1), `EffectiveStart` and its watch time (D051 §4.5), the observations,
   the marks following an edit (`Follow`). `ClimbEndLag` never enters this path; `TrainingAlignment` stays the only mapping.
-- **Project**: `FitCalibrationStore` — the second per-user file `%LOCALAPPDATA%\AiVideoEditor\config\fit-calibration.json`,
+- **Project**: `FitCalibrationStore` — the second per-user file `%LOCALAPPDATA%\BoulderVideoEditor\config\fit-calibration.json`,
   on the pattern of `RecentProjectsStore` (lock, re-read, atomic write, `*.damaged`, newer format untouched); Beta on by
   default. The project format v12 adds the active marks (video, kind `proposed` / `clamped` / `moved`,
   `positionChangedAt`, the link as `LinkedClipId`) and the declined climbs per training. The observations are synchronised
@@ -884,7 +884,7 @@ recovery, unsaved changes).
   `MarkSavePoint` / `IsAtSavePoint`) or a media import since the save.
 - Autosave: `AutosaveService` (Project, implements Core `IAutosaveService`) every 2 min,
   snapshot on the UI thread, written by `RecoveryStore` to
-  `%LOCALAPPDATA%\AiVideoEditor\recovery\<projectId>.json` (never `project.json`); per-project
+  `%LOCALAPPDATA%\BoulderVideoEditor\recovery\<projectId>.json` (never `project.json`); per-project
   generation guards against an autosave resurrecting a file a Save made obsolete. The timer comes from a
   `TimeProvider` (`TimeProvider.System` in the app, a manual clock in the tests); each `Start` gets a run token, so a
   timer callback queued before `Stop` / `ShutdownAsync` starts no tick (Phase 14 Step 14.3, D029).
@@ -944,7 +944,7 @@ recovery, unsaved changes).
   The Inspector's media state line (`AnalysisStatusText`) uses the Media Browser's order: offline, Analyzing, Not
   analysed yet.
 - Recent projects (D026 §6, Step 11.7): `IRecentProjectsStore` (Core) → `RecentProjectsStore` (Project / Persistence),
-  the per-user list `%LOCALAPPDATA%\AiVideoEditor\config\recent-projects.json` (`AppPaths.RecentProjectsFile`, the folder
+  the per-user list `%LOCALAPPDATA%\BoulderVideoEditor\config\recent-projects.json` (`AppPaths.RecentProjectsFile`, the folder
   created only when written; the only per-user data stored): at most 10 project folders, most recent first, one per
   full path (case and a trailing separator ignored). Every change re-reads the file and writes it atomically
   (`ProjectFileStore.WriteAtomicAsync`) under `recent-projects.lock` (`FileShare.None`, shared by running instances,

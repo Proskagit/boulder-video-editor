@@ -9,16 +9,16 @@ it; without it only the hold markup is unavailable — everything else works.
 |---|---|
 | Id | `sam2.1-large-v1` |
 | Network | SAM 2.1 Hiera Large (Meta), exported to ONNX by samexporter 0.5.0, opset 18 |
-| Folder | `%LOCALAPPDATA%\AiVideoEditor\models\sam2.1-large\` (one copy per machine; never in the repository or a project) |
+| Folder | `%LOCALAPPDATA%\BoulderVideoEditor\models\sam2.1-large\` (one copy per machine; never in the repository or a project) |
 | `sam2.1_large.encoder.onnx` | 852 451 097 bytes, SHA-256 `5ca0f505138811202a60445427383559fb84afcd80e7a5e2d1ce5d9f546e3362` |
 | `sam2.1_large.decoder.onnx` | 16 519 627 bytes, SHA-256 `d2ef7f723ed226f424d590cd382bfef135fdfd4cb74f3a76f6bd563a63b28f10` |
 
 ## Installing
 
-1. **Release 1.0 (D066 §3):** unpack the models archive `AiVideoEditor-1.0.0-models.zip` and run `Install-Models.cmd` — it
+1. **Release 1.0 (D066 §3):** unpack the models archive `AiVideoEditor-1.0.0-models.zip` (1.1: `BoulderVideoEditor-<version>-models.zip`) and run `Install-Models.cmd` — it
    installs every model below (also the people and audio models) with their sizes and SHA-256s checked
    (`tools/models`). Otherwise produce the two files with the recipe below (or copy them from a machine that has them).
-2. Put both into `%LOCALAPPDATA%\AiVideoEditor\models\sam2.1-large\` with exactly these names.
+2. Put both into `%LOCALAPPDATA%\BoulderVideoEditor\models\sam2.1-large\` with exactly these names.
 3. The size and the SHA-256 of both files are checked at the first "Mark holds" of a session (with progress); a file of
    any other size or checksum is never loaded.
 
@@ -151,7 +151,7 @@ replaces or repairs it.
 | | |
 |---|---|
 | Id | `people-v2` (part of every cached people analysis's key; `people-v1` until S1 — only the detector's file differed) |
-| Folder | `%LOCALAPPDATA%\AiVideoEditor\models\people-v2\` (one copy per machine; never in the repository or a project) |
+| Folder | `%LOCALAPPDATA%\BoulderVideoEditor\models\people-v2\` (one copy per machine; never in the repository or a project) |
 | Verified | size and SHA-256 of every file, once per session, before the first use (`HoldModelVerifier`) |
 
 | File | Network | Bytes | SHA-256 |
@@ -262,7 +262,7 @@ application never downloads, writes, replaces or repairs them; the noise reducti
 
 | | |
 |---|---|
-| Folder | `%LOCALAPPDATA%\AiVideoEditor\models\audio-v1\` (one copy per machine; never in the repository or a project) |
+| Folder | `%LOCALAPPDATA%\BoulderVideoEditor\models\audio-v1\` (one copy per machine; never in the repository or a project) |
 | `denoiser_model.onnx` | DeepFilterNet3, the torchDF streaming single-graph export (github.com/grazder/DeepFilterNet), from `https://huggingface.co/kimtos-labs/denoiser-dfn3/resolve/main/denoiser_model.onnx` (commit `ffc593dc7a6443fe0f2a8fc93b90f32c4afc9e0e`) — 16 104 687 bytes, SHA-256 `fe5eb64fa2e4154c83f8e4935e82871c850c154387ee892e0ab65fe179e7d8c9` (equal to the digest the model card publishes) |
 | `silero_vad.onnx` | Silero VAD v5, from `https://raw.githubusercontent.com/snakers4/silero-vad/master/src/silero_vad/data/silero_vad.onnx` (downloaded 2026-11-17) — 2 327 524 bytes, SHA-256 `1a153a22f4509e292a94e67d6f9b85e8deb25b4988682b7e174c65279d8788e3` |
 | Runtime | ONNX Runtime 1.24.4 (the Vision package), CPU execution provider, one thread per session run; DeepFilterNet3 fails to initialise under DirectML (AccessViolation), so both models run on the CPU |

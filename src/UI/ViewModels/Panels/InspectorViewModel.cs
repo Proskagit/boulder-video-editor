@@ -203,7 +203,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         var result = _edit.SetClipProperties(_clip.Id, new ClipPropertyChange { Audio = change(current) });
         if (!result.Success)
         {
-            _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
+            _status.ReportWarning(result.Message ?? Strings.Inspector_ClipNotChanged);
             ShowModelAfterRejection(); // the fields show what the model really has
         }
     }
@@ -281,7 +281,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         var result = _edit.SetClipProperties(_clip.Id, new ClipPropertyChange { Visual = change(current, x) });
         if (!result.Success)
         {
-            _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
+            _status.ReportWarning(result.Message ?? Strings.Inspector_ClipNotChanged);
             ShowModelAfterRejection(); // the fields show what the model really has
         }
     }
@@ -309,7 +309,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         var result = _edit.SetClipBackground(clip.Id, value == 1 ? ClipBackground.Blur : ClipBackground.Black);
         if (!result.Success)
         {
-            _status.Report(result.Message ?? "");
+            _status.ReportWarning(result.Message ?? "");
             ShowModelAfterRejection();
         }
     }
@@ -341,7 +341,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
 
         if (!ClipSpeed.TryFromDecimal(entered, out var speed))
         {
-            _status.Report(string.Format(Strings.Inspector_SpeedStep, ClipSpeed.Min, ClipSpeed.Max));
+            _status.ReportWarning(string.Format(Strings.Inspector_SpeedStep, ClipSpeed.Min, ClipSpeed.Max));
             ShowModelAfterRejection(); // the fields show what the model really has
             return;
         }
@@ -349,7 +349,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         var result = _edit.SetClipSpeed(_clip.Id, speed);
         if (!result.Success)
         {
-            _status.Report(result.Message ?? Strings.Inspector_SpeedNotChanged);
+            _status.ReportWarning(result.Message ?? Strings.Inspector_SpeedNotChanged);
             ShowModelAfterRejection(); // the fields show what the model really has
         }
         else if (result.Message is not null)
@@ -391,7 +391,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
 
         if (frames < 0 || frames != decimal.Truncate(frames))
         {
-            _status.Report(Strings.Inspector_FadeWholeFrames);
+            _status.ReportWarning(Strings.Inspector_FadeWholeFrames);
             ShowModelAfterRejection(); // the fields show what the model really has
             return;
         }
@@ -400,7 +400,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         var result = _edit.SetClipProperties(_clip.Id, new ClipPropertyChange { Fade = change(FadeProperties.Of(_clip), length) });
         if (!result.Success)
         {
-            _status.Report(result.Message ?? Strings.Inspector_FadeNotChanged);
+            _status.ReportWarning(result.Message ?? Strings.Inspector_FadeNotChanged);
             ShowModelAfterRejection(); // the fields show what the model really has
         }
     }
@@ -475,7 +475,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
 
         if (frames != decimal.Truncate(frames))
         {
-            _status.Report(Strings.Transition_WholeFrames);
+            _status.ReportWarning(Strings.Transition_WholeFrames);
             ShowModelAfterRejection(); // the fields show what the model really has
             return;
         }
@@ -483,7 +483,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         var result = _edit.SetTransitionDuration(s.Transition.Id, MediaTime.FromFrame((long)frames, s.Rate));
         if (!result.Success)
         {
-            _status.Report(result.Message ?? Strings.Transition_NotChanged);
+            _status.ReportWarning(result.Message ?? Strings.Transition_NotChanged);
             ShowModelAfterRejection(); // the fields show what the model really has
         }
     }
@@ -494,7 +494,8 @@ public sealed partial class InspectorViewModel : ViewModelBase
         if (_transition is not { } s || RejectWhileLocked()) return;
         var library = s.Track.Type == TrackType.Video && s.Transition.TransitionTypeId != TransitionRules.CrossDissolve;
         var result = _edit.RemoveTransition(s.Transition.Id);
-        _status.Report(result.Success ? library ? Strings.Transition_Removed : Strings.Dissolve_Removed : result.Message ?? Strings.Transition_NotRemoved);
+        if (result.Success) _status.Report(library ? Strings.Transition_Removed : Strings.Dissolve_Removed);
+        else _status.ReportWarning(result.Message ?? Strings.Transition_NotRemoved);
     }
 
     // --- Text (Phase 7 Step 8): text clips ---------------------------------------------------
@@ -556,7 +557,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         var result = _edit.SetClipProperties(_clip.Id, new ClipPropertyChange { Text = change(current) });
         if (!result.Success)
         {
-            _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
+            _status.ReportWarning(result.Message ?? Strings.Inspector_ClipNotChanged);
             ShowModelAfterRejection(); // the fields show what the model really has
         }
     }
@@ -622,6 +623,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasTechnicalInfo));
         ShowTraining(clip is VideoClip ? selection.Asset : null);
         RefreshPeople();
+        RefreshCategories();    // D068 item 8
     }
 
     /// <summary>Shows a Media Browser item's real properties, including whatever

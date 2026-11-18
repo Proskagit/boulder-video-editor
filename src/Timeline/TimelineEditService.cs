@@ -1830,24 +1830,31 @@ public sealed partial class TimelineEditService : ITimelineEditService
         return null;
     }
 
-    public TimelineEditResult RemoveMedia(Guid mediaAssetId)
+    public TimelineEditResult RemoveMedia(Guid mediaAssetId) => RemoveMediaMany(new[] { mediaAssetId });
+
+    public TimelineEditResult RemoveMediaMany(IReadOnlyList<Guid> mediaAssetIds)
     {
-        if (GetRemoveMediaBlockReason(mediaAssetId) is { } blocked) return TimelineEditResult.Fail(blocked);
-        var asset = FindAsset(mediaAssetId)!;
+        var ids = mediaAssetIds.Distinct().ToList();
+        if (ids.Count == 0) return TimelineEditResult.Fail(Messages.Edit_MediaGone);
+        foreach (var id in ids)
+            if (GetRemoveMediaBlockReason(id) is { } blocked) return TimelineEditResult.Fail(blocked);
+        var assets = ids.Select(id => FindAsset(id)!).ToList();
 
         var plan = new EditPlan(Sequence, Settings);
-        var clips = plan.AllTracks.SelectMany(t => t.Clips).Where(c => Uses(c, mediaAssetId)).ToList();
+        var clips = plan.AllTracks.SelectMany(t => t.Clips).Where(c => ids.Any(id => Uses(c, id))).ToList();
         foreach (var clip in clips) plan.Remove(clip);
         plan.ReconcileTransitions();   // the removed clips' dissolves go with them (D025 §5)
         plan.ReconcileLinks();         // and the links of their partners (D032 R5), never on a locked track (AQ12)
         if (plan.ClearedLinks.FirstOrDefault(c => plan.TrackOf(c).IsLocked) is { } lockedPartner)
             return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, plan.TrackOf(lockedPartner).Name));
 
-        // The clips (and dissolves) first, then the asset: no clip ever refers to an asset that isn't in the project.
-        var removeAsset = new RemoveMediaAssetCommand(Project.MediaAssets, asset, _projectService.NotifyMediaAssetsChanged);
+        // The clips (and dissolves) first, then the assets: no clip ever refers to an asset that isn't in the project.
+        var removeAssets = assets
+            .Select(a => (IUndoableCommand)new RemoveMediaAssetCommand(Project.MediaAssets, a, _projectService.NotifyMediaAssetsChanged))
+            .ToList();
         IUndoableCommand command = clips.Count == 0
-            ? removeAsset
-            : new NotifyingCommand(new CompositeCommand("Remove Media", new[] { plan.BuildCommand("Remove Media"), removeAsset }),
+            ? (removeAssets.Count == 1 ? removeAssets[0] : new CompositeCommand("Remove Media", removeAssets))
+            : new NotifyingCommand(new CompositeCommand("Remove Media", new[] { plan.BuildCommand("Remove Media") }.Concat(removeAssets).ToArray()),
                 _projectService.NotifyTimelineChanged);
         ExecuteTracked(command);
         return TimelineEditResult.Ok(clips.Select(c => c.Id).ToList(), TransitionNote(plan));

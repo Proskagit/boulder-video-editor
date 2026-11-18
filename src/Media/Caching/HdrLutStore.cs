@@ -8,7 +8,7 @@ namespace AiVideoEditor.Media.Caching;
 
 /// <summary>
 /// The HDR → SDR LUT files (D033 §3 "LUT"): one <c>.cube</c> per key (transfer, peak, rule version) in one folder of the
-/// application's cache (<c>%LOCALAPPDATA%\AiVideoEditor\cache\color-luts</c>, not the project).
+/// application's cache (<c>%LOCALAPPDATA%\BoulderVideoEditor\cache\color-luts</c>, not the project).
 /// <list type="bullet">
 /// <item>Once per key and session the LUT is generated from the rule (<see cref="HdrLut.Generate"/>, deterministic) and
 /// compared with the file: a missing, damaged or different file is written again — atomically (a temporary file, then a

@@ -364,8 +364,9 @@ src/UI/Services/MediaAnalysisCoordinator.cs	Metadata analysis failed for '{Path}
 src/Core/Color/HdrLut.cs	TITLE \"AiVideoEditor HDR to SDR, rule
 src/Core/Entities/Clip.cs	Segoe UI
 src/Core/Entities/Timeline.cs	Main Sequence
-src/UI/ViewModels/MainWindowViewModel.cs	)} — AI Video Editor
+src/UI/ViewModels/MainWindowViewModel.cs	)} — Boulder Video Editor
 src/UI/ViewModels/ProjectSettingsViewModel.cs	Full HD
+src/UI/ViewModels/Panels/RecentProjectsViewModel.cs	dd.MM.yyyy HH:mm
 
 # Design-time stand-ins of the main window (the XAML previewer only).
 src/UI/Views/MainWindow.axaml.cs	Design Time

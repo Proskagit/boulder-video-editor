@@ -323,9 +323,12 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 | 46 — Smooth hold outlines | D065 | implemented 2026-11-17 (no format change, v25); a new contour smoothed (the slider «Сглаживание», default 50), every contour drawn as a smooth curve, corners kept; merged by the owner after CI; **accepted by the product owner on 2026-11-18** | PR #73, `f15b1cd` |
 | 47 — S1, the release 1.0 | D066 | implemented 2026-11-17 / 18: the minimal FFmpeg with NVENC and the noise reduction, the models archive (people-v2), the portable 1.0.0 with FFmpeg, the Phase 45 leftovers, the local test baseline; the clean-machine check passed on 2026-11-18 in a new Windows account of the owner's PC (Windows Sandbox could not start there: system PnP buses disabled) — A1–A5, A7–A10 and B1–B3 PASS, A6 not confirmed (a GPU present, Occlusion worked instead of its CPU message); the notices accepted as they are; **accepted by the product owner on 2026-11-18**; the GitHub Release `v1.0.0` drafted, published by the owner | PR #74, `d287c16` |
 | 48 — the owner's fixes before publishing 1.0 | D067 | implemented 2026-11-18 (no format change): rubber-band selection, the export's timestamp name, Space = Play / Pause, Save As with a name, the icon; §2 not reproduced, §3 to the backlog; **accepted by the product owner on 2026-11-18** | PR #76 |
+| 49 — UX 1.1 | D068 | implemented 2026-11-18 (no format change): the name Boulder Video Editor and the per-user folder moved, icon C, the in-app help, the UX research and audit, the theme and items 1–18 with R1, the owner's check (amendment 1, §7); separate phases named in §7; the owner's manual check open | `feat/phase-49-ux` |
 | H — Final UX Pass | D042 §7, D057 | its goal covered by Phase 38 (D057); the former scope not restored | — |
 
-**State on 2026-11-18 (after the acceptance of Phases 46 and 47):** **the MVP is closed** — S1, the release 1.0, accepted by
+**Phase 49 (2026-11-18):** UX 1.1 (D068) implemented on `feat/phase-49-ux`, the highest phase number now **49**; Phase 48 accepted.
+
+**State on 2026-11-18 (after the acceptance of Phases 46 and 47; before Phase 49):** **the MVP is closed** — S1, the release 1.0, accepted by
 the product owner. The highest phase number in use is **47**; the **complete phases** (merged and accepted) are **1–31, 33–35
 and 37–47** (Phase 30's open part, S1, completed by Phase 47); Phase 32 closed as deferred, Phase 36 done in its chapters with
 36.3 / 36.4 in the backlog, Phase 31's D3 closed and C5 dropped (D065 §5).

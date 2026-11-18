@@ -56,13 +56,13 @@ if ($Tests) {
 }
 
 # --- 3. The portable build ------------------------------------------------------------------------------------------
-$folder = Join-Path $repo "artifacts\portable\AiVideoEditor-$Version-win-x64"
+$folder = Join-Path $repo "artifacts\portable\BoulderVideoEditor-$Version-win-x64"
 if (-not $NoBuild) {
     $publish = @{ Version = $Version }
     if ($Zip) { $publish.Zip = $true }
     & (Join-Path $repo 'tools\portable\Publish-Portable.ps1') @publish
 }
-$exe = Join-Path $folder 'AiVideoEditor.exe'
+$exe = Join-Path $folder 'BoulderVideoEditor.exe'
 if (-not (Test-Path -LiteralPath $exe)) { throw "Not built: $exe" }
 Write-Host "Build: $folder"
 

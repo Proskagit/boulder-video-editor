@@ -1170,7 +1170,7 @@
     <value>Проект ещё не был сохранён.</value>
   </data>
   <data name="Recovery_Question" xml:space="preserve">
-    <value>AI Video Editor был закрыт некорректно. Несохранённые изменения проекта «{0}» были автоматически сохранены {1}.
+    <value>Boulder Video Editor был закрыт некорректно. Несохранённые изменения проекта «{0}» были автоматически сохранены {1}.
 {2}
 
 Восстановить их сейчас? Отброшенные изменения вернуть нельзя.</value>
@@ -2075,9 +2075,6 @@
   </data>
   <data name="AppSettings_Language" xml:space="preserve">
     <value>Язык интерфейса</value>
-  </data>
-  <data name="AppSettings_LanguageDefault" xml:space="preserve">
-    <value>Как в конфигурации</value>
   </data>
   <data name="AppSettings_RestartNote" xml:space="preserve">
     <value>Применяется после перезапуска.</value>
@@ -3685,5 +3682,138 @@
   </data>
   <data name="Keyframe_TipVolume" xml:space="preserve">
     <value>Ключевой кадр {0}: громкость {1}</value>
+  </data>
+  <data name="Toolbar_Help" xml:space="preserve">
+    <value>Справка</value>
+  </data>
+  <data name="Toolbar_HelpTip" xml:space="preserve">
+    <value>Справка: как работать с редактором (F1)</value>
+  </data>
+  <data name="Help_Title" xml:space="preserve">
+    <value>Справка — Boulder Video Editor</value>
+  </data>
+  <data name="Help_SearchWatermark" xml:space="preserve">
+    <value>Поиск по справке</value>
+  </data>
+  <data name="Help_NothingFound" xml:space="preserve">
+    <value>Ничего не найдено. Попробуйте другое слово.</value>
+  </data>
+  <data name="SaveState_NotSaved" xml:space="preserve">
+    <value>Проект не сохранён</value>
+  </data>
+  <data name="SaveState_NotSavedTip" xml:space="preserve">
+    <value>У проекта ещё нет папки: «Сохранить» (Ctrl+S) выберет, где он будет лежать</value>
+  </data>
+  <data name="SaveState_Unsaved" xml:space="preserve">
+    <value>Изменения не сохранены</value>
+  </data>
+  <data name="SaveState_UnsavedTip" xml:space="preserve">
+    <value>«Сохранить» (Ctrl+S) запишет их в файл проекта</value>
+  </data>
+  <data name="SaveState_RecoveryAt" xml:space="preserve">
+    <value>В проект ещё не записано; копия для восстановления сохранена в {0}</value>
+  </data>
+  <data name="SaveState_Saved" xml:space="preserve">
+    <value>Сохранено</value>
+  </data>
+  <data name="SaveState_SavedAt" xml:space="preserve">
+    <value>Сохранено в {0}</value>
+  </data>
+  <data name="Inspector_NoTraining" xml:space="preserve">
+    <value>К проекту не подключена тренировка с часов. Файл FIT (COROS, Garmin и другие) сам разложит подъёмы по клипам.</value>
+  </data>
+  <data name="Inspector_ImportTraining" xml:space="preserve">
+    <value>Импортировать FIT-тренировку…</value>
+  </data>
+  <data name="Holds_ClickKept" xml:space="preserve">
+    <value>Щелчок принят — контур появится, как только модель будет готова…</value>
+  </data>
+  <data name="StartScreen_Tagline" xml:space="preserve">
+    <value>Редактор видео о боулдеринге — с разметкой трасс и пульсом с часов</value>
+  </data>
+  <data name="StartScreen_New" xml:space="preserve">
+    <value>Создать проект</value>
+  </data>
+  <data name="StartScreen_Open" xml:space="preserve">
+    <value>Открыть…</value>
+  </data>
+  <data name="StartScreen_Recent" xml:space="preserve">
+    <value>Недавние проекты</value>
+  </data>
+  <data name="StartScreen_NoRecent" xml:space="preserve">
+    <value>Недавних проектов пока нет. Создайте новый или откройте папку проекта.</value>
+  </data>
+  <data name="InspectorRail_Clip" xml:space="preserve">
+    <value>Клип</value>
+  </data>
+  <data name="InspectorRail_Text" xml:space="preserve">
+    <value>Текст</value>
+  </data>
+  <data name="InspectorRail_People" xml:space="preserve">
+    <value>Люди</value>
+  </data>
+  <data name="InspectorRail_Holds" xml:space="preserve">
+    <value>Зацепки</value>
+  </data>
+  <data name="InspectorRail_Fit" xml:space="preserve">
+    <value>FIT</value>
+  </data>
+  <data name="InspectorRail_Audio" xml:space="preserve">
+    <value>Звук</value>
+  </data>
+  <data name="Export_FinishedIn" xml:space="preserve">
+    <value>Экспорт готов за {0}:
+{1}</value>
+  </data>
+  <data name="Export_ShowInFolder" xml:space="preserve">
+    <value>Показать в папке</value>
+  </data>
+  <data name="Duration_MinSec" xml:space="preserve">
+    <value>{0} мин {1} с</value>
+  </data>
+  <data name="Duration_Sec" xml:space="preserve">
+    <value>{0} с</value>
+  </data>
+  <data name="ExportDialog_More" xml:space="preserve">
+    <value>Подробные настройки</value>
+  </data>
+  <data name="ExportDialog_Summary" xml:space="preserve">
+    <value>Длительность {0}</value>
+  </data>
+  <data name="Media_RemoveQuestionFiles" xml:space="preserve">
+    <value>Удалить из проекта файлов: {0}? Их используют клипы на таймлайне ({1}) — они тоже будут удалены. Файлы на диске останутся.</value>
+  </data>
+  <data name="Media_RemovedFiles" xml:space="preserve">
+    <value>Файлов удалено из проекта: {0} (клипов удалено: {1}).</value>
+  </data>
+  <data name="Template_NoHeartRateHere" xml:space="preserve">
+    <value>Плашка пульса добавлена, но в тренировке нет пульса для видео в этом месте: здесь плашка ничего не покажет.</value>
+  </data>
+  <data name="Preview_EmptyTitle" xml:space="preserve">
+    <value>Таймлайн пуст</value>
+  </data>
+  <data name="Preview_EmptyHint" xml:space="preserve">
+    <value>Импортируйте видео в «Медиа» и добавьте их на таймлайн — кадр появится здесь.</value>
+  </data>
+  <data name="TemplateType_Rec_Desc" xml:space="preserve">
+    <value>Метка записи REC с датой и временем, как у камеры</value>
+  </data>
+  <data name="TemplateType_Vhs_Desc" xml:space="preserve">
+    <value>Дата и время, как на видеокассете</value>
+  </data>
+  <data name="TemplateType_Boulder_Desc" xml:space="preserve">
+    <value>Трасса, категория и результат: TOP или попытка</value>
+  </data>
+  <data name="TemplateType_Highlight_Desc" xml:space="preserve">
+    <value>Крупный заголовок и подзаголовок</value>
+  </data>
+  <data name="TemplateType_HeartRate_Desc" xml:space="preserve">
+    <value>Пульс из тренировки с часов</value>
+  </data>
+  <data name="Inspector_ResetSectionTip" xml:space="preserve">
+    <value>Сбросить значения раздела</value>
+  </data>
+  <data name="Export_SnapshotNotSaved" xml:space="preserve">
+    <value>не сохранён — экспортируется как есть</value>
   </data>
 </root>
