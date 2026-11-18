@@ -89,7 +89,7 @@ public static class ShortcutRouter
             Key.Z when ctrlShift => vm.Toolbar.RedoCommand,
             Key.Delete or Key.Back when none => timeline.DeleteSelectedCommand,
             Key.S when none => timeline.SplitAtPlayheadCommand,
-            Key.N when none => timeline.ToggleSnappingCommand,
+            Key.N when none => timeline.ToggleMagnetCommand,
             Key.Left when none => timeline.StepBackwardCommand,
             Key.Right when none => timeline.StepForwardCommand,
             Key.Left when shift => timeline.StepBackwardSecondCommand,

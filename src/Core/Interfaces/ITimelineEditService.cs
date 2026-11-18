@@ -288,6 +288,9 @@ public interface ITimelineEditService
     /// <summary>D064 §1: the master volume (linear 0–2); a gesture's changes merge.</summary>
     TimelineEditResult SetMasterVolume(double volume, object? gesture = null);
 
+    /// <summary>D069 §6: switches the main track's magnet; turning it on closes the main track's gaps in the same Undo step.</summary>
+    TimelineEditResult SetMagneticMainTrack(bool on);
+
     /// <summary>D064 §4 «Закрепить в точки»: the ducking <paramref name="curve"/> (timeline samples) written into the volume
     /// points of the track's clips — multiplied with their own — and the track's ducking turned off; one Undo step. Refused on a
     /// locked track.</summary>

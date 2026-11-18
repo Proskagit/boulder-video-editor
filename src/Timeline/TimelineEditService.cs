@@ -216,7 +216,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         {
             startFrame = Math.Max(0, requested.ToNearestFrame(rateForAdd));
             // D057 §3.12: a new file dropped on a clip goes right after it (D037 §3 pushes the later clips).
-            if (insertOnDrop && DropOnClipEnd(plan, track, startFrame, rateForAdd) is { } after) startFrame = after;
+            if (insertOnDrop && DropOnClipEnd(plan, track, startFrame, rateForAdd, IsMagneticMain(track)) is { } after) startFrame = after;
         }
         else
         {
@@ -236,13 +236,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
 
     /// <summary>D057 §3.12: the end frame of the clip of <paramref name="track"/> that <paramref name="frame"/> lies strictly
-    /// inside, or null.</summary>
-    private static long? DropOnClipEnd(EditPlan plan, Track track, long frame, FrameRate rate)
+    /// inside, or null; on the magnetic main track (D069 §6) the cut nearest the frame — its start or its end.</summary>
+    private static long? DropOnClipEnd(EditPlan plan, Track track, long frame, FrameRate rate, bool nearest = false)
     {
         foreach (var clip in plan.EffectiveClips(track))
         {
             long start = clip.State.Start.ToNearestFrame(rate), end = clip.State.End.ToNearestFrame(rate);
-            if (start < frame && frame < end) return end;
+            if (start < frame && frame < end) return nearest ? NearestCut(start, end, frame) : end;
         }
         return null;
     }
@@ -279,7 +279,10 @@ public sealed partial class TimelineEditService : ITimelineEditService
         return null;
     }
 
-    public TimelineEditResult AddTextClip(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox = null)
+    public TimelineEditResult AddTextClip(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox = null) =>
+        OverMainTrack("Add Text", () => AddTextClipOnTop(start, measureBox));
+
+    private TimelineEditResult AddTextClipOnTop(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox)
     {
         // Titles go over the picture: the topmost video track, never a new one.
         var track = Sequence.VideoTracks.OrderByDescending(t => t.Order).FirstOrDefault();
@@ -323,6 +326,11 @@ public sealed partial class TimelineEditService : ITimelineEditService
     public TimelineEditResult AddTemplateClip(TemplateKind kind, MediaTime start)
     {
         if (!Enum.IsDefined(kind)) throw new ArgumentOutOfRangeException(nameof(kind));
+        return OverMainTrack("Add Template", () => AddTemplateClipOnTop(kind, start));
+    }
+
+    private TimelineEditResult AddTemplateClipOnTop(TemplateKind kind, MediaTime start)
+    {
 
         // D045 §5: over the picture as a text — the topmost video track, never a new one.
         var track = Sequence.VideoTracks.OrderByDescending(t => t.Order).FirstOrDefault();
@@ -469,7 +477,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
         {
             if (moving.Contains(other.Clip)) continue;
             long otherStart = other.State.Start.ToNearestFrame(rate), otherEnd = other.State.End.ToNearestFrame(rate);
-            if (otherStart < start && start < otherEnd) return frameDelta + (otherStart - start);
+            if (otherStart < start && start < otherEnd)
+                return frameDelta + ((IsMagneticMain(track) ? NearestCut(otherStart, otherEnd, start) : otherStart) - start);   // D069 §6
         }
         return frameDelta;
     }
@@ -1464,6 +1473,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (plan.AllTracks.FirstOrDefault(t => t.IsLocked && t.Clips.Any(plan.Removes)) is { } lockedTemplateTrack)
             return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, lockedTemplateTrack.Name));
         plan.ReconcileTransitions();   // a deleted clip's dissolves go with it (D025 §5)
+        if (CloseMainTrackGaps(plan) is { } magnetError) return TimelineEditResult.Fail(magnetError);   // D069 §6
 
         Commit(plan, clips.Count == 1 ? "Delete Clip" : "Delete Clips");
         return TimelineEditResult.Ok(clips.Select(c => c.Id).ToList(), TransitionNote(plan));
@@ -1843,6 +1853,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var plan = new EditPlan(Sequence, Settings);
         var clips = plan.AllTracks.SelectMany(t => t.Clips).Where(c => ids.Any(id => Uses(c, id))).ToList();
         foreach (var clip in clips) plan.Remove(clip);
+        if (CloseMainTrackGaps(plan) is { } magnetError) return TimelineEditResult.Fail(magnetError);   // D069 §6
         plan.ReconcileTransitions();   // the removed clips' dissolves go with them (D025 §5)
         plan.ReconcileLinks();         // and the links of their partners (D032 R5), never on a locked track (AQ12)
         if (plan.ClearedLinks.FirstOrDefault(c => plan.TrackOf(c).IsLocked) is { } lockedPartner)
@@ -2581,6 +2592,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
     /// handles of every dissolve the edit creates or keeps (§4) — and the links.</summary>
     private string? Validate(EditPlan plan)
     {
+        if (ApplyMagnet(plan) is { } magnetError) return magnetError;               // D069 §6: no gaps on the main track
         if (ReconcileOverlays(plan) is { } overlayError) return overlayError;   // D048: the overlays follow their clip
         if (PlanPartnerShifts(plan) is { } partnerError) return partnerError;
         plan.ReconcileTransitions();

@@ -80,6 +80,20 @@ public sealed class EditPlan
 
     public void Update(Clip clip, Track toTrack, ClipState after) => _updates[clip] = (toTrack, after);
 
+    /// <summary>D069 §6: drops a planned update again (a clip the magnet carried that would collide on its track).</summary>
+    public void CancelUpdate(Clip clip) => _updates.Remove(clip);
+
+    /// <summary>D069 §6: the clips of other video tracks the magnet carries with a main track clip.</summary>
+    public HashSet<Clip> MagnetCarried { get; } = new();
+
+    /// <summary>The track the plan inserts <paramref name="clip"/> into, or null when it is not a new clip of the plan.</summary>
+    public Track? InsertTrackOf(Clip clip)
+    {
+        foreach (var (track, inserted) in _inserts)
+            if (inserted == clip) return track;
+        return null;
+    }
+
     /// <summary>The timing the plan gives an existing clip, or null when it doesn't change it.</summary>
     public ClipState? PlannedState(Clip clip) => _updates.TryGetValue(clip, out var u) ? u.After : null;
 

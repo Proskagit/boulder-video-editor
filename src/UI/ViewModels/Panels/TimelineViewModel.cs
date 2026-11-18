@@ -103,7 +103,6 @@ public sealed partial class TimelineViewModel : ViewModelBase
             waveforms.WaveformReady += (_, _) => RefreshWaveforms();
 
         _pixelsPerSecond = Sequence.ZoomPixelsPerSecond;
-        _snappingEnabled = Sequence.SnappingEnabled;
         Refresh();
         _hadClips = HasClips();     // an opened project keeps its saved zoom
         _userZoomed = false;
@@ -132,7 +131,21 @@ public sealed partial class TimelineViewModel : ViewModelBase
     [ObservableProperty] private double _tracksHeight;
     [ObservableProperty] private double _playheadX;
     [ObservableProperty] private string _frameRateDisplay = "";
-    [ObservableProperty] private bool _snappingEnabled;
+    /// <summary>D069 §6: the timeline always snaps (no switch any more; tests may turn it off for exact pointer maths).</summary>
+    [ObservableProperty] private bool _snappingEnabled = true;
+
+    /// <summary>D069 §6: the main track's magnet (the tool bar's former «Привязка», N) — a change of the project, one Undo step
+    /// (turning it on closes the main track's gaps).</summary>
+    public bool MagneticMainTrack
+    {
+        get => Sequence.MagneticMainTrack;
+        set
+        {
+            if (value != Sequence.MagneticMainTrack && CanEdit())
+                Report(_edit.SetMagneticMainTrack(value), successMessage: value ? Strings.Magnet_On : Strings.Magnet_Off);
+            OnPropertyChanged();
+        }
+    }
     [ObservableProperty] private bool _isSnapIndicatorVisible;
     [ObservableProperty] private double _snapIndicatorX;
 
@@ -174,8 +187,6 @@ public sealed partial class TimelineViewModel : ViewModelBase
     /// <summary>The view should scroll horizontally to this content X (after layout).</summary>
     public event EventHandler<double>? ScrollRequested;
 
-    partial void OnSnappingEnabledChanged(bool value) => Sequence.SnappingEnabled = value;
-
     partial void OnTracksHeightChanged(double value) => OnPropertyChanged(nameof(PlayheadHeight));
 
     // --- Projection ---------------------------------------------------------------
@@ -196,7 +207,6 @@ public sealed partial class TimelineViewModel : ViewModelBase
         _selectedTransitionId = null;
         Clipboard = null;   // copied clips refer to the previous project's media and tracks (D027 §5)
         PixelsPerSecond = Sequence.ZoomPixelsPerSecond;
-        SnappingEnabled = Sequence.SnappingEnabled;
         Refresh();
         _hadClips = HasClips();     // D068 item 6: an opened project keeps its saved zoom
         _userZoomed = false;
@@ -205,6 +215,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private void Refresh()
     {
+        OnPropertyChanged(nameof(MagneticMainTrack));   // an Undo / Redo or another project
         // Video top-down as the playback snapshot composites it (PlaybackSnapshotBuilder: equal orders by their place in
         // the list, the later one on top), audio by order.
         var desiredTracks = Sequence.VideoTracks.Select((t, index) => (t, index))
@@ -1155,7 +1166,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         Report(_edit.DeleteTrack(track.Track.Id), successMessage: string.Format(Strings.Track_Deleted, name));
     }
 
-    [RelayCommand] private void ToggleSnapping() => SnappingEnabled = !SnappingEnabled;
+    [RelayCommand] private void ToggleMagnet() => MagneticMainTrack = !MagneticMainTrack;
 
     private readonly ITextBoxMeasurer? _textBoxes;
 
@@ -1647,9 +1658,13 @@ public sealed partial class TimelineViewModel : ViewModelBase
         {
             Edge = edge, StartX = contentX, Clips = new List<TimelineClipViewModel> { clip }, SourceTrack = TrackOf(clip),
             TrimTime = edge == ClipEdge.Start ? clip.Clip.TimelineStart : clip.Clip.TimelineEnd,
-            Ripple = ripple && !alone, Alone = alone
+            // D069 §6: on the magnetic main track every trim ripples (the clips after it follow, no gap, no overlap).
+            Ripple = (ripple || IsOnMagneticMainTrack(clip)) && !alone, Alone = alone
         };
     }
+
+    private bool IsOnMagneticMainTrack(TimelineClipViewModel clip) =>
+        Sequence.MagneticMainTrack && Sequence.VideoTracks.OrderBy(t => t.Order).FirstOrDefault() is { } main && main.Clips.Contains(clip.Clip);
 
     /// <summary>Pointer pressed on a clip's body with Alt (D030 §7): a slip of that clip, which becomes the selection.
     /// False — no gesture, the status says why — for an image or a text, which have no source to slip.</summary>

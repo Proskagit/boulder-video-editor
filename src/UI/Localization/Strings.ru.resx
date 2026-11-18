@@ -1650,10 +1650,10 @@
     <value>Удалить выбранные клипы и сдвинуть следующие клипы их дорожек влево, закрыв промежуток</value>
   </data>
   <data name="Timeline_Snap" xml:space="preserve">
-    <value>Привязка</value>
+    <value>Магнит главной дорожки</value>
   </data>
   <data name="Timeline_SnapTip" xml:space="preserve">
-    <value>Привязка (N)</value>
+    <value>Магнит главной дорожки (N): клипы V1 стягиваются без пропусков</value>
   </data>
   <data name="Timeline_Split" xml:space="preserve">
     <value>Разрезать</value>
@@ -3838,12 +3838,18 @@
     <value>Введите имя проекта.</value>
   </data>
   <data name="SaveAs_NameInvalid" xml:space="preserve">
-    <value>В имени не может быть \ / : * ? " &lt; &gt; | и точки в конце.</value>
+    <value>В имени есть символ, недопустимый в имени папки, или точка в конце.</value>
   </data>
   <data name="SaveAs_NoFolder" xml:space="preserve">
     <value>Выберите папку.</value>
   </data>
   <data name="SaveAs_FolderPickerTitle" xml:space="preserve">
     <value>Папка для проекта</value>
+  </data>
+  <data name="Magnet_On" xml:space="preserve">
+    <value>Магнит главной дорожки включён: клипы V1 стянуты без пропусков.</value>
+  </data>
+  <data name="Magnet_Off" xml:space="preserve">
+    <value>Магнит главной дорожки выключен.</value>
   </data>
 </root>

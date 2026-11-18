@@ -280,6 +280,9 @@ internal sealed class SequenceDto
     public double ZoomPixelsPerSecond { get; set; }
     public bool SnappingEnabled { get; set; }
 
+    /// <summary>Format v26 (D069 §6): the main track's magnet; absent in an older file — off.</summary>
+    public bool? MagneticMainTrack { get; set; }
+
     /// <summary>Format v25 (D064 §1): the master volume; written only when not 1.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? MasterVolume { get; set; }

@@ -375,6 +375,14 @@ public sealed class SetTrackMixCommand(Track track, TrackMix before, TrackMix af
 }
 
 /// <summary>D064 §1: sets the project's master volume; the changes of one gesture (a slider's drag) merge.</summary>
+/// <summary>D069 §6: switches the main track's magnet.</summary>
+public sealed class SetMagneticMainTrackCommand(Sequence sequence, bool before, bool after) : IUndoableCommand
+{
+    public string Description => "Magnetic Main Track";
+    public void Execute() => sequence.MagneticMainTrack = after;
+    public void Undo() => sequence.MagneticMainTrack = before;
+}
+
 public sealed class SetMasterVolumeCommand(Sequence sequence, double before, double after, object? gesture = null) : IMergeableCommand
 {
     public Sequence Sequence { get; } = sequence;

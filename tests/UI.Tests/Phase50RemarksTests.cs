@@ -31,4 +31,16 @@ public sealed class Phase50RemarksTests
         var spacer = hint.Elements().First();
         Assert.Equal("{Binding PlayheadHeight}", (string?)spacer.Attribute("Height"));
     }
+
+    /// <summary>D069 §6: the tool bar's former «Привязка» is the main track's magnet.</summary>
+    [Fact]
+    public void The_magnet_button_binds_the_main_tracks_magnet()
+    {
+        var root = new DirectoryInfo(AppContext.BaseDirectory);
+        while (root is not null && !File.Exists(Path.Combine(root.FullName, "AiVideoEditor.sln"))) root = root.Parent;
+        var xaml = XDocument.Load(Path.Combine(root!.FullName, "src", "UI", "Views", "Panels", "TimelineView.axaml"));
+        var button = Assert.Single(xaml.Descendants(), e => e.Attributes().Any(a => a.Name.LocalName == "Name" && a.Value == "MagnetButton"));
+        Assert.Equal("{Binding MagneticMainTrack}", (string?)button.Attribute("IsChecked"));
+        Assert.DoesNotContain(xaml.Descendants(), e => (string?)e.Attribute("IsChecked") == "{Binding SnappingEnabled}");
+    }
 }

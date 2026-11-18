@@ -1438,4 +1438,7 @@
   <data name="Preflight_SoloActive" xml:space="preserve">
     <value>Solo is on ({0}): only the solo tracks are heard in the export.</value>
   </data>
+  <data name="Magnet_GapsKept" xml:space="preserve">
+    <value>The magnet is on, but the main track's gaps could not be closed: {0}</value>
+  </data>
 </root>

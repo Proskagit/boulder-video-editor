@@ -264,7 +264,8 @@
             <Button x:Name="TransitionButton" Classes="icon" Command="{Binding OpenTransitionMenuCommand}" FlyoutBase.AttachedFlyout="{StaticResource TransitionMenu}" ToolTip.Tip="{x:Static l:Strings.Timeline_TransitionTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_Transition}">
               <controls:IconPath Glyph="{x:Static controls:Icons.Dissolve}"/>
             </Button>
-            <ToggleButton Classes="icon" IsChecked="{Binding SnappingEnabled}" ToolTip.Tip="{x:Static l:Strings.Timeline_SnapTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_Snap}">
+            <!-- D069 §6: the main track's magnet (snapping is always on). -->
+            <ToggleButton x:Name="MagnetButton" Classes="icon" IsChecked="{Binding MagneticMainTrack}" ToolTip.Tip="{x:Static l:Strings.Timeline_SnapTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_Snap}">
               <controls:IconPath Glyph="{x:Static controls:Icons.Snap}"/>
             </ToggleButton>
             <!-- D048 variant B is the default (segments inside the «Боулдер»); this Debug-only switch turns back to the lane. -->

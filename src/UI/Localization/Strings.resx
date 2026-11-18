@@ -1648,10 +1648,10 @@ Recover them now? Discarded changes can't be restored.</value>
     <value>Delete the selected clips and move the later clips of their tracks left to close up</value>
   </data>
   <data name="Timeline_Snap" xml:space="preserve">
-    <value>Snap</value>
+    <value>Main track magnet</value>
   </data>
   <data name="Timeline_SnapTip" xml:space="preserve">
-    <value>Snapping (N)</value>
+    <value>Main track magnet (N): the clips of V1 close up without gaps</value>
   </data>
   <data name="Timeline_Split" xml:space="preserve">
     <value>Split</value>
@@ -3834,12 +3834,18 @@ If you don't save, your changes will be lost.</value>
     <value>Type the project's name.</value>
   </data>
   <data name="SaveAs_NameInvalid" xml:space="preserve">
-    <value>The name cannot contain \ / : * ? " &lt; &gt; | or end with a dot.</value>
+    <value>The name has a character a folder name cannot have, or ends with a dot.</value>
   </data>
   <data name="SaveAs_NoFolder" xml:space="preserve">
     <value>Choose the folder.</value>
   </data>
   <data name="SaveAs_FolderPickerTitle" xml:space="preserve">
     <value>The folder for the project</value>
+  </data>
+  <data name="Magnet_On" xml:space="preserve">
+    <value>Main track magnet on: the clips of V1 close up without gaps.</value>
+  </data>
+  <data name="Magnet_Off" xml:space="preserve">
+    <value>Main track magnet off.</value>
   </data>
 </root>

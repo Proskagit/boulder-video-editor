@@ -109,7 +109,7 @@ public sealed class ShortcutRoutingTests
             (Key.Delete, KeyModifiers.None, timeline.DeleteSelectedCommand),
             (Key.Back, KeyModifiers.None, timeline.DeleteSelectedCommand),
             (Key.S, KeyModifiers.None, timeline.SplitAtPlayheadCommand),
-            (Key.N, KeyModifiers.None, timeline.ToggleSnappingCommand),
+            (Key.N, KeyModifiers.None, timeline.ToggleMagnetCommand),
             (Key.Left, KeyModifiers.None, timeline.StepBackwardCommand),
             (Key.Right, KeyModifiers.None, timeline.StepForwardCommand),
             (Key.Left, shift, timeline.StepBackwardSecondCommand),
@@ -186,26 +186,26 @@ public sealed class ShortcutRoutingTests
     [Fact]
     public void A_shortcut_runs_its_command_and_is_consumed()
     {
-        var snapping = _vm.Timeline.SnappingEnabled;
+        var magnet = _vm.Timeline.MagneticMainTrack;
 
         Assert.True(Press(Key.N));
 
-        Assert.NotEqual(snapping, _vm.Timeline.SnappingEnabled);
+        Assert.NotEqual(magnet, _vm.Timeline.MagneticMainTrack);
     }
 
     [Fact]
     public void Nothing_fires_while_a_text_input_has_focus_or_sent_the_key()
     {
-        var snapping = _vm.Timeline.SnappingEnabled;
+        var magnet = _vm.Timeline.MagneticMainTrack;
         var textBox = new TextBox();
 
         Assert.False(Press(Key.N, source: textBox));                      // typed into the text box
         Assert.False(Press(Key.N, focused: textBox));                     // the text box has focus
         Assert.False(Press(Key.S, KeyModifiers.Control, focused: textBox));
-        Assert.Equal(snapping, _vm.Timeline.SnappingEnabled);
+        Assert.Equal(magnet, _vm.Timeline.MagneticMainTrack);
 
         Assert.True(Press(Key.N, focused: new Button()));                 // any other control: the shortcut works
-        Assert.NotEqual(snapping, _vm.Timeline.SnappingEnabled);
+        Assert.NotEqual(magnet, _vm.Timeline.MagneticMainTrack);
     }
 
     [Fact]
