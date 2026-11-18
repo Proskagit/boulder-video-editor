@@ -1170,7 +1170,7 @@
     <value>Проект ещё не был сохранён.</value>
   </data>
   <data name="Recovery_Question" xml:space="preserve">
-    <value>AI Video Editor был закрыт некорректно. Несохранённые изменения проекта «{0}» были автоматически сохранены {1}.
+    <value>Boulder Video Editor был закрыт некорректно. Несохранённые изменения проекта «{0}» были автоматически сохранены {1}.
 {2}
 
 Восстановить их сейчас? Отброшенные изменения вернуть нельзя.</value>
@@ -3812,5 +3812,8 @@
   </data>
   <data name="Inspector_ResetSectionTip" xml:space="preserve">
     <value>Сбросить значения раздела</value>
+  </data>
+  <data name="Export_SnapshotNotSaved" xml:space="preserve">
+    <value>не сохранён — экспортируется как есть</value>
   </data>
 </root>

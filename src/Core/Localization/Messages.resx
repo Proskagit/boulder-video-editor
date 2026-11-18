@@ -665,10 +665,10 @@
     <value>{0} was not found in {1}.</value>
   </data>
   <data name="ProjectFile_NotProject" xml:space="preserve">
-    <value>This file is not an Boulder Video Editor project.</value>
+    <value>This file is not a Boulder Video Editor project.</value>
   </data>
   <data name="ProjectFile_NotRecovery" xml:space="preserve">
-    <value>This file is not an Boulder Video Editor recovery file.</value>
+    <value>This file is not a Boulder Video Editor recovery file.</value>
   </data>
   <data name="ProjectFile_ReadFailed" xml:space="preserve">
     <value>The project file couldn't be read: {0}</value>

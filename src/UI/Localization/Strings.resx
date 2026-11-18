@@ -1168,7 +1168,7 @@ The project can't be found there now. Remove it from the list with ✕.</value>
     <value>The project had not been saved yet.</value>
   </data>
   <data name="Recovery_Question" xml:space="preserve">
-    <value>AI Video Editor didn't close normally. Unsaved changes to "{0}" were autosaved at {1}.
+    <value>Boulder Video Editor didn't close normally. Unsaved changes to "{0}" were autosaved at {1}.
 {2}
 
 Recover them now? Discarded changes can't be restored.</value>
@@ -3777,10 +3777,10 @@ If you don't save, your changes will be lost.</value>
     <value>Duration {0}</value>
   </data>
   <data name="Media_RemoveQuestionFiles" xml:space="preserve">
-    <value>Remove {0} files from the project? {1} clips on the timeline use them and will be removed too. The files on disk stay.</value>
+    <value>Remove {0} files from the project? Clips on the timeline that use them ({1}) will be removed too. The files on disk stay.</value>
   </data>
   <data name="Media_RemovedFiles" xml:space="preserve">
-    <value>{0} files removed from the project (clips removed: {1}).</value>
+    <value>Files removed from the project: {0} (clips removed: {1}).</value>
   </data>
   <data name="Template_NoHeartRateHere" xml:space="preserve">
     <value>The heart rate plate was added, but the training has no heart rate for the video at this place: the plate will show nothing here.</value>
@@ -3808,5 +3808,8 @@ If you don't save, your changes will be lost.</value>
   </data>
   <data name="Inspector_ResetSectionTip" xml:space="preserve">
     <value>Reset the section's values</value>
+  </data>
+  <data name="Export_SnapshotNotSaved" xml:space="preserve">
+    <value>not saved — exported as it is now</value>
   </data>
 </root>

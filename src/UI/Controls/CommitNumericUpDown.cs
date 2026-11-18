@@ -68,9 +68,19 @@ public class CommitNumericUpDown : NumericUpDown
     // The spinner's own template is applied during the first layout: the buttons are found once they exist.
     private void OnFirstLayout(object? sender, EventArgs e)
     {
-        if (_stacked) { LayoutUpdated -= OnFirstLayout; return; }
+        // A field in a collapsed section has no height yet: it waits for being shown (EffectiveViewportChanged), it does not
+        // walk its tree on every layout pass of the window.
+        LayoutUpdated -= OnFirstLayout;
+        if (_stacked) return;
         _stacked = StackButtons(this);
-        if (_stacked) LayoutUpdated -= OnFirstLayout;
+        if (!_stacked) EffectiveViewportChanged += OnShown;
+    }
+
+    private void OnShown(object? sender, Avalonia.Layout.EffectiveViewportChangedEventArgs e)
+    {
+        if (Bounds.Height <= 0) return;
+        EffectiveViewportChanged -= OnShown;
+        _stacked = StackButtons(this);
     }
 
     private static bool StackButtons(Visual field)

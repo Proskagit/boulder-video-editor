@@ -141,7 +141,7 @@ public sealed class FilmstripService : IFilmstripService
             if (at + 12 > bytes.Length) return null;
             var ticks = BinaryPrimitives.ReadInt64LittleEndian(bytes.AsSpan(at));
             var length = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(at + 8));
-            if (length < ThumbnailCacheFile.HeaderLength || at + 12 + length > bytes.Length) return null;
+            if (length < ThumbnailCacheFile.HeaderLength || (long)at + 12 + length > bytes.Length) return null;
             if (ThumbnailCacheFile.Decode(bytes.AsMemory(at + 12, length)) is not { } picture) return null;
             frames.Add(new FilmstripFrame(new MediaTime(ticks), picture));
             at += 12 + length;

@@ -19,7 +19,16 @@ decisions). Waiting for the owner's choice of the list before implementation (D0
 items 1–4 (theme, accent, icons, message kinds), 5 (start screen), 6, 7, 8 (Inspector rail), 9, 10 (filmstrips), 11, 12, 13 + R1, 14.
 Then P3 (15–18) and the owner's check of 2026-11-18 (D068 §7, amendment 1: media removal, the canvas offer, Save As over a
 project, the Inspector as one list with the rail on the left, sliders and compact fields as CapCut, polish); the help updated.
-Separate phases listed in D068 §7: the magnetic main track, colour correction, more transitions, the export's cover frame.
+Separate phases listed in D068 §7: the magnetic main track, colour correction, more transitions, the export's cover frame. **Review (phase-reviewer, 2026-11-18): FAIL** — the crash-recovery question still named «AI Video Editor»; under R1 the export's
+snapshot line said «сохранён» for a never-saved project. **Fixed:** the name (+ a guard test: no resource names the old product),
+«не сохранён — экспортируется как есть» (+ test); also «a Boulder…», the filmstrip reader's overflow, Save As keeping a real
+nested project, the field's spinner waiting for being shown, the phase-41 script's exe, «1 clips», DEVELOPMENT_PLAN row 49.
+**Gates (2026-11-18, after the fixes):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check` clean; Release
++ `AIVE_HEAVY_TESTS=1` with `--blame-hang`: Vision 25, Project 749, Core 1 923, Rendering 257, UI 1 299, Timeline 1 194, Video 418
+(+1 skipped), ExportEndToEnd 189 — green; Export 141 / 142 under the full load (the known flake
+`A_rasterizer_failure_while_the_writer_waits_never_deadlocks`), 142 / 142 three times alone. The first full run before the fixes:
+Project.Tests hung under the full load (749 / 749 four times alone and in the second full run), the WASAPI device test failed
+once (passes alone; real audio device). Not done: the owner's manual check of steps 3–4.
 
 **Phase 48 — the owner's fixes before publishing 1.0 (D067, 2026-11-18) — on `feat/phase-48-release-fixes`.** Rubber-band
 selection in the Media Browser (from a blank place; Ctrl adds), the export's suggested name `yyyyMMdd_HHmm.mp4` (the last export's

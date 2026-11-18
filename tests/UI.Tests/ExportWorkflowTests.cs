@@ -9,6 +9,7 @@ using AiVideoEditor.UI.ViewModels;
 using AiVideoEditor.UI.ViewModels.Panels;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using AiVideoEditor.UI.Localization;
 using Xunit;
 
 namespace AiVideoEditor.UI.Tests;
@@ -786,6 +787,23 @@ public sealed class ExportWorkflowTests : IDisposable
         Assert.Equal(0, Saves);
         Assert.True(_projects.Current.IsDirty);
         Assert.Single(_export.Jobs);
+    }
+
+    /// <summary>D068 R1: the progress window's line never says a project never saved was saved.</summary>
+    [Fact]
+    public async Task The_snapshot_line_of_a_project_never_saved_says_not_saved()
+    {
+        ExportableProject(saved: false, hasFolder: false);
+        var workflow = Workflow(Ok);
+        _picker.SaveFiles.Enqueue(Output());
+        var steps = _export.Stepwise();
+        var run = workflow.RunAsync();
+        await steps.Started;
+
+        Assert.Contains(Strings.Export_SnapshotNotSaved, workflow.Progress!.SnapshotText);
+        Assert.DoesNotContain(Strings.Export_SnapshotSaved + ")", workflow.Progress.SnapshotText);
+        steps.Complete();
+        await run;
     }
 
     [Fact]

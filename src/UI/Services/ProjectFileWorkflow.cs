@@ -135,6 +135,7 @@ public sealed class ProjectFileWorkflow
     {
         var parent = Path.GetDirectoryName(picked);
         if (string.IsNullOrEmpty(parent) || !File.Exists(Path.Combine(parent, "project.json"))) return picked;
+        if (File.Exists(Path.Combine(picked, "project.json"))) return picked;     // a real project of that name inside: itself
         var name = Path.GetFileName(picked);
         return string.Equals(name, "project.json", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(name, Path.GetFileName(Path.TrimEndingDirectorySeparator(parent)), StringComparison.OrdinalIgnoreCase)

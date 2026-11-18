@@ -56,8 +56,8 @@ public class RecoverySerializerTests
         var asRecovery = Assert.Throws<ProjectFileException>(() => ProjectSerializer.DeserializeRecovery(ProjectSerializer.Serialize(project, Folder), AllExist));
         var asProject = Assert.Throws<ProjectFileException>(() => ProjectSerializer.Deserialize(ProjectSerializer.SerializeRecovery(project, Info), Folder, AllExist));
 
-        Assert.Contains("not an Boulder Video Editor recovery file", asRecovery.Message);
-        Assert.Contains("not an Boulder Video Editor project", asProject.Message);
+        Assert.Contains("not a Boulder Video Editor recovery file", asRecovery.Message);
+        Assert.Contains("not a Boulder Video Editor project", asProject.Message);
     }
 
     [Theory]

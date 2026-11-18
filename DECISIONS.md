@@ -11044,7 +11044,8 @@ filmstrips on the video clips (10, `FilmstripService` / `FilmstripCoordinator`, 
 tool bar (11), the pickers' folders (12), a plainer export window with «готово за …» and «Показать в папке» (13; the cover
 frame not done), FIT import from the Inspector (14), template descriptions in the menu instead of rendered previews (15), the
 languages by name (16), the empty Preview's hint (17), the section reset of «Трансформация и кадрирование» and «Звук» (18);
-Р1: a project never saved is exported without the «unsaved changes» question (a saved one is still asked).
+Р1: a project never saved is exported without the «unsaved changes» question (a saved one is still asked); the progress
+window's snapshot line (D060 §2) says «не сохранён — экспортируется как есть» for it.
 
 ### 7. Amendment 1 — the owner's check of 2026-11-18
 

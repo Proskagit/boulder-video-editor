@@ -266,7 +266,9 @@ public sealed class ExportWorkflow
 
         // 4. The export — in the background; the job is the project as it is now (D060 §2).
         var snapshotText = string.Format(Strings.Export_SnapshotLine, project.Name, DateTime.Now.ToString("HH:mm:ss"),
-            project.IsDirty ? Strings.Export_SnapshotExportSettingsChanged : Strings.Export_SnapshotSaved,
+            // D068 R1: a project never saved is exported as it is — the line never claims it was saved.
+            project.ProjectFolderPath is null ? Strings.Export_SnapshotNotSaved
+                : project.IsDirty ? Strings.Export_SnapshotExportSettingsChanged : Strings.Export_SnapshotSaved,
             job.Output.Size.Width, job.Output.Size.Height);
         // The names a failure message uses, taken now: the project may be edited or replaced while the export runs.
         var names = ExportNames.Of(project);
