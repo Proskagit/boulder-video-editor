@@ -11038,6 +11038,41 @@ also gains Duplicate and Ripple delete).
 **Item 4 — message kinds.** `StatusService` reports Info / Warning (refused or limited) / Error (failed); the bar shows the
 warning's and the error's icon and colour; the kind is set before the text.
 
+**Items 5–18 and Р1** (implemented 2026-11-18): the start screen (5), the first clips shown whole (6), imported files selected
+(7), the Inspector's rail (8, changed by amendment 1), the markup mode seen and a click while the model loads kept (9),
+filmstrips on the video clips (10, `FilmstripService` / `FilmstripCoordinator`, `.strip` cache files), the save state on the
+tool bar (11), the pickers' folders (12), a plainer export window with «готово за …» and «Показать в папке» (13; the cover
+frame not done), FIT import from the Inspector (14), template descriptions in the menu instead of rendered previews (15), the
+languages by name (16), the empty Preview's hint (17), the section reset of «Трансформация и кадрирование» and «Звук» (18);
+Р1: a project never saved is exported without the «unsaved changes» question (a saved one is still asked).
+
+### 7. Amendment 1 — the owner's check of 2026-11-18
+
+Fixed in this phase:
+- **Media removal:** several selected files are removed together after one question, with their clips, one Undo step
+  (`RemoveMediaMany`); only one was removed.
+- **The canvas offer:** made on every add to an empty timeline whose first video has another shape than the canvas — also
+  after the timeline was cleared and with a canvas the user set. D041 §1's «once per session, at the default canvas» is replaced.
+- **Save As over a project:** Windows' save dialog opens a folder whose name is typed; inside a project's folder its own name
+  typed again (or its `project.json` picked) means that folder — replaced after the question.
+- **The Inspector:** one list again (item 8 changed): the sections of a clip in the rail's groups (Clip, Text / Template, People,
+  Holds, FIT, Sound); the rail on the left only scrolls to a group and lights the group at the top.
+- **Fields (as CapCut):** a slider sits between the label and its field on one line (14 rows); a field's arrows are one column at
+  its right edge; fields 84 px, 72 on a slider's line; the keyframes' three buttons on one line, its label centred.
+- **Polish:** icons keep their 16 px grid (the eye toggle was off-centre); flyouts and menus have a raised surface and an edge,
+  dialogs a step lighter than the main window (Windows' own file dialogs cannot be framed by the app); track headers 112 px and
+  the mix button an icon; the track mix panel's labels wider; the AI models' messages no longer call every model «модель
+  зацепок»; the start screen's line reworded; «Пульс» in the template menu only with a training, and a warning when it is added
+  where the training has no heart rate; the help: automatic route marking «в разработке», no word on an older version's folder.
+
+**Not in this phase — separate phases (the owner decides when):**
+1. **The magnetic main track** (as CapCut's): clips on the main track always close up to the left — a clip dropped in the middle
+   or after a gap moves to the previous clip's end, a removal closes the gap. It changes the editing rules (D037 §3) and meets
+   the time-bound parts (FIT climbs, hold animations, Follow parts): a phase of its own with its decision.
+2. **Colour correction** of a video clip (brightness, contrast, saturation, temperature …) and an automatic picture improvement.
+3. **More transitions** (the library has five: dissolve, dip to black, flash, zoom, push) — the popular ones of CapCut.
+4. **The export window's cover frame** (item 13's rest).
+
 ### Out of scope
 
-New editing features; changing the file formats; the release 1.1's packaging (after the phase); Р2–Р4 (§6).
+New editing features; changing the file formats; the release 1.1's packaging (after the phase); Р2–Р4 (§6); §7's separate phases.

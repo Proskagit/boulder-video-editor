@@ -16,7 +16,9 @@ Boulder Video Editor is an editor for bouldering videos. Its core is working wit
 - **The toolbar** at the top: the project, undo, the training, the project settings, export, the settings and this help.
 - **Media** on the left: the project's files.
 - **Preview** in the middle: the timeline's frame or the source file. What you see here is what gets exported.
-- **The Inspector** on the right: the selected clip's properties; its sections collapse.
+- **The Inspector** on the right: the selected clip's properties as one list; its sections collapse. The icon rail left of the list (Clip, Text, People, Holds, FIT, Sound) scrolls to a group.
+- **The start screen** at launch: «Create project», «Open…» and the recent projects.
+- The right end of the toolbar shows whether the project is saved: «Saved at 10:26» or «Unsaved changes».
 - **The timeline** at the bottom: the video and sound tracks.
 
 ## What the AI features need
@@ -26,7 +28,7 @@ Marking holds, following people and cleaning sound need local models. They come 
 # The project and its files
 
 - **A project is a folder** with a project.json file. «New» (Ctrl+N), «Open» (Ctrl+O), «Recent» — the latest projects.
-- **«Save»** (Ctrl+S) and **«Save As»** (Ctrl+Shift+S). «Save As» creates a folder with the name you type — handy for keeping versions side by side: «Project v1», «Project v2».
+- **«Save»** (Ctrl+S) and **«Save As»** (Ctrl+Shift+S). «Save As» creates a folder with the name you type — handy for keeping versions side by side: «Project v1», «Project v2». To replace an existing project, open its folder in the save window and save under the same name — the editor asks before replacing it.
 - **Videos are not copied** into the project: it refers to your files. Don't move or rename them while you need the project.
 - **Autosave.** If the editor closed without saving, it offers to recover your work at the next start.
 - **«Project Settings…»** — the project's frame size and frame rate.
@@ -37,6 +39,7 @@ Marking holds, following people and cleaning sound need local models. They come 
 ## Media
 
 - «+ Import» adds videos, sounds and pictures. Select files with a rubber band (Ctrl adds to the selection) and drag them onto the timeline as a group.
+- Several selected files can be removed from the project at once; if clips use them, the editor asks once and removes the clips with them. The files on disk stay.
 - A double click opens a file in the source: in Preview pick the part you need (I — in, O — out) and put it on the timeline («,» — insert, «.» — overwrite).
 
 ## The timeline
@@ -44,7 +47,8 @@ Marking holds, following people and cleaning sound need local models. They come 
 - Drag a clip with the mouse; its edges trim it. **Snapping** (N) pulls clips to their neighbours and the playhead.
 - **S** — split at the playhead, **Delete** — delete, **Ctrl+D** — duplicate, **Ctrl+C / Ctrl+V** — copy and paste.
 - **Q / W** — trim the selected clip's start / end to the playhead; with Shift the following clips move too.
-- The buttons above the tracks: split, ripple delete, close the gap, link or unlink the sound, transition, text, template, marker, mixer.
+- Above the tracks — icons with tooltips: tracks, «Text», «Template», «Keyframe», «Mixer», split, delete, ripple delete, duplicate, transition, snapping, zoom.
+- A right click on a clip opens its menu with every clip command: copy, paste, duplicate, trim to the playhead, link or unlink the sound, close the gap, mark holds, delete.
 - Zoom: Ctrl+wheel, Ctrl+= / Ctrl+−, «\» — the whole timeline.
 - Undo and redo: Ctrl+Z / Ctrl+Y — for every edit.
 
@@ -68,7 +72,7 @@ A local neural network draws a hold's outline from one click.
 ## Proposals and automatic marking
 
 - **«Suggest holds automatically»** — entering the markup, the editor looks for holds by itself. Accept or reject each, or all at once: «Accept all» (Ctrl+A), «Reject all» (Ctrl+D).
-- **«Auto markup»** — click one hold of the route and the editor finds the other holds of its colour on a clean frame. «Colour tolerance» decides how similar a colour still counts. Delete the extra ones, click the missed ones and press «Accept».
+- **Automatic route marking by colour** — in development.
 
 ## Look and animation
 
@@ -99,7 +103,7 @@ The Inspector's **«Follow and people»** section.
 # Text, templates and transitions
 
 - **Text** — the «Add a text clip» button above the timeline. The font, colour, outline, background and its entrance animation are in the Inspector.
-- **Templates** — ready-made plates: «Boulder» (the route, grade, status TOP or attempt), «Heart rate», «Highlight», REC, VHS. The template's fields are in the Inspector's «Template» section; «Status appears» sets when the result shows.
+- **Templates** — ready-made plates: «Boulder» (the route, grade, status TOP or attempt), «Heart rate» (in the menu once a training is imported), «Highlight», REC, VHS. The template's fields are in the Inspector's «Template» section; «Status appears» sets when the result shows.
 - **A transition** — select two neighbouring clips and press the transition button. On a sound track it is a cross-fade.
 
 # Sound
@@ -112,7 +116,9 @@ The Inspector's **«Follow and people»** section.
 # Export
 
 - **«Export»** (Ctrl+E) — choose the place and the file's name. The name offered is the date and time, for example 20261118_1430.mp4.
-- The export window chooses the resolution and, with an in and out set, the whole project or only that part.
+- The export window: the name, the folder, the resolution and the quality profile; the encoder and fine settings are in «More settings». The expected file size is shown below. With an in and out set, only that part is exported.
+- A new project not saved yet is exported at once, without saving.
+- When it is done you see how long it took and «Show in folder».
 - **The export runs in the background:** keep working. The video holds the project as it was when the export started.
 - The export's progress shows in the editor's window, and it can be cancelled. With an NVIDIA graphics card the encoding runs on it.
 
@@ -148,5 +154,5 @@ The Inspector's **«Follow and people»** section.
 # Where the data lives
 
 - **Projects** — in the folders you chose when saving.
-- **Settings, models, recovery and caches** — in %LOCALAPPDATA%\BoulderVideoEditor. The older version's folder (AiVideoEditor) is moved there at the first start.
+- **Settings, models, recovery and caches** — in %LOCALAPPDATA%\BoulderVideoEditor.
 - **Logs** — in %LOCALAPPDATA%\BoulderVideoEditor\logs. If something goes wrong, attach the app-*.log, errors-*.log and ffmpeg-*.log files from there to your description.

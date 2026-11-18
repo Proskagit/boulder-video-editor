@@ -17,8 +17,9 @@ Insta360 Studio — the latter seen live; CapCut and Resolve not opened live) an
 two 12x10 clips, the audit by screenshots in `docs/ux-1.1/before`, a design-system proposal, 15 prioritised changes + 3 owner
 decisions). Waiting for the owner's choice of the list before implementation (D068 §5). **Implementation (2026-11-18, the owner chose items 1–18 and R1; R2–R4 rejected, D068 §6):** done and committed —
 items 1–4 (theme, accent, icons, message kinds), 5 (start screen), 6, 7, 8 (Inspector rail), 9, 10 (filmstrips), 11, 12, 13 + R1, 14.
-**Left:** P3 (15 template previews, 16 language names, 17 empty Preview hint, 18 section reset), the help's final texts, the
-full gates in Release + heavy, the phase review, push / PR, the owner's manual check. Not done in item 13: the cover frame.
+Then P3 (15–18) and the owner's check of 2026-11-18 (D068 §7, amendment 1: media removal, the canvas offer, Save As over a
+project, the Inspector as one list with the rail on the left, sliders and compact fields as CapCut, polish); the help updated.
+Separate phases listed in D068 §7: the magnetic main track, colour correction, more transitions, the export's cover frame.
 
 **Phase 48 — the owner's fixes before publishing 1.0 (D067, 2026-11-18) — on `feat/phase-48-release-fixes`.** Rubber-band
 selection in the Media Browser (from a blank place; Ctrl adds), the export's suggested name `yyyyMMdd_HHmm.mp4` (the last export's
