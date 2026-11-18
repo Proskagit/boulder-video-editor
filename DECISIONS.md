@@ -10953,6 +10953,11 @@ A route-orange climbing hold in the green outline the editor draws around a mark
 editor's dark rounded square (`tools/icon/make_icon.py` → `src/UI/Assets/app.ico`, 16–256 px): `AiVideoEditor.exe`'s icon
 (Explorer, the taskbar) and the main window's.
 
+### 8. Acceptance (the product owner, 2026-11-18)
+
+The owner's check of the portable build of `feat/phase-48-release-fixes`: every remark closed — **Phase 48 accepted**. §2
+is closed with it (not seen again). The release `v1.0.0`'s assets are rebuilt from `main` after the merge.
+
 ### Out of scope
 
 Keyframed clean-up (§3, backlog); the UX phase (1.1); the other windows' icons (dialogs keep the default).

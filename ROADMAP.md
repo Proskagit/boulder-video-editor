@@ -649,7 +649,8 @@ tracking task. Sketch: `docs/DEVELOPMENT_PLAN.md`, "Future ideas (not phases)".
 
 **Phase 48 (D067, 2026-11-18) — the owner's fixes before publishing 1.0** on `feat/phase-48-release-fixes`: rubber-band
 selection in the Media Browser, the export named `yyyyMMdd_HHmm.mp4`, Space always Play / Pause, Save As with a name (a folder
-of that name), the application's icon. Open: the pushed clip that stays shifted (D067 §2, not reproduced — the owner's steps).
+of that name), the application's icon. **Accepted by the product owner on 2026-11-18** (§2 not seen again). Next: `v1.0.0` published with assets rebuilt from `main`;
+the UX phase (1.1) in a session of its own.
 Backlog: noise reduction / voice enhancement by keyframes (D067 §3).
 
 **Development after the release (D065 §5, 2026-11-17):** the route from its first hold (a research folding Phases 31 / 32:
