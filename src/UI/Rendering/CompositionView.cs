@@ -94,7 +94,7 @@ public sealed class CompositionView : Control
             if (!frame.IsBackground) continue;
             live.Add(frame.ClipId);
             if (!_backgrounds.TryGetValue(frame.ClipId, out var bitmaps)) _backgrounds[frame.ClipId] = bitmaps = new LayerBitmaps();
-            bitmaps.Show(frame.Frame, frame.Color);
+            bitmaps.Show(frame.Frame, frame.Color, LayerEffect.None);
         }
         foreach (var gone in _backgrounds.Keys.Where(id => !live.Contains(id)).ToList())
         {
@@ -113,7 +113,7 @@ public sealed class CompositionView : Control
             live.Add(picture.Layer.ClipId);
             if (!_bitmaps.TryGetValue(picture.Layer.ClipId, out var bitmaps))
                 _bitmaps[picture.Layer.ClipId] = bitmaps = new LayerBitmaps();
-            bitmaps.Show(frame, (picture.Layer as PictureLayer)?.Span.Color);   // D069 §7, as the export
+            bitmaps.Show(frame, (picture.Layer as PictureLayer)?.Span.Color, picture.Layer.Effect);   // D069 §7, §8, as the export
         }
 
         // Keep bitmaps of layers that are only pending for now (they reappear with a new frame);
@@ -133,19 +133,21 @@ public sealed class CompositionView : Control
         private int _next;
         private DecodedFrame? _shown;
         private Core.Color.ColorCorrection? _shownColor;
+        private LayerEffect _shownEffect;
 
         public WriteableBitmap? Current { get; private set; }
 
-        public void Show(DecodedFrame frame, Core.Color.ColorCorrection? color)
+        public void Show(DecodedFrame frame, Core.Color.ColorCorrection? color, LayerEffect effect)
         {
-            if (ReferenceEquals(frame, _shown) && Equals(color, _shownColor)) return;
+            if (ReferenceEquals(frame, _shown) && Equals(color, _shownColor) && effect == _shownEffect) return;
 
             var bitmap = _pair[_next] = FrameBitmap.Ensure(_pair[_next], frame);
-            FrameBitmap.Copy(frame, bitmap, color);
+            FrameBitmap.Copy(frame, bitmap, color, effect);
 
             Current = bitmap;
             _shown = frame;
             _shownColor = color;
+            _shownEffect = effect;
             _next ^= 1;
         }
 

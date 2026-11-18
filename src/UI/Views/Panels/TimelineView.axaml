@@ -13,12 +13,125 @@
       <panels:MixerPanel DataContext="{Binding Mixer}"/>
     </Flyout>
     <!-- D044 §6: the menu of the library's five types under "Transition" (shown by the view when the view model asks). -->
+    <!-- D069 §8: the thirteen types, each with its diagram and a line on what it does. -->
     <MenuFlyout x:Key="TransitionMenu" Placement="BottomEdgeAlignedLeft">
-      <MenuItem Header="{x:Static l:Strings.TransitionType_CrossDissolve}" Command="{Binding AddTransitionCommand}" CommandParameter="crossDissolve"/>
-      <MenuItem Header="{x:Static l:Strings.TransitionType_DipToBlack}" Command="{Binding AddTransitionCommand}" CommandParameter="dipToBlack"/>
-      <MenuItem Header="{x:Static l:Strings.TransitionType_Flash}" Command="{Binding AddTransitionCommand}" CommandParameter="flash"/>
-      <MenuItem Header="{x:Static l:Strings.TransitionType_Zoom}" Command="{Binding AddTransitionCommand}" CommandParameter="zoom"/>
-      <MenuItem Header="{x:Static l:Strings.TransitionType_Push}" Command="{Binding AddTransitionCommand}" CommandParameter="push"/>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="crossDissolve">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionCrossDissolve}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_CrossDissolve}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_CrossDissolve_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="dipToBlack">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionDipToBlack}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_DipToBlack}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_DipToBlack_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="flash">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionFlash}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Flash}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Flash_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="zoom">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionZoom}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Zoom}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Zoom_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="push">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionPush}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Push}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Push_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="blur">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionBlur}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Blur}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Blur_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="wipe">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionWipe}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Wipe}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Wipe_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="circle">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionCircle}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Circle}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Circle_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="doors">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionDoors}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Doors}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Doors_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="zoomOut">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionZoomOut}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_ZoomOut}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_ZoomOut_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="spin">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionSpin}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Spin}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Spin_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="whip">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionWhip}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Whip}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Whip_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="glitch">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionGlitch}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Glitch}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Glitch_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
     </MenuFlyout>
     <!-- D045 §5: the menu of the four templates of Phase 29 under «Шаблон», and the heart-rate overlay (Phase 35.5). -->
     <MenuFlyout x:Key="TemplateMenu" Placement="BottomEdgeAlignedLeft">

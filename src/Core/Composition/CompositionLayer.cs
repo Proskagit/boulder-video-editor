@@ -11,6 +11,39 @@ namespace AiVideoEditor.Core.Composition;
 public abstract record CompositionLayer(Guid TrackId, Guid ClipId, double Opacity)
 {
     public CanvasMotion Motion { get; init; } = CanvasMotion.None;
+
+    /// <summary>D069 §8: the part of the canvas the layer is drawn in (Вытеснение, Круг, Шторки); null — all of it.</summary>
+    public RevealShape? Reveal { get; init; }
+
+    /// <summary>D069 §8: a transition's effect on the layer's picture (Размытие, Смахивание, Глитч); none outside a zone.</summary>
+    public LayerEffect Effect { get; init; } = LayerEffect.None;
+}
+
+/// <summary>D069 §8: the shape a layer is revealed through — a rectangle or the ellipse inside it, in canvas pixels (a draw
+/// operation carries it in target pixels).</summary>
+public readonly record struct RevealShape(bool IsEllipse, RectD Bounds)
+{
+    /// <summary>The shape under a scale-and-translate <paramref name="canvasToTarget"/>.</summary>
+    public RevealShape On(Affine2D canvasToTarget) =>
+        this with { Bounds = new RectD(canvasToTarget.A * Bounds.X + canvasToTarget.Tx, canvasToTarget.D * Bounds.Y + canvasToTarget.Ty,
+            canvasToTarget.A * Bounds.Width, canvasToTarget.D * Bounds.Height) };
+}
+
+/// <summary>D069 §8: a transition's effect on a picture's pixels: a blur of <see cref="Blur"/> × the picture's short side
+/// (along <see cref="Axis"/>), and a glitch of strength <see cref="Glitch"/> 0…1 (the colour channels split, a few bands
+/// shifted; <see cref="Seed"/> chooses them, so a frame always looks the same).</summary>
+public readonly record struct LayerEffect(double Blur, BlurAxis Axis, double Glitch, int Seed)
+{
+    public static readonly LayerEffect None = new(0, BlurAxis.Both, 0, 0);
+
+    public bool IsNone => Blur <= 0 && Glitch <= 0;
+}
+
+public enum BlurAxis
+{
+    Both,
+    Horizontal,
+    Vertical
 }
 
 /// <summary>
@@ -18,21 +51,24 @@ public abstract record CompositionLayer(Guid TrackId, Guid ClipId, double Opacit
 /// (Zoom), then a shift by <see cref="OffsetX"/> / <see cref="OffsetY"/> (Push, whole pixels). Applied after the layer's
 /// own transform, so its position, scale, rotation and crop are kept.
 /// </summary>
-public readonly record struct CanvasMotion(double Scale, double OffsetX, double OffsetY)
+public readonly record struct CanvasMotion(double Scale, double OffsetX, double OffsetY, double RotationDegrees = 0)
 {
     public static readonly CanvasMotion None = new(1, 0, 0);
 
     public bool IsNone => this == None;
 
-    /// <summary>True when a picture that covered the canvas still covers it: no shift and a scale of at least 1 about
-    /// the centre (D044 §2) — so occlusion stays valid.</summary>
-    public bool KeepsCoverage => OffsetX == 0 && OffsetY == 0 && Scale >= 1;
+    /// <summary>True when a picture that covered the canvas still covers it: no shift, no turn and a scale of at least 1
+    /// about the centre (D044 §2) — so occlusion stays valid.</summary>
+    public bool KeepsCoverage => OffsetX == 0 && OffsetY == 0 && Scale >= 1 && RotationDegrees == 0;
 
-    /// <summary>The motion as a canvas → canvas transform.</summary>
+    /// <summary>The motion as a canvas → canvas transform: a turn by <see cref="RotationDegrees"/> (D069 §8) and the scale
+    /// about the centre, then the shift.</summary>
     public Affine2D ToAffine(FrameSize canvas)
     {
         var (cx, cy) = (canvas.Width / 2.0, canvas.Height / 2.0);
-        return new Affine2D(Scale, 0, 0, Scale, cx - Scale * cx + OffsetX, cy - Scale * cy + OffsetY);
+        if (RotationDegrees == 0) return new Affine2D(Scale, 0, 0, Scale, cx - Scale * cx + OffsetX, cy - Scale * cy + OffsetY);
+        return Affine2D.Translation(cx + OffsetX, cy + OffsetY).Compose(Affine2D.Scaling(Scale))
+            .Compose(Affine2D.Rotation(RotationDegrees)).Compose(Affine2D.Translation(-cx, -cy));
     }
 
     /// <summary><paramref name="transform"/> (layer → canvas) followed by the motion; exactly
@@ -57,6 +93,7 @@ public sealed record PictureLayer(Guid TrackId, PictureSpan Span, LayerGeometry?
     /// covers the canvas, so neither hides what is below; placeholders are decided by the renderer.
     /// </summary>
     public bool OccludesBelow => Span.Status == SpanStatus.Video && Opacity == 1 && Geometry is { CoversCanvas: true } && Motion.KeepsCoverage &&
+                                 Reveal is null &&   // D069 §8: a revealed part never hides what is below
                                  Span.Follow is not { HasPartScale: true };   // D063: a part's own scale may draw it smaller
 
     private readonly VisualProperties? _visual;

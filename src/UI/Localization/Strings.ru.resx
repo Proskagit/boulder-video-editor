@@ -3900,4 +3900,67 @@
   <data name="Color_AutoUnavailable" xml:space="preserve">
     <value>Для автоулучшения нужен файл клипа.</value>
   </data>
+  <data name="TransitionType_Blur" xml:space="preserve">
+    <value>Размытие</value>
+  </data>
+  <data name="TransitionType_Wipe" xml:space="preserve">
+    <value>Вытеснение</value>
+  </data>
+  <data name="TransitionType_Circle" xml:space="preserve">
+    <value>Круг</value>
+  </data>
+  <data name="TransitionType_Doors" xml:space="preserve">
+    <value>Шторки</value>
+  </data>
+  <data name="TransitionType_ZoomOut" xml:space="preserve">
+    <value>Отдаление</value>
+  </data>
+  <data name="TransitionType_Spin" xml:space="preserve">
+    <value>Вращение</value>
+  </data>
+  <data name="TransitionType_Whip" xml:space="preserve">
+    <value>Смахивание</value>
+  </data>
+  <data name="TransitionType_Glitch" xml:space="preserve">
+    <value>Глитч</value>
+  </data>
+  <data name="TransitionType_Blur_Desc" xml:space="preserve">
+    <value>Картинка расплывается к склейке и проявляется</value>
+  </data>
+  <data name="TransitionType_Wipe_Desc" xml:space="preserve">
+    <value>Край проходит по кадру и открывает следующий клип</value>
+  </data>
+  <data name="TransitionType_Circle_Desc" xml:space="preserve">
+    <value>Следующий клип открывается растущим кругом</value>
+  </data>
+  <data name="TransitionType_Doors_Desc" xml:space="preserve">
+    <value>Следующий клип открывается от середины в стороны</value>
+  </data>
+  <data name="TransitionType_ZoomOut_Desc" xml:space="preserve">
+    <value>Картинка уменьшается к склейке и вырастает обратно</value>
+  </data>
+  <data name="TransitionType_Spin_Desc" xml:space="preserve">
+    <value>Картинка поворачивается к склейке</value>
+  </data>
+  <data name="TransitionType_Whip_Desc" xml:space="preserve">
+    <value>Быстрый сдвиг с размытием движения</value>
+  </data>
+  <data name="TransitionType_Glitch_Desc" xml:space="preserve">
+    <value>Расслоение цветов и рывки у склейки</value>
+  </data>
+  <data name="TransitionType_CrossDissolve_Desc" xml:space="preserve">
+    <value>Следующий клип проявляется поверх предыдущего</value>
+  </data>
+  <data name="TransitionType_DipToBlack_Desc" xml:space="preserve">
+    <value>Через чёрный кадр</value>
+  </data>
+  <data name="TransitionType_Flash_Desc" xml:space="preserve">
+    <value>Один белый кадр на склейке</value>
+  </data>
+  <data name="TransitionType_Zoom_Desc" xml:space="preserve">
+    <value>Картинка увеличивается к склейке</value>
+  </data>
+  <data name="TransitionType_Push_Desc" xml:space="preserve">
+    <value>Следующий клип выталкивает предыдущий</value>
+  </data>
 </root>

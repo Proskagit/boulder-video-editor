@@ -40,8 +40,8 @@ public static class PreviewDrawPlan
                 // D057 §3.7: the blurred background under its picture, the export's operation exactly.
                 if (operation is FrameDraw && picture is { Layer: PictureLayer, Frame: { } shown } &&
                     CompositionDrawPlan.BlurredBackground(canvas, viewport, new ResolvedLayer(picture.Layer, shown)) is { } background)
-                    operations.Add(background);
-                operations.Add(operation);
+                    operations.Add(CompositionDrawPlan.WithTransition(background, picture.Layer, viewport));
+                operations.Add(CompositionDrawPlan.WithTransition(operation, picture.Layer, viewport));   // D069 §8, as the export
                 // D034: the route outlines right above their frame (D053: one per route, in the clip's route order, as the
                 // export draws them), never on a placeholder; a line at least one screen pixel wide here only (the export
                 // keeps the exact width).
@@ -49,7 +49,7 @@ public static class PreviewDrawPlan
                     for (var index = 0; index < layer.Span.Outlines.Length; index++)
                         if (CompositionDrawPlan.Outline(canvas, viewport, layer, new FrameSize(frame.Width, frame.Height), MinOutlinePixels,
                                 frame.Timestamp, index) is { } outline)
-                            operations.Add(outline);
+                            operations.Add(CompositionDrawPlan.WithTransition(outline, picture.Layer, viewport));
             }
         }
         return new CompositionDrawPlan(canvas, viewport, CompositionDrawPlan.Bounds(canvas, viewport), operations.ToImmutable());

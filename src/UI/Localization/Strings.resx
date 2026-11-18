@@ -3896,4 +3896,67 @@ If you don't save, your changes will be lost.</value>
   <data name="Color_AutoUnavailable" xml:space="preserve">
     <value>Auto enhance needs the clip's file.</value>
   </data>
+  <data name="TransitionType_Blur" xml:space="preserve">
+    <value>Blur</value>
+  </data>
+  <data name="TransitionType_Wipe" xml:space="preserve">
+    <value>Wipe</value>
+  </data>
+  <data name="TransitionType_Circle" xml:space="preserve">
+    <value>Circle</value>
+  </data>
+  <data name="TransitionType_Doors" xml:space="preserve">
+    <value>Doors</value>
+  </data>
+  <data name="TransitionType_ZoomOut" xml:space="preserve">
+    <value>Zoom out</value>
+  </data>
+  <data name="TransitionType_Spin" xml:space="preserve">
+    <value>Spin</value>
+  </data>
+  <data name="TransitionType_Whip" xml:space="preserve">
+    <value>Whip</value>
+  </data>
+  <data name="TransitionType_Glitch" xml:space="preserve">
+    <value>Glitch</value>
+  </data>
+  <data name="TransitionType_Blur_Desc" xml:space="preserve">
+    <value>Each picture blurs into the cut</value>
+  </data>
+  <data name="TransitionType_Wipe_Desc" xml:space="preserve">
+    <value>An edge moves across and reveals the next clip</value>
+  </data>
+  <data name="TransitionType_Circle_Desc" xml:space="preserve">
+    <value>The next clip opens in a growing circle</value>
+  </data>
+  <data name="TransitionType_Doors_Desc" xml:space="preserve">
+    <value>The next clip opens from the middle to the sides</value>
+  </data>
+  <data name="TransitionType_ZoomOut_Desc" xml:space="preserve">
+    <value>The picture shrinks into the cut and grows back</value>
+  </data>
+  <data name="TransitionType_Spin_Desc" xml:space="preserve">
+    <value>The picture turns into the cut</value>
+  </data>
+  <data name="TransitionType_Whip_Desc" xml:space="preserve">
+    <value>A fast slide with a motion blur</value>
+  </data>
+  <data name="TransitionType_Glitch_Desc" xml:space="preserve">
+    <value>Split colours and jerks around the cut</value>
+  </data>
+  <data name="TransitionType_CrossDissolve_Desc" xml:space="preserve">
+    <value>The next clip appears over the previous one</value>
+  </data>
+  <data name="TransitionType_DipToBlack_Desc" xml:space="preserve">
+    <value>Through black</value>
+  </data>
+  <data name="TransitionType_Flash_Desc" xml:space="preserve">
+    <value>One white frame at the cut</value>
+  </data>
+  <data name="TransitionType_Zoom_Desc" xml:space="preserve">
+    <value>The picture grows into the cut</value>
+  </data>
+  <data name="TransitionType_Push_Desc" xml:space="preserve">
+    <value>The next clip pushes the previous one out</value>
+  </data>
 </root>

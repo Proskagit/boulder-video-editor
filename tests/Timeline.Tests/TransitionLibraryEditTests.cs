@@ -61,6 +61,15 @@ public class TransitionLibraryEditTests
     [InlineData("flash", 6, null)]
     [InlineData("zoom", 9, null)]
     [InlineData("push", 9, TransitionDirection.FromRight)]
+    // D069 §8 at 30 fps: 0.5 s, 0.6 s, 0.4 s, 0.3 s.
+    [InlineData("blur", 15, null)]
+    [InlineData("wipe", 15, TransitionDirection.FromRight)]
+    [InlineData("circle", 18, null)]
+    [InlineData("doors", 18, null)]
+    [InlineData("zoomOut", 12, null)]
+    [InlineData("spin", 15, null)]
+    [InlineData("whip", 9, TransitionDirection.FromRight)]
+    [InlineData("glitch", 12, null)]
     public void Each_type_is_added_with_its_default_in_one_undo_step(string type, long frames, TransitionDirection? direction)
     {
         var (f, clips) = Images(100, 100);
@@ -127,7 +136,7 @@ public class TransitionLibraryEditTests
     public void An_unknown_or_audio_type_is_refused_on_a_video_track_and_a_video_type_on_an_audio_track()
     {
         var (f, clips) = Images(100, 100);
-        Assert.Equal(Messages.Transition_WrongType, f.Service.AddTransition(clips[0].Id, clips[1].Id, "wipe").Message);
+        Assert.Equal(Messages.Transition_WrongType, f.Service.AddTransition(clips[0].Id, clips[1].Id, "iris").Message);
         Assert.Equal(Messages.Transition_WrongType, f.Service.AddTransition(clips[0].Id, clips[1].Id, TransitionRules.Crossfade).Message);
 
         var music = f.Audio(20);

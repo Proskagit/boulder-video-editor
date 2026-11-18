@@ -11,6 +11,14 @@ public static class TransitionTypeNames
         TransitionRules.Flash => Messages.TransitionName_Flash,
         TransitionRules.Zoom => Messages.TransitionName_Zoom,
         TransitionRules.Push => Messages.TransitionName_Push,
+        TransitionRules.Blur => Messages.TransitionName_Blur,
+        TransitionRules.Wipe => Messages.TransitionName_Wipe,
+        TransitionRules.Circle => Messages.TransitionName_Circle,
+        TransitionRules.Doors => Messages.TransitionName_Doors,
+        TransitionRules.ZoomOut => Messages.TransitionName_ZoomOut,
+        TransitionRules.Spin => Messages.TransitionName_Spin,
+        TransitionRules.Whip => Messages.TransitionName_Whip,
+        TransitionRules.Glitch => Messages.TransitionName_Glitch,
         _ => Messages.TransitionName_CrossDissolve
     };
 }

@@ -351,7 +351,8 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
         var section = view.GetLogicalDescendants().OfType<StackPanel>().Single(p => p.Name == "TransitionLibrarySection");
         var types = view.GetLogicalDescendants().OfType<ItemsControl>().Single(i => i.Name == "TransitionTypeButtons");
         Assert.Same(Inspector.TransitionTypes, types.ItemsSource);
-        Assert.Equal(new[] { "Dissolve", "Dip to black", "Flash", "Zoom", "Push" }, Inspector.TransitionTypes.Select(o => o.Name));
+        Assert.Equal(new[] { "Dissolve", "Dip to black", "Flash", "Zoom", "Push",
+            "Blur", "Wipe", "Circle", "Doors", "Zoom out", "Spin", "Whip", "Glitch" }, Inspector.TransitionTypes.Select(o => o.Name));   // D069 §8
         var directions = view.GetLogicalDescendants().OfType<ItemsControl>().Single(i => i.Name == "TransitionDirectionButtons");
         Assert.Same(Inspector.TransitionDirections, directions.ItemsSource);
         var field = view.GetLogicalDescendants().OfType<CommitNumericUpDown>().Single(n => n.Name == "TransitionSecondsField");
@@ -360,7 +361,7 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
     }
 
     [Fact]
-    public void The_timeline_menu_lists_the_five_types_with_their_ids()
+    public void The_timeline_menu_lists_every_type_with_its_id_diagram_name_and_line()
     {
         var root = new DirectoryInfo(AppContext.BaseDirectory);
         while (root is not null && !File.Exists(Path.Combine(root.FullName, "AiVideoEditor.sln"))) root = root.Parent;
@@ -373,7 +374,11 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
 
         Assert.Equal(TransitionRules.VideoTypes, items.Select(i => (string?)i.Attribute("CommandParameter")));
         Assert.All(items, i => Assert.Equal("{Binding AddTransitionCommand}", (string?)i.Attribute("Command")));
-        Assert.All(items, i => Assert.StartsWith("{x:Static l:Strings.TransitionType_", (string?)i.Attribute("Header")));
+        // D069 §8: a diagram and the name with a line on what it does.
+        Assert.All(items, i => Assert.StartsWith("{x:Static controls:Icons.Transition",
+            (string?)i.Descendants().Single(e => e.Name.LocalName == "IconPath").Attribute("Glyph")));
+        Assert.All(items, i => Assert.Equal(2, i.Descendants().Count(e => e.Name.LocalName == "TextBlock" &&
+            ((string?)e.Attribute("Text"))!.StartsWith("{x:Static l:Strings.TransitionType_", StringComparison.Ordinal))));
     }
 
     // --- fixes after the Phase 28 manual run (D1, D3, D4, O1, O2) ------------------------------------------------------

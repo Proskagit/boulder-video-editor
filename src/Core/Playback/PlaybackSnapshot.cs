@@ -485,6 +485,41 @@ public sealed class PlaybackSnapshot
                 topDown.Add(zoomed);
                 return zoomed is PictureLayer { OccludesBelow: true } occluder && (mayOcclude?.Invoke(occluder) ?? true);
             }
+            // D069 §8: B over A, B revealed through a shape; both from their handles.
+            case TransitionRules.Wipe or TransitionRules.Circle or TransitionRules.Doors:
+            {
+                var reveal = TransitionPresentation.Reveal(zone.TypeId, j, zone.Frames, zone.Direction ?? TransitionDirection.FromRight, Canvas);
+                if (ClipLayer(layer, zone.Cut, time, 1.0, ref frame) is { } b) topDown.Add(b with { Reveal = reveal });
+                if (ClipLayer(layer, new MediaTime(zone.Cut.Ticks - 1), time, 1.0, ref frame) is { } a) topDown.Add(a);
+                return false;
+            }
+            case TransitionRules.Whip:
+            {
+                var (motionA, motionB, blur) = TransitionPresentation.WhipMotions(j, zone.Frames, zone.Direction ?? TransitionDirection.FromRight, Canvas);
+                if (ClipLayer(layer, zone.Cut, time, 1.0, ref frame) is { } b) topDown.Add(b with { Motion = motionB, Effect = blur });
+                if (ClipLayer(layer, new MediaTime(zone.Cut.Ticks - 1), time, 1.0, ref frame) is { } a) topDown.Add(a with { Motion = motionA, Effect = blur });
+                return false;
+            }
+            // D069 §8: each clip on its own frames, with its effect peaking at the cut.
+            case TransitionRules.Blur or TransitionRules.ZoomOut or TransitionRules.Spin or TransitionRules.Glitch:
+            {
+                if (ClipLayer(layer, own, time, 1.0, ref frame) is not { } clip) return false;
+                var shown = zone.TypeId switch
+                {
+                    TransitionRules.Blur => clip with
+                    {
+                        Effect = new LayerEffect(TransitionPresentation.BlurPeak * TransitionPresentation.Bump(j, zone.Frames), BlurAxis.Both, 0, 0)
+                    },
+                    TransitionRules.ZoomOut => clip with { Motion = new CanvasMotion(TransitionPresentation.ZoomOutScale(j, zone.Frames), 0, 0) },
+                    TransitionRules.Spin => clip with { Motion = TransitionPresentation.SpinMotion(j, zone.Frames) },
+                    _ => Glitched(clip, TransitionPresentation.GlitchAt(j, zone.Frames, Canvas))
+                };
+                topDown.Add(shown);
+                return shown is PictureLayer { OccludesBelow: true } occluder && (mayOcclude?.Invoke(occluder) ?? true);
+
+                static CompositionLayer Glitched(CompositionLayer clip, (CanvasMotion Motion, LayerEffect Effect) glitch) =>
+                    clip with { Motion = glitch.Motion, Effect = glitch.Effect };
+            }
             default:   // Dip to black, Flash
             {
                 var fill = new SolidLayer(layer.TrackId, TransitionPresentation.FillColor(zone.TypeId),

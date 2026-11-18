@@ -18,7 +18,11 @@ public readonly record struct ResolvedLayer(CompositionLayer Layer, DecodedFrame
 /// top of these two (the Preview's placeholders); the shared composition contract is only
 /// <see cref="FrameDraw"/> and <see cref="TextDraw"/>.
 /// </summary>
-public abstract record DrawOperation(Guid ClipId, Affine2D Transform, double Opacity);
+public abstract record DrawOperation(Guid ClipId, Affine2D Transform, double Opacity)
+{
+    /// <summary>D069 §8: the part of the target the operation is drawn in (target pixels); null — all of it.</summary>
+    public RevealShape? Reveal { get; init; }
+}
 
 /// <summary>
 /// Part of a decoded frame: <see cref="FrameSourceRect"/> (in the frame's own pixels — the layer's
@@ -35,6 +39,9 @@ public sealed record FrameDraw(Guid ClipId, Affine2D Transform, double Opacity, 
     /// <summary>D069 §7: the colour correction a painter applies to <see cref="Frame"/>'s pixels when it uploads them (the
     /// Preview and the export alike); neutral: none.</summary>
     public Color.ColorCorrection Color { get; init; } = AiVideoEditor.Core.Color.ColorCorrection.Neutral;
+
+    /// <summary>D069 §8: a transition's effect a painter applies to the uploaded pixels (after the colour); none outside a zone.</summary>
+    public LayerEffect Effect { get; init; } = LayerEffect.None;
 }
 
 /// <summary>
@@ -183,12 +190,22 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
     /// D053 — in the clip's route order).</summary>
     public static IEnumerable<DrawOperation> LayerOperations(FrameSize canvas, Affine2D canvasToTarget, ResolvedLayer resolved, double minTargetStroke = 0)
     {
-        if (BlurredBackground(canvas, canvasToTarget, resolved) is { } background) yield return background;
-        yield return Operation(canvas, canvasToTarget, resolved);
+        if (BlurredBackground(canvas, canvasToTarget, resolved) is { } background) yield return WithTransition(background, resolved.Layer, canvasToTarget);
+        yield return WithTransition(Operation(canvas, canvasToTarget, resolved), resolved.Layer, canvasToTarget);
         if (resolved.Layer is not PictureLayer picture || resolved.Frame is not { } frame) yield break;
         for (var i = 0; i < picture.Span.Outlines.Length; i++)
             if (Outline(canvas, canvasToTarget, picture, new FrameSize(frame.Width, frame.Height), minTargetStroke, frame.Timestamp, i) is { } outline)
-                yield return outline;
+                yield return WithTransition(outline, resolved.Layer, canvasToTarget);
+    }
+
+    /// <summary>D069 §8: an operation of <paramref name="layer"/> with the layer's transition parts — its reveal shape in target
+    /// pixels (every operation of a revealed layer is drawn only in it), and on its picture the effect. The same for the Preview
+    /// and the export.</summary>
+    public static DrawOperation WithTransition(DrawOperation operation, CompositionLayer layer, Affine2D canvasToTarget)
+    {
+        if (layer.Reveal is null && layer.Effect.IsNone) return operation;
+        var reveal = layer.Reveal?.On(canvasToTarget);
+        return operation is FrameDraw { IsBackground: false } draw ? draw with { Reveal = reveal, Effect = layer.Effect } : operation with { Reveal = reveal };
     }
 
     /// <summary>
