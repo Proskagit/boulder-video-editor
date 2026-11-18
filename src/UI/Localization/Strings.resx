@@ -2072,9 +2072,6 @@ If you don't save, your changes will be lost.</value>
   <data name="AppSettings_Language" xml:space="preserve">
     <value>Interface language</value>
   </data>
-  <data name="AppSettings_LanguageDefault" xml:space="preserve">
-    <value>As configured</value>
-  </data>
   <data name="AppSettings_RestartNote" xml:space="preserve">
     <value>Applies after a restart.</value>
   </data>
@@ -3787,5 +3784,29 @@ If you don't save, your changes will be lost.</value>
   </data>
   <data name="Template_NoHeartRateHere" xml:space="preserve">
     <value>The heart rate plate was added, but the training has no heart rate for the video at this place: the plate will show nothing here.</value>
+  </data>
+  <data name="Preview_EmptyTitle" xml:space="preserve">
+    <value>The timeline is empty</value>
+  </data>
+  <data name="Preview_EmptyHint" xml:space="preserve">
+    <value>Import videos in «Media» and add them to the timeline — the picture appears here.</value>
+  </data>
+  <data name="TemplateType_Rec_Desc" xml:space="preserve">
+    <value>A camera's REC mark with the date and time</value>
+  </data>
+  <data name="TemplateType_Vhs_Desc" xml:space="preserve">
+    <value>A videotape's date and time</value>
+  </data>
+  <data name="TemplateType_Boulder_Desc" xml:space="preserve">
+    <value>The route, its grade and the result: TOP or attempt</value>
+  </data>
+  <data name="TemplateType_Highlight_Desc" xml:space="preserve">
+    <value>A large title and subtitle</value>
+  </data>
+  <data name="TemplateType_HeartRate_Desc" xml:space="preserve">
+    <value>The heart rate from your watch's training</value>
+  </data>
+  <data name="Inspector_ResetSectionTip" xml:space="preserve">
+    <value>Reset the section's values</value>
   </data>
 </root>

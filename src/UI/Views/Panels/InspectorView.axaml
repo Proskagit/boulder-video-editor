@@ -199,7 +199,7 @@
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{x:Static l:Strings.Inspector_Duration}" Classes="label"/>
                 <controls:CommitNumericUpDown Value="{Binding DissolveFrames, Mode=TwoWay}" Increment="1" Minimum="{Binding MinDissolveFrames}"
-                               Maximum="{Binding MaxDissolveFrames}" FormatString="0" Width="104"/>
+                               Maximum="{Binding MaxDissolveFrames}" FormatString="0" Width="84"/>
                 <TextBlock Text="{x:Static l:Strings.Unit_Frames}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
               </StackPanel>
               <TextBlock Text="{Binding DissolveTimeDisplay}" Foreground="{DynamicResource TextMutedBrush}" FontSize="{DynamicResource FontSizeCaption}" Margin="116,-4,0,0"/>
@@ -247,7 +247,7 @@
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                   <controls:CommitNumericUpDown x:Name="TransitionSecondsField" Value="{Binding TransitionSeconds, Mode=TwoWay}" Increment="0.1"
                                StepCommand="{Binding StepTransitionSecondsCommand}"
-                               Minimum="{Binding MinTransitionSeconds}" Maximum="{Binding MaxTransitionSeconds}" FormatString="0.##" Width="80"/>
+                               Minimum="{Binding MinTransitionSeconds}" Maximum="{Binding MaxTransitionSeconds}" FormatString="0.##" Width="72"/>
                   <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                 </StackPanel>
               </Grid>
@@ -281,13 +281,13 @@
             <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasOpacity}">
               <TextBlock Text="{x:Static l:Strings.Inspector_Opacity}" Classes="label"/>
               <controls:CommitNumericUpDown x:Name="GroupOpacityBox" Value="{Binding OpacityPercent, Mode=TwoWay}" Increment="1"
-                             Minimum="{Binding MinOpacityPercent}" Maximum="{Binding MaxOpacityPercent}" FormatString="0.####" Width="104" Watermark="—"/>
+                             Minimum="{Binding MinOpacityPercent}" Maximum="{Binding MaxOpacityPercent}" FormatString="0.####" Width="84" Watermark="—"/>
               <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasAudio}">
               <TextBlock Text="{x:Static l:Strings.Inspector_Volume}" Classes="label"/>
               <controls:CommitNumericUpDown x:Name="GroupVolumeBox" Value="{Binding VolumePercent, Mode=TwoWay}" Increment="1"
-                             Minimum="0" Maximum="200" FormatString="0.####" Width="104" Watermark="—"/>
+                             Minimum="0" Maximum="200" FormatString="0.####" Width="84" Watermark="—"/>
               <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
               <CheckBox x:Name="GroupMuteBox" Content="{x:Static l:Strings.Inspector_Mute}" IsThreeState="False" IsChecked="{Binding IsMuted, Mode=TwoWay}"/>
             </StackPanel>
@@ -296,7 +296,7 @@
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{x:Static l:Strings.Holds_Width}" Classes="label"/>
                 <controls:CommitNumericUpDown x:Name="GroupStrokeBox" Value="{Binding StrokeWidth, Mode=TwoWay}" Increment="1"
-                               Minimum="{Binding MinStrokeWidth}" Maximum="{Binding MaxStrokeWidth}" FormatString="0.####" Width="104" Watermark="—"/>
+                               Minimum="{Binding MinStrokeWidth}" Maximum="{Binding MaxStrokeWidth}" FormatString="0.####" Width="84" Watermark="—"/>
               </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{x:Static l:Strings.Holds_Colour}" Classes="label"/>
@@ -330,7 +330,7 @@
 
             <!-- Crop (Phase 7): pictures only, fractions of the source per edge. -->
             <Panel Classes="category" Tag="Clip">
-            <controls:InspectorSection SectionId="frame" Title="{x:Static l:Strings.Inspector_FrameHeading}">
+            <controls:InspectorSection SectionId="frame" ResetCommand="{Binding ResetFrameCommand}" Title="{x:Static l:Strings.Inspector_FrameHeading}">
               <controls:InspectorSection.IsVisible>
                 <Binding Path="HasVisualProperties"/>
               </controls:InspectorSection.IsVisible>
@@ -382,21 +382,21 @@
                     <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_PositionX}" Classes="label" Target="{Binding #PositionXBox}" StepPerPixel="1"
                                          ToolTip.Tip="{x:Static l:Strings.Inspector_ScrubTip}"/>
                     <controls:CommitNumericUpDown x:Name="PositionXBox" Value="{Binding PositionX, Mode=TwoWay}" Increment="1" Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}"
-                                   FormatString="0.##" Width="104"/>
+                                   FormatString="0.##" Width="84"/>
                     <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_PositionY}" Classes="label" Target="{Binding #PositionYBox}" StepPerPixel="1"
                                          ToolTip.Tip="{x:Static l:Strings.Inspector_ScrubTip}"/>
                     <controls:CommitNumericUpDown x:Name="PositionYBox" Value="{Binding PositionY, Mode=TwoWay}" Increment="1" Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}"
-                                   FormatString="0.##" Width="104"/>
+                                   FormatString="0.##" Width="84"/>
                     <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_Scale}" Classes="label" Target="{Binding #ScaleBox}" StepPerPixel="0.5"
                                          ToolTip.Tip="{x:Static l:Strings.Inspector_ScrubTip}"/>
                     <controls:CommitNumericUpDown x:Name="ScaleBox" Value="{Binding ScalePercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinScalePercent}" Maximum="{Binding MaxScalePercent}"
-                                   FormatString="0.##" Width="104"/>
+                                   FormatString="0.##" Width="84"/>
                     <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                   <!-- Fill / Fit (Phase 26, D041 §2): a one-off Scale for a video or image clip. -->
@@ -416,7 +416,7 @@
                     <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_Rotation}" Classes="label" Target="{Binding #RotationBox}" StepPerPixel="0.5"
                                          ToolTip.Tip="{x:Static l:Strings.Inspector_ScrubTip}"/>
                     <controls:CommitNumericUpDown x:Name="RotationBox" Value="{Binding Rotation, Mode=TwoWay}" Increment="1" Minimum="{Binding MinRotation}" Maximum="{Binding MaxRotation}"
-                                   FormatString="0.##" Width="104"/>
+                                   FormatString="0.##" Width="84"/>
                     <TextBlock Text="°" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                   <Grid ColumnDefinitions="Auto,Auto,Auto">
@@ -427,7 +427,7 @@
                           ToolTip.Tip="{x:Static l:Strings.Inspector_Opacity}"/>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                       <controls:CommitNumericUpDown Value="{Binding OpacityPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinOpacityPercent}" Maximum="{Binding MaxOpacityPercent}"
-                                   FormatString="0.####" Width="80"/>
+                                   FormatString="0.####" Width="72"/>
                       <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                   </Grid>
@@ -441,25 +441,25 @@
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Inspector_Left}" Classes="label"/>
                     <controls:CommitNumericUpDown Value="{Binding CropLeftPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
-                                   FormatString="0.#" Width="104"/>
+                                   FormatString="0.#" Width="84"/>
                     <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Inspector_Top}" Classes="label"/>
                     <controls:CommitNumericUpDown Value="{Binding CropTopPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
-                                   FormatString="0.#" Width="104"/>
+                                   FormatString="0.#" Width="84"/>
                     <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Inspector_Right}" Classes="label"/>
                     <controls:CommitNumericUpDown Value="{Binding CropRightPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
-                                   FormatString="0.#" Width="104"/>
+                                   FormatString="0.#" Width="84"/>
                     <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Inspector_Bottom}" Classes="label"/>
                     <controls:CommitNumericUpDown Value="{Binding CropBottomPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
-                                   FormatString="0.#" Width="104"/>
+                                   FormatString="0.#" Width="84"/>
                     <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                 </StackPanel>
@@ -494,7 +494,7 @@
                         ToolTip.Tip="{x:Static l:Strings.Inspector_FadeIn}"/>
                   <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                     <controls:CommitNumericUpDown Value="{Binding FadeInFrames, Mode=TwoWay}" Increment="1" Minimum="0"
-                                 Maximum="{Binding MaxFadeInFrames}" FormatString="0" Width="80"/>
+                                 Maximum="{Binding MaxFadeInFrames}" FormatString="0" Width="72"/>
                     <TextBlock Text="{x:Static l:Strings.Unit_Frames}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                 </Grid>
@@ -509,7 +509,7 @@
                         ToolTip.Tip="{x:Static l:Strings.Inspector_FadeOut}"/>
                   <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                     <controls:CommitNumericUpDown Value="{Binding FadeOutFrames, Mode=TwoWay}" Increment="1" Minimum="0"
-                                 Maximum="{Binding MaxFadeOutFrames}" FormatString="0" Width="80"/>
+                                 Maximum="{Binding MaxFadeOutFrames}" FormatString="0" Width="72"/>
                     <TextBlock Text="{x:Static l:Strings.Unit_Frames}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                 </Grid>
@@ -524,7 +524,7 @@
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="{x:Static l:Strings.Inspector_Speed}" Classes="label"/>
                   <controls:CommitNumericUpDown Value="{Binding SpeedValue, Mode=TwoWay}" Increment="{Binding SpeedIncrement}"
-                                 Minimum="{Binding MinSpeed}" Maximum="{Binding MaxSpeed}" FormatString="0.00" Width="104"/>
+                                 Minimum="{Binding MinSpeed}" Maximum="{Binding MaxSpeed}" FormatString="0.00" Width="84"/>
                   <TextBlock Text="×" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                 </StackPanel>
               </StackPanel>
@@ -719,7 +719,7 @@
                           ToolTip.Tip="{x:Static l:Strings.Inspector_Size}"/>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                       <controls:CommitNumericUpDown Value="{Binding FontSize, Mode=TwoWay}" Increment="1" Minimum="{Binding MinFontSize}" Maximum="{Binding MaxFontSize}"
-                                   FormatString="0.##" Width="80"/>
+                                   FormatString="0.##" Width="72"/>
                       <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                   </Grid>
@@ -782,7 +782,7 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                       <controls:CommitNumericUpDown Value="{Binding OutlineThicknessPercent, Mode=TwoWay}" Increment="1"
                                    Minimum="{Binding MinOutlineThicknessPercent}" Maximum="{Binding MaxOutlineThicknessPercent}"
-                                   FormatString="0.####" Width="80" ToolTip.Tip="{x:Static l:Strings.Inspector_OutlineThicknessTip}"/>
+                                   FormatString="0.####" Width="72" ToolTip.Tip="{x:Static l:Strings.Inspector_OutlineThicknessTip}"/>
                       <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                   </Grid>
@@ -814,7 +814,7 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                       <controls:CommitNumericUpDown Value="{Binding BackgroundOpacityPercent, Mode=TwoWay}" Increment="1"
                                    Minimum="{Binding MinBackgroundOpacityPercent}" Maximum="{Binding MaxBackgroundOpacityPercent}"
-                                   FormatString="0.####" Width="80"/>
+                                   FormatString="0.####" Width="72"/>
                       <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                   </Grid>
@@ -845,7 +845,7 @@
                         ToolTip.Tip="{x:Static l:Strings.Inspector_Appear}"/>
                   <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                     <controls:CommitNumericUpDown Value="{Binding AppearSeconds, Mode=TwoWay}" Increment="0.1" Minimum="{Binding MinAppearSeconds}"
-                                 Maximum="{Binding MaxAppearSeconds}" FormatString="0.##" Width="80"/>
+                                 Maximum="{Binding MaxAppearSeconds}" FormatString="0.##" Width="72"/>
                     <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                 </Grid>
@@ -868,7 +868,7 @@
                         ToolTip.Tip="{x:Static l:Strings.Inspector_Disappear}"/>
                   <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                     <controls:CommitNumericUpDown Value="{Binding DisappearSeconds, Mode=TwoWay}" Increment="0.1" Minimum="{Binding MinDisappearSeconds}"
-                                 Maximum="{Binding MaxDisappearSeconds}" FormatString="0.##" Width="80"/>
+                                 Maximum="{Binding MaxDisappearSeconds}" FormatString="0.##" Width="72"/>
                     <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                 </Grid>
@@ -909,7 +909,7 @@
                       <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_PositionX}" Classes="label" Target="{Binding #FollowOffsetXBox}" StepPerPixel="1"
                                            ToolTip.Tip="{x:Static l:Strings.Inspector_ScrubTip}"/>
                       <controls:CommitNumericUpDown x:Name="FollowOffsetXBox" Value="{Binding FollowOffsetX, Mode=TwoWay}" Increment="1"
-                                                    Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}" FormatString="0.##" Width="104"
+                                                    Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}" FormatString="0.##" Width="84"
                                                     IsEnabled="{Binding IsEditingAllowed}"/>
                       <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
@@ -917,7 +917,7 @@
                       <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_PositionY}" Classes="label" Target="{Binding #FollowOffsetYBox}" StepPerPixel="1"
                                            ToolTip.Tip="{x:Static l:Strings.Inspector_ScrubTip}"/>
                       <controls:CommitNumericUpDown x:Name="FollowOffsetYBox" Value="{Binding FollowOffsetY, Mode=TwoWay}" Increment="1"
-                                                    Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}" FormatString="0.##" Width="104"
+                                                    Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}" FormatString="0.##" Width="84"
                                                     IsEnabled="{Binding IsEditingAllowed}"/>
                       <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
@@ -994,7 +994,7 @@
                     <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsRouteReview}">
                       <TextBlock Text="{x:Static l:Strings.Holds_RouteTolerance}" Classes="label" ToolTip.Tip="{x:Static l:Strings.Holds_RouteToleranceTip}"/>
                       <controls:CommitNumericUpDown Value="{Binding RouteTolerance, Mode=TwoWay}" Increment="0.01" Minimum="{Binding MinRouteTolerance}"
-                                     Maximum="{Binding MaxRouteTolerance}" FormatString="0.00" Width="104" ToolTip.Tip="{x:Static l:Strings.Holds_RouteToleranceTip}"/>
+                                     Maximum="{Binding MaxRouteTolerance}" FormatString="0.00" Width="84" ToolTip.Tip="{x:Static l:Strings.Holds_RouteToleranceTip}"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8">
                       <Button Content="{x:Static l:Strings.Holds_RouteAccept}" Command="{Binding AcceptRouteCommand}" IsVisible="{Binding IsRouteReview}"/>
@@ -1043,7 +1043,7 @@
                           ToolTip.Tip="{x:Static l:Strings.Holds_Width}"/>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                       <controls:CommitNumericUpDown Value="{Binding StrokeWidth, Mode=TwoWay}" Increment="1" Minimum="{Binding MinStrokeWidth}" Maximum="{Binding MaxStrokeWidth}"
-                                   FormatString="0.####" Width="80"/>
+                                   FormatString="0.####" Width="72"/>
                       <TextBlock Text="{x:Static l:Strings.Holds_WidthUnit}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"
                                ToolTip.Tip="{x:Static l:Strings.Holds_WidthUnitTip}"/>
                     </StackPanel>
@@ -1058,7 +1058,7 @@
                           ToolTip.Tip="{x:Static l:Strings.Holds_SmoothingTip}"/>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                       <controls:CommitNumericUpDown Value="{Binding ContourSmoothing, Mode=TwoWay}" Increment="5" Minimum="{Binding MinContourSmoothing}" Maximum="{Binding MaxContourSmoothing}"
-                                   FormatString="0" Width="80"/>
+                                   FormatString="0" Width="72"/>
                     </StackPanel>
                   </Grid>
                   <StackPanel Orientation="Horizontal" Spacing="8">
@@ -1110,7 +1110,7 @@
                     <StackPanel Orientation="Horizontal" Spacing="8">
                       <TextBlock Text="{x:Static l:Strings.Holds_Start}" Classes="label"/>
                       <controls:CommitNumericUpDown Value="{Binding AnimationStart, Mode=TwoWay}" Increment="0.1" Minimum="0" Maximum="{Binding MaxAnimationStart}"
-                                     FormatString="0.###" Width="104"
+                                     FormatString="0.###" Width="84"
                                      ToolTip.Tip="{x:Static l:Strings.Holds_StartTip}"/>
                       <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
@@ -1122,26 +1122,26 @@
                     <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsDurationMode}">
                       <TextBlock Text="{x:Static l:Strings.Holds_AnimationDuration}" Classes="label"/>
                       <controls:CommitNumericUpDown Value="{Binding AnimationDuration, Mode=TwoWay}" Increment="0.1" Minimum="0" Maximum="{Binding MaxAnimationDuration}"
-                                     FormatString="0.###" Width="104"
+                                     FormatString="0.###" Width="84"
                                      ToolTip.Tip="{x:Static l:Strings.Holds_AnimationDurationTip}"/>
                       <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsIntervalMode}">
                       <TextBlock Text="{x:Static l:Strings.Holds_Interval}" Classes="label"/>
                       <controls:CommitNumericUpDown Value="{Binding AnimationInterval, Mode=TwoWay}" Increment="0.05" Minimum="{Binding MinAnimationInterval}" Maximum="{Binding MaxAnimationInterval}"
-                                     FormatString="0.###" Width="104"/>
+                                     FormatString="0.###" Width="84"/>
                       <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8">
                       <TextBlock Text="{x:Static l:Strings.Holds_AppearFade}" Classes="label"/>
                       <controls:CommitNumericUpDown Value="{Binding AppearFade, Mode=TwoWay}" Increment="0.05" Minimum="0" Maximum="{Binding MaxAnimationFade}"
-                                     FormatString="0.###" Width="104" ToolTip.Tip="{x:Static l:Strings.Holds_FadeTip}"/>
+                                     FormatString="0.###" Width="84" ToolTip.Tip="{x:Static l:Strings.Holds_FadeTip}"/>
                       <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsIntervalMode}">
                       <TextBlock Text="{x:Static l:Strings.Holds_StayAfterLast}" Classes="label"/>
                       <controls:CommitNumericUpDown Value="{Binding StayAfterLast, Mode=TwoWay}" Increment="0.5" Minimum="0" Maximum="{Binding MaxAnimationStay}"
-                                     FormatString="0.###" Width="104" IsEnabled="{Binding !StayUntilClipEnd}"/>
+                                     FormatString="0.###" Width="84" IsEnabled="{Binding !StayUntilClipEnd}"/>
                       <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsIntervalMode}">
@@ -1152,7 +1152,7 @@
                     <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowsDisappearFade}">
                       <TextBlock Text="{x:Static l:Strings.Holds_DisappearFade}" Classes="label"/>
                       <controls:CommitNumericUpDown Value="{Binding DisappearFade, Mode=TwoWay}" Increment="0.05" Minimum="0" Maximum="{Binding MaxAnimationFade}"
-                                     FormatString="0.###" Width="104" ToolTip.Tip="{x:Static l:Strings.Holds_FadeTip}"/>
+                                     FormatString="0.###" Width="84" ToolTip.Tip="{x:Static l:Strings.Holds_FadeTip}"/>
                       <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                     <TextBlock Text="{Binding AnimationSummary}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"/>
@@ -1255,7 +1255,7 @@
 
             <!-- Audio (Phase 7): volume and mute are independent; every change is one edit. -->
             <Panel Classes="category" Tag="Audio">
-            <controls:InspectorSection SectionId="audio" Title="{x:Static l:Strings.Inspector_AudioHeading}" Summary="{Binding VolumePercent, StringFormat={}{0:0.##} %}" IsVisible="{Binding HasAudioProperties}">
+            <controls:InspectorSection SectionId="audio" ResetCommand="{Binding ResetAudioCommand}" Title="{x:Static l:Strings.Inspector_AudioHeading}" Summary="{Binding VolumePercent, StringFormat={}{0:0.##} %}" IsVisible="{Binding HasAudioProperties}">
               <StackPanel Spacing="6">
 
                 <Grid ColumnDefinitions="Auto,Auto,Auto">
@@ -1265,7 +1265,7 @@
                         ToolTip.Tip="{x:Static l:Strings.Inspector_Volume}"/>
                   <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                     <controls:CommitNumericUpDown Value="{Binding VolumePercent, Mode=TwoWay}" Increment="1"
-                                 Minimum="0" Maximum="200" FormatString="0.####" Width="80"/>
+                                 Minimum="0" Maximum="200" FormatString="0.####" Width="72"/>
                     <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                 </Grid>
@@ -1285,11 +1285,11 @@
                 <StackPanel Spacing="6" IsVisible="{Binding HasSoundFades}" ToolTip.Tip="{x:Static l:Strings.Inspector_SoundFadeTip}">
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Inspector_SoundFadeIn}" Classes="label"/>
-                    <controls:CommitNumericUpDown Value="{Binding SoundFadeInFrames, Mode=TwoWay}" Increment="1" Minimum="0" FormatString="0" Width="104"/>
+                    <controls:CommitNumericUpDown Value="{Binding SoundFadeInFrames, Mode=TwoWay}" Increment="1" Minimum="0" FormatString="0" Width="84"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Inspector_SoundFadeOut}" Classes="label"/>
-                    <controls:CommitNumericUpDown Value="{Binding SoundFadeOutFrames, Mode=TwoWay}" Increment="1" Minimum="0" FormatString="0" Width="104"/>
+                    <controls:CommitNumericUpDown Value="{Binding SoundFadeOutFrames, Mode=TwoWay}" Increment="1" Minimum="0" FormatString="0" Width="84"/>
                   </StackPanel>
                 </StackPanel>
 
@@ -1301,7 +1301,7 @@
                         Value="{Binding NoiseReduction, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
                         ToolTip.Tip="{x:Static l:Strings.Inspector_NoiseReductionTip}"/>
                   <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
-                    <controls:CommitNumericUpDown Value="{Binding NoiseReduction, Mode=TwoWay}" Increment="5" Minimum="0" Maximum="100" FormatString="0" Width="80"/>
+                    <controls:CommitNumericUpDown Value="{Binding NoiseReduction, Mode=TwoWay}" Increment="5" Minimum="0" Maximum="100" FormatString="0" Width="72"/>
                   </StackPanel>
                 </Grid>
                 <Grid ColumnDefinitions="Auto,Auto,Auto" ToolTip.Tip="{x:Static l:Strings.Inspector_VoiceEnhancementTip}">
@@ -1310,7 +1310,7 @@
                         Value="{Binding VoiceEnhancement, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
                         ToolTip.Tip="{x:Static l:Strings.Inspector_VoiceEnhancementTip}"/>
                   <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
-                    <controls:CommitNumericUpDown Value="{Binding VoiceEnhancement, Mode=TwoWay}" Increment="5" Minimum="0" Maximum="100" FormatString="0" Width="80"/>
+                    <controls:CommitNumericUpDown Value="{Binding VoiceEnhancement, Mode=TwoWay}" Increment="5" Minimum="0" Maximum="100" FormatString="0" Width="72"/>
                   </StackPanel>
                 </Grid>
                 <TextBlock Text="{Binding CleanupStatus}" IsVisible="{Binding HasCleanupStatus}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{DynamicResource FontSizeCaption}" TextWrapping="Wrap"/>

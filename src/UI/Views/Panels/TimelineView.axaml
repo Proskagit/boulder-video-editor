@@ -22,13 +22,48 @@
     </MenuFlyout>
     <!-- D045 §5: the menu of the four templates of Phase 29 under «Шаблон», and the heart-rate overlay (Phase 35.5). -->
     <MenuFlyout x:Key="TemplateMenu" Placement="BottomEdgeAlignedLeft">
-      <MenuItem Header="{x:Static l:Strings.TemplateType_Rec}" Command="{Binding AddTemplateCommand}" CommandParameter="Rec"/>
-      <MenuItem Header="{x:Static l:Strings.TemplateType_Vhs}" Command="{Binding AddTemplateCommand}" CommandParameter="Vhs"/>
-      <MenuItem Header="{x:Static l:Strings.TemplateType_Boulder}" Command="{Binding AddTemplateCommand}" CommandParameter="Boulder"/>
-      <MenuItem Header="{x:Static l:Strings.TemplateType_Highlight}" Command="{Binding AddTemplateCommand}" CommandParameter="Highlight"/>
+      <!-- D068 item 15: each template with a line on what it shows. -->
+      <MenuItem Command="{Binding AddTemplateCommand}" CommandParameter="Rec">
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TemplateType_Rec}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TemplateType_Rec_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTemplateCommand}" CommandParameter="Vhs">
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TemplateType_Vhs}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TemplateType_Vhs_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTemplateCommand}" CommandParameter="Boulder">
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TemplateType_Boulder}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TemplateType_Boulder_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTemplateCommand}" CommandParameter="Highlight">
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TemplateType_Highlight}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TemplateType_Highlight_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
       <!-- D068 amendment 1: only with a training. -->
-      <MenuItem Header="{x:Static l:Strings.TemplateType_HeartRate}" Command="{Binding AddTemplateCommand}" CommandParameter="HeartRate"
-                IsVisible="{Binding HasTraining}"/>
+      <MenuItem Command="{Binding AddTemplateCommand}" CommandParameter="HeartRate" IsVisible="{Binding HasTraining}">
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TemplateType_HeartRate}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TemplateType_HeartRate_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
     </MenuFlyout>
   </UserControl.Resources>
   <UserControl.Styles>

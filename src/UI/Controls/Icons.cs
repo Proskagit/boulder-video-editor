@@ -55,4 +55,7 @@ public static class Icons
     public const string Hold = "M2.8,9.2 C2.6,5.6 5.4,3 8.8,3.3 C12.2,3.6 14,6.4 13.2,9.6 C12.4,12.6 9.2,13.8 6.2,13.2 C4.2,12.8 2.9,11.2 2.8,9.2 Z M6.2,8.3 C7.6,7.4 9.6,7.3 11,8";
     public const string Person = "M8,2 A2.2,2.2 0 1 0 8.01,2 Z M3.5,14.5 V11 A4.5,4.5 0 0 1 12.5,11 V14.5";
     public const string Pulse = "M1.5,8.5 H4.5 L6,4.5 L8.5,12.5 L10.5,6.5 L11.6,8.5 H14.5";
+
+    // D068 item 18: reset a section.
+    public const string Reset = "M3,8 A5,5 0 1 0 4.6,4.3 M2.5,2 V5 H5.5";
 }

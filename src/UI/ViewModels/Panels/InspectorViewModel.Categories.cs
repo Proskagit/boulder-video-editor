@@ -1,3 +1,4 @@
+using AiVideoEditor.Core.Interfaces;
 using System.ComponentModel;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.UI.Controls;
@@ -143,5 +144,28 @@ public sealed partial class InspectorViewModel
     private void OnHoldMarkupPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(HoldMarkupViewModel.HasClip)) RefreshCategories();
+    }
+
+    /// <summary>D068 item 18: «Трансформация и кадрирование» back to the defaults — position, scale, rotation, opacity, crop, and
+    /// the transform keyframes removed; one undo step.</summary>
+    [RelayCommand]
+    private void ResetFrame()
+    {
+        if (_clip is null || RejectWhileLocked()) return;
+        var result = _edit.SetClipProperties(_clip.Id, new ClipPropertyChange
+        {
+            Visual = VisualProperties.Default,
+            Keyframes = _clip is VideoClip ? new KeyframeValues(null) : null
+        });
+        if (!result.Success) _status.ReportWarning(result.Message ?? Strings.Inspector_ClipNotChanged);
+    }
+
+    /// <summary>D068 item 18: «Звук» back to the defaults — volume 100 %, not muted; one undo step.</summary>
+    [RelayCommand]
+    private void ResetAudio()
+    {
+        if (_clip is null || RejectWhileLocked()) return;
+        var result = _edit.SetClipProperties(_clip.Id, new ClipPropertyChange { Audio = new AudioProperties(1, false) });
+        if (!result.Success) _status.ReportWarning(result.Message ?? Strings.Inspector_ClipNotChanged);
     }
 }

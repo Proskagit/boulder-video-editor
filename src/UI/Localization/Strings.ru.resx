@@ -2076,9 +2076,6 @@
   <data name="AppSettings_Language" xml:space="preserve">
     <value>Язык интерфейса</value>
   </data>
-  <data name="AppSettings_LanguageDefault" xml:space="preserve">
-    <value>Как в конфигурации</value>
-  </data>
   <data name="AppSettings_RestartNote" xml:space="preserve">
     <value>Применяется после перезапуска.</value>
   </data>
@@ -3791,5 +3788,29 @@
   </data>
   <data name="Template_NoHeartRateHere" xml:space="preserve">
     <value>Плашка пульса добавлена, но в тренировке нет пульса для видео в этом месте: здесь плашка ничего не покажет.</value>
+  </data>
+  <data name="Preview_EmptyTitle" xml:space="preserve">
+    <value>Таймлайн пуст</value>
+  </data>
+  <data name="Preview_EmptyHint" xml:space="preserve">
+    <value>Импортируйте видео в «Медиа» и добавьте их на таймлайн — кадр появится здесь.</value>
+  </data>
+  <data name="TemplateType_Rec_Desc" xml:space="preserve">
+    <value>Метка записи REC с датой и временем, как у камеры</value>
+  </data>
+  <data name="TemplateType_Vhs_Desc" xml:space="preserve">
+    <value>Дата и время, как на видеокассете</value>
+  </data>
+  <data name="TemplateType_Boulder_Desc" xml:space="preserve">
+    <value>Трасса, категория и результат: TOP или попытка</value>
+  </data>
+  <data name="TemplateType_Highlight_Desc" xml:space="preserve">
+    <value>Крупный заголовок и подзаголовок</value>
+  </data>
+  <data name="TemplateType_HeartRate_Desc" xml:space="preserve">
+    <value>Пульс из тренировки с часов</value>
+  </data>
+  <data name="Inspector_ResetSectionTip" xml:space="preserve">
+    <value>Сбросить значения раздела</value>
   </data>
 </root>

@@ -121,7 +121,8 @@ public sealed class SettingsWindowTests
         Assert.True(vm.TimelineFollowsPlayhead);                                              // D058 §1: on by default
         vm.TimelineFollowsPlayhead = false;
         Assert.False(settings.Current.TimelineFollowsPlayhead);
-        vm.LanguageIndex = 2;
+        vm.LanguageIndex = 0;                                                                  // D068 item 16: «Русский» …
+        vm.LanguageIndex = 1;                                                                  // … then «English»
         vm.FfmpegPath = @"D:\ffmpeg\ffmpeg.exe";
         Assert.True(settings.Current.HoldProposalsEnabled);
         Assert.Equal("en", settings.Current.Language);

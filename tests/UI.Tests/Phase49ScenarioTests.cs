@@ -182,4 +182,31 @@ public sealed class Phase49ScenarioTests : IDisposable
         Assert.True(status.IsWarning);
         Assert.Equal(Strings.Template_NoHeartRateHere, status.Message);
     }
+
+    /// <summary>D068 item 18: «сбросить» of «Трансформация и кадрирование» and «Звук» — the defaults back, one undo step.</summary>
+    [Fact]
+    public void A_section_reset_puts_the_defaults_back_in_one_undo_step()
+    {
+        var video = Video("v.mp4");
+        _projects.AddMediaAssets(new[] { video });
+        var inspector = new InspectorViewModel(_edit, new StatusService());
+        _timeline.SelectionChanged += (_, selection) => { if (selection is not null) inspector.ShowClip(selection); };
+        _timeline.AddMedia(video);
+        _timeline.OnClipPressed(_timeline.Tracks.SelectMany(t => t.Clips).Single(), toggle: false);
+        var clip = _projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<VideoClip>().Single();
+        Assert.True(_edit.SetClipProperties(clip.Id, new Core.Interfaces.ClipPropertyChange
+        {
+            Visual = new VisualProperties(120, -40, 1.5, 10, 0.5, CropRect.None), Audio = new AudioProperties(0.3, true)
+        }).Success);
+
+        inspector.ResetFrameCommand.Execute(null);
+        inspector.ResetAudioCommand.Execute(null);
+
+        Assert.Equal(VisualProperties.Default, VisualProperties.Of(clip));
+        Assert.Equal((1.0, false), (clip.Volume, clip.IsMuted));
+        _undo.Undo();
+        Assert.Equal((0.3, true), (clip.Volume, clip.IsMuted));
+        _undo.Undo();
+        Assert.Equal(120, VisualProperties.Of(clip)!.Value.PositionX);
+    }
 }

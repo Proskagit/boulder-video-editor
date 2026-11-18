@@ -46,10 +46,10 @@ public sealed class InspectorFieldStyleTests
         var fields = Inspector().Descendants().Where(e => e.Name.LocalName == "CommitNumericUpDown").ToList();
 
         Assert.Equal(38, fields.Count);                         // Phase 27: + outline thickness, background opacity, two durations; Phase 28: + a transition's seconds; D048: + the hold animation's duration, the route's colour tolerance; D058: + the group's opacity, volume and outline width; D061 amendment 1: + the climber's place in the frame (X, Y); D064: + the sound fades in / out, the noise reduction, the voice enhancement; D065: + the hold contour's smoothing
-        // D068 amendment 1: a field on a slider's line (label — slider — field, as CapCut) is 80 px, the others 104.
+        // D068 amendment 1: compact fields with their arrows in one column (as CapCut) — 72 px on a slider's line, 84 otherwise.
         static bool OnSliderLine(System.Xml.Linq.XElement f) =>
             f.Parent?.Parent is { } row && row.Elements().Any(e => e.Name.LocalName == "Slider" && (string?)e.Attribute("Classes") == "inline");
-        Assert.All(fields, f => Assert.Equal(OnSliderLine(f) ? "80" : "104", (string?)f.Attribute("Width")));
+        Assert.All(fields, f => Assert.Equal(OnSliderLine(f) ? "72" : "84", (string?)f.Attribute("Width")));
         Assert.Equal(14, fields.Count(OnSliderLine));
     }
 
