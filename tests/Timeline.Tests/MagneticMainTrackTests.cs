@@ -363,4 +363,33 @@ public class MagneticMainTrackTests
         f.AssertValid();
         AssertOneStep(f, before);
     }
+
+    /// <summary>The partner the move rule already planned (PlanPartnerShifts) follows the closing too — never shifted twice.</summary>
+    [Fact]
+    public void A_linked_pair_moved_into_a_gap_closes_up_with_its_sound_shifted_once()
+    {
+        var f = new TimelineFixture();
+        f.Settings.FrameRate = Rate;
+        f.Settings.IsFrameRateLocked = true;
+        var a = f.Place<VideoClip>(f.V1, f.Video(60, Rate, "a.mp4"), F(0).Ticks, F(10).Ticks);
+        var b = f.Place<VideoClip>(f.V1, f.VideoWithSound(60, Rate, "b.mp4"), F(10).Ticks, F(20).Ticks);
+        Ok(f.Service.UnlinkAudio(b.Id));
+        var sound = f.A1.Clips.OfType<AudioClip>().Single();
+        Ok(f.Service.LinkClips(new[] { b.Id, sound.Id }));
+        f.Project.Timeline.MagneticMainTrack = true;
+        var before = f.Snapshot();
+
+        Ok(f.Service.MoveClips(new[] { a.Id }, 40, insertOnDrop: true));   // A past the end: B (and its sound) close up
+
+        Assert.Equal((0L, 10L), Span(b));
+        Assert.Equal((0L, 10L), Span(sound));
+        Assert.Equal((10L, 20L), Span(a));
+        f.AssertValid();
+        AssertOneStep(f, before);
+
+        var top = f.UndoRedo.CurrentPosition;
+        var nudged = f.Service.MoveClips(new[] { a.Id, b.Id, sound.Id }, 3, insertOnDrop: true);   // the magnet takes it back
+        Assert.True(nudged.NoChange, nudged.Message);
+        Assert.Same(top, f.UndoRedo.CurrentPosition);
+    }
 }

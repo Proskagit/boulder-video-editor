@@ -6,7 +6,18 @@
 `feat/phase-50-capcut-features`.** Step 0: Phase 49's acceptance recorded (D068 §8, DEVELOPMENT_PLAN, ROADMAP). The owner's answers
 (D069 §0): our own Save As window; «Пульс» without heart rate not created + a message; snapping always on, «Привязка» becomes the
 main track's magnet (on in new projects), other tracks' clips move with their V1 clip; eight colour sliders + «Автоулучшение» by the
-clip's frames; eight new transitions. In progress.
+clip's frames; eight new transitions. **Implemented (2026-11-18):** part A (`ce6b204`: the Media Browser selection removed by
+✕ / menu / Delete, the empty timeline's hints, our own Save As window, the arrows 1.5× smaller, «Пульс» not created + an «ОК»
+window); §6 the magnetic main track (`4880d8c`, v26 `magneticMainTrack`); §7 colour correction with «Автоулучшение» (`f8f09e4`, v26
+`color`); §8 eight transitions (`3729352`); the help (`f2458d1`). **Review (phase-reviewer): FAIL** — an edit the magnet takes back
+left an empty Undo step and a dirty project; a paste inside a V1 clip was refused; the rate-fixing first video skipped the magnet;
+tests and records missing. **Fixed** (`35eea61` + a partner test): no-op updates dropped, an empty plan is no edit; paste to the
+nearest cut; the rate-fixing plan closed up; 9 more magnet tests; D069 §9 «Refined»; blur in parallel. **Re-review: PASS WITH
+NOTES.** **Gates (2026-11-18, after the fixes):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check`
+clean; Release + `AIVE_HEAVY_TESTS=1` with `--blame-hang`: Core 1 959, Timeline 1 227 (1 228 with the last test), Project 757,
+UI 1 312, Rendering 263, Export 142, Video 418 (+1 skipped), ExportEndToEnd 189, Vision 25 — all green. Not done: the owner's
+manual check (`docs/PHASE50_MANUAL_TEST_PLAN.md`; the app was not checked on screen by me — the computer-use tool could not reach
+the build's window); ExportEndToEnd scenes with colour and the new transitions through FFmpeg and a 4K blur timing.
 
 **Phase 49 — UX 1.1 (D068, 2026-11-18) — on `feat/phase-49-ux`.** The owner's answers: icon variant C, the name everywhere
 including the per-user folder, CapCut re-reviewed in full, the help inside the application, the rebranding in 1.1. **Step 1 (name
