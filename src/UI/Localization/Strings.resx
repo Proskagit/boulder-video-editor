@@ -3779,4 +3779,10 @@ If you don't save, your changes will be lost.</value>
   <data name="ExportDialog_Summary" xml:space="preserve">
     <value>Duration {0}</value>
   </data>
+  <data name="Media_RemoveQuestionFiles" xml:space="preserve">
+    <value>Remove {0} files from the project? {1} clips on the timeline use them and will be removed too. The files on disk stay.</value>
+  </data>
+  <data name="Media_RemovedFiles" xml:space="preserve">
+    <value>{0} files removed from the project (clips removed: {1}).</value>
+  </data>
 </root>

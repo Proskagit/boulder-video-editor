@@ -141,4 +141,30 @@ public sealed class Phase49ScenarioTests : IDisposable
         _projects.AddMediaAssets(new[] { Video("x.mp4") });
         Assert.False(again.IsVisible);                    // the new project changed (a file imported)
     }
+
+    /// <summary>D068 amendment 1: three selected files, two of them on the timeline — one question for all, and all three
+    /// leave the project with their clips in one Undo step.</summary>
+    [Fact]
+    public async Task Removing_selected_files_asks_once_and_removes_all_of_them_in_one_undo_step()
+    {
+        var dialogs = new ScriptedDialogs(0);
+        var browser = new MediaBrowserViewModel(_projects, null!, NullLogger<MediaBrowserViewModel>.Instance,
+            edit: _edit, dialogs: dialogs, status: new StatusService());
+        var a = Video("a.mp4");
+        var b = Video("b.mp4");
+        var c = Video("c.mp4");
+        _projects.AddMediaAssets(new[] { a, b, c });
+        _timeline.AddMedia(a);
+        _timeline.AddMedia(b);
+        browser.SelectAllCommand.Execute(null);
+
+        await browser.RemoveCommand.ExecuteAsync(null);
+
+        Assert.Single(dialogs.Asked);
+        Assert.Empty(_projects.Current.MediaAssets);
+        Assert.Empty(_projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips));
+        _undo.Undo();
+        Assert.Equal(3, _projects.Current.MediaAssets.Count);
+        Assert.Equal(2, _projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips).Count());
+    }
 }

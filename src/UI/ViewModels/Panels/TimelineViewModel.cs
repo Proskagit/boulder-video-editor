@@ -86,7 +86,6 @@ public sealed partial class TimelineViewModel : ViewModelBase
         _editingLock.PropertyChanged += (_, _) => OnEditingLockChanged();
 
         _projectService.TimelineChanged += (_, _) => Refresh();
-        _projectService.TimelineChanged += (_, _) => NoteCanvasChange();
         _projectService.TimelineChanged += (_, _) => FitWhenTheFirstClipsArrive();
         _projectService.ProjectChanged += (_, _) => OnProjectReplaced();
         _projectService.MediaAssetsChanged += (_, _) =>
@@ -105,7 +104,6 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
         _pixelsPerSecond = Sequence.ZoomPixelsPerSecond;
         _snappingEnabled = Sequence.SnappingEnabled;
-        ResetCanvasOffer();
         Refresh();
         _hadClips = HasClips();     // an opened project keeps its saved zoom
         _userZoomed = false;
@@ -199,7 +197,6 @@ public sealed partial class TimelineViewModel : ViewModelBase
         Clipboard = null;   // copied clips refer to the previous project's media and tracks (D027 §5)
         PixelsPerSecond = Sequence.ZoomPixelsPerSecond;
         SnappingEnabled = Sequence.SnappingEnabled;
-        ResetCanvasOffer();
         Refresh();
         _hadClips = HasClips();     // D068 item 6: an opened project keeps its saved zoom
         _userZoomed = false;

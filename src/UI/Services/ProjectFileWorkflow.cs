@@ -128,6 +128,20 @@ public sealed class ProjectFileWorkflow
         return true;
     }
 
+    /// <summary>D068 amendment 1: the save dialog of Windows opens a folder whose name is typed instead of returning it, so a
+    /// project is replaced from inside its own folder — the name typed there is the folder's own («Проект\Проект»), or its
+    /// <c>project.json</c> is picked; both mean that folder. Any other path is the folder to save into.</summary>
+    internal static string ProjectFolderFor(string picked)
+    {
+        var parent = Path.GetDirectoryName(picked);
+        if (string.IsNullOrEmpty(parent) || !File.Exists(Path.Combine(parent, "project.json"))) return picked;
+        var name = Path.GetFileName(picked);
+        return string.Equals(name, "project.json", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(name, Path.GetFileName(Path.TrimEndingDirectorySeparator(parent)), StringComparison.OrdinalIgnoreCase)
+            ? parent
+            : picked;
+    }
+
     /// <summary>Save As (D067 §6): a save dialog — the place and the project's name; the project is saved into a folder of
     /// that name there (created when it does not exist), so versions of a project sit side by side as folders. Confirms
     /// replacing another project already in that folder; a file of that name refuses. Cancelling or a failure changes
@@ -143,7 +157,7 @@ public sealed class ProjectFileWorkflow
             SuggestedFileName = current.Name
         });
         if (picked is null) return false;
-        var folder = Path.TrimEndingDirectorySeparator(picked.Trim());
+        var folder = ProjectFolderFor(Path.TrimEndingDirectorySeparator(picked.Trim()));
         if (File.Exists(folder))
         {
             _status.ReportError(string.Format(Strings.Project_SaveFailed, current.Name, string.Format(Strings.Project_SaveAsFileExists, Path.GetFileName(folder))));

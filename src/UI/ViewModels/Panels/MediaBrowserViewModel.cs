@@ -321,24 +321,33 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanRemove))]
     private async Task Remove()
     {
-        if (_edit is null || SelectedItem is not { } item || !CanRemove()) return;
-        var asset = item.Asset;
-        if (_edit.GetRemoveMediaBlockReason(asset.Id) is { } blocked)
+        if (_edit is null || SelectedItem is not { } focused || !CanRemove()) return;
+        // D068 amendment 1: every selected file goes (the file the command was given for when the selection is elsewhere),
+        // after one question for all of them, as one Undo step.
+        var items = SelectedItems.Contains(focused) ? SelectedItems.ToList() : new List<MediaBrowserItemViewModel> { focused };
+        if (items.Count == 1) items = new List<MediaBrowserItemViewModel> { focused };
+        foreach (var item in items)
         {
-            _status?.ReportWarning(blocked);
-            return;
+            if (_edit.GetRemoveMediaBlockReason(item.Asset.Id) is { } blocked)
+            {
+                _status?.ReportWarning(blocked);
+                return;
+            }
         }
 
-        var clipCount = _edit.CountClipsUsing(asset.Id);
+        var clipCount = items.Sum(i => _edit.CountClipsUsing(i.Asset.Id));
+        var single = items.Count == 1 ? items[0].Asset : null;
         if (clipCount > 0)
         {
             if (_dialogs is null) return;
             var choice = await _dialogs.AskAsync(new DialogRequest
             {
                 Title = Strings.Media_RemoveTitle,
-                Message = clipCount == 1
-                    ? string.Format(Strings.Media_RemoveQuestionOne, asset.FileName)
-                    : Plural.Format(clipCount, Strings.Media_RemoveQuestionMany, asset.FileName),
+                Message = single is not null
+                    ? clipCount == 1
+                        ? string.Format(Strings.Media_RemoveQuestionOne, single.FileName)
+                        : Plural.Format(clipCount, Strings.Media_RemoveQuestionMany, single.FileName)
+                    : string.Format(Strings.Media_RemoveQuestionFiles, items.Count, clipCount),
                 Buttons = new[] { Strings.Common_Remove, Strings.Common_Cancel }
             });
             // The answer may come after an export or a relink started, or the project was replaced; the service
@@ -346,17 +355,19 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
             if (choice != 0 || !CanEdit() || _relink is { IsRunning: true }) return;
         }
 
-        var result = _edit.RemoveMedia(asset.Id);
+        var result = _edit.RemoveMediaMany(items.Select(i => i.Asset.Id).ToList());
         if (!result.Success)
         {
             _status?.ReportWarning(result.Message ?? Strings.Media_NotRemoved);
             return;
         }
-        var removed = clipCount == 0
-            ? string.Format(Strings.Media_Removed, asset.FileName)
-            : clipCount == 1
-                ? string.Format(Strings.Media_RemovedWithClipOne, asset.FileName)
-                : Plural.Format(clipCount, Strings.Media_RemovedWithClipsMany, asset.FileName);
+        var removed = single is null
+            ? string.Format(Strings.Media_RemovedFiles, items.Count, clipCount)
+            : clipCount == 0
+                ? string.Format(Strings.Media_Removed, single.FileName)
+                : clipCount == 1
+                    ? string.Format(Strings.Media_RemovedWithClipOne, single.FileName)
+                    : Plural.Format(clipCount, Strings.Media_RemovedWithClipsMany, single.FileName);
         _status?.Report(result.Message is { } note ? $"{removed} {note}" : removed);
     }
 }

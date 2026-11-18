@@ -3783,4 +3783,10 @@
   <data name="ExportDialog_Summary" xml:space="preserve">
     <value>Длительность {0}</value>
   </data>
+  <data name="Media_RemoveQuestionFiles" xml:space="preserve">
+    <value>Удалить из проекта файлов: {0}? Их используют клипы на таймлайне ({1}) — они тоже будут удалены. Файлы на диске останутся.</value>
+  </data>
+  <data name="Media_RemovedFiles" xml:space="preserve">
+    <value>Файлов удалено из проекта: {0} (клипов удалено: {1}).</value>
+  </data>
 </root>

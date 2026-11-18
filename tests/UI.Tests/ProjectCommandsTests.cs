@@ -358,6 +358,24 @@ public sealed class ProjectCommandsTests : IDisposable
         Assert.Equal(_projects.Current.Id, SavedFile(other).Id);
     }
 
+    /// <summary>D068 amendment 1: Windows' save dialog opens a folder whose name is typed, so the owner replaces a project from
+    /// inside its folder — the folder's own name typed there («Other\Other») or its project.json picked means that folder.</summary>
+    [Theory]
+    [InlineData("Other")]
+    [InlineData("project.json")]
+    public async Task Save_as_from_inside_another_projects_folder_replaces_that_project_when_confirmed(string typed)
+    {
+        var other = WriteOtherProject("Other");
+        Edit();
+        var (workflow, dialogs, _) = Create(Answers(Replace), Path.Combine(other, typed));
+
+        Assert.True(await workflow.SaveAsAsync());
+
+        Assert.Equal("Replace project?", Assert.Single(dialogs.Asked).Title);
+        Assert.Equal(_projects.Current.Id, SavedFile(other).Id);
+        Assert.False(Directory.Exists(Path.Combine(other, "Other")));       // no project inside the project
+    }
+
     [Fact]
     public async Task Save_as_into_the_projects_own_folder_does_not_ask_to_replace()
     {
