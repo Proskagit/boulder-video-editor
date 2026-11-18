@@ -8,24 +8,24 @@
        every change is one undo step (a slider's drag merges). -->
   <UserControl.Styles>
     <Style Selector="TextBlock.heading">
-      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}"/>
       <Setter Property="FontWeight" Value="Bold"/>
-      <Setter Property="Foreground" Value="#C0C0C0"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
     </Style>
     <Style Selector="TextBlock.label">
-      <Setter Property="FontSize" Value="11"/>
-      <Setter Property="Foreground" Value="#AAAAAA"/>
+      <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
       <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
     <Style Selector="TextBlock.value">
-      <Setter Property="FontSize" Value="11"/>
-      <Setter Property="Foreground" Value="#E0E0E0"/>
+      <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
       <Setter Property="VerticalAlignment" Value="Center"/>
       <Setter Property="HorizontalAlignment" Value="Right"/>
     </Style>
     <Style Selector="TextBlock.note">
-      <Setter Property="FontSize" Value="10"/>
-      <Setter Property="Foreground" Value="#9A9A9A"/>
+      <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
       <Setter Property="TextWrapping" Value="Wrap"/>
     </Style>
   </UserControl.Styles>
@@ -72,9 +72,9 @@
       </Grid>
       <TextBlock Classes="note" Text="{Binding DuckingStatus}"/>
       <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
-        <Button FontSize="11" Content="{x:Static l:Strings.Mixer_Cancel}" Command="{Binding CancelDuckingCommand}" IsVisible="{Binding CanCancelDucking}"/>
-        <Button FontSize="11" Content="{x:Static l:Strings.Mixer_Retry}" Command="{Binding RetryDuckingCommand}" IsVisible="{Binding CanRetryDucking}"/>
-        <Button FontSize="11" Content="{x:Static l:Strings.Mixer_Bake}" Command="{Binding BakeDuckingCommand}" IsEnabled="{Binding CanBakeDucking}"
+        <Button FontSize="{DynamicResource FontSizeCaption}" Content="{x:Static l:Strings.Mixer_Cancel}" Command="{Binding CancelDuckingCommand}" IsVisible="{Binding CanCancelDucking}"/>
+        <Button FontSize="{DynamicResource FontSizeCaption}" Content="{x:Static l:Strings.Mixer_Retry}" Command="{Binding RetryDuckingCommand}" IsVisible="{Binding CanRetryDucking}"/>
+        <Button FontSize="{DynamicResource FontSizeCaption}" Content="{x:Static l:Strings.Mixer_Bake}" Command="{Binding BakeDuckingCommand}" IsEnabled="{Binding CanBakeDucking}"
                 ToolTip.Tip="{x:Static l:Strings.Mixer_BakeTip}"/>
       </StackPanel>
     </StackPanel>

@@ -493,7 +493,13 @@ public sealed class ExportWorkflow
 
     private ExportOutcome Report(ExportOutcome outcome)
     {
-        _status.Report(outcome.Message);
+        // D068 item 4: a failed export is an error; a refused preflight a warning; the rest ordinary messages.
+        switch (outcome.Kind)
+        {
+            case ExportOutcomeKind.Failed: _status.ReportError(outcome.Message); break;
+            case ExportOutcomeKind.PreflightFailed: _status.ReportWarning(outcome.Message); break;
+            default: _status.Report(outcome.Message); break;
+        }
         return outcome;
     }
 }

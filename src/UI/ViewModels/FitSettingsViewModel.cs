@@ -49,7 +49,7 @@ public sealed partial class FitSettingsViewModel : ViewModelBase
 
     private async Task SetBetaAsync(bool value)
     {
-        if (!await _store.SetBetaAsync(value)) _status.Report(Strings.FitSettings_NotWritten);
+        if (!await _store.SetBetaAsync(value)) _status.ReportError(Strings.FitSettings_NotWritten);
         Show(_store.Current);
     }
 
@@ -66,7 +66,7 @@ public sealed partial class FitSettingsViewModel : ViewModelBase
             if (choice != 0) return;
         }
         if (await _store.ResetAsync()) _status.Report(Strings.FitSettings_ResetDone);
-        else _status.Report(Strings.FitSettings_NotWritten);
+        else _status.ReportError(Strings.FitSettings_NotWritten);
         Show(_store.Current);
     }
 

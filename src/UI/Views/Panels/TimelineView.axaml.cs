@@ -596,7 +596,9 @@ public partial class TimelineView : UserControl
         var items = new List<Control>
         {
             Item("CopyItem", Strings.Menu_Copy, viewModel.CopyCommand, gesture: "Ctrl+C"),
-            Item("PasteItem", Strings.Timeline_Paste, viewModel.PasteCommand, gesture: "Ctrl+V")
+            Item("PasteItem", Strings.Timeline_Paste, viewModel.PasteCommand, gesture: "Ctrl+V"),
+            // D068 item 3: the commands that left the tool bar.
+            Item("DuplicateItem", Strings.Timeline_Duplicate, viewModel.DuplicateCommand, gesture: "Ctrl+D")
         };
         var playhead = viewModel.Playhead;
         if (clip.Clip.TimelineStart < playhead && playhead < clip.Clip.TimelineEnd)
@@ -614,8 +616,10 @@ public partial class TimelineView : UserControl
             if (viewModel.RecognizeFitClimbsCommand is { } fit && fit.CanExecute(null))
                 items.Add(Item("RecognizeFitItem", Strings.Inspector_RecognizeFitClimbs, fit));
         }
+        if (viewModel.CloseGapCommand.CanExecute(null)) items.Add(Item("CloseGapItem", Strings.Timeline_CloseGap, viewModel.CloseGapCommand));
         items.Add(new Separator());
         items.Add(Item("DeleteItem", Strings.Timeline_Delete, viewModel.DeleteSelectedCommand, gesture: "Delete"));
+        items.Add(Item("RippleDeleteItem", Strings.Timeline_RippleDelete, viewModel.RippleDeleteCommand));
         return new ContextMenu { Name = "ClipContextMenu", ItemsSource = items };
     }
 

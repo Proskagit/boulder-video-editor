@@ -123,7 +123,7 @@ public sealed partial class TimelineViewModel
             ? part with { From = left <= 0.5 ? follow.OpenStart(segment.Index) : left <= drag.Min + 0.5 && Neighbour(true) is { } n ? n : SourceAt(clip, FrameAt(vm, left)) }
             : part with { To = right >= vm.Width - 0.5 ? follow.OpenEnd(segment.Index) : right >= drag.Max - 0.5 && Neighbour(false) is { } m ? m : SourceAt(clip, FrameAt(vm, right)) };
         var result = _edit.SetClipFollow(clip.Id, follow.WithPart(segment.Index, changed));
-        if (!result.Success) _status.Report(result.Message ?? "");
+        if (!result.Success) _status.ReportWarning(result.Message ?? "");
         ShowFollow(vm);
     }
 

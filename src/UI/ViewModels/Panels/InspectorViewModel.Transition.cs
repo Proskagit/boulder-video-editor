@@ -114,7 +114,7 @@ public sealed partial class InspectorViewModel
         var result = _edit.SetTransitionDuration(s.Transition.Id, MediaTime.FromFrame(Math.Max(0, frames), s.Rate));
         if (!result.Success && !result.NoChange)
         {
-            _status.Report(result.Message ?? Strings.Transition_NotChangedAny);
+            _status.ReportWarning(result.Message ?? Strings.Transition_NotChangedAny);
             ShowModelAfterRejection();
         }
         else if (result.NoChange)
@@ -137,7 +137,7 @@ public sealed partial class InspectorViewModel
         if (result.NoChange || !result.Success)
         {
             // The button pressed has checked itself (D8 of the Phase 28 run): the buttons show the model's type again.
-            if (!result.NoChange) _status.Report(result.Message ?? Strings.Transition_NotChangedAny);
+            if (!result.NoChange) _status.ReportWarning(result.Message ?? Strings.Transition_NotChangedAny);
             SyncTransition();
             return;
         }
@@ -157,7 +157,7 @@ public sealed partial class InspectorViewModel
             return;
         }
         var result = _edit.SetTransitionDirection(s.Transition.Id, direction);
-        if (!result.Success && !result.NoChange) _status.Report(result.Message ?? Strings.Transition_NotChangedAny);
+        if (!result.Success && !result.NoChange) _status.ReportWarning(result.Message ?? Strings.Transition_NotChangedAny);
         if (!result.Success || result.NoChange) SyncTransition();   // the buttons show the model's direction again
     }
 }

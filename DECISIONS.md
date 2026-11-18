@@ -11017,6 +11017,27 @@ A small design system (colours, typography, spacing, one icon set with its licen
 and their implementation in steps with «before / after» screenshots. The steps and their scope are recorded here as amendments
 once the list is agreed with the owner (the timeline clips' thumbnails, D058 §7, are a candidate).
 
+### 6. The owner's choice of the list (2026-11-18)
+
+The list of `docs/UX_AUDIT_1.1.md` §4 accepted whole: items **1–18** (P1 1–4, P2 5–14, P3 15–18) and **Р1** — a new project is
+exported without being saved first, provided the background export (D060's snapshot, parallel rasterizers) keeps working.
+**Rejected:** Р2 (an overview strip above the timeline — Resolve is overloaded), Р3 (an automatic cut of the best climbs from FIT —
+the FIT marks are not precise enough), Р4 (a bar of workflow stages — we edit everything on one canvas, Resolve's pages are
+separate interfaces). Implemented in that order, each item a commit `Phase 49 / D068 item N`.
+
+**Item 1 — the theme.** `src/UI/Themes/BoulderTheme.axaml` (included by `App.axaml`): surfaces, dividers, text, the accent, the
+message colours, four type sizes; every window the same background; Fluent's own accent is the product's green. The views take
+the tokens with `DynamicResource` (a view built without the theme, as in the tests, keeps its defaults). Data colours (routes,
+outlines, clip kinds, selection on the timeline) stay where they are. The icons stay the project's own set (`Icons.cs`, drawn
+here, no licence) instead of Lucide — the same line style, no third-party notice.
+**Item 2 — the accent** only on the main action of a place (Export on the tool bar, Export in its window; later the start
+screen); a switched-on toggle is lit (dark fill, green text and border), not filled; the status bar is neutral.
+**Item 3 — icons.** Over the timeline: Text, Template, Keyframe, Mixer keep their labels; the other commands are icon buttons
+naming their command in the tooltip and to UI Automation; Close gap, Paste, Link / Unlink are in the clip's context menu (which
+also gains Duplicate and Ripple delete).
+**Item 4 — message kinds.** `StatusService` reports Info / Warning (refused or limited) / Error (failed); the bar shows the
+warning's and the error's icon and colour; the kind is set before the text.
+
 ### Out of scope
 
-New editing features; changing the file formats; the release 1.1's packaging (after the phase).
+New editing features; changing the file formats; the release 1.1's packaging (after the phase); Р2–Р4 (§6).

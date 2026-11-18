@@ -190,7 +190,7 @@ public sealed partial class InspectorViewModel
         var start = template.TimelineStart.ToFrameFloor(rate);
         if (frame < start || frame >= template.TimelineEnd.ToFrameFloor(rate))
         {
-            _status.Report(Strings.TemplateStatusAt_PlayheadOutside);
+            _status.ReportWarning(Strings.TemplateStatusAt_PlayheadOutside);
             return;
         }
         var at = MediaTime.FromFrame(template.CounterStart.ToNearestFrame(rate) + (frame - start), rate);

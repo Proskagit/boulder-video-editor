@@ -46,7 +46,7 @@ public sealed class ClipContextMenuTests
         _timeline.SetPlayhead(clip.Clip.TimelineEnd + MediaTime.FromSeconds(1));
         var outside = TimelineView.ClipMenu(_timeline, clip);
         Assert.DoesNotContain("SplitItem", Names(outside));
-        Assert.Equal(new[] { "CopyItem", "PasteItem", "TrimStartItem", "TrimEndItem", "FillFrameItem", "FitFrameItem", "DeleteItem" },
+        Assert.Equal(new[] { "CopyItem", "PasteItem", "DuplicateItem", "TrimStartItem", "TrimEndItem", "FillFrameItem", "FitFrameItem", "CloseGapItem", "DeleteItem", "RippleDeleteItem" },
             Names(outside).Where(n => n is not null));
         Assert.DoesNotContain("MarkHoldsItem", Names(outside));            // a text clip: no hold markup
 
@@ -57,6 +57,9 @@ public sealed class ClipContextMenuTests
         Assert.Same(_timeline.PasteCommand, Item(inside, "PasteItem").Command);
         Assert.Same(_timeline.TrimStartToPlayheadCommand, Item(inside, "TrimStartItem").Command);
         Assert.Same(_timeline.DeleteSelectedCommand, Item(inside, "DeleteItem").Command);
+        // D068 item 3: the commands that left the tool bar.
+        Assert.Same(_timeline.DuplicateCommand, Item(inside, "DuplicateItem").Command);
+        Assert.Same(_timeline.RippleDeleteCommand, Item(inside, "RippleDeleteItem").Command);
         Assert.Equal(Strings.Menu_SplitAtPlayhead, Item(inside, "SplitItem").Header);
 
         Item(inside, "SplitItem").Command!.Execute(null);                  // runs what the key runs

@@ -169,7 +169,7 @@ public sealed partial class RecentProjectsViewModel : ViewModelBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Opening the recent project {Folder} failed.", item.FolderPath);
-            _status.Report(string.Format(Strings.Recent_OpenFailed, ex.Message));
+            _status.ReportError(string.Format(Strings.Recent_OpenFailed, ex.Message));
         }
         finally
         {
@@ -208,7 +208,7 @@ public sealed partial class RecentProjectsViewModel : ViewModelBase
             }
             else
             {
-                _status.Report(string.Format(Strings.Recent_RemoveFailed, item.Name));
+                _status.ReportError(string.Format(Strings.Recent_RemoveFailed, item.Name));
             }
         }
         finally

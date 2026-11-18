@@ -9,13 +9,13 @@
        start calibration of D051 §6 (moved here from «Настройки FIT…», whose menu item opens this section). -->
   <UserControl.Styles>
     <Style Selector="TextBlock.heading">
-      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}"/>
       <Setter Property="FontWeight" Value="Bold"/>
-      <Setter Property="Foreground" Value="#9A9A9A"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
     </Style>
     <Style Selector="TextBlock.note">
-      <Setter Property="FontSize" Value="11"/>
-      <Setter Property="Foreground" Value="#AAAAAA"/>
+      <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
       <Setter Property="TextWrapping" Value="Wrap"/>
     </Style>
     <Style Selector="TextBlock.label">
@@ -30,7 +30,7 @@
     </StackPanel>
 
     <!-- The owner's acceptance of 2026-11-10 / D062 amendment 1: the left column of the sections, one shown at a time. -->
-    <Border DockPanel.Dock="Left" Width="190" BorderBrush="#1A1A1A" BorderThickness="0,0,1,0">
+    <Border DockPanel.Dock="Left" Width="190" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,1,0">
       <ListBox x:Name="SectionList" ItemsSource="{Binding SectionNames}" SelectedIndex="{Binding SelectedSectionIndex, Mode=TwoWay}"
                Background="Transparent" Margin="0,12,0,0"/>
     </Border>
@@ -70,7 +70,7 @@
             <TextBlock Classes="label" Text="{x:Static l:Strings.AppSettings_CanvasSnap}"/>
             <controls:CommitNumericUpDown x:Name="CanvasSnapBox" Value="{Binding CanvasSnapPixels, Mode=TwoWay}" Increment="1"
                                           Minimum="{Binding MinCanvasSnapPixels}" Maximum="{Binding MaxCanvasSnapPixels}" FormatString="0" Width="104"/>
-            <TextBlock Text="{x:Static l:Strings.Unit_Px}" VerticalAlignment="Center" Foreground="#AAAAAA"/>
+            <TextBlock Text="{x:Static l:Strings.Unit_Px}" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
           </StackPanel>
           <TextBlock Classes="note" Text="{x:Static l:Strings.AppSettings_CanvasSnapNote}"/>
           <CheckBox x:Name="ProposalsBox" Content="{x:Static l:Strings.Holds_ProposeAutomatically}" IsChecked="{Binding HoldProposalsEnabled, Mode=TwoWay}"/>
@@ -96,19 +96,19 @@
             <TextBlock Classes="label" Text="{x:Static l:Strings.AppSettings_Coros}"/>
             <controls:CommitNumericUpDown x:Name="HeartRateOffsetBox" Value="{Binding HeartRateOffsetSeconds, Mode=TwoWay}" Increment="1"
                                           Minimum="{Binding MinHeartRateOffset}" Maximum="{Binding MaxHeartRateOffset}" FormatString="0" Width="104"/>
-            <TextBlock Text="{x:Static l:Strings.AppSettings_Seconds}" VerticalAlignment="Center" Foreground="#AAAAAA"/>
+            <TextBlock Text="{x:Static l:Strings.AppSettings_Seconds}" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
           </StackPanel>
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBlock Classes="label" Text="{x:Static l:Strings.AppSettings_Garmin}"/>
             <controls:CommitNumericUpDown x:Name="GarminHeartRateOffsetBox" Value="{Binding GarminHeartRateOffsetSeconds, Mode=TwoWay}" Increment="1"
                                           Minimum="{Binding MinHeartRateOffset}" Maximum="{Binding MaxHeartRateOffset}" FormatString="0" Width="104"/>
-            <TextBlock Text="{x:Static l:Strings.AppSettings_Seconds}" VerticalAlignment="Center" Foreground="#AAAAAA"/>
+            <TextBlock Text="{x:Static l:Strings.AppSettings_Seconds}" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
           </StackPanel>
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBlock Classes="label" Text="{x:Static l:Strings.AppSettings_OtherWatches}"/>
             <controls:CommitNumericUpDown x:Name="OtherHeartRateOffsetBox" Value="{Binding OtherHeartRateOffsetSeconds, Mode=TwoWay}" Increment="1"
                                           Minimum="{Binding MinHeartRateOffset}" Maximum="{Binding MaxHeartRateOffset}" FormatString="0" Width="104"/>
-            <TextBlock Text="{x:Static l:Strings.AppSettings_Seconds}" VerticalAlignment="Center" Foreground="#AAAAAA"/>
+            <TextBlock Text="{x:Static l:Strings.AppSettings_Seconds}" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
             <Button Content="{x:Static l:Strings.AppSettings_ResetDefault}" Command="{Binding ResetHeartRateOffsetCommand}"/>
           </StackPanel>
           <TextBlock Classes="note" Text="{x:Static l:Strings.AppSettings_HeartRateOffsetNote}"/>
@@ -120,7 +120,7 @@
             <TextBlock Text="{Binding EstimateText}"/>
             <TextBlock Classes="note" Text="{Binding UsedCountText}"/>
             <TextBlock Classes="note" Text="{Binding FileNote}" IsVisible="{Binding FileNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                       Foreground="#F08A6C"/>
+                       Foreground="{DynamicResource DangerTextBrush}"/>
             <Button x:Name="ResetButton" Content="{x:Static l:Strings.FitSettings_Reset}" Command="{Binding ResetCommand}" HorizontalAlignment="Left"/>
           </StackPanel>
         </StackPanel>

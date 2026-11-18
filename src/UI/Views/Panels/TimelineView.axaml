@@ -111,13 +111,13 @@
     </Style>
     <!-- D030 §4: the track header's mute / hide / lock toggles; off is quiet, on is coloured (lock in amber) -->
     <Style Selector="Button.trackState">
-      <Setter Property="FontSize" Value="9"/>
+      <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}"/>
       <Setter Property="Padding" Value="3,0"/>
       <Setter Property="MinHeight" Value="0"/>
       <Setter Property="MinWidth" Value="16"/>
       <Setter Property="Height" Value="16"/>
       <Setter Property="HorizontalContentAlignment" Value="Center"/>
-      <Setter Property="Foreground" Value="#8A8A8A"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
       <Setter Property="Opacity" Value="0.6"/>
     </Style>
     <Style Selector="Button.trackState.on">
@@ -147,15 +147,15 @@
     </Style>
   </UserControl.Styles>
 
-  <Border Background="#1E1E1E" BorderBrush="#1A1A1A" BorderThickness="0,1,0,0">
+  <Border Background="{DynamicResource Surface1Brush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0">
     <DockPanel>
 
       <!-- Header: title, project frame rate, timeline tools -->
-      <Border DockPanel.Dock="Top" Padding="8,4" Background="#252526" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1">
+      <Border DockPanel.Dock="Top" Padding="8,4" Background="{DynamicResource Surface1Brush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,0,1">
         <DockPanel>
           <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-            <TextBlock Text="{x:Static l:Strings.Timeline_Heading}" FontSize="11" FontWeight="Bold" Foreground="#9A9A9A" VerticalAlignment="Center"/>
-            <TextBlock Text="{Binding FrameRateDisplay}" FontSize="11" Foreground="#7A7A7A" VerticalAlignment="Center"/>
+            <TextBlock Text="{x:Static l:Strings.Timeline_Heading}" FontSize="{DynamicResource FontSizeCaption}" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding FrameRateDisplay}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
           </StackPanel>
           <!-- The tools wrap onto a second row when the window is too narrow for one (1024 px since Phase 17's Unlink / Link). Each
                command an icon and its label (D039 §7, D040 §5); − / + stay glyphs. -->
@@ -164,125 +164,82 @@
               <Style Selector="WrapPanel > Button, WrapPanel > ToggleButton">
                 <Setter Property="Margin" Value="2,1"/>
               </Style>
+              <!-- D068 item 3: an icon button is square, its icon a little larger than inside a labelled one. -->
+              <Style Selector="WrapPanel > Button.icon, WrapPanel > ToggleButton.icon">
+                <Setter Property="Width" Value="30"/>
+                <Setter Property="Height" Value="28"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+              </Style>
             </WrapPanel.Styles>
-            <Button Command="{Binding AddVideoTrackCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_AddVideoTrackTip}" FontSize="11">
-              <StackPanel Orientation="Horizontal" Spacing="4">
-                <controls:IconPath Glyph="{x:Static controls:Icons.VideoTrack}" Width="12" Height="12"/>
-                <TextBlock Text="{x:Static l:Strings.Timeline_AddVideoTrack}"/>
-              </StackPanel>
+            <!-- D068 item 3: adding content and the panels keep their labels; the frequent edits are icons with the name and the key in
+                 the tooltip (as in CapCut and Insta360 Studio); Close gap, Paste, Link / Unlink live in the clip's context menu. -->
+            <Button Classes="icon" Command="{Binding AddVideoTrackCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_AddVideoTrackTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_AddVideoTrack}">
+              <controls:IconPath Glyph="{x:Static controls:Icons.VideoTrack}"/>
             </Button>
-            <Button Command="{Binding AddAudioTrackCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_AddAudioTrackTip}" FontSize="11">
-              <StackPanel Orientation="Horizontal" Spacing="4">
-                <controls:IconPath Glyph="{x:Static controls:Icons.AudioTrack}" Width="12" Height="12"/>
-                <TextBlock Text="{x:Static l:Strings.Timeline_AddAudioTrack}"/>
-              </StackPanel>
+            <Button Classes="icon" Command="{Binding AddAudioTrackCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_AddAudioTrackTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_AddAudioTrack}">
+              <controls:IconPath Glyph="{x:Static controls:Icons.AudioTrack}"/>
             </Button>
-            <Button Command="{Binding AddTextCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_AddTextTip}" FontSize="11">
+            <Button Command="{Binding AddTextCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_AddTextTip}" FontSize="{DynamicResource FontSizeCaption}">
               <StackPanel Orientation="Horizontal" Spacing="4">
                 <controls:IconPath Glyph="{x:Static controls:Icons.Text}" Width="12" Height="12"/>
                 <TextBlock Text="{x:Static l:Strings.Timeline_AddText}"/>
               </StackPanel>
             </Button>
-            <!-- D045 §5: «Шаблон» — the menu of the four templates; each is added at the playhead on the top video track. -->
-            <Button x:Name="TemplateButton" Flyout="{StaticResource TemplateMenu}" ToolTip.Tip="{x:Static l:Strings.Timeline_TemplateTip}" FontSize="11">
+            <!-- D045 §5: «Шаблон» — the menu of the templates; each is added at the playhead on the top video track. -->
+            <Button x:Name="TemplateButton" Flyout="{StaticResource TemplateMenu}" ToolTip.Tip="{x:Static l:Strings.Timeline_TemplateTip}" FontSize="{DynamicResource FontSizeCaption}">
               <StackPanel Orientation="Horizontal" Spacing="4">
                 <controls:IconPath Glyph="{x:Static controls:Icons.Template}" Width="12" Height="12"/>
                 <TextBlock Text="{x:Static l:Strings.Timeline_Template}"/>
               </StackPanel>
             </Button>
-            <Rectangle Width="1" Fill="#444444" Margin="4,2"/>
+            <Rectangle Width="1" Fill="{DynamicResource ControlBorderBrush}" Margin="4,2"/>
             <!-- D063 §1: the keyframe of the selected clip at the playhead (its transform, or on a followed part its framing). -->
-            <Button x:Name="KeyframeButton" Command="{Binding ToggleKeyframeCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_KeyframeTip}" FontSize="11">
+            <Button x:Name="KeyframeButton" Command="{Binding ToggleKeyframeCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_KeyframeTip}" FontSize="{DynamicResource FontSizeCaption}">
               <StackPanel Orientation="Horizontal" Spacing="4">
                 <controls:IconPath Glyph="{x:Static controls:Icons.Keyframe}" Width="12" Height="12"/>
                 <TextBlock Text="{x:Static l:Strings.Timeline_Keyframe}"/>
               </StackPanel>
             </Button>
             <!-- D064: the mixer — the master, every track's volume, M and S, the comparison with the original sound. -->
-            <Button ToolTip.Tip="{x:Static l:Strings.Timeline_MixerTip}" FontSize="11" Flyout="{StaticResource MixerFlyout}">
+            <Button Flyout="{StaticResource MixerFlyout}" ToolTip.Tip="{x:Static l:Strings.Timeline_MixerTip}" FontSize="{DynamicResource FontSizeCaption}">
               <StackPanel Orientation="Horizontal" Spacing="4">
                 <controls:IconPath Glyph="{x:Static controls:Icons.Mixer}" Width="12" Height="12"/>
                 <TextBlock Text="{x:Static l:Strings.Timeline_Mixer}"/>
               </StackPanel>
             </Button>
-            <Button Command="{Binding SplitAtPlayheadCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_SplitTip}" FontSize="11">
-              <StackPanel Orientation="Horizontal" Spacing="4">
-                <controls:IconPath Glyph="{x:Static controls:Icons.Split}" Width="12" Height="12"/>
-                <TextBlock Text="{x:Static l:Strings.Timeline_Split}"/>
-              </StackPanel>
+            <Rectangle Width="1" Fill="{DynamicResource ControlBorderBrush}" Margin="4,2"/>
+            <Button Classes="icon" Command="{Binding SplitAtPlayheadCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_SplitTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_Split}">
+              <controls:IconPath Glyph="{x:Static controls:Icons.Split}"/>
             </Button>
-            <Button Command="{Binding DeleteSelectedCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_DeleteTip}" FontSize="11">
-              <StackPanel Orientation="Horizontal" Spacing="4">
-                <controls:IconPath Glyph="{x:Static controls:Icons.Delete}" Width="12" Height="12"/>
-                <TextBlock Text="{x:Static l:Strings.Timeline_Delete}"/>
-              </StackPanel>
+            <Button Classes="icon" Command="{Binding DeleteSelectedCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_DeleteTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_Delete}">
+              <controls:IconPath Glyph="{x:Static controls:Icons.Delete}"/>
             </Button>
-            <Button Command="{Binding RippleDeleteCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_RippleDeleteTip}" FontSize="11">
-              <StackPanel Orientation="Horizontal" Spacing="4">
-                <controls:IconPath Glyph="{x:Static controls:Icons.RippleDelete}" Width="12" Height="12"/>
-                <TextBlock Text="{x:Static l:Strings.Timeline_RippleDelete}"/>
-              </StackPanel>
+            <Button Classes="icon" Command="{Binding RippleDeleteCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_RippleDeleteTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_RippleDelete}">
+              <controls:IconPath Glyph="{x:Static controls:Icons.RippleDelete}"/>
             </Button>
-            <Button Command="{Binding CloseGapCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_CloseGapTip}" FontSize="11">
-              <StackPanel Orientation="Horizontal" Spacing="4">
-                <controls:IconPath Glyph="{x:Static controls:Icons.CloseGap}" Width="12" Height="12"/>
-                <TextBlock Text="{x:Static l:Strings.Timeline_CloseGap}"/>
-              </StackPanel>
-            </Button>
-            <Button Command="{Binding PasteCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_PasteTip}" FontSize="11">
-              <StackPanel Orientation="Horizontal" Spacing="4">
-                <controls:IconPath Glyph="{x:Static controls:Icons.Paste}" Width="12" Height="12"/>
-                <TextBlock Text="{x:Static l:Strings.Timeline_Paste}"/>
-              </StackPanel>
-            </Button>
-            <Button Command="{Binding DuplicateCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_DuplicateTip}" FontSize="11">
-              <StackPanel Orientation="Horizontal" Spacing="4">
-                <controls:IconPath Glyph="{x:Static controls:Icons.Duplicate}" Width="12" Height="12"/>
-                <TextBlock Text="{x:Static l:Strings.Timeline_Duplicate}"/>
-              </StackPanel>
+            <Button Classes="icon" Command="{Binding DuplicateCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_DuplicateTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_Duplicate}">
+              <controls:IconPath Glyph="{x:Static controls:Icons.Duplicate}"/>
             </Button>
             <!-- D044 §6: "Transition" — on a video track the menu of the library's five types, on an audio track the
                  crossfade at once (the view model raises TransitionMenuRequested for the menu). -->
-            <Button x:Name="TransitionButton" Command="{Binding OpenTransitionMenuCommand}" FlyoutBase.AttachedFlyout="{StaticResource TransitionMenu}" ToolTip.Tip="{x:Static l:Strings.Timeline_TransitionTip}" FontSize="11">
-              <StackPanel Orientation="Horizontal" Spacing="4">
-                <controls:IconPath Glyph="{x:Static controls:Icons.Dissolve}" Width="12" Height="12"/>
-                <TextBlock Text="{x:Static l:Strings.Timeline_Transition}"/>
-              </StackPanel>
+            <Button x:Name="TransitionButton" Classes="icon" Command="{Binding OpenTransitionMenuCommand}" FlyoutBase.AttachedFlyout="{StaticResource TransitionMenu}" ToolTip.Tip="{x:Static l:Strings.Timeline_TransitionTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_Transition}">
+              <controls:IconPath Glyph="{x:Static controls:Icons.Dissolve}"/>
             </Button>
-            <Button Command="{Binding UnlinkCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_UnlinkTip}" FontSize="11">
-              <StackPanel Orientation="Horizontal" Spacing="4">
-                <controls:IconPath Glyph="{x:Static controls:Icons.Unlink}" Width="12" Height="12"/>
-                <TextBlock Text="{Binding UnlinkLabel}"/>
-              </StackPanel>
-            </Button>
-            <Button Command="{Binding LinkCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_LinkTip}" FontSize="11">
-              <StackPanel Orientation="Horizontal" Spacing="4">
-                <controls:IconPath Glyph="{x:Static controls:Icons.Link}" Width="12" Height="12"/>
-                <TextBlock Text="{x:Static l:Strings.Timeline_Link}"/>
-              </StackPanel>
-            </Button>
-            <ToggleButton IsChecked="{Binding SnappingEnabled}" ToolTip.Tip="{x:Static l:Strings.Timeline_SnapTip}" FontSize="11">
-              <StackPanel Orientation="Horizontal" Spacing="4">
-                <controls:IconPath Glyph="{x:Static controls:Icons.Snap}" Width="12" Height="12"/>
-                <TextBlock Text="{x:Static l:Strings.Timeline_Snap}"/>
-              </StackPanel>
+            <ToggleButton Classes="icon" IsChecked="{Binding SnappingEnabled}" ToolTip.Tip="{x:Static l:Strings.Timeline_SnapTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_Snap}">
+              <controls:IconPath Glyph="{x:Static controls:Icons.Snap}"/>
             </ToggleButton>
             <!-- D048 variant B is the default (segments inside the «Боулдер»); this Debug-only switch turns back to the lane. -->
-            <ToggleButton IsChecked="{Binding SegmentsInTemplate}" IsVisible="{Binding IsDebugBuild}" FontSize="11"
-                          ToolTip.Tip="{x:Static l:Strings.Timeline_SegmentsInTemplateTip}">
-              <StackPanel Orientation="Horizontal" Spacing="4">
-                <controls:IconPath Glyph="{x:Static controls:Icons.Eye}" Width="12" Height="12"/>
-                <TextBlock Text="{x:Static l:Strings.Timeline_SegmentsInTemplate}"/>
-              </StackPanel>
+            <ToggleButton Classes="icon" IsChecked="{Binding SegmentsInTemplate}" IsVisible="{Binding IsDebugBuild}"
+                          ToolTip.Tip="{x:Static l:Strings.Timeline_SegmentsInTemplateTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_SegmentsInTemplate}">
+              <controls:IconPath Glyph="{x:Static controls:Icons.Eye}"/>
             </ToggleButton>
-            <Rectangle Width="1" Fill="#444444" Margin="4,2"/>
-            <Button Content="−" Command="{Binding ZoomOutCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_ZoomOutTip}" FontSize="11"/>
-            <Button Content="+" Command="{Binding ZoomInCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_ZoomInTip}" FontSize="11"/>
-            <Button Command="{Binding ZoomToFitCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_FitTip}" FontSize="11">
-              <StackPanel Orientation="Horizontal" Spacing="4">
-                <controls:IconPath Glyph="{x:Static controls:Icons.Fit}" Width="12" Height="12"/>
-                <TextBlock Text="{x:Static l:Strings.Timeline_Fit}"/>
-              </StackPanel>
+            <Rectangle Width="1" Fill="{DynamicResource ControlBorderBrush}" Margin="4,2"/>
+            <Button Classes="icon" Content="−" Command="{Binding ZoomOutCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_ZoomOutTip}"/>
+            <Button Classes="icon" Content="+" Command="{Binding ZoomInCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_ZoomInTip}"/>
+            <Button Classes="icon" Command="{Binding ZoomToFitCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_FitTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_Fit}">
+              <controls:IconPath Glyph="{x:Static controls:Icons.Fit}"/>
             </Button>
           </WrapPanel>
         </DockPanel>
@@ -291,14 +248,14 @@
       <Grid ColumnDefinitions="84,*">
 
         <!-- Track headers: scroll vertically in sync with the tracks (see code-behind). -->
-        <ScrollViewer x:Name="HeaderScroll" Grid.Column="0" Background="#252526"
+        <ScrollViewer x:Name="HeaderScroll" Grid.Column="0" Background="{DynamicResource Surface1Brush}"
                       VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
           <StackPanel>
             <!-- Markers (D027 §6): in the corner left of the ruler, at its height -->
             <StackPanel Height="24" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="1">
               <StackPanel.Styles>
                 <Style Selector="Button">
-                  <Setter Property="FontSize" Value="9"/>
+                  <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}"/>
                   <Setter Property="Padding" Value="1,0"/>
                   <Setter Property="MinHeight" Value="0"/>
                   <Setter Property="Height" Value="18"/>
@@ -313,7 +270,7 @@
             <ItemsControl ItemsSource="{Binding Tracks}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                  <Border Height="44" BorderBrush="#1A1A1A" BorderThickness="0,0,1,1">
+                  <Border Height="44" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,1,1">
                     <StackPanel VerticalAlignment="Center" Spacing="2">
                       <!-- The name and the state toggles (D030 §4): video M / 👁 / 🔒, audio M / 🔒 (no hide: no picture) -->
                       <DockPanel Margin="4,0" LastChildFill="True">
@@ -336,13 +293,13 @@
                             <controls:IconPath Glyph="{x:Static controls:Icons.Lock}" Width="10" Height="10" StrokeThickness="1.3"/>
                           </Button>
                         </StackPanel>
-                        <TextBlock Text="{Binding Label}" Foreground="#AAAAAA" FontSize="11" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Label}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{DynamicResource FontSizeCaption}" VerticalAlignment="Center"/>
                       </DockPanel>
                       <!-- D027 §3: move among the tracks of its kind, delete (the edit service decides; locks, last track) -->
                       <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="2">
                         <StackPanel.Styles>
                           <Style Selector="Button">
-                            <Setter Property="FontSize" Value="9"/>
+                            <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}"/>
                             <Setter Property="Padding" Value="4,0"/>
                             <Setter Property="MinHeight" Value="0"/>
                             <Setter Property="Height" Value="16"/>
@@ -378,7 +335,7 @@
                 HorizontalAlignment="Left" VerticalAlignment="Top">
 
             <!-- Time ruler: click / drag to move the playhead -->
-            <Panel x:Name="Ruler" Grid.Row="0" Background="#232323" Cursor="Hand">
+            <Panel x:Name="Ruler" Grid.Row="0" Background="{DynamicResource Surface1Brush}" Cursor="Hand">
               <ItemsControl Classes="canvasItems" ItemsSource="{Binding RulerTicks}" IsHitTestVisible="False">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
@@ -389,7 +346,7 @@
                   <DataTemplate>
                     <Panel>
                       <Rectangle Width="1" Height="6" Fill="#5A5A5A" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="0,18,0,0"/>
-                      <TextBlock Text="{Binding Label}" Foreground="#7A7A7A" FontSize="10" Margin="3,4,0,0"/>
+                      <TextBlock Text="{Binding Label}" Foreground="{DynamicResource TextMutedBrush}" FontSize="{DynamicResource FontSizeCaption}" Margin="3,4,0,0"/>
                     </Panel>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
@@ -409,7 +366,7 @@
                       <!-- D058 §4: the label beside the flag, short and trimmed so the ruler stays readable -->
                       <Border Canvas.Left="7" Canvas.Top="10" Background="#E0232323" CornerRadius="2" Padding="2,0"
                               IsVisible="{Binding HasLabel}" MaxWidth="140">
-                        <TextBlock Text="{Binding Label}" Foreground="{Binding Color}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding Label}" Foreground="{Binding Color}" FontSize="{DynamicResource FontSizeCaption}" TextTrimming="CharacterEllipsis"/>
                       </Border>
                     </Canvas>
                   </DataTemplate>
@@ -418,19 +375,19 @@
               <!-- D058 §4: a marker's label edited in place (double click on its flag); Enter sets it, Esc keeps it -->
               <Canvas IsVisible="{Binding IsEditingMarkerLabel}">
                 <TextBox x:Name="MarkerLabelBox" Canvas.Left="{Binding MarkerLabelLeft}" Canvas.Top="0" Width="180" Height="22"
-                         MinHeight="0" Padding="4,1" FontSize="11" Text="{Binding MarkerLabelText, Mode=TwoWay}"
+                         MinHeight="0" Padding="4,1" FontSize="{DynamicResource FontSizeCaption}" Text="{Binding MarkerLabelText, Mode=TwoWay}"
                          MaxLength="{Binding MaxMarkerLabelLength}" Watermark="{x:Static l:Strings.Timeline_MarkerLabelWatermark}"/>
               </Canvas>
             </Panel>
 
             <!-- Track lanes with clips -->
             <ItemsControl x:Name="TrackRows" Grid.Row="1" ItemsSource="{Binding Tracks}"
-                          DragDrop.AllowDrop="True" Background="#1C1C1C">
+                          DragDrop.AllowDrop="True" Background="{DynamicResource Surface1Brush}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
                   <Border Classes="trackRow" Classes.dropTarget="{Binding IsDropTarget}"
                           Classes.locked="{Binding IsLocked}" Classes.hidden="{Binding IsHidden}"
-                          Height="44" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1">
+                          Height="44" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,0,1">
                     <Panel>
                     <ItemsControl Classes="canvasItems" ItemsSource="{Binding Clips}">
                       <ItemsControl.ItemsPanel>
@@ -491,24 +448,24 @@
                                         Background="{Binding StatusMarkColorHex}"/>
                               </Canvas>
                               <TextBlock Grid.Column="1" Classes="clipLabel" Classes.onSegments="{Binding HasTemplateSegments}" Text="{Binding Label}"
-                                         Foreground="#EEEEEE" FontSize="10" Margin="2,0" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                         Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{DynamicResource FontSizeCaption}" Margin="2,0" VerticalAlignment="Center" HorizontalAlignment="Left"
                                          TextTrimming="CharacterEllipsis" IsHitTestVisible="False"/>
                               <!-- D066: the clip's sound is cleaned up (D064 §5) -->
                               <Border Grid.ColumnSpan="3" IsVisible="{Binding HasCleanup}" IsHitTestVisible="False" Background="#B0263238"
                                       CornerRadius="2" Padding="3,0" Margin="0,2,4,0" HorizontalAlignment="Right" VerticalAlignment="Top">
-                                <TextBlock Text="{x:Static l:Strings.Timeline_CleanupBadge}" Foreground="#80DEEA" FontSize="9"/>
+                                <TextBlock Text="{x:Static l:Strings.Timeline_CleanupBadge}" Foreground="{DynamicResource AccentTextBrush}" FontSize="{DynamicResource FontSizeCaption}"/>
                               </Border>
                               <!-- D030 §7 (Q12): while the clip is slipped, its planned Source In / Out over the clip -->
                               <Border Grid.ColumnSpan="3" IsVisible="{Binding IsSlipping}" IsHitTestVisible="False"
                                       Background="#D0141414" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
-                                <TextBlock Text="{Binding SlipText}" Foreground="#FFD54F" FontSize="10" Margin="4,0"
+                                <TextBlock Text="{Binding SlipText}" Foreground="{DynamicResource WarningTextBrush}" FontSize="{DynamicResource FontSizeCaption}" Margin="4,0"
                                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                               </Border>
                               <!-- D048 §4.2: while a strip handle is dragged, the planned interval (and a refusal) in a compact label
                                    at the clip's bottom — the segments, the name and the status mark stay visible. -->
                               <Border Grid.ColumnSpan="3" IsVisible="{Binding IsStripDragging}" IsHitTestVisible="False" Classes.invalid="{Binding IsStripInvalid}"
                                       Background="#D0141414" VerticalAlignment="Bottom" HorizontalAlignment="Left" CornerRadius="2" Padding="0,1">
-                                <TextBlock Text="{Binding StripText}" Foreground="#FFD54F" FontSize="10" Margin="4,0"
+                                <TextBlock Text="{Binding StripText}" Foreground="{DynamicResource WarningTextBrush}" FontSize="{DynamicResource FontSizeCaption}" Margin="4,0"
                                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                               </Border>
                               <Border Grid.Column="0" Classes="trimHandle" Tag="TrimStart"/>
@@ -545,7 +502,7 @@
               <DataTemplate>
                 <Canvas Width="0" Height="44">
                   <Border Tag="Keyframe" Canvas.Left="-5" Canvas.Top="{Binding Top}" Width="10" Height="10" Background="{Binding Fill}"
-                          BorderBrush="#1A1A1A" BorderThickness="1" Cursor="SizeWestEast" ToolTip.Tip="{Binding Tip}"
+                          BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1" Cursor="SizeWestEast" ToolTip.Tip="{Binding Tip}"
                           RenderTransform="rotate(45deg)"/>
                 </Canvas>
               </DataTemplate>
@@ -631,7 +588,7 @@
                             <Border Classes="dissolve" Classes.selected="{Binding IsSelected}" CornerRadius="2" IsHitTestVisible="False"/>
                             <Border x:Name="TransitionMark" Tag="TransitionMark" Width="14" Height="14" Background="#01000000" Cursor="Hand"
                                     HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip.Tip="{Binding TypeName}">
-                              <TextBlock Text="{Binding Glyph}" Foreground="#FFFFFF" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
+                              <TextBlock Text="{Binding Glyph}" Foreground="#FFFFFF" FontSize="{DynamicResource FontSizeCaption}" HorizontalAlignment="Center" VerticalAlignment="Center"
                                          IsHitTestVisible="False"/>
                             </Border>
                           </Panel>
@@ -661,7 +618,7 @@
               <Border Canvas.Left="{Binding RangeLeft}" Width="{Binding RangeWidth}" Height="7" Canvas.Top="17"
                       Background="#B0F2C94C" IsVisible="{Binding HasRange}" IsHitTestVisible="False"/>
               <Button Content="✕" Canvas.Left="{Binding RangeRight}" Canvas.Top="1" Margin="2,0,0,0"
-                      FontSize="9" Padding="3,0" MinHeight="0" Height="15" IsVisible="{Binding CanClearRange}"
+                      FontSize="{DynamicResource FontSizeCaption}" Padding="3,0" MinHeight="0" Height="15" IsVisible="{Binding CanClearRange}"
                       ToolTip.Tip="{x:Static l:Strings.Timeline_ClearInOutTip}" Command="{Binding ClearInOutCommand}"/>
             </Canvas>
 
@@ -684,9 +641,9 @@
         <!-- Empty timeline (D024 Step 9.8): how to add a clip. Not hit-testable, so drops reach the tracks. -->
         <StackPanel Grid.Column="1" IsVisible="{Binding IsEmpty}" IsHitTestVisible="False" Spacing="4" Margin="16,0,16,28"
                     HorizontalAlignment="Center" VerticalAlignment="Bottom">
-          <TextBlock Text="{x:Static l:Strings.Timeline_Empty}" Foreground="#AAAAAA" FontSize="13" HorizontalAlignment="Center"/>
+          <TextBlock Text="{x:Static l:Strings.Timeline_Empty}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{DynamicResource FontSizeBody}" HorizontalAlignment="Center"/>
           <TextBlock Text="{x:Static l:Strings.Timeline_EmptyHint}"
-                     Foreground="#7A7A7A" FontSize="11" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
+                     Foreground="{DynamicResource TextMutedBrush}" FontSize="{DynamicResource FontSizeCaption}" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
         </StackPanel>
 
       </Grid>

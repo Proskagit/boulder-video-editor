@@ -846,12 +846,12 @@ public sealed partial class TimelineViewModel : ViewModelBase
         var selectVideo = typeId == TransitionRules.CrossDissolve ? Strings.Dissolve_SelectVideo : Strings.Transition_SelectVideo;
         if (left is AudioClip && typeId != TransitionRules.Crossfade)
         {
-            _status.Report(selectVideo);
+            _status.ReportWarning(selectVideo);
             return;
         }
         if (_edit.MaxTransitionFrames(left.Id, right.Id, typeId) is null)   // the clips don't meet on one track
         {
-            _status.Report(left is AudioClip ? Strings.Dissolve_SelectAudio : selectVideo);
+            _status.ReportWarning(left is AudioClip ? Strings.Dissolve_SelectAudio : selectVideo);
             return;
         }
 
@@ -963,7 +963,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         if (_edit.CopyClips(_selection.ToList()) is not { } copied)
         {
-            _status.Report(Strings.Copy_NothingCopied);
+            _status.ReportWarning(Strings.Copy_NothingCopied);
             return;
         }
         Clipboard = copied;
@@ -1012,7 +1012,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         if (marker is not { } at)
         {
-            _status.Report(refusal);
+            _status.ReportWarning(refusal);
             return;
         }
         SetPlayhead(at);
@@ -1095,7 +1095,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         var clipCount = track.Track.Clips.Count;
         if (_edit.GetDeleteTrackBlockReason(track.Track.Id) is { } blocked)
         {
-            _status.Report(blocked);
+            _status.ReportWarning(blocked);
             return;
         }
         if (clipCount > 0)
@@ -1233,7 +1233,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         if (reason == _lastDragRefusal) return;
         _lastDragRefusal = reason;
-        if (reason is not null) _status.Report(reason);
+        if (reason is not null) _status.ReportWarning(reason);
     }
 
     /// <summary>Where a drop at <paramref name="contentX"/> puts the new clip (D037 §2): with Snap on, onto a track with no
@@ -1316,7 +1316,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void Report(TimelineEditResult result, string? successMessage = null)
     {
         if (!result.Success)
-            _status.Report(result.Message ?? Strings.Timeline_EditNotPossible);
+            _status.ReportWarning(result.Message ?? Strings.Timeline_EditNotPossible);
         else if (result.Message is not null)
             _status.Report(result.Message);
         else if (successMessage is not null && !result.NoChange)
@@ -1583,7 +1583,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         SelectOnly(clip.Id);
         if (clip.Clip is not (VideoClip or AudioClip))
         {
-            _status.Report(Strings.Slip_OnlyMedia);
+            _status.ReportWarning(Strings.Slip_OnlyMedia);
             return false;
         }
         _gesture = new Gesture

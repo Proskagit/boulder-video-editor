@@ -314,7 +314,7 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
         var asset = item.Asset;
         if (_edit.GetRemoveMediaBlockReason(asset.Id) is { } blocked)
         {
-            _status?.Report(blocked);
+            _status?.ReportWarning(blocked);
             return;
         }
 
@@ -338,7 +338,7 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
         var result = _edit.RemoveMedia(asset.Id);
         if (!result.Success)
         {
-            _status?.Report(result.Message ?? Strings.Media_NotRemoved);
+            _status?.ReportWarning(result.Message ?? Strings.Media_NotRemoved);
             return;
         }
         var removed = clipCount == 0

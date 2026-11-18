@@ -50,7 +50,7 @@ public sealed class ProjectSettingsWorkflow
     {
         if (_editingLock.IsLocked)
         {
-            _status.Report(ProjectSettingsViewModel.LockedMessage);
+            _status.ReportWarning(ProjectSettingsViewModel.LockedMessage);
             return;
         }
         if (IsOpen) return;

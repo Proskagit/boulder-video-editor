@@ -152,7 +152,7 @@ public sealed partial class InspectorViewModel
         if (_syncing || value is not { } frames || _clip is not VideoClip) return;
         if (frames < 0 || frames != decimal.Truncate(frames))
         {
-            _status.Report(Strings.Inspector_FadeWholeFrames);
+            _status.ReportWarning(Strings.Inspector_FadeWholeFrames);
             ShowModelAfterRejection();
             return;
         }

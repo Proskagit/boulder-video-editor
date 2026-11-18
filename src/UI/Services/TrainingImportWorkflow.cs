@@ -136,12 +136,12 @@ public sealed class TrainingImportWorkflow
         catch (TrainingFileException ex)
         {
             _logger.LogWarning(ex, "Training: '{Path}' refused ({Error}).", path, ex.Error);
-            _status.Report(string.Format(Strings.Training_Refused, TrainingText.Error(ex.Error)));
+            _status.ReportError(string.Format(Strings.Training_Refused, TrainingText.Error(ex.Error)));
             return null;
         }
         catch
         {
-            _status.Report(Strings.Training_DidntFinish);
+            _status.ReportError(Strings.Training_DidntFinish);
             throw;
         }
         return ProjectChanged(project) ? null : (file, path);

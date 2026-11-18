@@ -9,12 +9,12 @@
 
   <!-- D068 §3: the in-app help — the topics on the left with a search box, the chosen topic on the right. -->
   <DockPanel>
-    <Border DockPanel.Dock="Left" Width="230" BorderBrush="#1A1A1A" BorderThickness="0,0,1,0">
+    <Border DockPanel.Dock="Left" Width="230" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,1,0">
       <DockPanel>
         <TextBox x:Name="SearchBox" DockPanel.Dock="Top" Margin="10,12,10,8"
                  Text="{Binding SearchText, Mode=TwoWay}" Watermark="{x:Static l:Strings.Help_SearchWatermark}"/>
         <TextBlock DockPanel.Dock="Top" Text="{x:Static l:Strings.Help_NothingFound}" IsVisible="{Binding NothingFound}"
-                   Foreground="#AAAAAA" FontSize="12" TextWrapping="Wrap" Margin="12,4"/>
+                   Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{DynamicResource FontSizeCaption}" TextWrapping="Wrap" Margin="12,4"/>
         <ListBox x:Name="TopicList" ItemsSource="{Binding Topics}" SelectedItem="{Binding SelectedTopic, Mode=TwoWay}"
                  Background="Transparent">
           <ListBox.ItemTemplate>
@@ -28,18 +28,18 @@
 
     <ScrollViewer x:Name="TopicScroll">
       <StackPanel Margin="24,16,24,24" Spacing="8" MaxWidth="760" HorizontalAlignment="Left">
-        <TextBlock Text="{Binding SelectedTopic.Title, FallbackValue={x:Null}}" FontSize="20" FontWeight="SemiBold"
+        <TextBlock Text="{Binding SelectedTopic.Title, FallbackValue={x:Null}}" FontSize="{DynamicResource FontSizeTitle}" FontWeight="SemiBold"
                    TextWrapping="Wrap" Margin="0,0,0,4"/>
         <ItemsControl ItemsSource="{Binding SelectedTopic.Blocks, FallbackValue={x:Null}}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="help:HelpBlock">
               <Panel>
                 <controls:HelpTextBlock Spans="{Binding Spans}" IsVisible="{Binding IsHeading}"
-                                        FontSize="15" FontWeight="SemiBold" Foreground="#81C784" Margin="0,12,0,2" TextWrapping="Wrap"/>
+                                        FontSize="{DynamicResource FontSizeHeading}" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextBrush}" Margin="0,12,0,2" TextWrapping="Wrap"/>
                 <controls:HelpTextBlock Spans="{Binding Spans}" IsVisible="{Binding IsParagraph}"
                                         LineHeight="20" Margin="0,4" TextWrapping="Wrap"/>
                 <Grid ColumnDefinitions="18,*" IsVisible="{Binding IsBullet}" Margin="4,2">
-                  <TextBlock Text="•" Foreground="#66BB6A"/>
+                  <TextBlock Text="•" Foreground="{DynamicResource AccentTextBrush}"/>
                   <controls:HelpTextBlock Grid.Column="1" Spans="{Binding Spans}" LineHeight="20" TextWrapping="Wrap"/>
                 </Grid>
               </Panel>

@@ -46,4 +46,8 @@ public static class Icons
     public const string Link = "M6.5,9.5 L9.5,6.5 M7,4.5 L8.5,3 A3.2,3.2 0 0 1 13,7.5 L11.5,9 M9,11.5 L7.5,13 A3.2,3.2 0 0 1 3,8.5 L4.5,7";
     public const string Unlink = "M7,4.5 L8.5,3 A3.2,3.2 0 0 1 13,7.5 L11.5,9 M9,11.5 L7.5,13 A3.2,3.2 0 0 1 3,8.5 L4.5,7 M1.5,1.5 L3.5,3.5 M12.5,12.5 L14.5,14.5";
     public const string Fit = "M1.5,3 V13 M14.5,3 V13 M4,8 H12 M5.5,6.5 L4,8 L5.5,9.5 M10.5,6.5 L12,8 L10.5,9.5";
+
+    // D068 item 4: the status bar's message kinds.
+    public const string Warning = "M8,1.8 L14.6,13.6 H1.4 Z M8,6 V9.4 M8,11.6 V11.7";
+    public const string Error = "M8,1.5 A6.5,6.5 0 1 1 7.99,1.5 Z M5.6,5.6 L10.4,10.4 M10.4,5.6 L5.6,10.4";
 }

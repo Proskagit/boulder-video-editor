@@ -226,7 +226,7 @@ public sealed partial class InspectorViewModel
         var frame = exact.ToFrameFloor(_rate);
         if (!TrainingAlignment.Covers(clip, frame, _rate))
         {
-            _status.Report(Strings.Inspector_AlignPlayheadOutside);
+            _status.ReportWarning(Strings.Inspector_AlignPlayheadOutside);
             return;
         }
         var chosen = SelectedClimbIndex;
@@ -250,7 +250,8 @@ public sealed partial class InspectorViewModel
         var zero = TrainingAlignment.ZeroForClimb(climb, anchor, training.ClockCorrection, FrameNavigation.SourceAt(clip, exact));
         var result = _edit.SetRecordingZeroOverride(_trainingAsset!.Id, zero);
         var done = anchor == ClimbAnchor.End ? Strings.Inspector_AlignedToClimbEnd : Strings.Inspector_AlignedToClimb;
-        _status.Report(result.Success ? string.Format(done, climb.ClimbNumber) : result.Message ?? "");
+        if (result.Success) _status.Report(string.Format(done, climb.ClimbNumber));
+        else _status.ReportWarning(result.Message ?? "");
     }
 
     private bool CanAlignToClimb() =>

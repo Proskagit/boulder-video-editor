@@ -257,7 +257,7 @@ public sealed partial class ToolbarViewModel : ViewModelBase, ITrainingClockCorr
     {
         if (_projectSettings is null)
         {
-            _status.Report(Strings.Toolbar_SettingsUnavailable);
+            _status.ReportError(Strings.Toolbar_SettingsUnavailable);
             return;
         }
         await _projectSettings.RunAsync();
@@ -271,7 +271,7 @@ public sealed partial class ToolbarViewModel : ViewModelBase, ITrainingClockCorr
     {
         if (_exportWorkflow is null)
         {
-            _status.Report(Strings.Toolbar_ExportUnavailable);
+            _status.ReportError(Strings.Toolbar_ExportUnavailable);
             return;
         }
         if (_exportWorkflow.IsExporting)

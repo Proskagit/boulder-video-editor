@@ -101,7 +101,7 @@ public sealed class MediaImportWorkflow
         }
         catch
         {
-            _status.Report(Strings.Import_DidntFinish);
+            _status.ReportError(Strings.Import_DidntFinish);
             throw;
         }
         if (ProjectChanged(project)) return;

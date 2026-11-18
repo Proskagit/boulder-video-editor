@@ -69,7 +69,7 @@ public sealed partial class HoldMarkupViewModel
         var height = metadata.DisplayHeight ?? metadata.Height;
         if (width is not > 0 || height is not > 0)
         {
-            _status.Report(Messages.RouteSelectionMediaUnavailable);
+            _status.ReportError(Messages.RouteSelectionMediaUnavailable);
             return;
         }
         _modeCts = new CancellationTokenSource();
@@ -107,7 +107,7 @@ public sealed partial class HoldMarkupViewModel
                 FailRoute(status.Message ?? Strings.Holds_ModelUnavailable);
                 return;
             }
-            if (_segmentation.Device == InferenceDevice.Cpu) _status.Report(CpuMessage);
+            if (_segmentation.Device == InferenceDevice.Cpu) _status.ReportWarning(CpuMessage);
 
             var preparation = await _routeSelection.PrepareAsync(clip, asset, _routeT.ToFrameFloor(rate), rate, click, cts.Token);
             if (_modeCts != cts) return;
@@ -151,7 +151,7 @@ public sealed partial class HoldMarkupViewModel
             IsPreparing = false;
             PrepareProgress = 1;
             RefreshRoute();
-            if (prepared.Frames.CleanAtFileStart) _status.Report(Strings.Holds_RouteCleanAtFileStart);
+            if (prepared.Frames.CleanAtFileStart) _status.ReportWarning(Strings.Holds_RouteCleanAtFileStart);
             if (_proposalSource.Count == 0) _status.Report(Messages.RouteSelectionNothingNew);
             ModeText = Strings.Holds_RouteReview;
         }
@@ -238,12 +238,12 @@ public sealed partial class HoldMarkupViewModel
         var room = Math.Max(0, HoldMarkupRules.MaxHolds - existing.Count);
         if (accepted.Count > room)
         {
-            _status.Report(string.Format(Messages.Holds_MaxHolds, HoldMarkupRules.MaxHolds));
+            _status.ReportWarning(string.Format(Messages.Holds_MaxHolds, HoldMarkupRules.MaxHolds));
             return;
         }
         if (_lock.IsLocked)
         {
-            _status.Report(Strings.Holds_OutlineExportRunning);
+            _status.ReportWarning(Strings.Holds_OutlineExportRunning);
             return;
         }
 
@@ -257,7 +257,7 @@ public sealed partial class HoldMarkupViewModel
             var result = _edit.AddHolds(clip.Id, holds, RouteForEdit());
             if (!result.Success)
             {
-                _status.Report(result.Message ?? Strings.Holds_NotAdded);
+                _status.ReportWarning(result.Message ?? Strings.Holds_NotAdded);
                 return;
             }
             _status.Report(string.Format(Strings.Holds_AcceptedAll, holds.Count));
@@ -267,7 +267,7 @@ public sealed partial class HoldMarkupViewModel
         }
         catch (Exception ex)
         {
-            _status.Report(string.Format(Strings.Holds_AddFailed, ex.Message));
+            _status.ReportError(string.Format(Strings.Holds_AddFailed, ex.Message));
         }
         finally
         {

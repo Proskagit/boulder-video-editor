@@ -4,12 +4,12 @@
              xmlns:rendering="using:AiVideoEditor.UI.Rendering"
              x:Class="AiVideoEditor.UI.Views.Panels.MediaBrowserView">
 
-  <Border Background="#252526" BorderBrush="#1A1A1A" BorderThickness="0,0,1,0">
+  <Border Background="{DynamicResource Surface1Brush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,1,0">
     <DockPanel>
 
-      <Border DockPanel.Dock="Top" Padding="8" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1">
+      <Border DockPanel.Dock="Top" Padding="8" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,0,1">
         <DockPanel>
-          <TextBlock Text="{x:Static l:Strings.Media_Heading}" FontSize="11" FontWeight="Bold" Foreground="#9A9A9A"
+          <TextBlock Text="{x:Static l:Strings.Media_Heading}" FontSize="{DynamicResource FontSizeCaption}" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"
                      VerticalAlignment="Center" DockPanel.Dock="Left"/>
           <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
             <Button Content="{x:Static l:Strings.Media_AddToTimeline}" Command="{Binding AddToTimelineCommand}"
@@ -21,10 +21,10 @@
 
       <!-- Offline media (Phase 11 Step 11.6, D026 §5): shown only while some media is offline. The heading above the
            buttons, which wrap: with the Russian labels both no longer fit beside it in the 260 px panel (D039 §6). -->
-      <Border DockPanel.Dock="Top" Padding="8,4,8,6" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1"
+      <Border DockPanel.Dock="Top" Padding="8,4,8,6" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,0,1"
               IsVisible="{Binding HasOfflineMedia}">
         <StackPanel Spacing="4">
-          <TextBlock Text="{x:Static l:Strings.Media_Offline}" FontSize="10" FontWeight="Bold" Foreground="#C0864A"/>
+          <TextBlock Text="{x:Static l:Strings.Media_Offline}" FontSize="{DynamicResource FontSizeCaption}" FontWeight="Bold" Foreground="{DynamicResource WarningTextBrush}"/>
           <WrapPanel Orientation="Horizontal">
             <Button Content="{x:Static l:Strings.Media_Relink}" Command="{Binding RelinkCommand}" Margin="0,0,4,4"
                     ToolTip.Tip="{x:Static l:Strings.Media_RelinkTip}"/>
@@ -37,10 +37,10 @@
       <Panel>
         <!-- Empty state -->
         <StackPanel IsVisible="{Binding HasNoMedia}" Margin="16" Spacing="6" VerticalAlignment="Center">
-          <TextBlock Text="{x:Static l:Strings.Media_Empty}" Foreground="#AAAAAA" FontSize="13"
+          <TextBlock Text="{x:Static l:Strings.Media_Empty}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{DynamicResource FontSizeBody}"
                      HorizontalAlignment="Center" TextWrapping="Wrap"/>
           <TextBlock Text="{x:Static l:Strings.Media_EmptyHint}"
-                     Foreground="#6A6A6A" FontSize="11" TextWrapping="Wrap"
+                     Foreground="{DynamicResource TextMutedBrush}" FontSize="{DynamicResource FontSizeCaption}" TextWrapping="Wrap"
                      HorizontalAlignment="Center" TextAlignment="Center"/>
         </StackPanel>
 
@@ -68,7 +68,7 @@
             <DataTemplate>
               <DockPanel>
                 <!-- D027 §4: remove the selected media from the project (the view model asks when clips use it). -->
-                <Button DockPanel.Dock="Right" Content="✕" FontSize="10" Padding="5,1" VerticalAlignment="Center"
+                <Button DockPanel.Dock="Right" Content="✕" FontSize="{DynamicResource FontSizeCaption}" Padding="5,1" VerticalAlignment="Center"
                         IsVisible="{Binding $parent[ListBoxItem].IsSelected}"
                         Command="{Binding $parent[ListBox].DataContext.RemoveCommand}"
                         ToolTip.Tip="{x:Static l:Strings.Media_RemoveTip}"/>
@@ -81,13 +81,13 @@
                   </Border>
 
                   <StackPanel Spacing="2" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding FileName}" Foreground="#DDDDDD" FontSize="12"/>
+                    <TextBlock Text="{Binding FileName}" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{DynamicResource FontSizeCaption}"/>
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                      <TextBlock Text="{Binding KindLabel}" Foreground="#8A8A8A" FontSize="10"/>
-                      <TextBlock Text="{Binding FormatAndSizeDisplay}" Foreground="#8A8A8A" FontSize="10"/>
+                      <TextBlock Text="{Binding KindLabel}" Foreground="{DynamicResource TextMutedBrush}" FontSize="{DynamicResource FontSizeCaption}"/>
+                      <TextBlock Text="{Binding FormatAndSizeDisplay}" Foreground="{DynamicResource TextMutedBrush}" FontSize="{DynamicResource FontSizeCaption}"/>
                     </StackPanel>
                     <TextBlock IsVisible="{Binding HasTechnicalSummary}"
-                               Text="{Binding TechnicalSummary}" Foreground="#7A7A7A" FontSize="10"/>
+                               Text="{Binding TechnicalSummary}" Foreground="{DynamicResource TextMutedBrush}" FontSize="{DynamicResource FontSizeCaption}"/>
                   </StackPanel>
 
                 </StackPanel>

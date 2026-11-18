@@ -217,7 +217,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
         if (!_playback.IsAvailable && !_reportedUnavailable)
         {
             _reportedUnavailable = true;
-            _status.Report(Strings.Playback_NoFfmpeg);
+            _status.ReportError(Strings.Playback_NoFfmpeg);
         }
 
         if (IsPlaying && !_playback.IsAudioAvailable && !_reportedNoAudio)

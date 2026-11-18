@@ -1,0 +1,87 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- D068 §5 item 1: the design system (docs/UX_AUDIT_1.1.md §3) — the one place for the interface's colours, type sizes and
+       spacing. Views take them with DynamicResource (a view built without this theme, as in the tests, falls back to its
+       defaults instead of failing). Data colours (routes, outlines, waveforms, the timeline's clip kinds) are not here. -->
+  <Styles.Resources>
+    <!-- Surfaces: the window, the panels, raised parts (toolbars, section headers, inputs). -->
+    <Color x:Key="Surface0Color">#16191D</Color>
+    <Color x:Key="Surface1Color">#1E2328</Color>
+    <Color x:Key="Surface2Color">#262C33</Color>
+    <Color x:Key="Surface3Color">#303740</Color>
+    <SolidColorBrush x:Key="Surface0Brush" Color="{StaticResource Surface0Color}"/>
+    <SolidColorBrush x:Key="Surface1Brush" Color="{StaticResource Surface1Color}"/>
+    <SolidColorBrush x:Key="Surface2Brush" Color="{StaticResource Surface2Color}"/>
+    <SolidColorBrush x:Key="Surface3Brush" Color="{StaticResource Surface3Color}"/>
+
+    <!-- Lines: dividers between panels (darker than the surfaces) and control borders. -->
+    <SolidColorBrush x:Key="DividerBrush" Color="#0E1013"/>
+    <SolidColorBrush x:Key="ControlBorderBrush" Color="#46505A"/>
+
+    <!-- Text. -->
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#E6E8EA"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#A3ACB4"/>
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#7C858D"/>
+
+    <!-- The one accent (the icon's and the route's green): only the main action of a place; and its text tone. -->
+    <Color x:Key="AccentColor">#43A047</Color>
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#4CAF50"/>
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="#388E3C"/>
+    <SolidColorBrush x:Key="AccentTextBrush" Color="#81C784"/>
+    <SolidColorBrush x:Key="OnAccentBrush" Color="#FFFFFF"/>
+
+    <!-- Messages (item 4): information is neutral, a warning amber, an error red. -->
+    <SolidColorBrush x:Key="WarningBrush" Color="#F9A825"/>
+    <SolidColorBrush x:Key="WarningTextBrush" Color="#FFCA6B"/>
+    <SolidColorBrush x:Key="DangerBrush" Color="#E53935"/>
+    <SolidColorBrush x:Key="DangerTextBrush" Color="#F28B82"/>
+
+    <!-- Type: four sizes (caption, body, heading, title). -->
+    <x:Double x:Key="FontSizeCaption">12</x:Double>
+    <x:Double x:Key="FontSizeBody">13</x:Double>
+    <x:Double x:Key="FontSizeHeading">15</x:Double>
+    <x:Double x:Key="FontSizeTitle">20</x:Double>
+    <!-- Item 2: a switched-on toggle (Snapping, the timeline's modes) is a lit tool, not a filled accent button. -->
+    <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" Color="#303740"/>
+    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" Color="#38414B"/>
+    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" Color="#2A3139"/>
+    <SolidColorBrush x:Key="ToggleButtonForegroundChecked" Color="#81C784"/>
+    <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPointerOver" Color="#A5D6A7"/>
+    <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPressed" Color="#81C784"/>
+    <SolidColorBrush x:Key="ToggleButtonBorderBrushChecked" Color="#43A047"/>
+    <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPointerOver" Color="#4CAF50"/>
+    <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPressed" Color="#388E3C"/>
+
+    <!-- Fluent's control text size, brought to the body size. -->
+    <x:Double x:Key="ControlContentThemeFontSize">13</x:Double>
+  </Styles.Resources>
+
+  <!-- Every window has the same background and body size (dialogs were Fluent's near-black). -->
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{DynamicResource Surface0Brush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}"/>
+  </Style>
+
+  <!-- The main action of a place: Classes="accent". -->
+  <Style Selector="Button.accent">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+  </Style>
+  <Style Selector="Button.accent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}"/>
+  </Style>
+  <Style Selector="Button.accent:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentPressedBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}"/>
+  </Style>
+  <Style Selector="Button.accent:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface3Brush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
+  </Style>
+
+</Styles>

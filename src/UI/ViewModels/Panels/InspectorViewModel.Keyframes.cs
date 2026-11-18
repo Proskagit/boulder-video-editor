@@ -102,7 +102,7 @@ public sealed partial class InspectorViewModel
     {
         if (_clip is not VideoClip clip || RejectWhileLocked() || !PlayheadOnClip(clip)) return;
         var (result, added) = KeyframeEditor.Toggle(clip, KeyframeFrame(clip));
-        if (!result.Success) _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
+        if (!result.Success) _status.ReportWarning(result.Message ?? Strings.Inspector_ClipNotChanged);
         else _status.Report(added is not null ? Strings.Keyframe_Added : Strings.Keyframe_Removed);
     }
 
@@ -118,7 +118,7 @@ public sealed partial class InspectorViewModel
         var result = KeyframeEditor.SetEasing(clip, owner, key.Id, (KeyframeEasing)value);
         if (!result.Success)
         {
-            _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
+            _status.ReportWarning(result.Message ?? Strings.Inspector_ClipNotChanged);
             ShowModelAfterRejection();
         }
     }
@@ -139,7 +139,7 @@ public sealed partial class InspectorViewModel
         var result = KeyframeEditor.SetValue(clip, owner, frame, value);
         if (!result.Success)
         {
-            _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
+            _status.ReportWarning(result.Message ?? Strings.Inspector_ClipNotChanged);
             ShowModelAfterRejection();
         }
         return true;

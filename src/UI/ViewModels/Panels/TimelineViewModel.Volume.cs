@@ -191,7 +191,7 @@ public sealed partial class TimelineViewModel
             return false;
         if (TrackOf(vm) is { IsLocked: true })
         {
-            _status.Report(Strings.Volume_TrackLocked);
+            _status.ReportWarning(Strings.Volume_TrackLocked);
             return true;
         }
         if (hit.Kind == VolumeHitKind.Point)

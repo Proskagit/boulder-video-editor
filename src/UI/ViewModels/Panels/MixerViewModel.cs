@@ -270,7 +270,7 @@ public sealed partial class MixerViewModel : ViewModelBase
     private bool Locked(TrackMixViewModel? mix = null)
     {
         if (_canEdit()) return false;
-        _status.Report(Strings.Mixer_Locked);
+        _status.ReportWarning(Strings.Mixer_Locked);
         mix?.Sync();
         if (mix is null) { _syncing = true; try { MasterPercent = Math.Round(_projects.Current.Timeline.MasterVolume * 100, 1); } finally { _syncing = false; } }
         return true;
@@ -321,7 +321,7 @@ public sealed partial class MixerViewModel : ViewModelBase
     {
         if (!result.Success)
         {
-            _status.Report(result.Message ?? Strings.Timeline_EditNotPossible);
+            _status.ReportWarning(result.Message ?? Strings.Timeline_EditNotPossible);
             resync?.Sync();                       // the control shows the model again
         }
         else if (success is not null && !result.NoChange) _status.Report(success);

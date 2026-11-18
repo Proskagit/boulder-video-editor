@@ -120,7 +120,7 @@ public sealed class ProjectFileWorkflow
         catch (ProjectFileException ex)
         {
             _logger.LogWarning(ex, "Save failed.");
-            _status.Report(string.Format(Strings.Project_SaveFailed, _projectService.Current.Name, ex.Message));
+            _status.ReportError(string.Format(Strings.Project_SaveFailed, _projectService.Current.Name, ex.Message));
             return false;
         }
 
@@ -146,7 +146,7 @@ public sealed class ProjectFileWorkflow
         var folder = Path.TrimEndingDirectorySeparator(picked.Trim());
         if (File.Exists(folder))
         {
-            _status.Report(string.Format(Strings.Project_SaveFailed, current.Name, string.Format(Strings.Project_SaveAsFileExists, Path.GetFileName(folder))));
+            _status.ReportError(string.Format(Strings.Project_SaveFailed, current.Name, string.Format(Strings.Project_SaveAsFileExists, Path.GetFileName(folder))));
             return false;
         }
 
@@ -170,7 +170,7 @@ public sealed class ProjectFileWorkflow
         catch (ProjectFileException ex)
         {
             _logger.LogWarning(ex, "Save As to {Folder} failed.", folder);
-            _status.Report(string.Format(Strings.Project_SaveFailed, current.Name, ex.Message));
+            _status.ReportError(string.Format(Strings.Project_SaveFailed, current.Name, ex.Message));
             return false;
         }
 
@@ -247,7 +247,7 @@ public sealed class ProjectFileWorkflow
         catch (ProjectFileException ex)
         {
             _logger.LogWarning(ex, "Couldn't open project from {Folder}.", projectFolderPath);
-            _status.Report(string.Format(Strings.Project_OpenFailed, ex.Message));
+            _status.ReportError(string.Format(Strings.Project_OpenFailed, ex.Message));
             return false;
         }
         catch (OperationCanceledException)
@@ -302,7 +302,7 @@ public sealed class ProjectFileWorkflow
         catch (ProjectFileException ex)
         {
             _logger.LogWarning(ex, "Couldn't recover from {File}.", candidate.FilePath);
-            _status.Report(string.Format(Strings.Recovery_Failed, candidate.ProjectName, ex.Message) + suffix);
+            _status.ReportError(string.Format(Strings.Recovery_Failed, candidate.ProjectName, ex.Message) + suffix);
             return;
         }
 

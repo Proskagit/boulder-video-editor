@@ -174,7 +174,7 @@ public sealed partial class InspectorViewModel
     private void Apply(Core.Interfaces.TimelineEditResult result)
     {
         if (result.Success) return;
-        _status.Report(result.Message ?? "");
+        _status.ReportWarning(result.Message ?? "");
         ShowModelAfterRejection();
     }
 
@@ -198,7 +198,7 @@ public sealed partial class InspectorViewModel
         if (_clip is not VideoClip clip || RejectWhileLocked()) return;
         if (PlayheadSourceTime(clip) is not { } at)
         {
-            _status.Report(Strings.Follow_PlayheadOutside);
+            _status.ReportWarning(Strings.Follow_PlayheadOutside);
             return;
         }
         var from = at <= clip.SourceIn ? (MediaTime?)null : at;
@@ -208,7 +208,7 @@ public sealed partial class InspectorViewModel
             follow = FollowSettings.Of(new FollowPart(from), existing?.Smoothness ?? SmoothnessAt(FollowSmoothnessIndex));
         else if (existing.IndexAt(at) >= 0)
         {
-            _status.Report(Strings.Follow_AlreadyFollowedHere);
+            _status.ReportWarning(Strings.Follow_AlreadyFollowedHere);
             return;
         }
         else
@@ -248,7 +248,7 @@ public sealed partial class InspectorViewModel
         var at = PlayheadSourceTime(clip) ?? (Playhead is { } playhead && playhead() >= clip.TimelineEnd ? clip.SourceOut : (MediaTime?)null);
         if (at is not { } end || end - from < MinFollowPart)
         {
-            _status.Report(Strings.Follow_PartTooShort);
+            _status.ReportWarning(Strings.Follow_PartTooShort);
             return;
         }
         if (part.To is { } limit && end >= limit) return;                 // it reached the next part: already ends there
@@ -316,7 +316,7 @@ public sealed partial class InspectorViewModel
             follow = existing.WithPart(index, existing.Parts[index] with { TargetTime = sourceTime, TargetPoint = point })!;
         else
         {
-            _status.Report(Strings.Follow_PickOutsideParts);
+            _status.ReportWarning(Strings.Follow_PickOutsideParts);
             return;
         }
         var result = _edit.SetClipFollow(clip.Id, follow);

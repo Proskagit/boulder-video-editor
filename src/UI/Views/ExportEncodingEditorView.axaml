@@ -16,7 +16,7 @@
             <DataTemplate>
               <StackPanel Orientation="Horizontal" Spacing="8" ToolTip.Tip="{Binding Detail}">
                 <TextBlock Text="{Binding Label}"/>
-                <TextBlock Text="{Binding Detail}" Foreground="#8A8A8A" FontSize="11" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding Detail}" Foreground="{DynamicResource TextMutedBrush}" FontSize="{DynamicResource FontSizeCaption}" VerticalAlignment="Center"/>
               </StackPanel>
             </DataTemplate>
           </Setter>
@@ -55,13 +55,13 @@
                 ItemsSource="{Binding Bitrates}" SelectedItem="{Binding SelectedBitrate, Mode=TwoWay}"/>
     </Grid>
 
-    <TextBlock x:Name="EncoderDetailText" Text="{Binding SelectedEncoder.Detail}" FontSize="11" Foreground="#AAAAAA" TextWrapping="Wrap"/>
-    <TextBlock Text="{x:Static l:Strings.ExportEncoder_Both}" FontSize="11" Foreground="#8A8A8A" TextWrapping="Wrap"/>
-    <TextBlock x:Name="PlanText" Text="{Binding PlanText}" FontSize="11" Foreground="#AAAAAA" TextWrapping="Wrap" Margin="0,4,0,0"/>
-    <TextBlock x:Name="SpeedNoteText" Text="{Binding SpeedNote}" FontSize="11" Foreground="#AAAAAA" TextWrapping="Wrap"/>
-    <TextBlock x:Name="EstimateText" Text="{Binding EstimateText}" FontSize="11" Foreground="#CFCFCF" TextWrapping="Wrap"
+    <TextBlock x:Name="EncoderDetailText" Text="{Binding SelectedEncoder.Detail}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+    <TextBlock Text="{x:Static l:Strings.ExportEncoder_Both}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap"/>
+    <TextBlock x:Name="PlanText" Text="{Binding PlanText}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+    <TextBlock x:Name="SpeedNoteText" Text="{Binding SpeedNote}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+    <TextBlock x:Name="EstimateText" Text="{Binding EstimateText}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap"
                IsVisible="{Binding EstimateText, Converter={x:Static ObjectConverters.IsNotNull}}"/>
-    <TextBlock x:Name="UnavailableText" Text="{Binding UnavailableNote}" FontSize="11" Foreground="#E0A040" TextWrapping="Wrap"
+    <TextBlock x:Name="UnavailableText" Text="{Binding UnavailableNote}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap"
                IsVisible="{Binding UnavailableNote, Converter={x:Static ObjectConverters.IsNotNull}}"/>
   </StackPanel>
 </UserControl>
