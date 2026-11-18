@@ -11198,6 +11198,7 @@ Eight new types of the library (§0), each with its default and range as D044 §
   the export no longer refuses a zone short of source. The audio crossfade keeps its handles (a sound cannot be held). The hold
   is all-or-nothing per edge: when the source covers only part of the extension, the whole extension shows the edge frame.
   A press within 6 px of any zone's edge starts the drag (and selects it); a lost pointer capture or Esc cancels it (no edit).
+  Over such an edge, and while it is dragged, the cursor is the horizontal resize one (the owner's re-check).
 - **At most 5 s** for every video transition (the clips' frames permitting); a zone's edge dragged on the timeline sets the
   length (centred on the cut, one Undo step).
 - **One selected clip:** the transition goes on its cut nearest the playhead.

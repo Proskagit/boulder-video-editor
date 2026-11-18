@@ -79,7 +79,7 @@ public partial class TimelineView : UserControl
         TrackRows.PointerPressed += OnTracksPressed;
         TrackRows.PointerMoved += OnTracksMoved;
         TrackRows.PointerReleased += OnTracksReleased;
-        TrackRows.PointerExited += (_, _) => { ClearStripHover(); if (_volumeHoverTarget is { } v) { v.Cursor = null; ToolTip.SetTip(v, null); _volumeHoverTarget = null; } };
+        TrackRows.PointerExited += (_, _) => { ClearStripHover(); if (!_pressedZone) TrackRows.Cursor = null; if (_volumeHoverTarget is { } v) { v.Cursor = null; ToolTip.SetTip(v, null); _volumeHoverTarget = null; } };
         TrackRows.PointerCaptureLost += (_, _) =>
         {
             if (_pressedClip is not null || _pressedStrip is not null || _pressedFollow || _pressedKeyframe || _pressedVolume is not null || _pressedZone) CancelGesture();
@@ -222,12 +222,10 @@ public partial class TimelineView : UserControl
         }
 
         // D069 amendment 2: a press on an edge of a transition's zone drags its length.
-        if (!e.KeyModifiers.HasFlag(KeyModifiers.Control) && HitTestClip(e.Source).Item2 is null &&   // a clip's trim handle first
-            _viewModel.TransitionAt(TrackAt(e.GetPosition(TrackRows).Y), e.GetPosition(ContentRoot).X - TimelineViewModel.TransitionEdgePixels) is var zoneLeft &&
-            (zoneLeft ?? _viewModel.TransitionAt(TrackAt(e.GetPosition(TrackRows).Y), e.GetPosition(ContentRoot).X + TimelineViewModel.TransitionEdgePixels)) is { } zone &&
-            _viewModel.BeginTransitionResize(zone, e.GetPosition(ContentRoot).X))
+        if (ZoneEdgeAt(e) is { } zone && _viewModel.BeginTransitionResize(zone, e.GetPosition(ContentRoot).X))
         {
             _pressedZone = true;
+            TrackRows.Cursor = ResizeCursor;   // kept while the edge is dragged
             e.Pointer.Capture(TrackRows);
             e.Handled = true;
             return;
@@ -354,6 +352,24 @@ public partial class TimelineView : UserControl
 
     private bool _pressedZone;
 
+    /// <summary>The transition zone whose edge is under the pointer (a clip's trim handle and Ctrl take precedence), or null.</summary>
+    private TimelineTransitionViewModel? ZoneEdgeAt(PointerEventArgs e)
+    {
+        if (_viewModel is null || e.KeyModifiers.HasFlag(KeyModifiers.Control) || HitTestClip(e.Source).Item2 is not null) return null;
+        var track = TrackAt(e.GetPosition(TrackRows).Y);
+        var x = e.GetPosition(ContentRoot).X;
+        var zone = _viewModel.TransitionAt(track, x - TimelineViewModel.TransitionEdgePixels)
+                   ?? _viewModel.TransitionAt(track, x + TimelineViewModel.TransitionEdgePixels);
+        return zone is not null && _viewModel.IsTransitionEdge(zone, x) ? zone : null;
+    }
+
+    /// <summary>D069 amendment 2 (the owner): the horizontal resize cursor over a zone's edge, so it is clear the edge is grabbed.</summary>
+    private void UpdateZoneHover(PointerEventArgs e)
+    {
+        var onEdge = _stripHoverTarget is null && _volumeHoverTarget is null && ZoneEdgeAt(e) is not null;
+        TrackRows.Cursor = onEdge ? ResizeCursor : null;
+    }
+
     private void OnTracksMoved(object? sender, PointerEventArgs e)
     {
         if (_viewModel is null) return;
@@ -393,6 +409,7 @@ public partial class TimelineView : UserControl
         {
             UpdateStripHover(e);
             UpdateVolumeHover(e);
+            UpdateZoneHover(e);
             return;
         }
         _viewModel.UpdateGesture(e.GetPosition(ContentRoot).X, TrackAt(e.GetPosition(TrackRows).Y));
@@ -479,6 +496,7 @@ public partial class TimelineView : UserControl
             _pressedZone = false;
             _viewModel.EndTransitionResize();
             e.Pointer.Capture(null);
+            TrackRows.Cursor = null;
             return;
         }
         if (_pressedVolume is not null)
@@ -580,6 +598,7 @@ public partial class TimelineView : UserControl
         {
             _pressedZone = false;
             _viewModel?.CancelTransitionResize();   // D069 amendment 2: the zone as it is, no edit
+            TrackRows.Cursor = null;
         }
         _pressedClip = null;
         _pressedStrip = null;

@@ -21,12 +21,14 @@ public sealed partial class TimelineViewModel
 
     /// <summary>A press at <paramref name="contentX"/> on <paramref name="zone"/>: when it is on (or by) one of the zone's edges,
     /// the drag of its length starts and the transition is selected; false otherwise (the press selects it as before).</summary>
+    /// <summary>Whether <paramref name="contentX"/> is on (or by) one of <paramref name="zone"/>'s edges and its length can be
+    /// dragged now — the hover's resize cursor and the press ask the same.</summary>
+    public bool IsTransitionEdge(TimelineTransitionViewModel zone, double contentX) =>
+        CanEdit() && (Math.Abs(contentX - zone.Left) <= TransitionEdgePixels || Math.Abs(contentX - (zone.Left + zone.Width)) <= TransitionEdgePixels);
+
     public bool BeginTransitionResize(TimelineTransitionViewModel zone, double contentX)
     {
-        if (!CanEdit()) return false;
-        var nearLeft = Math.Abs(contentX - zone.Left) <= TransitionEdgePixels;
-        var nearRight = Math.Abs(contentX - (zone.Left + zone.Width)) <= TransitionEdgePixels;
-        if (!nearLeft && !nearRight) return false;
+        if (!IsTransitionEdge(zone, contentX)) return false;
         var right = zone.Track.Clips.FirstOrDefault(c => c.Id == zone.Transition.RightClipId);
         if (right is null) return false;
         SelectTransition(zone.Id);

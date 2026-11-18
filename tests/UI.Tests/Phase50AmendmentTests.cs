@@ -132,6 +132,8 @@ public sealed class Phase50AmendmentTests : IDisposable
         var zone = _t.Tracks.SelectMany(t => t.Transitions).Single();
         var transition = zone.Transition;
 
+        Assert.True(_t.IsTransitionEdge(zone, zone.Left + 3) && _t.IsTransitionEdge(zone, zone.Left + zone.Width));   // the resize cursor
+        Assert.False(_t.IsTransitionEdge(zone, zone.Left + zone.Width / 2));
         Assert.False(_t.BeginTransitionResize(zone, zone.Left + zone.Width / 2));                 // the middle: no drag
         Assert.True(_t.BeginTransitionResize(zone, zone.Left + zone.Width));                       // the right edge
         _t.UpdateTransitionResize(X(200 + 30));                                                     // 30 frames from the cut
