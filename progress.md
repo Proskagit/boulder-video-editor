@@ -28,7 +28,7 @@ nested project, the field's spinner waiting for being shown, the phase-41 script
 (+1 skipped), ExportEndToEnd 189 — green; Export 141 / 142 under the full load (the known flake
 `A_rasterizer_failure_while_the_writer_waits_never_deadlocks`), 142 / 142 three times alone. The first full run before the fixes:
 Project.Tests hung under the full load (749 / 749 four times alone and in the second full run), the WASAPI device test failed
-once (passes alone; real audio device). Not done: the owner's manual check of steps 3–4.
+once (passes alone; real audio device). **Re-review: PASS WITH NOTES** (no blocking issue; its two small notes fixed). PR #77. Not done: the owner's manual check of steps 3–4.
 
 **Phase 48 — the owner's fixes before publishing 1.0 (D067, 2026-11-18) — on `feat/phase-48-release-fixes`.** Rubber-band
 selection in the Media Browser (from a blank place; Ctrl adds), the export's suggested name `yyyyMMdd_HHmm.mp4` (the last export's

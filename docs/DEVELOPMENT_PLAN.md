@@ -328,7 +328,7 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 
 **Phase 49 (2026-11-18):** UX 1.1 (D068) implemented on `feat/phase-49-ux`, the highest phase number now **49**; Phase 48 accepted.
 
-**State on 2026-11-18 (after the acceptance of Phases 46 and 47):** **the MVP is closed** — S1, the release 1.0, accepted by
+**State on 2026-11-18 (after the acceptance of Phases 46 and 47; before Phase 49):** **the MVP is closed** — S1, the release 1.0, accepted by
 the product owner. The highest phase number in use is **47**; the **complete phases** (merged and accepted) are **1–31, 33–35
 and 37–47** (Phase 30's open part, S1, completed by Phase 47); Phase 32 closed as deferred, Phase 36 done in its chapters with
 36.3 / 36.4 in the backlog, Phase 31's D3 closed and C5 dropped (D065 §5).

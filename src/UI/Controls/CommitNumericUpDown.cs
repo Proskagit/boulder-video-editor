@@ -61,6 +61,7 @@ public class CommitNumericUpDown : NumericUpDown
     {
         base.OnApplyTemplate(e);
         _stacked = false;
+        EffectiveViewportChanged -= OnShown;
         LayoutUpdated -= OnFirstLayout;
         LayoutUpdated += OnFirstLayout;
     }
