@@ -100,7 +100,7 @@ public sealed partial class ClipGroupViewModel
     partial void OnFadeInFramesChanged(decimal? value) => EditFade(value, fadeIn: true);
     partial void OnFadeOutFramesChanged(decimal? value) => EditFade(value, fadeIn: false);
 
-    /// <summary>Each clip's fade, at most half of the clip (the single clip's rule: a fade never longer than its clip, D025).</summary>
+    /// <summary>Each clip's fade, at most its clip (D025 §2, by the service's own frame count of the clip).</summary>
     private void EditFade(decimal? value, bool fadeIn)
     {
         if (_syncing || value is not { } frames) return;
@@ -108,7 +108,7 @@ public sealed partial class ClipGroupViewModel
         Apply(fadeIn ? "Change Fade In (Group)" : "Change Fade Out (Group)", Key(fadeIn ? "fadein" : "fadeout", _faded), () => _faded.Select(c =>
         {
             var fade = FadeProperties.Of(c);
-            var length = MediaTime.FromFrame(Math.Min(whole, c.Duration.ToNearestFrame(Rate)), Rate);
+            var length = MediaTime.FromFrame(Math.Min(whole, TransitionRules.ClipFrames(c, Rate)), Rate);
             return _edit.SetClipProperties(c.Id, new ClipPropertyChange { Fade = fadeIn ? fade with { FadeIn = length } : fade with { FadeOut = length } });
         }));
     }

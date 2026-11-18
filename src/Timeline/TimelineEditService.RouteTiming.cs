@@ -290,6 +290,7 @@ public sealed partial class TimelineEditService
                 var timing = ClipState.FromFrames(ps, pe, MediaTime.Zero, rate);
                 plan.Update(template, plan.TrackOf(template), timing);
                 plan.Carried.Add(template);
+                plan.FollowCarried.Add(template);   // D069 amendment 1: planned by the follow rule
             }
             var statusAt = fields.Status != BoulderStatus.None ? StatusAtFor(template, Math.Max(0, s - ps), rate) : fields.StatusAt;
             if (status != fields.Status || statusAt != fields.StatusAt)
@@ -339,6 +340,7 @@ public sealed partial class TimelineEditService
 
             plan.Update(template, plan.TrackOf(template), ClipState.FromFrames(ps2, pe2, MediaTime.Zero, rate));
             plan.Carried.Add(template);
+            plan.FollowCarried.Add(template);   // D069 amendment 1: planned by the follow rule
             var statusAt = lilac && status != BoulderStatus.None ? StatusAtFor(template, s2 - ps2, rate) : fields.StatusAt;
             if (status != fields.Status || statusAt != fields.StatusAt)
                 plan.SetTemplateFields(template, fields with { Status = status, StatusAt = statusAt });

@@ -11181,7 +11181,8 @@ Eight new types of the library (§0), each with its default and range as D044 §
 - **The magnetic main track:** a drag onto V1 takes the pointer as the dragged clips' start (as CapCut) — the grabbed point of a
   long clip no longer decides the cut. A move the magnet takes back left the anchored plates moved (the plates were carried
   before the magnet put the clip back) — the carried templates are planned again from the clips' final places; the timeline is
-  laid out again after a drag that changed nothing. A clip moved onto its own plates' track is refused (not reproduced as a
+  laid out again after a drag that changed nothing. Only the templates the follow rule carried with a clip are planned again — a
+  template an edit lays out itself (a «Боулдер»'s layout, the FIT areas, an insert's split) keeps its timing (the review). A clip moved onto its own plates' track is refused (not reproduced as a
   deletion; covered by the existing refusal «a template anchored to a clip stays inside that clip»).
 - **«ЦВЕТ»** in capitals as the other sections.
 - **The transition button** has its label «Переход»; with one clip selected it takes the clip's cut with the next clip (else the

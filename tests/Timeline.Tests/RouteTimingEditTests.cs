@@ -755,4 +755,52 @@ public class RouteTimingEditTests
         Assert.Equal(F(copy.TimelineStart) + 75, F(copied.TimelineStart));
         f.AssertValid();
     }
+
+    // --- D069 amendment 1 (review): with the magnet on, the edits that lay a template out themselves keep their timing ---
+
+    /// <summary>The overlays of the whole timeline (every template's place and fields, every route's animation start) — what a
+    /// magnet must not change where V1 has no gap.</summary>
+    private static string Overlays(TimelineFixture f) => string.Join(";", f.Project.Timeline.VideoTracks.SelectMany(t => t.Clips).Select(c => c switch
+    {
+        TemplateClip t => $"T{F(t.TimelineStart)}-{F(t.TimelineEnd)}:{t.Status}:{F(t.StatusAt)}:{t.AnchorClipId is not null}",
+        VideoClip v => $"V{F(v.TimelineStart)}-{F(v.TimelineEnd)}:{(v.HoldMarkup?.Animation is { } a ? F(a.StartSourceTime) : -1)}",
+        _ => c.GetType().Name
+    }).OrderBy(x => x));
+
+    private static string Run(bool magnet, Action<TimelineFixture, VideoClip> edit)
+    {
+        var f = WithMarkedVideo(out var clip);
+        f.Project.Timeline.MagneticMainTrack = magnet;
+        LaidOut(f, clip, 250);
+        var before = f.Snapshot();
+        edit(f, clip);
+        var after = Overlays(f) + "|" + f.Snapshot().Replace(f.Project.Timeline.VideoTracks[0].Id.ToString(), "V1");
+        while (f.UndoRedo.CanUndo && f.Snapshot() != before) f.UndoRedo.Undo();
+        Assert.Equal(before, f.Snapshot());
+        return Overlays(f) + "=>" + after.Split('|')[0];
+    }
+
+    [Fact]
+    public void A_second_layout_is_the_same_with_the_magnet_on()
+    {
+        static void Edit(TimelineFixture f, VideoClip clip) => Assert.True(f.Service.LayOutIntroAndFinal(clip.Id, Frame(300)).Success);
+        Assert.Equal(Run(false, Edit), Run(true, Edit));
+    }
+
+    [Fact]
+    public void An_insert_and_an_overwrite_inside_a_clip_with_its_template_are_the_same_with_the_magnet_on()
+    {
+        static void Insert(TimelineFixture f, VideoClip clip)
+        {
+            var other = f.Video(4, FrameRate.Fps25, "other.mp4");
+            Assert.True(f.Service.InsertClip(other.Id, null, null, Frame(300), f.V1.Id).Success);
+        }
+        static void Overwrite(TimelineFixture f, VideoClip clip)
+        {
+            var other = f.Video(4, FrameRate.Fps25, "other.mp4");
+            Assert.True(f.Service.OverwriteClip(other.Id, null, null, Frame(320), f.V1.Id).Success);
+        }
+        Assert.Equal(Run(false, Insert), Run(true, Insert));
+        Assert.Equal(Run(false, Overwrite), Run(true, Overwrite));
+    }
 }
