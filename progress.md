@@ -12,8 +12,10 @@ none). **Step 2 (help):** `HelpDocument` (a small Markdown subset, `Help/help.ru
 `WithCulture=false`), `HelpViewModel` (search), `HelpView`, `AvaloniaHelpWindow` (one non-modal window, Esc closes), «?» on the
 toolbar, F1 everywhere (also in a text box). Tests: AppDataMigration 4, Help 3, F1 1. Gates (2026-11-18): Debug and Release
 `--no-incremental -warnaserror` 0 / 0; `git diff --check` clean; Release: Core 1 923, Project 749, Timeline 1 194, UI 1 281,
-Rendering 257, Export 142, Video 411 (+1 skipped), ExportEndToEnd 186 (+3 skipped), Vision 25 — all green. **Run (2026-11-18, the owner's yes; config and recovery copied first):** the owner's real folder moved whole ("moved 1, removed true", models intact); the title, the icon, «?», F1, the search, the topics, Esc checked on screen; the subheadings were not bold — fixed (`15f56c2`). 1.0 on this PC now has no models / settings (its folder is gone). Next: the research update (CapCut in full, Resolve Cut, Shotcut, GoPro Quik), the workflow walk-through and the
-audit by screenshots.
+Rendering 257, Export 142, Video 411 (+1 skipped), ExportEndToEnd 186 (+3 skipped), Vision 25 — all green. **Run (2026-11-18, the owner's yes; config and recovery copied first):** the owner's real folder moved whole ("moved 1, removed true", models intact); the title, the icon, «?», F1, the search, the topics, Esc checked on screen; the subheadings were not bold — fixed (`15f56c2`). 1.0 on this PC now has no models / settings (its folder is gone). **Research and audit (2026-11-18):** `docs/UX_CAPCUT_RESEARCH.md` part 2 (CapCut in full, Resolve Cut, Shotcut, GoPro Quik,
+Insta360 Studio — the latter seen live; CapCut and Resolve not opened live) and `docs/UX_AUDIT_1.1.md` (the workflow walked on copies of
+two 12x10 clips, the audit by screenshots in `docs/ux-1.1/before`, a design-system proposal, 15 prioritised changes + 3 owner
+decisions). Waiting for the owner's choice of the list before implementation (D068 §5).
 
 **Phase 48 — the owner's fixes before publishing 1.0 (D067, 2026-11-18) — on `feat/phase-48-release-fixes`.** Rubber-band
 selection in the Media Browser (from a blank place; Ctrl adds), the export's suggested name `yyyyMMdd_HHmm.mp4` (the last export's
