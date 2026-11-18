@@ -11195,7 +11195,9 @@ Eight new types of the library (§0), each with its default and range as D044 §
 - **Video transitions need no source handles (D025 §4, D044 §3 changed):** where a clip's source ends inside the zone, its
   edge frame is held (`PictureSpan.HoldsFirstFrame / HoldsLastFrame`, the Preview's and the export's readers alike); a dissolve,
   a push, a wipe, a circle, doors and a whip are added to whole files; trims, slips and relinks no longer keep handles for them;
-  the export no longer refuses a zone short of source. The audio crossfade keeps its handles (a sound cannot be held).
+  the export no longer refuses a zone short of source. The audio crossfade keeps its handles (a sound cannot be held). The hold
+  is all-or-nothing per edge: when the source covers only part of the extension, the whole extension shows the edge frame.
+  A press within 6 px of any zone's edge starts the drag (and selects it); a lost pointer capture or Esc cancels it (no edit).
 - **At most 5 s** for every video transition (the clips' frames permitting); a zone's edge dragged on the timeline sets the
   length (centred on the cut, one Undo step).
 - **One selected clip:** the transition goes on its cut nearest the playhead.

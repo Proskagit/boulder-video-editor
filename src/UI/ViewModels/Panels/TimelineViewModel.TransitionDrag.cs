@@ -6,7 +6,7 @@ using AiVideoEditor.UI.Localization;
 namespace AiVideoEditor.UI.ViewModels.Panels;
 
 // --- D069 amendment 2: a transition's length dragged on the timeline ----------------------------------------------------------
-// A press on an edge of the selected transition's zone, then a drag: the zone grows or shrinks around its cut (both edges, the
+// A press on an edge of a transition's zone (it gets selected), then a drag: the zone grows or shrinks around its cut (both edges, the
 // zone stays centred — D025 §3), whole frames, from the type's minimum to its maximum and what the clips hold; the release is
 // one Undo step (SetTransitionDuration), Esc / a refusal puts the zone back.
 public sealed partial class TimelineViewModel
@@ -55,6 +55,11 @@ public sealed partial class TimelineViewModel
     {
         if (_zoneDrag is not { } drag) return;
         _zoneDrag = null;
+        if (!CanEdit())
+        {
+            drag.Zone.Layout(PixelsPerSecond, FrameRate);   // an export started meanwhile: nothing changes
+            return;
+        }
         if (drag.Frames != TransitionRules.Frames(drag.Zone.Transition.Duration, FrameRate))
             Report(_edit.SetTransitionDuration(drag.Zone.Id, MediaTime.FromFrame(drag.Frames, FrameRate)));
         drag.Zone.Layout(PixelsPerSecond, FrameRate);

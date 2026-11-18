@@ -2398,12 +2398,10 @@ public sealed partial class TimelineEditService : ITimelineEditService
             : string.Format(Messages.Transition_DurationRange, min, max);
     }
 
-    /// <summary>Why not even the type's minimum fits the cut: the source handles for a type that needs them (naming the
-    /// types that need none, D044 §6), else the clips' length.</summary>
+    /// <summary>Why not even the type's minimum fits the cut: the source handles for the crossfade, else the clips' length
+    /// (D069 amendment 2: no video type needs handles).</summary>
     private static string NothingFits(string typeId, string noun) =>
-        !TransitionRules.NeedsSourceHandles(typeId) ? Messages.TransitionRule_ClipTooShort
-        : typeId == TransitionRules.Crossfade ? NotEnoughMediaFor(noun)
-        : Messages.Transition_NotEnoughMediaType;
+        TransitionRules.NeedsSourceHandles(typeId) ? NotEnoughMediaFor(noun) : Messages.TransitionRule_ClipTooShort;
 
     /// <summary>What a transition of <paramref name="track"/> is called: a dissolve on a video track, a crossfade on an audio
     /// track (D032 R9).</summary>
@@ -2456,7 +2454,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         frames <= max ? null
         : typeId is not (TransitionRules.CrossDissolve or TransitionRules.Crossfade)
             ? max < TransitionRules.MinFrames ? NothingFits(typeId, noun) : string.Format(Messages.Transition_TooLongType, frames, max)
-        : max < TransitionRules.MinFrames ? NotEnoughMediaFor(noun)
+        : max < TransitionRules.MinFrames ? (typeId == TransitionRules.Crossfade ? NotEnoughMediaFor(noun) : Messages.TransitionRule_ClipTooShort)
         : string.Format(Tr(noun, Messages.Transition_TooLongDissolve, Messages.Transition_TooLongCrossfade), frames, max);
 
     /// <summary><see cref="NotEnoughMedia"/> for a dissolve, the same words for a crossfade.</summary>
@@ -2646,7 +2644,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             var right = clips[state.RightClipId];
             if (afterCut > DissolveHandles.After(left.Clip, left.State, AssetOf(left.Clip), plan.Rate) ||
                 beforeCut > DissolveHandles.Before(right.Clip, right.State, AssetOf(right.Clip), plan.Rate))
-                return state.TypeId == TransitionRules.Push ? Messages.Transition_NotEnoughMediaType : NotEnoughMediaFor(TransitionNoun(track));
+                return NotEnoughMediaFor(TransitionNoun(track));   // the crossfade only (D069 amendment 2)
         }
         return null;
     }

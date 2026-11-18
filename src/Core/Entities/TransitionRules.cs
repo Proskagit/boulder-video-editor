@@ -8,7 +8,9 @@ namespace AiVideoEditor.Core.Entities;
 /// The structural rules of transitions (D025 §1, §3; D044). A transition of <c>F</c> frames sits on the cut <c>c</c>
 /// between A and B (A's end is exactly B's start); its zone is <c>[c − ⌊F/2⌋, c + ⌈F/2⌉)</c>: <see cref="Zone"/>'s
 /// <c>BeforeCut</c> frames lie in A, <c>AfterCut</c> frames in B. Source handles are not checked here — they depend
-/// on the media (D025 §4) — and only the types of <see cref="RequiresHandles"/> need them (D044 §3).
+/// on the media (D025 §4). D069 amendment 2: only the audio crossfade needs them (<see cref="NeedsSourceHandles"/>); a video
+/// type whose source runs out holds the clip's edge frame. <see cref="RequiresHandles"/> now means «shows both clips at once»
+/// (the pictures extend into the zone).
 /// </summary>
 public static class TransitionRules
 {

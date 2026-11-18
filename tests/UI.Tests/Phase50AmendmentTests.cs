@@ -149,6 +149,30 @@ public sealed class Phase50AmendmentTests : IDisposable
     }
 
     [Fact]
+    public void A_cancelled_edge_drag_leaves_the_transition_and_adds_no_undo_step()
+    {
+        var c = MainTrack(200, 200);
+        Assert.True(_edit.AddTransition(c[0].Id, c[1].Id, TransitionRules.CrossDissolve).Success);
+        var zone = _t.Tracks.SelectMany(t => t.Transitions).Single();
+        var (left, width) = (zone.Left, zone.Width);
+        var undoable = _undo.CanUndo;
+
+        Assert.True(_t.BeginTransitionResize(zone, zone.Left + zone.Width));
+        Assert.True(_t.IsGestureActive);                                                            // Esc reaches it
+        _t.UpdateTransitionResize(X(200 + 40));
+        Assert.NotEqual(width, zone.Width);                                                         // drawn longer
+        _t.CancelTransitionResize();                                                                // Esc / capture lost
+        _t.EndTransitionResize();                                                                   // the release after: nothing
+
+        Assert.False(_t.IsGestureActive);
+        Assert.Equal(F(25), zone.Transition.Duration);
+        Assert.Equal((left, width), (zone.Left, zone.Width));
+        _undo.Undo();                                                                               // undoes the add, not a resize
+        Assert.Empty(_projects.Current.Timeline.VideoTracks[0].Transitions);
+        Assert.True(undoable);
+    }
+
+    [Fact]
     public void One_selected_clip_takes_the_cut_nearest_the_playhead()
     {
         var c = MainTrack(100, 100, 100);

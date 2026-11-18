@@ -1956,7 +1956,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         Relayout();
     }
 
-    public bool IsGestureActive => _gesture is { Active: true };
+    public bool IsGestureActive => _gesture is { Active: true } || IsTransitionResizing;
 
     private void ResetGestureVisuals(Gesture g)
     {

@@ -127,6 +127,28 @@ public class TransitionLibraryEditTests
         f.AssertValid();
     }
 
+    /// <summary>D069 amendment 2: the hold is all-or-nothing per edge, with a frame of margin — a 1 s dissolve reaches 12 frames
+    /// before the cut, so B needs 13 frames of source before its start; 12 are not enough and the whole extension holds.</summary>
+    [Theory]
+    [InlineData(12, true)]
+    [InlineData(13, false)]
+    [InlineData(50, false)]
+    public void The_edge_frame_is_held_only_where_the_source_lacks_the_extension_and_a_frame(long cut, bool holds)
+    {
+        var f = new TimelineFixture();
+        var video = f.Video(4, FrameRate.Fps25);
+        Ok(f.Service.AddClip(video.Id));
+        Ok(f.Service.Split(F(f, cut)));
+        var (a, b) = (f.V1.Clips[0], f.V1.Clips[1]);
+        Add(f, a, b, TransitionRules.CrossDissolve);                                      // 25 frames: 12 before, 13 after
+
+        var spans = Core.Playback.PlaybackSnapshotBuilder.Build(f.Project, 1).VideoLayers.SelectMany(l => l.Spans).ToList();
+        var second = spans.Single(s => s.ClipId == b.Id);
+        Assert.Equal(holds, second.HoldsFirstFrame);
+        Assert.False(spans.Single(s => s.ClipId == a.Id).HoldsLastFrame);                 // A has the file's rest after it
+        Assert.Equal(holds ? cut : cut - 5, second.SourceFrameOf(cut - 5, f.Rate));       // all of the extension, or none
+    }
+
     [Fact]
     public void The_default_that_does_not_fit_becomes_the_longest_that_fits_and_below_the_minimum_nothing_is_made()
     {

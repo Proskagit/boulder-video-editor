@@ -82,7 +82,7 @@ public partial class TimelineView : UserControl
         TrackRows.PointerExited += (_, _) => { ClearStripHover(); if (_volumeHoverTarget is { } v) { v.Cursor = null; ToolTip.SetTip(v, null); _volumeHoverTarget = null; } };
         TrackRows.PointerCaptureLost += (_, _) =>
         {
-            if (_pressedClip is not null || _pressedStrip is not null || _pressedFollow || _pressedKeyframe || _pressedVolume is not null) CancelGesture();
+            if (_pressedClip is not null || _pressedStrip is not null || _pressedFollow || _pressedKeyframe || _pressedVolume is not null || _pressedZone) CancelGesture();
             if (_marqueeStarted) CancelMarquee();
         };
 
@@ -132,7 +132,7 @@ public partial class TimelineView : UserControl
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.Escape && (_viewModel?.IsGestureActive == true || _pressedFollow || _pressedKeyframe || _pressedVolume is not null))
+        if (e.Key == Key.Escape && (_viewModel?.IsGestureActive == true || _pressedFollow || _pressedKeyframe || _pressedVolume is not null || _pressedZone))
         {
             CancelGesture();
             e.Handled = true;
@@ -576,6 +576,11 @@ public partial class TimelineView : UserControl
     {
         _autoScroll.Stop();
         _gestureStarted = false;
+        if (_pressedZone)
+        {
+            _pressedZone = false;
+            _viewModel?.CancelTransitionResize();   // D069 amendment 2: the zone as it is, no edit
+        }
         _pressedClip = null;
         _pressedStrip = null;
         _pressedTemplate = null;
