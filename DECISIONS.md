@@ -11182,7 +11182,8 @@ Eight new types of the library (§0), each with its default and range as D044 §
   long clip no longer decides the cut. A move the magnet takes back left the anchored plates moved (the plates were carried
   before the magnet put the clip back) — the carried templates are planned again from the clips' final places; the timeline is
   laid out again after a drag that changed nothing. Only the templates the follow rule carried with a clip are planned again — a
-  template an edit lays out itself (a «Боулдер»'s layout, the FIT areas, an insert's split) keeps its timing (the review). A clip moved onto its own plates' track is refused (not reproduced as a
+  template an edit lays out itself (a «Боулдер»'s layout, the FIT areas, an insert's split) keeps its timing (the review). Known and left: a «Боулдер» laid out on a V1 clip while V1 already has a gap (the magnet
+  was on while V1 was locked) gets the closing's shift instead of its layout — rare; laying it out again fixes it. A clip moved onto its own plates' track is refused (not reproduced as a
   deletion; covered by the existing refusal «a template anchored to a clip stays inside that clip»).
 - **«ЦВЕТ»** in capitals as the other sections.
 - **The transition button** has its label «Переход»; with one clip selected it takes the clip's cut with the next clip (else the

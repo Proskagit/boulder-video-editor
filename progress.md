@@ -18,6 +18,15 @@ clean; Release + `AIVE_HEAVY_TESTS=1` with `--blame-hang`: Core 1 959, Timeline 
 UI 1 312, Rendering 263, Export 142, Video 418 (+1 skipped), ExportEndToEnd 189, Vision 25 — all green. Not done: the owner's
 manual check (`docs/PHASE50_MANUAL_TEST_PLAN.md`; the app was not checked on screen by me — the computer-use tool could not reach
 the build's window); ExportEndToEnd scenes with colour and the new transitions through FFmpeg and a 4K blur timing.
+**Amendment 1 (D069 §10, the owner's check of 2026-11-18, commits `5a849bc`, `8e6dff9`):** Save As over a project picked by its
+folder, the arrows (Fluent's PathIcon), the magnet drag by the pointer, plates left moved by a taken-back move (the follow-carried
+templates planned again), «ЦВЕТ», the labelled Transition button (one clip / the playhead's cut), the playhead on cuts, fields
+60 / 72 and labels 120, the group's clean-up / fades / colour with «Автоулучшение». Review: FAIL (the reset dropped templates an
+edit lays out itself) → fixed (FollowCarried, magnet-on equality tests) → PASS WITH NOTES. **Gates (2026-11-19, `8e6dff9`):**
+Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check` clean; Release + `AIVE_HEAVY_TESTS=1` with
+`--blame-hang`: Core 1 959, Timeline 1 231, Project 757, UI 1 319, Rendering 264, Export 142, Video 418 (+1 skipped),
+ExportEndToEnd 189, Vision 25 — all green. Portable `artifacts/portable/BoulderVideoEditor-1.2.1-win-x64`. Not done: the owner's
+re-check (plan rows R1–R10).
 
 **Phase 49 — UX 1.1 (D068, 2026-11-18) — on `feat/phase-49-ux`.** The owner's answers: icon variant C, the name everywhere
 including the per-user folder, CapCut re-reviewed in full, the help inside the application, the rebranding in 1.1. **Step 1 (name
