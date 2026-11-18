@@ -308,4 +308,17 @@ public sealed class ClipGroupEditingTests : IAsyncLifetime
         _undo.Undo();
         Assert.All(clips, c => Assert.True(c.Color.IsNeutral));
     }
+
+    /// <summary>D069 amendment 2 (the owner's check): several clips have the rail and the groups of one clip's Inspector.</summary>
+    [Fact]
+    public void Several_clips_show_the_rail_with_their_groups()
+    {
+        Videos(3, sound: true);
+        SelectAll();
+
+        Assert.True(Inspector.ShowsRail);
+        var available = Inspector.Categories.Where(c => c.IsAvailable).Select(c => c.Category).ToList();
+        Assert.Equal(new[] { InspectorCategory.Clip, InspectorCategory.Audio }, available);
+        Assert.True(Group.HasClipSection && Group.HasColor);
+    }
 }

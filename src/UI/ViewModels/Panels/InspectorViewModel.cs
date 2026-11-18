@@ -70,6 +70,9 @@ public sealed partial class InspectorViewModel : ViewModelBase
         Group.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(ClipGroupViewModel.IsActive)) OnPropertyChanged(nameof(IsSingleClipSelected));
+            // D069 amendment 2: what the group has decides the rail's buttons.
+            if (e.PropertyName is { } name && (name == nameof(ClipGroupViewModel.IsActive) || name.StartsWith("Has", StringComparison.Ordinal)))
+                RefreshCategories();
         };
         _edit = edit;
         Group.FramingTimeOf = KeyframeTimeForFraming;   // D063 §5: Fill / Fit of a group writes each keyframed clip's playhead keyframe

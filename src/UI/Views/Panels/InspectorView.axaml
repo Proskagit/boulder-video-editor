@@ -101,7 +101,7 @@
               BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,1,0">
         <Border.IsVisible>
           <MultiBinding Converter="{x:Static BoolConverters.And}">
-            <Binding Path="IsSingleClipSelected"/>
+            <Binding Path="ShowsRail"/>
             <Binding Path="!IsHoldsOnly"/>
           </MultiBinding>
         </Border.IsVisible>
@@ -262,12 +262,17 @@
 
           <!-- D058 §3: several selected clips — five groups of properties, each applied to every clip it fits as one undo step;
                «—» (an empty field, no choice) where the clips differ. -->
-          <StackPanel x:Name="GroupPanel" IsEnabled="{Binding IsEditingAllowed}" Spacing="8" DataContext="{Binding Group}"
+          <StackPanel x:Name="GroupPanel" IsEnabled="{Binding IsEditingAllowed}" Spacing="3" DataContext="{Binding Group}"
                       IsVisible="{Binding IsActive}">
             <TextBlock Text="{Binding Heading}" FontSize="{DynamicResource FontSizeCaption}" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"/>
             <TextBlock Text="{x:Static l:Strings.Inspector_GroupHint}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap"/>
             <TextBlock Text="{x:Static l:Strings.Inspector_GroupNothing}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"
                        IsVisible="{Binding HasNothing}"/>
+            <!-- D069 amendment 2 (the owner): the group's Inspector as a single clip's — the rail's groups and the same
+                 collapsible sections. -->
+            <Panel Classes="category" Tag="Clip">
+            <controls:InspectorSection SectionId="group.frame" Title="{x:Static l:Strings.Inspector_FrameHeading}" IsVisible="{Binding HasClipSection}">
+              <StackPanel Spacing="6">
             <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasBackground}">
               <TextBlock Text="{x:Static l:Strings.Inspector_ClipBackground}" Classes="label"/>
               <ComboBox x:Name="GroupBackgroundBox" ItemsSource="{Binding Backgrounds}" SelectedIndex="{Binding BackgroundIndex, Mode=TwoWay}"
@@ -284,24 +289,6 @@
                              Minimum="{Binding MinOpacityPercent}" Maximum="{Binding MaxOpacityPercent}" FormatString="0.####" Width="72" Watermark="—"/>
               <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
             </StackPanel>
-            <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasAudio}">
-              <TextBlock Text="{x:Static l:Strings.Inspector_Volume}" Classes="label"/>
-              <controls:CommitNumericUpDown x:Name="GroupVolumeBox" Value="{Binding VolumePercent, Mode=TwoWay}" Increment="1"
-                             Minimum="0" Maximum="200" FormatString="0.####" Width="72" Watermark="—"/>
-              <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-              <CheckBox x:Name="GroupMuteBox" Content="{x:Static l:Strings.Inspector_Mute}" IsThreeState="False" IsChecked="{Binding IsMuted, Mode=TwoWay}"/>
-            </StackPanel>
-            <!-- D069 amendment 1: the mass settings — the clean-up, the fades, the colour with «Автоулучшение». -->
-            <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasAudio}">
-              <TextBlock Text="{x:Static l:Strings.Inspector_NoiseReduction}" Classes="label"/>
-              <controls:CommitNumericUpDown x:Name="GroupNoiseBox" Value="{Binding NoiseReduction, Mode=TwoWay}" Increment="1"
-                             Minimum="0" Maximum="{Binding MaxCleanup}" FormatString="0.####" Width="72" Watermark="—"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasAudio}">
-              <TextBlock Text="{x:Static l:Strings.Inspector_VoiceEnhancement}" Classes="label"/>
-              <controls:CommitNumericUpDown x:Name="GroupVoiceBox" Value="{Binding VoiceEnhancement, Mode=TwoWay}" Increment="1"
-                             Minimum="0" Maximum="{Binding MaxCleanup}" FormatString="0.####" Width="72" Watermark="—"/>
-            </StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasFades}">
               <TextBlock Text="{x:Static l:Strings.Inspector_FadeIn}" Classes="label"/>
               <controls:CommitNumericUpDown x:Name="GroupFadeInBox" Value="{Binding FadeInFrames, Mode=TwoWay}" Increment="1"
@@ -314,12 +301,15 @@
                              Minimum="0" FormatString="0.####" Width="72" Watermark="—"/>
               <TextBlock Text="{x:Static l:Strings.Unit_Frames}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
             </StackPanel>
-            <StackPanel Spacing="6" IsVisible="{Binding HasColor}">
-              <TextBlock Text="{x:Static l:Strings.Inspector_ColorHeading}" FontSize="{DynamicResource FontSizeCaption}" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}"/>
+              </StackPanel>
+            </controls:InspectorSection>
+            </Panel>
+            <Panel Classes="category" Tag="Clip">
+            <controls:InspectorSection SectionId="group.color" Title="{x:Static l:Strings.Inspector_ColorHeading}" IsVisible="{Binding HasColor}" ResetCommand="{Binding ResetColorCommand}">
+              <StackPanel Spacing="6">
               <StackPanel Orientation="Horizontal" Spacing="8" Margin="128,0,0,0">
                 <Button x:Name="GroupAutoEnhanceButton" Content="{x:Static l:Strings.Color_Auto}" Command="{Binding AutoEnhanceCommand}"
                         IsEnabled="{Binding !IsEnhancing}" ToolTip.Tip="{x:Static l:Strings.Color_AutoTip}"/>
-                <Button Content="{x:Static l:Strings.Color_Reset}" Command="{Binding ResetColorCommand}"/>
               </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{x:Static l:Strings.Color_Exposure}" Classes="label"/>
@@ -361,9 +351,35 @@
                 <controls:CommitNumericUpDown x:Name="GroupColorTintBox" Value="{Binding ColorTint, Mode=TwoWay}" Increment="1"
                                Minimum="{Binding MinColor}" Maximum="{Binding MaxColor}" FormatString="0.####" Width="72" Watermark="—"/>
               </StackPanel>
+              </StackPanel>
+            </controls:InspectorSection>
+            </Panel>
+            <Panel Classes="category" Tag="Audio">
+            <controls:InspectorSection SectionId="group.audio" Title="{x:Static l:Strings.Inspector_AudioHeading}" IsVisible="{Binding HasAudio}">
+              <StackPanel Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasAudio}">
+              <TextBlock Text="{x:Static l:Strings.Inspector_Volume}" Classes="label"/>
+              <controls:CommitNumericUpDown x:Name="GroupVolumeBox" Value="{Binding VolumePercent, Mode=TwoWay}" Increment="1"
+                             Minimum="0" Maximum="200" FormatString="0.####" Width="72" Watermark="—"/>
+              <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+              <CheckBox x:Name="GroupMuteBox" Content="{x:Static l:Strings.Inspector_Mute}" IsThreeState="False" IsChecked="{Binding IsMuted, Mode=TwoWay}"/>
             </StackPanel>
-            <StackPanel Spacing="6" IsVisible="{Binding HasHoldStyle}">
-              <TextBlock Text="{x:Static l:Strings.Inspector_GroupOutline}" FontSize="{DynamicResource FontSizeCaption}" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}"/>
+            <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasAudio}">
+              <TextBlock Text="{x:Static l:Strings.Inspector_NoiseReduction}" Classes="label"/>
+              <controls:CommitNumericUpDown x:Name="GroupNoiseBox" Value="{Binding NoiseReduction, Mode=TwoWay}" Increment="1"
+                             Minimum="0" Maximum="{Binding MaxCleanup}" FormatString="0.####" Width="72" Watermark="—"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasAudio}">
+              <TextBlock Text="{x:Static l:Strings.Inspector_VoiceEnhancement}" Classes="label"/>
+              <controls:CommitNumericUpDown x:Name="GroupVoiceBox" Value="{Binding VoiceEnhancement, Mode=TwoWay}" Increment="1"
+                             Minimum="0" Maximum="{Binding MaxCleanup}" FormatString="0.####" Width="72" Watermark="—"/>
+            </StackPanel>
+              </StackPanel>
+            </controls:InspectorSection>
+            </Panel>
+            <Panel Classes="category" Tag="Holds">
+            <controls:InspectorSection SectionId="group.holds" Title="{x:Static l:Strings.Inspector_GroupOutline}" IsVisible="{Binding HasHoldStyle}">
+              <StackPanel Spacing="6">
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{x:Static l:Strings.Holds_Width}" Classes="label"/>
                 <controls:CommitNumericUpDown x:Name="GroupStrokeBox" Value="{Binding StrokeWidth, Mode=TwoWay}" Increment="1"
@@ -388,7 +404,9 @@
                 <ComboBox x:Name="GroupKeylineBox" ItemsSource="{Binding KeylineModes}" SelectedIndex="{Binding KeylineIndex, Mode=TwoWay}"
                           PlaceholderText="—" MinWidth="140"/>
               </StackPanel>
-            </StackPanel>
+              </StackPanel>
+            </controls:InspectorSection>
+            </Panel>
           </StackPanel>
 
           <!-- Timeline clip selection (Phase 4); with a group of clips the group's Inspector above instead (D058 §3) -->

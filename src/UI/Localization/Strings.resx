@@ -3962,9 +3962,6 @@ If you don't save, your changes will be lost.</value>
   <data name="SaveAs_WillAskReplace" xml:space="preserve">
     <value>A project of this name is already here — saving asks whether to replace it.</value>
   </data>
-  <data name="Color_Reset" xml:space="preserve">
-    <value>Reset colour</value>
-  </data>
   <data name="Transition_Dragging" xml:space="preserve">
     <value>Transition length: {0}</value>
   </data>

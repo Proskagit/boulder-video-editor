@@ -50,7 +50,11 @@ public sealed partial class ClipGroupViewModel
         _faded = _items.SelectMany(i => i).ToList();
         HasFades = _faded.Count > 0;
         HasColor = _videos.Count > 0;
+        OnPropertyChanged(nameof(HasClipSection));
     }
+
+    /// <summary>D069 amendment 2: the «Кадр» section of the group (background, framing, opacity, fades) has something.</summary>
+    public bool HasClipSection => HasBackground || HasFraming || HasOpacity || HasFades;
 
     private void LoadMass()
     {

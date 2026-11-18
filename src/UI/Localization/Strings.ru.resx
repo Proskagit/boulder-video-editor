@@ -3966,9 +3966,6 @@
   <data name="SaveAs_WillAskReplace" xml:space="preserve">
     <value>Здесь уже есть проект с таким именем — при сохранении будет вопрос о замене.</value>
   </data>
-  <data name="Color_Reset" xml:space="preserve">
-    <value>Сбросить цвет</value>
-  </data>
   <data name="Transition_Dragging" xml:space="preserve">
     <value>Длина перехода: {0}</value>
   </data>

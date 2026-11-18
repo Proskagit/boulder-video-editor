@@ -11183,7 +11183,24 @@ Eight new types of the library (§0), each with its default and range as D044 §
   before the magnet put the clip back) — the carried templates are planned again from the clips' final places; the timeline is
   laid out again after a drag that changed nothing. Only the templates the follow rule carried with a clip are planned again — a
   template an edit lays out itself (a «Боулдер»'s layout, the FIT areas, an insert's split) keeps its timing (the review). Known and left: a «Боулдер» laid out on a V1 clip while V1 already has a gap (the magnet
-  was on while V1 was locked) gets the closing's shift instead of its layout — rare; laying it out again fixes it. A clip moved onto its own plates' track is refused (not reproduced as a
+  was on while V1 was locked) gets the closing's shift instead of its layout — rare; laying it out again fixes it.
+
+### 11. Amendment 2 — the owner's check of 2026-11-19
+
+- **Save As:** the window asks «Заменить?» whenever a project is in the target folder — the open project's own folder too (the
+  case the owner met: a project saved over itself was replaced without a question).
+- **Plates of different clips never push each other:** a template anchored to a clip that an edit would place over a clip it
+  does not place goes to the lowest unlocked video track above its clip that is free there, or to a new track at the top in
+  the same Undo step (`EditPlan.NewTracks`, `Relocated`) — two clips on one canvas keep their own «Боулдер».
+- **Video transitions need no source handles (D025 §4, D044 §3 changed):** where a clip's source ends inside the zone, its
+  edge frame is held (`PictureSpan.HoldsFirstFrame / HoldsLastFrame`, the Preview's and the export's readers alike); a dissolve,
+  a push, a wipe, a circle, doors and a whip are added to whole files; trims, slips and relinks no longer keep handles for them;
+  the export no longer refuses a zone short of source. The audio crossfade keeps its handles (a sound cannot be held).
+- **At most 5 s** for every video transition (the clips' frames permitting); a zone's edge dragged on the timeline sets the
+  length (centred on the cut, one Undo step).
+- **One selected clip:** the transition goes on its cut nearest the playhead.
+- **Several clips:** the Inspector has the rail and collapsible sections as one clip's — «Трансформация» (background, framing,
+  opacity, fades), «ЦВЕТ», «ЗВУК», the holds' outline — in the groups Clip, Holds, Sound. A clip moved onto its own plates' track is refused (not reproduced as a
   deletion; covered by the existing refusal «a template anchored to a clip stays inside that clip»).
 - **«ЦВЕТ»** in capitals as the other sections.
 - **The transition button** has its label «Переход»; with one clip selected it takes the clip's cut with the next clip (else the
