@@ -1441,4 +1441,7 @@
   <data name="Magnet_GapsKept" xml:space="preserve">
     <value>Магнит включён, но промежутки главной дорожки закрыть не удалось: {0}</value>
   </data>
+  <data name="Color_OutOfRange" xml:space="preserve">
+    <value>Значение цвета должно быть от −100 до +100.</value>
+  </data>
 </root>

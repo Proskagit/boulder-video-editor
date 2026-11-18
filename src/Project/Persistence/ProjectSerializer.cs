@@ -134,6 +134,12 @@ public static class ProjectSerializer
     /// points, a video clip's sound-only fades and the clean-up. A v24 file has none and is saved as v25.</summary>
     private const int AudioMixVersion = 25;
 
+    private static Core.Color.ColorCorrection ReadColor(ColorDto c)
+    {
+        var color = new Core.Color.ColorCorrection(c.Exposure, c.Brightness, c.Contrast, c.Highlights, c.Shadows, c.Saturation, c.Temperature, c.Tint);
+        return color.IsValid ? color : throw Damaged("colour correction out of range");
+    }
+
     /// <summary>The first version with the main track's magnet and a video clip's colour correction (D069 §6, §7).</summary>
     private const int Phase50Version = 26;
 
@@ -605,6 +611,11 @@ public static class ProjectSerializer
                 Opacity = v.Opacity, Volume = v.Volume, IsMuted = v.IsMuted, Crop = ToDto(v.Crop),
                 IsAudioDetached = v.IsAudioDetached,
                 Background = v.Background == ClipBackground.Blur ? "blur" : null,
+                Color = v.Color.IsNeutral ? null : new ColorDto
+                {
+                    Exposure = v.Color.Exposure, Brightness = v.Color.Brightness, Contrast = v.Color.Contrast, Highlights = v.Color.Highlights,
+                    Shadows = v.Color.Shadows, Saturation = v.Color.Saturation, Temperature = v.Color.Temperature, Tint = v.Color.Tint
+                },
                 Follow = v.Follow is { } follow ? ToDto(follow) : null,
                 Keyframes = v.Keyframes is { } keyframes ? ToDto(keyframes) : null,
                 VolumePoints = ToDto(v.Volumes),
@@ -1165,6 +1176,8 @@ public static class ProjectSerializer
                 // v1–v18: black (D057 §3.7).
                 Background = formatVersion < BackgroundVersion || v.Background is null ? ClipBackground.Black
                     : v.Background == "blur" ? ClipBackground.Blur : throw Damaged("unknown clip background"),
+                // v1–v25: neutral (D069 §7).
+                Color = formatVersion < Phase50Version || v.Color is null ? Core.Color.ColorCorrection.Neutral : ReadColor(v.Color),
                 // v1–v19: neither (D061).
                 Follow = formatVersion < PeopleVersion || v.Follow is null ? null : FromDto(v.Follow, formatVersion),
                 // v1–v23: none (D063).

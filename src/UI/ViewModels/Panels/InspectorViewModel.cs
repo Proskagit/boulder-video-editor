@@ -63,8 +63,9 @@ public sealed partial class InspectorViewModel : ViewModelBase
     /// <param name="dialogs">Asks before a frame is matched to a climb other than the one at the playhead (D056 §1);
     /// without it the match is done without asking.</param>
     public InspectorViewModel(ITimelineEditService edit, StatusService status, IFontCatalog? fonts = null, EditingLock? editingLock = null,
-        ITextBoxMeasurer? textBoxes = null, IDialogService? dialogs = null)
+        ITextBoxMeasurer? textBoxes = null, IDialogService? dialogs = null, IClipFrameSampler? colorFrames = null)
     {
+        ColorFrames = colorFrames;   // D069 §7: «Автоулучшение»
         Group = new ClipGroupViewModel(edit, status, () => editingLock?.IsLocked == true, id => _findAsset?.Invoke(id));
         Group.PropertyChanged += (_, e) =>
         {
@@ -577,6 +578,8 @@ public sealed partial class InspectorViewModel : ViewModelBase
         // D062 amendment 1: a route's orange is its holds alone — the Inspector shows the «Зацепки» section only.
         IsHoldsOnly = selection.IsOrange;
         _findAsset = selection.FindAsset;
+        _clipAsset = selection.Asset;   // D069 §7: «Автоулучшение» decodes the clip's file
+        _clipRate = selection.Rate;
         Group.Show(selection.Selected ?? new[] { selection.Clip });
         var clip = selection.Clip;
         _clip = clip;
@@ -694,6 +697,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
                 IsMuted = audio.IsMuted;
             }
             SyncAudioExtras(_clip);   // D064
+            SyncColor();              // D069 §7
             if (VisualProperties.Of(_clip) is { } visual)
             {
                 PositionX = (decimal)visual.PositionX;

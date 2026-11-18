@@ -469,6 +469,90 @@
             </controls:InspectorSection>
             </Panel>
 
+            <!-- D069 §7: «Цвет» — a video clip's colour correction (Preview = export); «Автоулучшение» sets the sliders from the
+                 clip's frames; each change one Undo step. -->
+            <Panel Classes="category" Tag="Clip">
+            <controls:InspectorSection x:Name="ColorSection" SectionId="color" ResetCommand="{Binding ResetColorCommand}" Title="{x:Static l:Strings.Inspector_ColorHeading}"
+                                       IsVisible="{Binding HasColor}">
+              <StackPanel Spacing="6">
+                <Button x:Name="AutoEnhanceButton" Content="{x:Static l:Strings.Color_Auto}" Command="{Binding AutoEnhanceCommand}"
+                        IsEnabled="{Binding !IsEnhancing}" ToolTip.Tip="{x:Static l:Strings.Color_AutoTip}" Margin="116,0,0,4"/>
+                  <Grid ColumnDefinitions="Auto,Auto,Auto">
+                    <TextBlock Grid.Column="0" Text="{x:Static l:Strings.Color_Exposure}" Classes="label"/>
+                    <Slider Grid.Column="1" x:Name="ColorExposureSlider" Classes="inline" TickFrequency="1" Focusable="False" Minimum="-100" Maximum="100"
+                            Value="{Binding ColorExposure, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}" ToolTip.Tip="{x:Static l:Strings.Color_Exposure}"/>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                      <controls:CommitNumericUpDown Value="{Binding ColorExposure, Mode=TwoWay}" Increment="1" Minimum="{Binding MinColor}"
+                                     Maximum="{Binding MaxColor}" FormatString="0" Width="72"/>
+                    </StackPanel>
+                  </Grid>
+                  <Grid ColumnDefinitions="Auto,Auto,Auto">
+                    <TextBlock Grid.Column="0" Text="{x:Static l:Strings.Color_Brightness}" Classes="label"/>
+                    <Slider Grid.Column="1" x:Name="ColorBrightnessSlider" Classes="inline" TickFrequency="1" Focusable="False" Minimum="-100" Maximum="100"
+                            Value="{Binding ColorBrightness, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}" ToolTip.Tip="{x:Static l:Strings.Color_Brightness}"/>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                      <controls:CommitNumericUpDown Value="{Binding ColorBrightness, Mode=TwoWay}" Increment="1" Minimum="{Binding MinColor}"
+                                     Maximum="{Binding MaxColor}" FormatString="0" Width="72"/>
+                    </StackPanel>
+                  </Grid>
+                  <Grid ColumnDefinitions="Auto,Auto,Auto">
+                    <TextBlock Grid.Column="0" Text="{x:Static l:Strings.Color_Contrast}" Classes="label"/>
+                    <Slider Grid.Column="1" x:Name="ColorContrastSlider" Classes="inline" TickFrequency="1" Focusable="False" Minimum="-100" Maximum="100"
+                            Value="{Binding ColorContrast, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}" ToolTip.Tip="{x:Static l:Strings.Color_Contrast}"/>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                      <controls:CommitNumericUpDown Value="{Binding ColorContrast, Mode=TwoWay}" Increment="1" Minimum="{Binding MinColor}"
+                                     Maximum="{Binding MaxColor}" FormatString="0" Width="72"/>
+                    </StackPanel>
+                  </Grid>
+                  <Grid ColumnDefinitions="Auto,Auto,Auto">
+                    <TextBlock Grid.Column="0" Text="{x:Static l:Strings.Color_Highlights}" Classes="label"/>
+                    <Slider Grid.Column="1" x:Name="ColorHighlightsSlider" Classes="inline" TickFrequency="1" Focusable="False" Minimum="-100" Maximum="100"
+                            Value="{Binding ColorHighlights, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}" ToolTip.Tip="{x:Static l:Strings.Color_Highlights}"/>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                      <controls:CommitNumericUpDown Value="{Binding ColorHighlights, Mode=TwoWay}" Increment="1" Minimum="{Binding MinColor}"
+                                     Maximum="{Binding MaxColor}" FormatString="0" Width="72"/>
+                    </StackPanel>
+                  </Grid>
+                  <Grid ColumnDefinitions="Auto,Auto,Auto">
+                    <TextBlock Grid.Column="0" Text="{x:Static l:Strings.Color_Shadows}" Classes="label"/>
+                    <Slider Grid.Column="1" x:Name="ColorShadowsSlider" Classes="inline" TickFrequency="1" Focusable="False" Minimum="-100" Maximum="100"
+                            Value="{Binding ColorShadows, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}" ToolTip.Tip="{x:Static l:Strings.Color_Shadows}"/>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                      <controls:CommitNumericUpDown Value="{Binding ColorShadows, Mode=TwoWay}" Increment="1" Minimum="{Binding MinColor}"
+                                     Maximum="{Binding MaxColor}" FormatString="0" Width="72"/>
+                    </StackPanel>
+                  </Grid>
+                  <Grid ColumnDefinitions="Auto,Auto,Auto">
+                    <TextBlock Grid.Column="0" Text="{x:Static l:Strings.Color_Saturation}" Classes="label"/>
+                    <Slider Grid.Column="1" x:Name="ColorSaturationSlider" Classes="inline" TickFrequency="1" Focusable="False" Minimum="-100" Maximum="100"
+                            Value="{Binding ColorSaturation, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}" ToolTip.Tip="{x:Static l:Strings.Color_Saturation}"/>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                      <controls:CommitNumericUpDown Value="{Binding ColorSaturation, Mode=TwoWay}" Increment="1" Minimum="{Binding MinColor}"
+                                     Maximum="{Binding MaxColor}" FormatString="0" Width="72"/>
+                    </StackPanel>
+                  </Grid>
+                  <Grid ColumnDefinitions="Auto,Auto,Auto">
+                    <TextBlock Grid.Column="0" Text="{x:Static l:Strings.Color_Temperature}" Classes="label"/>
+                    <Slider Grid.Column="1" x:Name="ColorTemperatureSlider" Classes="inline" TickFrequency="1" Focusable="False" Minimum="-100" Maximum="100"
+                            Value="{Binding ColorTemperature, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}" ToolTip.Tip="{x:Static l:Strings.Color_Temperature}"/>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                      <controls:CommitNumericUpDown Value="{Binding ColorTemperature, Mode=TwoWay}" Increment="1" Minimum="{Binding MinColor}"
+                                     Maximum="{Binding MaxColor}" FormatString="0" Width="72"/>
+                    </StackPanel>
+                  </Grid>
+                  <Grid ColumnDefinitions="Auto,Auto,Auto">
+                    <TextBlock Grid.Column="0" Text="{x:Static l:Strings.Color_Tint}" Classes="label"/>
+                    <Slider Grid.Column="1" x:Name="ColorTintSlider" Classes="inline" TickFrequency="1" Focusable="False" Minimum="-100" Maximum="100"
+                            Value="{Binding ColorTint, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}" ToolTip.Tip="{x:Static l:Strings.Color_Tint}"/>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                      <controls:CommitNumericUpDown Value="{Binding ColorTint, Mode=TwoWay}" Increment="1" Minimum="{Binding MinColor}"
+                                     Maximum="{Binding MaxColor}" FormatString="0" Width="72"/>
+                    </StackPanel>
+                  </Grid>
+              </StackPanel>
+            </controls:InspectorSection>
+            </Panel>
+
             <!-- Fades (Phase 10, D025): every clip kind, in whole frames of the project rate; the time is shown next to
                  each. On an edge with a dissolve the fade is kept but not applied (PO-8). -->
 

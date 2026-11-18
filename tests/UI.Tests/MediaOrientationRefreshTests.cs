@@ -282,6 +282,7 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult SetTrackDucking(Guid trackId, Core.Audio.DuckingSettings? ducking, object? gesture = null) => No;
         public TimelineEditResult SetMasterVolume(double volume, object? gesture = null) => No;
         public TimelineEditResult SetMagneticMainTrack(bool on) => No;
+        public TimelineEditResult SetClipColor(Guid clipId, AiVideoEditor.Core.Color.ColorCorrection color, object? gesture = null) => No;
         public TimelineEditResult BakeDucking(Guid trackId, Core.Audio.DuckingCurve curve) => No;
         public int CountClipsUsing(Guid mediaAssetId) => 0;
         public string? GetRemoveMediaBlockReason(Guid mediaAssetId) => null;

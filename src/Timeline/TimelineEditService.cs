@@ -2740,7 +2740,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 // curve, so the picture does not change at the cut; each part shows and edits its own.
                 Keyframes = v.Keyframes,
                 // D034 §6 / D053: the routes go with the copy; they are immutable, so the two clips stay independent.
-                Routes = v.Routes
+                Routes = v.Routes,
+                Color = v.Color   // D069 §7 (immutable)
             },
             AudioClip a => new AudioClip
             {

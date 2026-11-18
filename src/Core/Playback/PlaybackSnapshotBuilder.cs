@@ -96,6 +96,7 @@ public static class PlaybackSnapshotBuilder
                     {
                         Visual = VisualProperties.Of(media) ?? VisualProperties.Default,
                         Background = media is VideoClip { Background: var background } ? background : ClipBackground.Black,
+                        Color = media is VideoClip { Color: var color } ? color : Core.Color.ColorCorrection.Neutral,   // D069 §7
                         // D063: the clip's transform keyframes, evaluated per frame (the Preview and the export alike).
                         Keyframes = (media as VideoClip)?.Keyframes,
                         Speed = media.Speed,

@@ -45,12 +45,12 @@ public sealed class InspectorFieldStyleTests
     {
         var fields = Inspector().Descendants().Where(e => e.Name.LocalName == "CommitNumericUpDown").ToList();
 
-        Assert.Equal(38, fields.Count);                         // Phase 27: + outline thickness, background opacity, two durations; Phase 28: + a transition's seconds; D048: + the hold animation's duration, the route's colour tolerance; D058: + the group's opacity, volume and outline width; D061 amendment 1: + the climber's place in the frame (X, Y); D064: + the sound fades in / out, the noise reduction, the voice enhancement; D065: + the hold contour's smoothing
+        Assert.Equal(46, fields.Count);                         // Phase 27: + outline thickness, background opacity, two durations; Phase 28: + a transition's seconds; D048: + the hold animation's duration, the route's colour tolerance; D058: + the group's opacity, volume and outline width; D061 amendment 1: + the climber's place in the frame (X, Y); D064: + the sound fades in / out, the noise reduction, the voice enhancement; D065: + the hold contour's smoothing; D069 §7: + the eight colour values
         // D068 amendment 1: compact fields with their arrows in one column (as CapCut) — 72 px on a slider's line, 84 otherwise.
         static bool OnSliderLine(System.Xml.Linq.XElement f) =>
             f.Parent?.Parent is { } row && row.Elements().Any(e => e.Name.LocalName == "Slider" && (string?)e.Attribute("Classes") == "inline");
         Assert.All(fields, f => Assert.Equal(OnSliderLine(f) ? "72" : "84", (string?)f.Attribute("Width")));
-        Assert.Equal(14, fields.Count(OnSliderLine));
+        Assert.Equal(22, fields.Count(OnSliderLine));   // D069 §7: + the eight colour sliders
     }
 
     /// <summary>FU-25.2: the three whole-value fields step by 1 and show a whole value as whole (a saved fraction as it is);

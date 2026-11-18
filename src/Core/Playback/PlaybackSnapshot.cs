@@ -45,6 +45,9 @@ public sealed record PictureSpan(
     /// <summary>D057 §3.7: the canvas around the picture — black or the picture blurred (presentation only).</summary>
     public Entities.ClipBackground Background { get; init; }
 
+    /// <summary>D069 §7: the colour correction of the picture (presentation only; neutral: none).</summary>
+    public Color.ColorCorrection Color { get; init; } = AiVideoEditor.Core.Color.ColorCorrection.Neutral;
+
     /// <summary>The clip's speed (D022): part of the timing, so a change is never presentation-only.</summary>
     public ClipSpeed Speed { get; init; }
 

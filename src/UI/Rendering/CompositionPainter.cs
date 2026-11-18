@@ -332,7 +332,11 @@ public static class FrameBitmap
         return new WriteableBitmap(new PixelSize(frame.Width, frame.Height), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Unpremul);
     }
 
-    public static void Copy(DecodedFrame frame, WriteableBitmap bitmap)
+    public static void Copy(DecodedFrame frame, WriteableBitmap bitmap) => Copy(frame, bitmap, null);
+
+    /// <summary>D069 §7: the frame's pixels with the clip's colour correction applied on the way (the frame itself is never
+    /// changed — decoders and caches share it); a neutral or null correction copies them as they are.</summary>
+    public static void Copy(DecodedFrame frame, WriteableBitmap bitmap, Core.Color.ColorCorrection? color)
     {
         using var target = bitmap.Lock();
         // DecodedFrame buffers are array-backed; copy rows straight from the array.
@@ -342,5 +346,19 @@ public static class FrameBitmap
         var rowBytes = frame.Width * DecodedFrame.BytesPerPixel;
         for (var y = 0; y < frame.Height; y++)
             Marshal.Copy(source.Array!, source.Offset + y * frame.Stride, target.Address + y * target.RowBytes, rowBytes);
+        if (color is { IsNeutral: false })
+            Correct(target.Address, target.RowBytes, frame.Width, frame.Height, Core.Color.ColorAdjust.For(color));   // in the bitmap's memory
+    }
+
+    /// <summary>D069 §7: the correction applied to the bitmap's rows in place (rows in parallel for a large picture).</summary>
+    private static unsafe void Correct(nint address, int rowBytes, int width, int height, Core.Color.ColorAdjust adjust)
+    {
+        var bytes = width * DecodedFrame.BytesPerPixel;
+        if ((long)width * height < 200_000)
+        {
+            for (var y = 0; y < height; y++) adjust.ApplyRow(new Span<byte>((byte*)address + (long)y * rowBytes, bytes));
+            return;
+        }
+        Parallel.For(0, height, y => adjust.ApplyRow(new Span<byte>((byte*)address + (long)y * rowBytes, bytes)));
     }
 }

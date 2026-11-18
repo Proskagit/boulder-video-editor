@@ -1441,4 +1441,7 @@
   <data name="Magnet_GapsKept" xml:space="preserve">
     <value>The magnet is on, but the main track's gaps could not be closed: {0}</value>
   </data>
+  <data name="Color_OutOfRange" xml:space="preserve">
+    <value>A colour value must lie between −100 and +100.</value>
+  </data>
 </root>

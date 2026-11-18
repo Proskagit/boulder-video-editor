@@ -30,7 +30,12 @@ public abstract record DrawOperation(Guid ClipId, Affine2D Transform, double Opa
 /// </summary>
 public sealed record FrameDraw(Guid ClipId, Affine2D Transform, double Opacity, RectD LocalRect, DecodedFrame Frame, RectD FrameSourceRect,
     bool IsBackground = false)
-    : DrawOperation(ClipId, Transform, Opacity);
+    : DrawOperation(ClipId, Transform, Opacity)
+{
+    /// <summary>D069 §7: the colour correction a painter applies to <see cref="Frame"/>'s pixels when it uploads them (the
+    /// Preview and the export alike); neutral: none.</summary>
+    public Color.ColorCorrection Color { get; init; } = AiVideoEditor.Core.Color.ColorCorrection.Neutral;
+}
 
 /// <summary>
 /// A text layer. Text box geometry (the rule every renderer follows, D018/D021): the text is laid out at
@@ -277,7 +282,7 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
         if (Operation(canvas, Affine2D.Identity, resolved) is not FrameDraw placed) return null;
         var blurred = BackgroundBlur.Of(frame, canvas, placed.LocalRect, placed.FrameSourceRect);
         return new FrameDraw(picture.ClipId, canvasToTarget, picture.Opacity, new RectD(0, 0, canvas.Width, canvas.Height), blurred,
-            new RectD(0, 0, blurred.Width, blurred.Height), IsBackground: true);
+            new RectD(0, 0, blurred.Width, blurred.Height), IsBackground: true) { Color = picture.Span.Color };
     }
 
     /// <summary>D034 §4: the stroke in canvas (= output) pixels — <c>StrokeWidth1080 × short side / 1080</c>.</summary>
@@ -318,7 +323,7 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
                 var n = geometry.NormalizedSourceRect;
                 return new FrameDraw(picture.ClipId, canvasToTarget.Compose(picture.Motion.Apply(canvas, geometry.Transform)), picture.Opacity,
                     new RectD(0, 0, geometry.SourceRect.Width, geometry.SourceRect.Height), frame,
-                    new RectD(n.X * frame.Width, n.Y * frame.Height, n.Width * frame.Width, n.Height * frame.Height));
+                    new RectD(n.X * frame.Width, n.Y * frame.Height, n.Width * frame.Width, n.Height * frame.Height)) { Color = picture.Span.Color };
             }
 
             default:

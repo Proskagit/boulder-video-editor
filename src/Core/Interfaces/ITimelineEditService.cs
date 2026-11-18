@@ -341,6 +341,10 @@ public interface ITimelineEditService
     /// a locked track.</summary>
     TimelineEditResult SetClipFollow(Guid clipId, FollowSettings? follow, bool? hideOutlinesBehindPeople = null, ClipPropertyGesture? gesture = null);
 
+    /// <summary>D069 §7: sets a video clip's colour correction — one Undo step; the changes of one <paramref name="gesture"/> (a
+    /// slider's drag) merge into one. Refused for a clip without a picture of its own, on a locked track, or out of range.</summary>
+    TimelineEditResult SetClipColor(Guid clipId, Color.ColorCorrection color, object? gesture = null);
+
     /// <summary>D061: whether a video clip's hold outlines are hidden behind people (Occlusion); one undo step.</summary>
     TimelineEditResult SetClipHidesOutlinesBehindPeople(Guid clipId, bool hides);
 

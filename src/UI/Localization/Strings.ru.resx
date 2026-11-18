@@ -3852,4 +3852,52 @@
   <data name="Magnet_Off" xml:space="preserve">
     <value>Магнит главной дорожки выключен.</value>
   </data>
+  <data name="Inspector_ColorHeading" xml:space="preserve">
+    <value>Цвет</value>
+  </data>
+  <data name="Color_Exposure" xml:space="preserve">
+    <value>Экспозиция</value>
+  </data>
+  <data name="Color_Brightness" xml:space="preserve">
+    <value>Яркость</value>
+  </data>
+  <data name="Color_Contrast" xml:space="preserve">
+    <value>Контраст</value>
+  </data>
+  <data name="Color_Highlights" xml:space="preserve">
+    <value>Света</value>
+  </data>
+  <data name="Color_Shadows" xml:space="preserve">
+    <value>Тени</value>
+  </data>
+  <data name="Color_Saturation" xml:space="preserve">
+    <value>Насыщенность</value>
+  </data>
+  <data name="Color_Temperature" xml:space="preserve">
+    <value>Температура</value>
+  </data>
+  <data name="Color_Tint" xml:space="preserve">
+    <value>Оттенок</value>
+  </data>
+  <data name="Color_Auto" xml:space="preserve">
+    <value>Автоулучшение</value>
+  </data>
+  <data name="Color_AutoTip" xml:space="preserve">
+    <value>Выставляет слайдеры по кадрам клипа; потом их можно подправить</value>
+  </data>
+  <data name="Color_AutoRunning" xml:space="preserve">
+    <value>Анализ кадров клипа…</value>
+  </data>
+  <data name="Color_AutoDone" xml:space="preserve">
+    <value>Автоулучшение применено — слайдеры можно подправить.</value>
+  </data>
+  <data name="Color_AutoNoFrames" xml:space="preserve">
+    <value>Не удалось прочитать кадры клипа — ничего не изменено.</value>
+  </data>
+  <data name="Color_AutoFailed" xml:space="preserve">
+    <value>Автоулучшение не удалось: {0}</value>
+  </data>
+  <data name="Color_AutoUnavailable" xml:space="preserve">
+    <value>Для автоулучшения нужен файл клипа.</value>
+  </data>
 </root>

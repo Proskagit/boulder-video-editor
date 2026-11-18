@@ -179,6 +179,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ProjectFileWorkflow>();
         services.AddSingleton<IProjectSettingsDialog, AvaloniaProjectSettingsDialog>();
         services.AddSingleton<IProjectSaveAsDialog, AvaloniaProjectSaveAsDialog>();
+        services.AddSingleton<IClipFrameSampler, ClipFrameSampler>();   // D069 §7: «Автоулучшение»
         services.AddSingleton<ProjectSettingsWorkflow>();
 
         // --- UI view models -------------------------------------------------------

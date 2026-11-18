@@ -87,6 +87,9 @@ public sealed class VideoClip : MediaBackedClip
     /// <summary>Crop expressed as normalized (0..1) insets from each edge.</summary>
     public CropRect Crop { get; set; } = CropRect.None;
 
+    /// <summary>D069 §7 (format v26): the colour correction of the clip's picture (neutral: none).</summary>
+    public Color.ColorCorrection Color { get; set; } = AiVideoEditor.Core.Color.ColorCorrection.Neutral;
+
     /// <summary>D057 §3.7: what fills the canvas around the picture — black (D018, the default) or the clip's own picture,
     /// filled to the canvas and blurred (`project.json` v19).</summary>
     public ClipBackground Background { get; set; }
