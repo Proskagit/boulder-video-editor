@@ -257,6 +257,9 @@ public sealed partial class RecentProjectItemViewModel : ViewModelBase
     public string Name { get; }
     public DateTimeOffset LastUsedAt { get; }
 
+    /// <summary>D068 item 5: when the project was last used, for the start screen (local time).</summary>
+    public string LastUsedText => LastUsedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+
     public IAsyncRelayCommand OpenCommand { get; }
     public IAsyncRelayCommand RemoveCommand { get; }
 

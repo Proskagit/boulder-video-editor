@@ -3727,4 +3727,19 @@ If you don't save, your changes will be lost.</value>
   <data name="Holds_ClickKept" xml:space="preserve">
     <value>Click kept — the outline appears as soon as the model is ready…</value>
   </data>
+  <data name="StartScreen_Tagline" xml:space="preserve">
+    <value>Bouldering videos: holds, routes, training data</value>
+  </data>
+  <data name="StartScreen_New" xml:space="preserve">
+    <value>Create project</value>
+  </data>
+  <data name="StartScreen_Open" xml:space="preserve">
+    <value>Open…</value>
+  </data>
+  <data name="StartScreen_Recent" xml:space="preserve">
+    <value>Recent projects</value>
+  </data>
+  <data name="StartScreen_NoRecent" xml:space="preserve">
+    <value>No recent projects yet. Create one or open a project folder.</value>
+  </data>
 </root>

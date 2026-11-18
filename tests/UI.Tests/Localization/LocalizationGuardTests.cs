@@ -25,7 +25,8 @@ public sealed partial class LocalizationGuardTests
     private static readonly HashSet<string> AxamlAllowed = new(StringComparer.Ordinal)
     {
         "M",  // the mute button of a track header (as in other editors; its tooltip is translated)
-        "S"   // D064: the solo button of a track header and the mixer (as in other editors; its tooltip is translated)
+        "S",  // D064: the solo button of a track header and the mixer (as in other editors; its tooltip is translated)
+        "Boulder Video Editor"   // D068 §1: the product's name on the start screen — not translated
     };
 
     [Fact]

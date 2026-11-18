@@ -3731,4 +3731,19 @@
   <data name="Holds_ClickKept" xml:space="preserve">
     <value>Щелчок принят — контур появится, как только модель будет готова…</value>
   </data>
+  <data name="StartScreen_Tagline" xml:space="preserve">
+    <value>Видео о боулдеринге: зацепки, трассы, данные тренировки</value>
+  </data>
+  <data name="StartScreen_New" xml:space="preserve">
+    <value>Создать проект</value>
+  </data>
+  <data name="StartScreen_Open" xml:space="preserve">
+    <value>Открыть…</value>
+  </data>
+  <data name="StartScreen_Recent" xml:space="preserve">
+    <value>Недавние проекты</value>
+  </data>
+  <data name="StartScreen_NoRecent" xml:space="preserve">
+    <value>Недавних проектов пока нет. Создайте новый или откройте папку проекта.</value>
+  </data>
 </root>

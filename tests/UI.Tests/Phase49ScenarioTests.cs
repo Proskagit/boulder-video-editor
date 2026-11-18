@@ -120,4 +120,25 @@ public sealed class Phase49ScenarioTests : IDisposable
         Assert.True(inspector.ShowsTrainingImport);            // inside the «FIT-тренировка» section, which is shown
         Assert.True(inspector.ShowsTraining);
     }
+
+    /// <summary>D068 item 5: the start screen lies over the new project until the user creates one, opens one, or the new
+    /// one changes.</summary>
+    [Fact]
+    public void The_start_screen_steps_aside_on_create_and_closes_when_the_project_changes()
+    {
+        var opened = 0;
+        var screen = new StartScreenViewModel(null, new AsyncRelayCommand(() => { opened++; return Task.CompletedTask; }), _projects);
+        Assert.True(screen.IsVisible);
+
+        screen.OpenCommand.Execute(null);
+        Assert.Equal(1, opened);
+        Assert.True(screen.IsVisible);                    // the picker was cancelled: nothing opened
+
+        screen.NewProjectCommand.Execute(null);
+        Assert.False(screen.IsVisible);
+
+        var again = new StartScreenViewModel(null, new AsyncRelayCommand(() => Task.CompletedTask), _projects);
+        _projects.AddMediaAssets(new[] { Video("x.mp4") });
+        Assert.False(again.IsVisible);                    // the new project changed (a file imported)
+    }
 }

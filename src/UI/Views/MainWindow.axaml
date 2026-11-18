@@ -4,6 +4,7 @@
         mc:Ignorable="d"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:panels="using:AiVideoEditor.UI.Views.Panels"
+        xmlns:views="using:AiVideoEditor.UI.Views"
         xmlns:l="using:AiVideoEditor.UI.Localization"
         xmlns:controls="using:AiVideoEditor.UI.Controls"
         x:Class="AiVideoEditor.UI.Views.MainWindow"
@@ -32,6 +33,11 @@
 
     <!-- Timeline -->
     <panels:TimelineView Grid.Row="3" DataContext="{Binding Timeline}"/>
+
+    <!-- D068 item 5: the start screen lies over the panels and the timeline (the tool bar stays usable) until a project is
+         open or the new one changes. -->
+    <views:StartScreenView x:Name="StartScreen" Grid.Row="1" Grid.RowSpan="3" DataContext="{Binding StartScreen}"
+                           IsVisible="{Binding IsVisible}"/>
 
     <!-- Status bar -->
     <!-- D039 §6: a long message is trimmed with an ellipsis; the whole of it is in the bar's tooltip. -->

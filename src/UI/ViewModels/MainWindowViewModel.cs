@@ -47,6 +47,9 @@ public sealed class MainWindowViewModel : ViewModelBase
     public string Title => $"{_projectService.Current.Name}{(_projectService.Current.IsDirty ? "*" : "")} — Boulder Video Editor";
 
     public ToolbarViewModel Toolbar { get; }
+
+    /// <summary>D068 item 5: the first screen at startup.</summary>
+    public StartScreenViewModel StartScreen { get; }
     public MediaBrowserViewModel MediaBrowser { get; }
     public PreviewViewModel Preview { get; }
     public InspectorViewModel Inspector { get; }
@@ -106,6 +109,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         Status = status;
         _projectFiles = projectFiles;
         _projectService = projectService;
+        StartScreen = new StartScreenViewModel(toolbar.Recent, toolbar.OpenCommand, projectService);   // D068 item 5
         _logger = logger;
         _projectService.SaveStateChanged += (_, _) => OnPropertyChanged(nameof(Title));
 
