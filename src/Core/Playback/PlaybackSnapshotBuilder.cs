@@ -27,6 +27,17 @@ public static class PlaybackSnapshotBuilder
     /// its own framing and its outlines are drawn over everything, exactly as before.</param>
     /// <param name="audioAnalyses">D064 §4–§5: the cleaned sounds ready so far and the speech found in the sources; null — every
     /// clip's original sound and no ducking.</param>
+    /// <summary>D069 amendment 2: whether the file has <paramref name="extension"/> of timeline time (at the clip's speed, plus a
+    /// frame of margin) before the clip's source start or after its source end; an unknown duration has nothing after.</summary>
+    private static bool SourceCovers(MediaBackedClip clip, MediaAsset? asset, MediaTime extension, bool beforeStart, FrameRate rate)
+    {
+        if (clip is not VideoClip) return true;
+        var speed = (double)clip.Speed.Numerator / clip.Speed.Denominator;
+        var needed = (extension.Ticks + MediaTime.FromFrame(1, rate).Ticks) * speed;
+        if (beforeStart) return clip.SourceIn.Ticks >= needed;
+        return asset?.Metadata is { Duration: var duration } && duration > MediaTime.Zero && (duration - clip.SourceOut).Ticks >= needed;
+    }
+
     public static PlaybackSnapshot Build(Project project, long version, IReadOnlyDictionary<RouteKey, CameraMotionTrack>? motion = null,
         MediaTime heartRateDisplayOffset = default, People.PeopleAnalyses? people = null, Audio.AudioAnalyses? audioAnalyses = null)
     {
@@ -108,6 +119,11 @@ public static class PlaybackSnapshotBuilder
                         // Only Dissolve and Push show the clips past the cut, from their handles (D044 §3).
                         ExtendedStart = dissolves.FirstOrDefault(z => z.RightClipId == clip.Id && z.ExtendsPictures)?.Start,
                         ExtendedEnd = dissolves.FirstOrDefault(z => z.LeftClipId == clip.Id && z.ExtendsPictures)?.End,
+                        // D069 amendment 2: an extension the source cannot fill holds the clip's edge frame.
+                        HoldsFirstFrame = dissolves.FirstOrDefault(z => z.RightClipId == clip.Id && z.ExtendsPictures) is { } before &&
+                                          !SourceCovers(media, asset, clip.TimelineStart - before.Start, beforeStart: true, project.Settings.FrameRate),
+                        HoldsLastFrame = dissolves.FirstOrDefault(z => z.LeftClipId == clip.Id && z.ExtendsPictures) is { } after &&
+                                         !SourceCovers(media, asset, after.End - clip.TimelineEnd, beforeStart: false, project.Settings.FrameRate),
                         // D053: one outline per route with holds, each with its own animation and camera-motion track.
                         Outlines = media is VideoClip routed
                             ? routed.Routes.Select(route => WithMotion(HoldOutline.Of(route, clip.TimelineStart, media.SourceIn, media.Speed, rate),

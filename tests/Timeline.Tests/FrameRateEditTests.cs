@@ -288,39 +288,32 @@ public class FrameRateEditTests
     }
 
     [Fact]
-    public void FR1_a_rate_change_that_moves_no_clip_still_checks_every_dissolves_source_handles()
+    public void FR1_a_rate_change_with_a_dissolve_short_of_source_keeps_it_holding_the_edge_frame()
     {
         // At 60 fps the same 0.1 s dissolve is 6 frames, 3 before the cut: B needs 0.05 s of source before it and has
-        // only 1 / 30 s. No clip moves (30 fps edges are 60 fps edges), so before the FR-1 fix the dissolve was not
-        // "touched", its handles were not checked and the change left an invalid dissolve.
+        // only 1 / 30 s. D069 amendment 2: a video transition no longer needs the source — B holds its first frame there.
         var (f, dissolve) = TightDissolve();
-        var (before, top, changes) = (f.Snapshot(), f.UndoRedo.CurrentPosition, f.TimelineChangedCount);
 
         var result = f.Service.SetFrameRate(FrameRate.Fps60);
 
-        Assert.False(result.Success);
-        Assert.Contains(TimelineEditService.NotEnoughMedia, result.Message);
-        Assert.Equal(FrameRate.Fps30, f.Settings.FrameRate);
-        Assert.Equal(before, f.Snapshot());
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(FrameRate.Fps60, f.Settings.FrameRate);
         Assert.Same(dissolve, f.V1.Transitions.Single());
-        Assert.Same(top, f.UndoRedo.CurrentPosition);
-        Assert.Equal(changes, f.TimelineChangedCount);
-        Assert.False(f.Project.IsDirty);
+        f.UndoRedo.Undo();
+        Assert.Equal(FrameRate.Fps30, f.Settings.FrameRate);
     }
 
     [Fact]
-    public void FR1_the_first_video_fixing_the_rate_checks_every_dissolves_source_handles_too()
+    public void FR1_the_first_video_fixing_the_rate_keeps_a_dissolve_short_of_source_too()
     {
-        // The same timeline on the provisional 30 fps; the first video added at 60 fps would fix the rate and re-grid it.
+        // The same timeline on the provisional 30 fps; the first video added at 60 fps fixes the rate and re-grids it
+        // (D069 amendment 2: the dissolve is kept, B holds its first frame where its source is short).
         var (f, dissolve) = TightDissolve(locked: false);
-        var before = f.Snapshot();
 
         var result = f.Service.AddClip(Video(f, FrameRate.Fps60, name: "sixty.mp4").Id, f.V1.Id, At(300, FrameRate.Fps30));
 
-        Assert.False(result.Success);
-        Assert.Contains(TimelineEditService.NotEnoughMedia, result.Message);
-        Assert.Equal((FrameRate.Fps30, false), (f.Settings.FrameRate, f.Settings.IsFrameRateLocked));
-        Assert.Equal(before, f.Snapshot());
+        Assert.True(result.Success, result.Message);
+        Assert.Equal((FrameRate.Fps60, true), (f.Settings.FrameRate, f.Settings.IsFrameRateLocked));
         Assert.Same(dissolve, f.V1.Transitions.Single());
     }
 

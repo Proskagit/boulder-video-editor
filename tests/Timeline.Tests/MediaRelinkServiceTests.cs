@@ -411,7 +411,7 @@ public sealed class MediaRelinkServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task A_file_too_short_for_a_dissolve_is_warned_about()
+    public async Task A_file_too_short_for_a_dissolve_needs_no_warning_any_more()
     {
         var a = Offline("a.mp4", MediaKind.Video, VideoMeta(10));
         var b = Offline("b.mp4", MediaKind.Video, VideoMeta(10));
@@ -424,17 +424,15 @@ public sealed class MediaRelinkServiceTests : IDisposable
 
         var check = await _relink.CheckAsync(a.Id, NewFile("a2.mp4", VideoMeta(2.2)));   // 5 frames beyond the clip
 
+        // D069 amendment 2: the dissolve holds the clip's last frame where the new file ends — nothing to warn about.
         Assert.True(check.CanApply);
-        Assert.Equal(RelinkWarningKind.DissolveHandles, Assert.Single(check.Warnings).Kind);
-        Assert.Equal("The new file lacks source frames the transition \"Dissolve\" needs beyond a clip; an export with it will be refused " +
-            "until it is shortened or removed.", check.Warnings[0].Message);
-        Assert.Empty((await _relink.CheckAsync(a.Id, NewFile("a3.mp4", VideoMeta(3)))).Warnings);
+        Assert.Empty(check.Warnings);
     }
 
     /// <summary>D025 §4 as changed in Phase 28: the warning counts the types that take frames beyond their clips — Dissolve
     /// and Push — and says the export will be refused; Dip to black, Flash and Zoom need nothing from the new file.</summary>
     [Theory]
-    [InlineData(TransitionRules.Push, "Push")]
+    [InlineData(TransitionRules.Push, null)]   // D069 amendment 2: no video type needs the new file's frames
     [InlineData(TransitionRules.DipToBlack, null)]
     [InlineData(TransitionRules.Flash, null)]
     [InlineData(TransitionRules.Zoom, null)]

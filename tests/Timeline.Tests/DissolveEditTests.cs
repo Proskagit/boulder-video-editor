@@ -84,7 +84,7 @@ public class DissolveEditTests
     }
 
     [Fact]
-    public void Untrimmed_clips_have_no_handles_and_get_no_dissolve()
+    public void Untrimmed_clips_have_no_handles_and_get_a_dissolve_holding_their_edge_frames()
     {
         var f = new TimelineFixture();
         var video = f.Video(4, FrameRate.Fps25);
@@ -93,11 +93,12 @@ public class DissolveEditTests
         var (a, b) = (f.V1.Clips[0], f.V1.Clips[1]);
         var before = f.Snapshot();
 
-        Assert.Equal(0, f.Service.MaxTransitionFrames(a.Id, b.Id));
+        Assert.True(f.Service.MaxTransitionFrames(a.Id, b.Id) >= 10);         // D069 amendment 2: the edge frames are held
         var result = f.Service.AddTransition(a.Id, b.Id, F(f, 10));
 
-        Assert.False(result.Success);
-        Assert.Equal(TimelineEditService.NotEnoughMedia, result.Message);
+        Ok(result);
+        Assert.Single(f.V1.Transitions);
+        f.UndoRedo.Undo();
         Assert.Equal(before, f.Snapshot());
     }
 
@@ -143,8 +144,8 @@ public class DissolveEditTests
         Ok(f.Service.AddTextClip(F(f, 150)));                                      // [150, 300), the same (only) track
         var (image, text) = (f.V1.Clips[0], f.V1.Clips[1]);
 
-        Assert.Equal(300, f.Service.MaxTransitionFrames(image.Id, text.Id));      // only the zone limits it
-        AddDissolve(f, image, text, 300);
+        Assert.Equal(150, f.Service.MaxTransitionFrames(image.Id, text.Id));      // only 5 s limits it (D069 amendment 2)
+        AddDissolve(f, image, text, 150);
         f.AssertValid();
     }
 
@@ -152,8 +153,8 @@ public class DissolveEditTests
     public void An_odd_dissolve_at_ntsc_puts_the_floor_half_before_the_cut()
     {
         var (f, a, b) = Cut(seconds: 10, splitAt: 100, rate: FrameRate.Ntsc30);   // 299 frames
-        // A: 299 − 100 = 199 after; B: 100 before; ⌊F/2⌋ ≤ min(100, 100), ⌈F/2⌉ ≤ min(199, 199) → 201.
-        Assert.Equal(201, f.Service.MaxTransitionFrames(a.Id, b.Id));
+        // The clips would take 201; at most 5 s = 149 frames at 29.97 (D069 amendment 2).
+        Assert.Equal(149, f.Service.MaxTransitionFrames(a.Id, b.Id));
         var dissolve = AddDissolve(f, a, b, 7);
 
         Assert.Equal(7, TransitionRules.Frames(dissolve.Duration, f.Rate));
@@ -192,7 +193,7 @@ public class DissolveEditTests
         Assert.Equal("Change Dissolve Duration", Top(f));
         Assert.True(f.Service.SetTransitionDuration(dissolve.Id, F(f, 30)).NoChange);
         Assert.Contains("at least 3", f.Service.SetTransitionDuration(dissolve.Id, F(f, 2)).Message);   // 0.1 s at 30 fps (D044 §5)
-        Assert.Contains("longest that fits is 201", f.Service.SetTransitionDuration(dissolve.Id, F(f, 250)).Message);   // ⌊F/2⌋ ≤ 100 in A
+        Assert.Contains("125", f.Service.SetTransitionDuration(dissolve.Id, F(f, 250)).Message);   // at most 5 s at 25 fps (D069 amendment 2)
 
         f.UndoRedo.Undo();                                                        // both resizes at once
         Assert.Equal(added, f.Snapshot());
@@ -218,10 +219,10 @@ public class DissolveEditTests
         var c = f.V1.Clips[2];                                                    // A [0, 100), B [100, 200), C [200, 500)
         var first = AddDissolve(f, a, b, 40);                                     // 20 frames in B
 
-        // B has 100 − 20 = 80 frames left; C's handle before is 200, B's after 300 → ⌊F/2⌋ ≤ 80, ⌈F/2⌉ ≤ 300 → 161.
-        Assert.Equal(161, f.Service.MaxTransitionFrames(b.Id, c.Id));
-        AddDissolve(f, b, c, 161);
-        Assert.False(f.Service.SetTransitionDuration(first.Id, F(f, 42)).Success);   // 21 + 80 > 100
+        // B has 100 − 20 = 80 frames left → ⌊F/2⌋ ≤ 80 → 161, but at most 5 s = 125 at 25 fps (D069 amendment 2).
+        Assert.Equal(125, f.Service.MaxTransitionFrames(b.Id, c.Id));
+        AddDissolve(f, b, c, 125);                                                // 62 frames in B
+        Assert.False(f.Service.SetTransitionDuration(first.Id, F(f, 78)).Success);   // 39 + 62 > 100
         f.AssertValid();
     }
 
@@ -408,16 +409,15 @@ public class DissolveEditTests
     }
 
     [Fact]
-    public void A_speed_change_of_B_that_leaves_too_short_a_handle_is_rejected()
+    public void A_speed_change_of_B_that_leaves_too_short_a_handle_keeps_the_dissolve()
     {
         var (f, a, b) = Cut(splitAt: 10);                                         // B's handle before: 10 frames at 1×
         AddDissolve(f, a, b, 20);                                                 // needs 10 before the cut
-        var before = f.Snapshot();
 
-        var faster = f.Service.SetClipSpeed(b.Id, ClipSpeed.FromSteps(40));     // at 2× only 5
-        Assert.False(faster.Success);
-        Assert.Contains(TimelineEditService.NotEnoughMedia, faster.Message);
-        Assert.Equal(before, f.Snapshot());
+        var faster = f.Service.SetClipSpeed(b.Id, ClipSpeed.FromSteps(40));     // at 2× only 5: B holds its first frame
+        Ok(faster);                                                               // (D069 amendment 2)
+        Assert.Single(f.V1.Transitions);
+        f.UndoRedo.Undo();
 
         Ok(f.Service.SetClipSpeed(b.Id, ClipSpeed.FromSteps(10)));               // at 0.5× 20: fine
         Assert.Single(f.V1.Transitions);
@@ -462,10 +462,8 @@ public class DissolveEditTests
         Ok(f.Service.MoveClips(new[] { other.Id }, 50));
         Assert.Same(dissolve, Assert.Single(f.V1.Transitions));
 
-        // An edit that touches it checks the handles.
-        var touched = f.Service.SetTransitionDuration(dissolve.Id, F(f, 22));
-        Assert.False(touched.Success);
-        Assert.Contains("the longest that fits is 4 frames", touched.Message);   // ⌈F/2⌉ ≤ 2 frames of handle
-        Assert.Equal(F(f, 20), dissolve.Duration);
+        // D069 amendment 2: an edit that touches it is not limited by the handles either (the last frame is held).
+        Ok(f.Service.SetTransitionDuration(dissolve.Id, F(f, 22)));
+        Assert.Equal(F(f, 22), dissolve.Duration);
     }
 }

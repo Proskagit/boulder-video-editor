@@ -312,7 +312,7 @@ public sealed class MediaRelinkService : IMediaRelinkService
         var types = new List<string>();
         foreach (var track in project.Timeline.VideoTracks)
         {
-            foreach (var transition in track.Transitions.Where(t => TransitionRules.RequiresHandles(t.TransitionTypeId)))
+            foreach (var transition in track.Transitions.Where(t => TransitionRules.NeedsSourceHandles(t.TransitionTypeId)))
             {
                 var left = track.Clips.FirstOrDefault(c => c.Id == transition.LeftClipId);
                 var right = track.Clips.FirstOrDefault(c => c.Id == transition.RightClipId);

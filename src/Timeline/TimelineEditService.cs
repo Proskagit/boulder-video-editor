@@ -1217,7 +1217,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             // A dissolve on the dragged edge needs the source beyond it: A after its end, B before its start (D025 §4) — only
             // the types that need handles (D044 §3: Dissolve, Push; D032: the crossfade).
             var needed = 0L;
-            foreach (var t in track.Transitions.Where(t => TransitionRules.RequiresHandles(t.TransitionTypeId)))
+            foreach (var t in track.Transitions.Where(t => TransitionRules.NeedsSourceHandles(t.TransitionTypeId)))
             {
                 var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(t.Duration, rate));
                 if (edge == ClipEdge.End && t.LeftClipId == clip.Id) needed = afterCut;
@@ -1362,7 +1362,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         // A dissolve keeps the source it needs beyond the clip (D025 §4): before its start (B), after its end (A) — only the
         // types that need handles (D044 §3: Dissolve, Push; D032: the crossfade).
         long needBefore = 0, needAfter = 0;
-        foreach (var t in track.Transitions.Where(t => TransitionRules.RequiresHandles(t.TransitionTypeId)))
+        foreach (var t in track.Transitions.Where(t => TransitionRules.NeedsSourceHandles(t.TransitionTypeId)))
         {
             var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(t.Duration, rate));
             if (t.RightClipId == clip.Id) needBefore = beforeCut;
@@ -2370,7 +2370,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (ResolveCut(plan, leftClipId, rightClipId, out var track, out var left, out var right, allowLocked: true) is not null)
             return null;
         var own = track.Transitions.FirstOrDefault(t => t.LeftClipId == left.Id);
-        return MaxFrames(track, left, right, plan.Rate, except: own, own?.TransitionTypeId ?? TransitionRules.TypeFor(track.Type));
+        var type = own?.TransitionTypeId ?? TransitionRules.TypeFor(track.Type);
+        return Math.Min(MaxFrames(track, left, right, plan.Rate, except: own, type), TransitionRules.MaxFramesOf(type, plan.Rate));   // D069 am. 2: ≤ 5 s
     }
 
     public long? MaxTransitionFrames(Guid leftClipId, Guid rightClipId, string typeId)
@@ -2390,7 +2391,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var min = TransitionRules.MinFramesOf(typeId, rate);
         var max = TransitionRules.MaxFramesOf(typeId, rate);
         if (frames >= min && frames <= max) return null;
-        if (typeId is TransitionRules.CrossDissolve or TransitionRules.Crossfade)
+        if (frames < min && typeId is TransitionRules.CrossDissolve or TransitionRules.Crossfade)
             return string.Format(Tr(noun, Messages.Transition_MinDissolve, Messages.Transition_MinCrossfade), min);
         return max == long.MaxValue
             ? string.Format(Messages.Transition_DurationMin, min)
@@ -2400,7 +2401,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
     /// <summary>Why not even the type's minimum fits the cut: the source handles for a type that needs them (naming the
     /// types that need none, D044 §6), else the clips' length.</summary>
     private static string NothingFits(string typeId, string noun) =>
-        !TransitionRules.RequiresHandles(typeId) ? Messages.TransitionRule_ClipTooShort
+        !TransitionRules.NeedsSourceHandles(typeId) ? Messages.TransitionRule_ClipTooShort
         : typeId == TransitionRules.Crossfade ? NotEnoughMediaFor(noun)
         : Messages.Transition_NotEnoughMediaType;
 
@@ -2435,7 +2436,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
     /// <paramref name="except"/> is the cut's own transition.</summary>
     private long MaxFrames(Track track, Clip left, Clip right, FrameRate rate, Transition? except, string typeId)
     {
-        var handles = TransitionRules.RequiresHandles(typeId);
+        var handles = TransitionRules.NeedsSourceHandles(typeId);
         var others = track.Transitions.Where(t => t != except).ToList();
         long PartAtStart(Clip clip) => others.Where(t => t.RightClipId == clip.Id)
             .Select(t => TransitionRules.Zone(TransitionRules.Frames(t.Duration, rate)).AfterCut).DefaultIfEmpty(0).Max();
@@ -2486,7 +2487,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
     private static string? EdgeTypeOf(Track track, Clip clip, ClipEdge? edge = null, bool handlesOnly = false) =>
         track.Transitions
             .Where(t => (edge != ClipEdge.Start && t.LeftClipId == clip.Id) || (edge != ClipEdge.End && t.RightClipId == clip.Id))
-            .Where(t => !handlesOnly || TransitionRules.RequiresHandles(t.TransitionTypeId))
+            .Where(t => !handlesOnly || TransitionRules.NeedsSourceHandles(t.TransitionTypeId))
             .Select(t => t.TransitionTypeId)
             .OrderBy(id => !IsNamed(id))
             .FirstOrDefault();
@@ -2639,7 +2640,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         foreach (var (transition, state) in transitions)
         {
-            if (!plan.IsTouched(transition) || !TransitionRules.RequiresHandles(state.TypeId)) continue;
+            if (!plan.IsTouched(transition) || !TransitionRules.NeedsSourceHandles(state.TypeId)) continue;
             var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(state.Duration, plan.Rate));
             var left = clips[state.LeftClipId];
             var right = clips[state.RightClipId];

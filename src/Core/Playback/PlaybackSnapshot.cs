@@ -64,6 +64,21 @@ public sealed record PictureSpan(
     public MediaTime? ExtendedStart { get; init; }
     public MediaTime? ExtendedEnd { get; init; }
 
+    /// <summary>D069 amendment 2: the source has too little before the clip's start (after its end) for the zone's extension —
+    /// the extension holds the clip's first (last) frame, as other editors do, instead of the transition being refused.</summary>
+    public bool HoldsFirstFrame { get; init; }
+    public bool HoldsLastFrame { get; init; }
+
+    /// <summary>The timeline frame whose source frame <paramref name="timelineFrame"/> shows: itself, or the clip's own first /
+    /// last frame on an extension the source cannot fill (<see cref="HoldsFirstFrame"/>, <see cref="HoldsLastFrame"/>). The
+    /// Preview's and the export's readers both ask this.</summary>
+    public long SourceFrameOf(long timelineFrame, FrameRate rate)
+    {
+        if (HoldsFirstFrame && timelineFrame < TimelineStart.ToFrameCeiling(rate)) return TimelineStart.ToFrameCeiling(rate);
+        if (HoldsLastFrame && timelineFrame >= TimelineEnd.ToFrameCeiling(rate)) return TimelineEnd.ToFrameCeiling(rate) - 1;
+        return timelineFrame;
+    }
+
     /// <summary>Where the picture may be shown: the clip, extended into its dissolve zones.</summary>
     public MediaTime ShownStart => ExtendedStart ?? TimelineStart;
     public MediaTime ShownEnd => ExtendedEnd ?? TimelineEnd;

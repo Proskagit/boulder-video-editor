@@ -79,10 +79,11 @@ public class TransitionLibraryRulesTests
             Assert.Equal(min01, TransitionRules.MinFramesOf(type, rate));
         Assert.Equal(min02, TransitionRules.MinFramesOf(TransitionRules.Zoom, rate));
         Assert.Equal(min02, TransitionRules.MinFramesOf(TransitionRules.Push, rate));
-        Assert.Equal(max05, TransitionRules.MaxFramesOf(TransitionRules.Flash, rate));
-        Assert.Equal(max10, TransitionRules.MaxFramesOf(TransitionRules.Zoom, rate));
-        foreach (var type in new[] { TransitionRules.CrossDissolve, TransitionRules.DipToBlack, TransitionRules.Push, TransitionRules.Crossfade })
-            Assert.Equal(long.MaxValue, TransitionRules.MaxFramesOf(type, rate));
+        // D069 amendment 2 (the owner): every video type up to 5 s (rounded down to whole frames); the crossfade unlimited.
+        _ = (max05, max10);
+        foreach (var type in TransitionRules.VideoTypes)
+            Assert.Equal(MediaTime.FromSeconds(5).ToFrameFloor(rate), TransitionRules.MaxFramesOf(type, rate));
+        Assert.Equal(long.MaxValue, TransitionRules.MaxFramesOf(TransitionRules.Crossfade, rate));
         Assert.Equal(TransitionRules.MinFrames, TransitionRules.MinFramesOf(TransitionRules.Crossfade, rate));   // D032 unchanged
     }
 
@@ -129,11 +130,12 @@ public class TransitionLibraryRulesTests
     {
         var rate = FrameRate.Fps30;
         Assert.Equal(6, TransitionRules.ClampFrames(TransitionRules.Zoom, 6, long.MaxValue, rate));        // Flash 0.2 s → Zoom: kept
-        Assert.Equal(15, TransitionRules.ClampFrames(TransitionRules.Flash, 30, long.MaxValue, rate));     // Dissolve 1 s → Flash: 0.5 s
+        Assert.Equal(30, TransitionRules.ClampFrames(TransitionRules.Flash, 30, long.MaxValue, rate));     // Dissolve 1 s → Flash: kept (≤ 5 s)
+        Assert.Equal(150, TransitionRules.ClampFrames(TransitionRules.Flash, 200, long.MaxValue, rate));   // over 5 s → 5 s
         Assert.Equal(6, TransitionRules.ClampFrames(TransitionRules.Push, 3, long.MaxValue, rate));        // below Push's 0.2 s
         Assert.Equal(10, TransitionRules.ClampFrames(TransitionRules.Push, 18, 10, rate));                // to the longest that fits
         Assert.Null(TransitionRules.ClampFrames(TransitionRules.Push, 18, 5, rate));                      // less than the minimum fits
-        Assert.Equal(30, TransitionRules.ClampFrames(TransitionRules.Zoom, 45, 60, rate));                // the type's maximum wins
+        Assert.Equal(150, TransitionRules.ClampFrames(TransitionRules.Zoom, 200, 300, rate));             // the type's maximum wins
     }
 
     // --- validation ---------------------------------------------------------------------------------------------------

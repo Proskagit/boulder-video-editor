@@ -783,13 +783,18 @@ public sealed partial class TimelineViewModel : ViewModelBase
     /// an audio track (D032 R9) — fits there is the edit service's call (D025 §3–§5).</summary>
     private bool CanAddDissolve() => CanEdit() && DissolvePair() is not null;
 
+    /// <summary>D069 amendment 2: the selected clip's cut nearest the playhead — its start with the previous clip or its end with
+    /// the next one (the one there is when only one is).</summary>
     private (Clip Left, Clip Right)? Neighbour(Track track, Clip clip)
     {
         var rate = FrameRate;
-        var next = track.Clips.FirstOrDefault(c => c.TimelineStart.ToNearestFrame(rate) == clip.TimelineEnd.ToNearestFrame(rate));
-        if (next is not null) return (clip, next);
-        var previous = track.Clips.FirstOrDefault(c => c.TimelineEnd.ToNearestFrame(rate) == clip.TimelineStart.ToNearestFrame(rate));
-        return previous is null ? null : (previous, clip);
+        long start = clip.TimelineStart.ToNearestFrame(rate), end = clip.TimelineEnd.ToNearestFrame(rate);
+        var next = track.Clips.FirstOrDefault(c => c.TimelineStart.ToNearestFrame(rate) == end);
+        var previous = track.Clips.FirstOrDefault(c => c.TimelineEnd.ToNearestFrame(rate) == start);
+        if (next is null) return previous is null ? null : (previous, clip);
+        if (previous is null) return (clip, next);
+        var at = Playhead.ToNearestFrame(rate);
+        return Math.Abs(at - start) < Math.Abs(at - end) ? (previous, clip) : (clip, next);
     }
 
     private (Clip Left, Clip Right)? CutAtPlayhead()

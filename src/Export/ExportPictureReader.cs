@@ -84,7 +84,8 @@ internal sealed class ExportPictureReader : IAsyncDisposable
 
     /// <summary>The source sample point of <paramref name="timelineFrame"/> — the Preview's formula, from Core.</summary>
     public SourceSamplePoint SamplePoint(long timelineFrame) =>
-        SourceFrameSelector.SamplePoint(Span.TimelineStart, Span.SourceIn, Span.Speed, timelineFrame, _rate, _asset.NominalFrameRate);
+        SourceFrameSelector.SamplePoint(Span.TimelineStart, Span.SourceIn, Span.Speed, Span.SourceFrameOf(timelineFrame, _rate), _rate,
+            _asset.NominalFrameRate);   // D069 amendment 2: as the Preview
 
     /// <summary>The frame for <paramref name="timelineFrame"/>, which must lie inside the span's shown range and after
     /// every frame requested before.</summary>

@@ -3969,4 +3969,7 @@
   <data name="Color_Reset" xml:space="preserve">
     <value>Сбросить цвет</value>
   </data>
+  <data name="Transition_Dragging" xml:space="preserve">
+    <value>Длина перехода: {0}</value>
+  </data>
 </root>

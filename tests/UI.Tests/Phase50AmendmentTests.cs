@@ -121,4 +121,49 @@ public sealed class Phase50AmendmentTests : IDisposable
         Assert.Equal(project, window.TargetFolder);
         Assert.NotNull(window.ReplaceNote);                                    // said before «Сохранить»
     }
+
+    // --- D069 amendment 2 -----------------------------------------------------------------------------------------------
+
+    [Fact]
+    public void A_transition_s_edge_dragged_on_the_timeline_sets_its_length_in_one_undo_step()
+    {
+        var c = MainTrack(200, 200);
+        Assert.True(_edit.AddTransition(c[0].Id, c[1].Id, TransitionRules.CrossDissolve).Success);   // 1 s = 25 frames
+        var zone = _t.Tracks.SelectMany(t => t.Transitions).Single();
+        var transition = zone.Transition;
+
+        Assert.False(_t.BeginTransitionResize(zone, zone.Left + zone.Width / 2));                 // the middle: no drag
+        Assert.True(_t.BeginTransitionResize(zone, zone.Left + zone.Width));                       // the right edge
+        _t.UpdateTransitionResize(X(200 + 30));                                                     // 30 frames from the cut
+        Assert.Equal(F(25), transition.Duration);                                                   // shown, not yet set
+        _t.EndTransitionResize();
+
+        Assert.Equal(F(60), transition.Duration);
+        _undo.Undo();
+        Assert.Equal(F(25), transition.Duration);
+
+        Assert.True(_t.BeginTransitionResize(zone, zone.Left));
+        _t.UpdateTransitionResize(X(200 + 1000));                                                   // far: at most 5 s
+        _t.EndTransitionResize();
+        Assert.Equal(F(125), transition.Duration);
+    }
+
+    [Fact]
+    public void One_selected_clip_takes_the_cut_nearest_the_playhead()
+    {
+        var c = MainTrack(100, 100, 100);
+        Assert.True(_t.OnClipPressed(Vm(c[1]), toggle: false));
+
+        _t.SetPlayhead(F(105));                                                                      // near B's start
+        _t.AddTransitionCommand.Execute(TransitionRules.Flash);
+        var first = Assert.Single(_projects.Current.Timeline.VideoTracks[0].Transitions);
+        Assert.Equal((c[0].Id, c[1].Id), (first.LeftClipId, first.RightClipId));
+
+        _undo.Undo();
+        Assert.True(_t.OnClipPressed(Vm(c[1]), toggle: false));
+        _t.SetPlayhead(F(190));                                                                      // near B's end
+        _t.AddTransitionCommand.Execute(TransitionRules.Flash);
+        var second = Assert.Single(_projects.Current.Timeline.VideoTracks[0].Transitions);
+        Assert.Equal((c[1].Id, c[2].Id), (second.LeftClipId, second.RightClipId));
+    }
 }

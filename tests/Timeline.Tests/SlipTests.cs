@@ -188,18 +188,17 @@ public class SlipTests
     {
         var (f, a, b, dissolve) = Dissolved();
 
-        var bEarlier = f.Service.SlipClip(b.Id, -1000);                                     // B needs 10 frames before it
+        // D069 amendment 2: a dissolve keeps no source any more (the edge frame is held) — the slip reaches the source's start.
+        var bEarlier = f.Service.SlipClip(b.Id, -1000);
         Ok(bEarlier);
-        Assert.Equal("The slip stopped where a dissolve needs the clip's source.", bEarlier.Message);
-        Assert.Equal(F(f, 10), b.SourceIn);
+        Assert.Equal(MediaTime.Zero, b.SourceIn);
         Assert.Contains(dissolve, f.V1.Transitions);
         f.AssertValid();
         f.UndoRedo.Undo();
 
-        var aLater = f.Service.SlipClip(a.Id, 1000);                                         // A needs 10 frames after it
+        var aLater = f.Service.SlipClip(a.Id, 1000);
         Ok(aLater);
-        Assert.Equal("The slip stopped where a dissolve needs the clip's source.", aLater.Message);
-        Assert.Equal(F(f, 490), a.SourceOut);
+        Assert.Equal(F(f, 500), a.SourceOut);                                                // the source's end
         Assert.Contains(dissolve, f.V1.Transitions);
         f.AssertValid();
         f.UndoRedo.Undo();

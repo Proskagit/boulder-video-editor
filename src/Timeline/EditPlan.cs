@@ -181,6 +181,23 @@ public sealed class EditPlan
 
     public void Insert(Track track, Clip clip) => _inserts.Add((track, clip));
 
+    /// <summary>D069 amendment 2: video tracks the step adds (above the others), in order; added before the plan's clip changes.</summary>
+    public List<Track> NewTracks { get; } = new();
+
+    /// <summary>D069 amendment 2: the templates the step moved to another track so as not to push a clip — the track every later
+    /// rule of the step keeps them on.</summary>
+    public Dictionary<Clip, Track> Relocated { get; } = new();
+
+    /// <summary>The track a template stays on in this step: where it was relocated, else its own.</summary>
+    public Track TrackFor(Clip clip) => Relocated.TryGetValue(clip, out var track) ? track : TrackOf(clip);
+
+    /// <summary>D069 amendment 2: moves a clip the plan inserts to another track.</summary>
+    public void MoveInsert(Clip clip, Track track)
+    {
+        var index = _inserts.FindIndex(i => i.Clip == clip);
+        if (index >= 0) _inserts[index] = (track, clip);
+    }
+
     public void Remove(Clip clip) => _removes[clip] = _currentTrack[clip];
 
     /// <summary>The planned clip changes (move, trim, re-grid, …): each existing clip, its track and its timing after.</summary>
@@ -461,6 +478,8 @@ public sealed class EditPlan
     public IUndoableCommand BuildCommand(string description)
     {
         var commands = new List<IUndoableCommand>();
+
+        foreach (var track in NewTracks) commands.Add(new AddTrackCommand(_sequence, track));   // D069 amendment 2
 
         if (NewFrameRate is { } rate)
             commands.Add(new SetFrameRateCommand(_settings, _settings.FrameRate, _settings.IsFrameRateLocked, rate, NewFrameRateLocked));

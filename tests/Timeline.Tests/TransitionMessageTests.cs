@@ -183,32 +183,35 @@ public class TransitionMessageTests
         Assert.Equal(overwrite, f.Service.OverwriteClip(video.Id, F(f, 0), F(f, 45), F(f, 105)).Message);
     });
 
+    /// <summary>D069 amendment 2: a video transition no longer reserves the clip's source (its edge frame is held) — a ripple
+    /// trim outward is not stopped by it and names no transition.</summary>
     [Theory]
-    [InlineData("en", "The trim stopped where the transition \"Push\" needs the clip's frames.")]
-    [InlineData("ru", "Обрезка остановлена там, где кадры клипа нужны переходу «Сдвиг».")]
-    public void A_ripple_trim_stopped_by_a_transition_names_it(string language, string expected) => In(language, () =>
+    [InlineData("en", "Push")]
+    [InlineData("ru", "Сдвиг")]
+    public void A_ripple_trim_is_not_stopped_by_a_video_transition(string language, string name) => In(language, () =>
     {
         var (f, _, clips) = Video(100, 300);
-        Add(f, clips[0], clips[1], TransitionRules.Push);                                 // A needs 5 frames after it
+        Add(f, clips[0], clips[1], TransitionRules.Push);
 
         var result = f.Service.RippleTrimClip(clips[0].Id, ClipEdge.End, F(f, 1000));
 
         Ok(result);
-        Assert.Equal(expected, result.Message);
+        Assert.DoesNotContain(name, result.Message ?? "");
     });
 
+    /// <summary>D069 amendment 2: a slip is not stopped by a video transition either.</summary>
     [Theory]
-    [InlineData("en", "The slip stopped where the transition \"Push\" needs the clip's source.")]
-    [InlineData("ru", "Сдвиг остановлен там, где материал клипа нужен переходу «Сдвиг».")]
-    public void A_slip_stopped_by_a_transition_names_it(string language, string expected) => In(language, () =>
+    [InlineData("en", "\"Push\"")]
+    [InlineData("ru", "«Сдвиг»")]
+    public void A_slip_is_not_stopped_by_a_video_transition(string language, string name) => In(language, () =>
     {
         var (f, _, clips) = Video(100, 300);
-        Add(f, clips[0], clips[1], TransitionRules.Push);                                 // B needs 4 frames before it
+        Add(f, clips[0], clips[1], TransitionRules.Push);
 
         var result = f.Service.SlipClip(clips[1].Id, -1000);
 
         Ok(result);
-        Assert.Equal(expected, result.Message);
+        Assert.DoesNotContain(name, result.Message ?? "");
     });
 
     [Theory]

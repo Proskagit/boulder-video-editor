@@ -298,13 +298,17 @@ public sealed partial class TimelineTransitionViewModel(Transition transition, T
 
     /// <summary>Lays the zone out around the cut, moved by <paramref name="frameDelta"/> frames (a drag preview of both
     /// clips).</summary>
-    public void Layout(double pixelsPerSecond, FrameRate rate, long frameDelta = 0)
+    public void Layout(double pixelsPerSecond, FrameRate rate, long frameDelta = 0) =>
+        LayoutWithFrames(pixelsPerSecond, rate, TransitionRules.Frames(Transition.Duration, rate), frameDelta);
+
+    /// <summary>D069 amendment 2: the zone drawn at <paramref name="frames"/> (its length dragged on the timeline).</summary>
+    public void LayoutWithFrames(double pixelsPerSecond, FrameRate rate, long frames, long frameDelta = 0)
     {
         Glyph = TransitionNames.Glyph(Transition.TransitionTypeId);
         TypeName = TransitionNames.Name(Transition.TransitionTypeId);
         var right = Track.Clips.FirstOrDefault(c => c.Id == Transition.RightClipId);
         if (right is null) return;
-        var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(Transition.Duration, rate));
+        var (beforeCut, afterCut) = TransitionRules.Zone(frames);
         var cut = right.TimelineStart.ToFrameFloor(rate) + frameDelta;
         var start = MediaTime.FromFrame(cut - beforeCut, rate);
         Left = TimelineCoordinateMapper.TimeToX(start, pixelsPerSecond);

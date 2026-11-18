@@ -288,7 +288,7 @@ public sealed partial class TimelineEditService
             if (ps != state.Start.ToNearestFrame(rate) || pe != state.End.ToNearestFrame(rate))
             {
                 var timing = ClipState.FromFrames(ps, pe, MediaTime.Zero, rate);
-                plan.Update(template, plan.TrackOf(template), timing);
+                plan.Update(template, plan.TrackFor(template), timing);
                 plan.Carried.Add(template);
                 plan.FollowCarried.Add(template);   // D069 amendment 1: planned by the follow rule
             }
@@ -338,7 +338,7 @@ public sealed partial class TimelineEditService
             }
             else if (pe2 - ps2 < 1) pe2 = ps2 + 1;
 
-            plan.Update(template, plan.TrackOf(template), ClipState.FromFrames(ps2, pe2, MediaTime.Zero, rate));
+            plan.Update(template, plan.TrackFor(template), ClipState.FromFrames(ps2, pe2, MediaTime.Zero, rate));
             plan.Carried.Add(template);
             plan.FollowCarried.Add(template);   // D069 amendment 1: planned by the follow rule
             var statusAt = lilac && status != BoulderStatus.None ? StatusAtFor(template, s2 - ps2, rate) : fields.StatusAt;

@@ -221,6 +221,18 @@ public partial class TimelineView : UserControl
             return;
         }
 
+        // D069 amendment 2: a press on an edge of a transition's zone drags its length.
+        if (!e.KeyModifiers.HasFlag(KeyModifiers.Control) && HitTestClip(e.Source).Item2 is null &&   // a clip's trim handle first
+            _viewModel.TransitionAt(TrackAt(e.GetPosition(TrackRows).Y), e.GetPosition(ContentRoot).X - TimelineViewModel.TransitionEdgePixels) is var zoneLeft &&
+            (zoneLeft ?? _viewModel.TransitionAt(TrackAt(e.GetPosition(TrackRows).Y), e.GetPosition(ContentRoot).X + TimelineViewModel.TransitionEdgePixels)) is { } zone &&
+            _viewModel.BeginTransitionResize(zone, e.GetPosition(ContentRoot).X))
+        {
+            _pressedZone = true;
+            e.Pointer.Capture(TrackRows);
+            e.Handled = true;
+            return;
+        }
+
         // A zone's mark selects its transition, whatever lies under it (a short zone is all trim handles — D4).
         if (MarkOf(e.Source) is { } marked)
         {
@@ -340,9 +352,16 @@ public partial class TimelineView : UserControl
         e.Handled = true;
     }
 
+    private bool _pressedZone;
+
     private void OnTracksMoved(object? sender, PointerEventArgs e)
     {
         if (_viewModel is null) return;
+        if (_pressedZone)
+        {
+            _viewModel.UpdateTransitionResize(e.GetPosition(ContentRoot).X);
+            return;
+        }
         if (_pressedKeyframe)
         {
             _viewModel.UpdateKeyframeDrag(e.GetPosition(ContentRoot).X);
@@ -455,6 +474,13 @@ public partial class TimelineView : UserControl
     {
         if (_viewModel is null) return;
         _autoScroll.Stop();
+        if (_pressedZone)
+        {
+            _pressedZone = false;
+            _viewModel.EndTransitionResize();
+            e.Pointer.Capture(null);
+            return;
+        }
         if (_pressedVolume is not null)
         {
             _pressedVolume = null;

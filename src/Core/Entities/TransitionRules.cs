@@ -73,6 +73,10 @@ public static class TransitionRules
     /// crossfade).</summary>
     public static bool RequiresHandles(string typeId) => typeId is CrossDissolve or Push or Crossfade or Wipe or Circle or Doors or Whip;
 
+    /// <summary>D069 amendment 2: the types an edit refuses without source handles — the audio crossfade only; a video type
+    /// whose source runs out holds the clip's edge frame (<see cref="Playback.PictureSpan.HoldsFirstFrame"/>).</summary>
+    public static bool NeedsSourceHandles(string typeId) => typeId == Crossfade;
+
     /// <summary>True for the types drawn with a fill colour whose peak — the cut frame — is fully covered (D044 §2, §4).</summary>
     public static bool IsFill(string typeId) => typeId is DipToBlack or Flash;
 
@@ -89,23 +93,26 @@ public static class TransitionRules
     /// one-second default, at least <see cref="MinFrames"/> frames, no maximum).</summary>
     public static TransitionLimits LimitsOf(string typeId) => typeId switch
     {
-        DipToBlack => new(Seconds(0.6), Seconds(0.1), null),
-        Flash => new(Seconds(0.2), Seconds(0.1), Seconds(0.5)),
-        Zoom => new(Seconds(0.3), Seconds(0.2), Seconds(1.0)),
-        Push => new(Seconds(0.3), Seconds(0.2), null),
-        Blur => new(Seconds(0.5), Seconds(0.2), Seconds(1.5)),     // D069 §8
-        Wipe => new(Seconds(0.5), Seconds(0.2), null),
-        Circle => new(Seconds(0.6), Seconds(0.2), null),
-        Doors => new(Seconds(0.6), Seconds(0.2), null),
-        ZoomOut => new(Seconds(0.4), Seconds(0.2), Seconds(1.0)),
-        Spin => new(Seconds(0.5), Seconds(0.3), Seconds(1.0)),
-        Whip => new(Seconds(0.3), Seconds(0.2), Seconds(0.6)),
-        Glitch => new(Seconds(0.4), Seconds(0.2), Seconds(1.0)),
+        DipToBlack => new(Seconds(0.6), Seconds(0.1), MaxSeconds),
+        Flash => new(Seconds(0.2), Seconds(0.1), MaxSeconds),
+        Zoom => new(Seconds(0.3), Seconds(0.2), MaxSeconds),
+        Push => new(Seconds(0.3), Seconds(0.2), MaxSeconds),
+        Blur => new(Seconds(0.5), Seconds(0.2), MaxSeconds),     // D069 §8
+        Wipe => new(Seconds(0.5), Seconds(0.2), MaxSeconds),
+        Circle => new(Seconds(0.6), Seconds(0.2), MaxSeconds),
+        Doors => new(Seconds(0.6), Seconds(0.2), MaxSeconds),
+        ZoomOut => new(Seconds(0.4), Seconds(0.2), MaxSeconds),
+        Spin => new(Seconds(0.5), Seconds(0.3), MaxSeconds),
+        Whip => new(Seconds(0.3), Seconds(0.2), MaxSeconds),
+        Glitch => new(Seconds(0.4), Seconds(0.2), MaxSeconds),
         Crossfade => new(Seconds(1.0), null, null),
-        _ => new(Seconds(1.0), Seconds(0.1), null)          // the dissolve
+        _ => new(Seconds(1.0), Seconds(0.1), MaxSeconds)          // the dissolve
     };
 
     private static MediaTime Seconds(double seconds) => MediaTime.FromSeconds(seconds);
+
+    /// <summary>D069 amendment 2 (the owner): every video transition up to 5 s (the clips' frames permitting).</summary>
+    public static readonly MediaTime MaxSeconds = MediaTime.FromSeconds(5);
 
     /// <summary>The shortest duration of the type a user may set, in frames: its minimum rounded up to whole frames, so
     /// the interface never shows less than the minimum, and never below <see cref="MinFrames"/> (D044 §5).</summary>

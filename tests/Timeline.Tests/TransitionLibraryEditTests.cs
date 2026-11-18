@@ -94,7 +94,7 @@ public class TransitionLibraryEditTests
     public void A_type_without_handles_fits_a_cut_without_media_beyond_the_clips(string type)
     {
         var (f, a, b) = NoHandles();
-        Assert.Equal(0, f.Service.MaxTransitionFrames(a.Id, b.Id));                      // no dissolve fits
+        Assert.True(f.Service.MaxTransitionFrames(a.Id, b.Id) > 0);                       // D069 amendment 2: a dissolve fits too
         Assert.True(f.Service.MaxTransitionFrames(a.Id, b.Id, type) >= TransitionRules.DefaultFramesOf(type, f.Rate));
 
         var transition = Add(f, a, b, type);
@@ -102,20 +102,29 @@ public class TransitionLibraryEditTests
         f.AssertValid();
     }
 
+    /// <summary>D069 amendment 2 (the owner's check): a type showing both clips is added without source handles too — the
+    /// clip's edge frame is held where its source ends (PictureSpan.HoldsFirstFrame / HoldsLastFrame).</summary>
     [Theory]
     [InlineData("crossDissolve")]
     [InlineData("push")]
-    public void A_type_needing_handles_is_refused_without_them_and_never_replaced(string type)
+    [InlineData("wipe")]
+    [InlineData("circle")]
+    [InlineData("doors")]
+    [InlineData("whip")]
+    public void A_type_showing_both_clips_is_added_without_handles_and_holds_the_edge_frames(string type)
     {
         var (f, a, b) = NoHandles();
-        var before = f.Snapshot();
-        Assert.Equal(0, f.Service.MaxTransitionFrames(a.Id, b.Id, type));
+        Assert.True(f.Service.MaxTransitionFrames(a.Id, b.Id, type) >= TransitionRules.DefaultFramesOf(type, f.Rate));
 
-        var result = f.Service.AddTransition(a.Id, b.Id, type);
+        var transition = Add(f, a, b, type);
 
-        Assert.False(result.Success);
-        Assert.Equal(Messages.Transition_NotEnoughMediaType, result.Message);           // names Dip to black and Flash
-        Assert.Equal(before, f.Snapshot());
+        Assert.Equal(F(f, TransitionRules.DefaultFramesOf(type, f.Rate)), transition.Duration);
+        var spans = Core.Playback.PlaybackSnapshotBuilder.Build(f.Project, 1).VideoLayers.SelectMany(l => l.Spans).ToList();
+        Assert.True(spans.Single(s => s.ClipId == a.Id).HoldsLastFrame);
+        Assert.True(spans.Single(s => s.ClipId == b.Id).HoldsFirstFrame);
+        var last = a.TimelineEnd.ToFrameCeiling(f.Rate) - 1;
+        Assert.Equal(last, spans.Single(s => s.ClipId == a.Id).SourceFrameOf(last + 3, f.Rate));
+        f.AssertValid();
     }
 
     [Fact]
@@ -153,11 +162,13 @@ public class TransitionLibraryEditTests
 
     [Theory]
     [InlineData("flash", 15, true)]
-    [InlineData("flash", 16, false)]          // above 0.5 s
+    [InlineData("flash", 16, true)]           // D069 amendment 2: every video type up to 5 s
+    [InlineData("flash", 151, false)]         // above 5 s
     [InlineData("flash", 3, true)]
     [InlineData("zoom", 5, false)]            // below 0.2 s
     [InlineData("zoom", 30, true)]
-    [InlineData("zoom", 31, false)]           // above 1.0 s
+    [InlineData("zoom", 31, true)]
+    [InlineData("zoom", 151, false)]          // above 5 s
     [InlineData("push", 5, false)]
     [InlineData("push", 6, true)]
     [InlineData("dipToBlack", 2, false)]      // below 0.1 s
@@ -194,8 +205,8 @@ public class TransitionLibraryEditTests
         var t = Add(f, clips[0], clips[1], TransitionRules.CrossDissolve);               // 30 frames
         var dissolve = f.Snapshot();
 
-        Ok(f.Service.SetTransitionType(t.Id, TransitionRules.Flash));                     // 1 s → 0.5 s
-        Assert.Equal((TransitionRules.Flash, F(f, 15), (TransitionDirection?)null), (t.TransitionTypeId, t.Duration, t.Direction));
+        Ok(f.Service.SetTransitionType(t.Id, TransitionRules.Flash));                     // 1 s kept (≤ 5 s, D069 amendment 2)
+        Assert.Equal((TransitionRules.Flash, F(f, 30), (TransitionDirection?)null), (t.TransitionTypeId, t.Duration, t.Direction));
         Assert.Equal("Change Transition Type", Top(f));
         var flash = f.Snapshot();
 
@@ -219,17 +230,14 @@ public class TransitionLibraryEditTests
     }
 
     [Fact]
-    public void A_type_change_to_a_type_needing_handles_is_refused_where_there_are_none()
+    public void A_type_change_to_a_type_showing_both_clips_is_made_where_there_are_no_handles()
     {
         var (f, a, b) = NoHandles();
         var t = Add(f, a, b, TransitionRules.Zoom);
-        var before = f.Snapshot();
 
-        var result = f.Service.SetTransitionType(t.Id, TransitionRules.Push);
+        Ok(f.Service.SetTransitionType(t.Id, TransitionRules.Push));            // D069 amendment 2: the edge frames are held
 
-        Assert.False(result.Success);
-        Assert.Equal(Messages.Transition_NotEnoughMediaType, result.Message);
-        Assert.Equal(before, f.Snapshot());
+        Assert.Equal(TransitionRules.Push, t.TransitionTypeId);
     }
 
     [Fact]
@@ -245,10 +253,10 @@ public class TransitionLibraryEditTests
         var t = Add(f, a, b, TransitionRules.Zoom);                                         // 0.3 s = 8 frames, no handles needed
         Assert.Equal(F(f, 8), t.Duration);
 
-        // ⌊F/2⌋ ≤ B's 5 frames before, ⌈F/2⌉ ≤ A's 3 frames after → 6; Push's minimum is 5 frames at 25 fps.
-        Assert.Equal(6, f.Service.MaxTransitionFrames(a.Id, b.Id, TransitionRules.Push));
+        // D069 amendment 2: the handles no longer limit a Push (the edge frames are held) — it keeps its duration.
+        Assert.True(f.Service.MaxTransitionFrames(a.Id, b.Id, TransitionRules.Push) >= 8);
         Ok(f.Service.SetTransitionType(t.Id, TransitionRules.Push));
-        Assert.Equal(F(f, 6), t.Duration);
+        Assert.Equal(F(f, 8), t.Duration);
         f.AssertValid();
     }
 
@@ -262,10 +270,8 @@ public class TransitionLibraryEditTests
         var (g, a, b) = NoHandles();
         var dip = Add(g, a, b, TransitionRules.DipToBlack);
         Ok(g.Service.SetTransitionType(dip.Id, TransitionRules.Zoom));
-        var before = g.Snapshot();
-        // A push needs handles the cut hasn't got: the message names the types that need none (D044 §6).
-        Assert.Equal(Messages.Transition_NotEnoughMediaType, g.Service.SetTransitionType(dip.Id, TransitionRules.Push).Message);
-        Assert.Equal(before, g.Snapshot());
+        // D069 amendment 2: a push needs no handles any more.
+        Ok(g.Service.SetTransitionType(dip.Id, TransitionRules.Push));
     }
 
     // --- direction ------------------------------------------------------------------------------------------------------

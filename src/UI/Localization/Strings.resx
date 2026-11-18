@@ -3965,4 +3965,7 @@ If you don't save, your changes will be lost.</value>
   <data name="Color_Reset" xml:space="preserve">
     <value>Reset colour</value>
   </data>
+  <data name="Transition_Dragging" xml:space="preserve">
+    <value>Transition length: {0}</value>
+  </data>
 </root>

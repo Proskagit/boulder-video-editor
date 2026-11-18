@@ -193,7 +193,8 @@ public sealed class ProjectFileWorkflow
             await _saveAsDialog!.ShowAsync(window);
             if (!window.Accepted || window.TargetFolder is not { } folder) return null;
             (name, place) = (window.Name.Trim(), window.Folder);
-            if (await ConfirmReplaceAsync(current, folder))
+            // D069 amendment 2: the window always asks over a project there — the open one's own folder too.
+            if (await ConfirmReplaceAsync(current, folder, evenTheOpenProject: true))
             {
                 _lastSaveAsFolder = place;
                 return folder;
@@ -221,11 +222,11 @@ public sealed class ProjectFileWorkflow
     }
 
     /// <summary>True when <paramref name="folder"/> holds no other project, or the user agreed to replace it.</summary>
-    private async Task<bool> ConfirmReplaceAsync(Core.Entities.Project current, string folder)
+    private async Task<bool> ConfirmReplaceAsync(Core.Entities.Project current, string folder, bool evenTheOpenProject = false)
     {
         var isCurrentFolder = current.ProjectFolderPath is { } own &&
                               string.Equals(Path.GetFullPath(own), Path.GetFullPath(folder), StringComparison.OrdinalIgnoreCase);
-        if (isCurrentFolder || !File.Exists(Path.Combine(folder, "project.json"))) return true;
+        if ((isCurrentFolder && !evenTheOpenProject) || !File.Exists(Path.Combine(folder, "project.json"))) return true;
         var replace = await _dialogs.AskAsync(new DialogRequest
         {
             Title = Strings.Project_ReplaceTitle,

@@ -248,25 +248,18 @@ public sealed class ExportTransitionLibraryEndToEndTests
     // --- failures and missing media ----------------------------------------------------------------------------------
 
     [FfmpegFact]
-    public async Task Handles_missing_at_render_time_refuse_the_export_of_a_push_while_the_Preview_holds_the_first_frame()
+    // D069 amendment 2: a push without handles is exported holding the edge frames, as the Preview.
+    public async Task Without_handles_a_push_is_exported_holding_the_first_frame_as_the_Preview()
     {
         var p = new ProjectBuilder(FrameRate.Fps25);
         var v1 = p.VideoTrack();
         var pattern = _media.Pattern();
         var a = p.Video(v1, _media.Solid(Red, FrameRate.Fps25), 0, 40);
         var b = p.Video(v1, pattern, 40, 80);                                       // SourceIn 0: no handle before B
-        Add(p, v1, a, b, TransitionRules.Push, 10);                                 // B shown from 35 anyway (media changed since)
-        var destination = Path.Combine(_media.OutputFolder(), "push-no-handles.mp4");
-        var job = Preflight(p.Project, destination);
-
-        // D025 §4 as changed in Phase 28: refused before rendering — no file.
-        var error = await Assert.ThrowsAsync<ExportException>(() =>
-            Service(EncoderHarness.Encoder()).ExportAsync(job, new SyncProgress(_ => { }), CancellationToken.None));
-        Assert.Equal(ExportFailure.TransitionSourceMissing, error.Failure);
-        Assert.Equal(new MissingTransitionSource(TransitionRules.Push, v1.Id, a.Id, b.Id, p.F(40), BeforeRendering: true), error.MissingSource);
-        Assert.False(File.Exists(destination));
-        Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(destination)!));
-        AssertNoFfmpegLeft();
+        Add(p, v1, a, b, TransitionRules.Push, 10);                                 // [35, 45)
+        var run = await Export(p, "push-no-handles");
+        var job = run.Job;
+        await AssertPreviewEqualsExport(run, "push, held edge frames", 35, 37, 40, 44);
 
         // The Preview still holds B's first frame before its first source frame (D025 §4).
         var (_, motionB) = TransitionPresentation.PushMotions(2, 10, TransitionDirection.FromRight, new FrameSize(E2EMedia.Width, E2EMedia.Height));

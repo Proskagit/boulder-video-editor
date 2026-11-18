@@ -206,19 +206,19 @@ public class RippleTrimDragTests
     {
         var (f, a, b, c, dissolve) = Dissolved();
 
+        // D069 amendment 2: no handle is kept for a video dissolve (its edge frame is held) — up to the source's ends.
         var end = f.Service.RippleTrimClip(a.Id, ClipEdge.End, F(f, 1000));               // A has 400 frames after it
         Ok(end);
-        Assert.Equal("The trim stopped where a dissolve needs the clip's frames.", end.Message);
-        Assert.Equal((0L, 490L), Frames(f, a));                                              // 10 frames of handle left
-        Assert.Equal((490L, 690L), Frames(f, b));
+        Assert.Equal((0L, 500L), Frames(f, a));
+        Assert.Equal((500L, 700L), Frames(f, b));
         Assert.Contains(dissolve, f.V1.Transitions);
         f.AssertValid();
         f.UndoRedo.Undo();
 
         var start = f.Service.RippleTrimClip(b.Id, ClipEdge.Start, F(f, -1000));          // B has 100 frames before it
         Ok(start);
-        Assert.Equal((100L, 390L), Frames(f, b));                                            // +90: 10 left for the dissolve
-        Assert.Equal((390L, 590L), Frames(f, c));
+        Assert.Equal((100L, 400L), Frames(f, b));                                            // +100: the whole handle
+        Assert.Equal((400L, 600L), Frames(f, c));
         Assert.Contains(dissolve, f.V1.Transitions);
         f.AssertValid();
     }

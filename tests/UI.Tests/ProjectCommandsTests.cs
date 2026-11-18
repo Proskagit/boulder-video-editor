@@ -709,4 +709,20 @@ public sealed class ProjectCommandsTests : IDisposable
         Assert.True(vm.SaveCommand.CanExecute(null));
         Assert.Equal(Folder("Climb"), vm.TargetFolder);
     }
+
+    /// <summary>D069 amendment 2 (the owner's check): the window asks before saving over a project there — the open project's
+    /// own folder too; «no» brings the window back.</summary>
+    [Fact]
+    public async Task Save_as_window_over_the_open_projects_own_folder_asks_too()
+    {
+        var folder = Folder("Film");
+        await _projects.SaveAsAsync(folder);
+        Edit();
+        var (workflow, dialogs) = CreateWithWindow(new ScriptedSaveAs(("Film", _root), null), 1);
+
+        Assert.False(await workflow.SaveAsAsync());
+
+        Assert.Equal("Replace project?", Assert.Single(dialogs.Asked).Title);
+        Assert.True(_projects.Current.IsDirty);
+    }
 }
