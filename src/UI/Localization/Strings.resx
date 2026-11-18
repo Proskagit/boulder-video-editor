@@ -3728,7 +3728,7 @@ If you don't save, your changes will be lost.</value>
     <value>Click kept — the outline appears as soon as the model is ready…</value>
   </data>
   <data name="StartScreen_Tagline" xml:space="preserve">
-    <value>Bouldering videos: holds, routes, training data</value>
+    <value>A video editor for bouldering — with marked routes and the heart rate from your watch</value>
   </data>
   <data name="StartScreen_New" xml:space="preserve">
     <value>Create project</value>
@@ -3784,5 +3784,8 @@ If you don't save, your changes will be lost.</value>
   </data>
   <data name="Media_RemovedFiles" xml:space="preserve">
     <value>{0} files removed from the project (clips removed: {1}).</value>
+  </data>
+  <data name="Template_NoHeartRateHere" xml:space="preserve">
+    <value>The heart rate plate was added, but the training has no heart rate for the video at this place: the plate will show nothing here.</value>
   </data>
 </root>

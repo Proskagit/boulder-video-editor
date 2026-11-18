@@ -58,11 +58,24 @@
     <x:Double x:Key="ControlContentThemeFontSize">13</x:Double>
   </Styles.Resources>
 
-  <!-- Every window has the same background and body size (dialogs were Fluent's near-black). -->
+  <!-- Every window has the theme's body size; a dialog is a step lighter than the main window (D068 amendment 1: they
+       blended), the main window sets its own darker background. -->
   <Style Selector="Window">
-    <Setter Property="Background" Value="{DynamicResource Surface0Brush}"/>
+    <Setter Property="Background" Value="{DynamicResource Surface1Brush}"/>
     <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
     <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}"/>
+  </Style>
+
+  <!-- D068 amendment 1: a menu or a flyout over the window has a raised surface and a visible edge. -->
+  <Style Selector="FlyoutPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface2Brush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+  </Style>
+  <Style Selector="MenuFlyoutPresenter, ContextMenu">
+    <Setter Property="Background" Value="{DynamicResource Surface2Brush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
   </Style>
 
   <!-- The main action of a place: Classes="accent". -->

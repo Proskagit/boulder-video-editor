@@ -26,7 +26,9 @@
       <MenuItem Header="{x:Static l:Strings.TemplateType_Vhs}" Command="{Binding AddTemplateCommand}" CommandParameter="Vhs"/>
       <MenuItem Header="{x:Static l:Strings.TemplateType_Boulder}" Command="{Binding AddTemplateCommand}" CommandParameter="Boulder"/>
       <MenuItem Header="{x:Static l:Strings.TemplateType_Highlight}" Command="{Binding AddTemplateCommand}" CommandParameter="Highlight"/>
-      <MenuItem Header="{x:Static l:Strings.TemplateType_HeartRate}" Command="{Binding AddTemplateCommand}" CommandParameter="HeartRate"/>
+      <!-- D068 amendment 1: only with a training. -->
+      <MenuItem Header="{x:Static l:Strings.TemplateType_HeartRate}" Command="{Binding AddTemplateCommand}" CommandParameter="HeartRate"
+                IsVisible="{Binding HasTraining}"/>
     </MenuFlyout>
   </UserControl.Resources>
   <UserControl.Styles>
@@ -245,7 +247,8 @@
         </DockPanel>
       </Border>
 
-      <Grid ColumnDefinitions="84,*">
+      <!-- D068 amendment 1: the track headers 112 px — their two rows of buttons were cut at 84. -->
+      <Grid ColumnDefinitions="112,*">
 
         <!-- Track headers: scroll vertically in sync with the tracks (see code-behind). -->
         <ScrollViewer x:Name="HeaderScroll" Grid.Column="0" Background="{DynamicResource Surface1Brush}"
@@ -312,7 +315,9 @@
                         <Button Content="✕" ToolTip.Tip="{x:Static l:Strings.Track_DeleteTip}"
                                 Command="{Binding $parent[ItemsControl].DataContext.DeleteTrackCommand}" CommandParameter="{Binding}"/>
                         <!-- D064 §2 / §4: the track's volume and ducking -->
-                        <Button Content="🔊" ToolTip.Tip="{x:Static l:Strings.Track_MixTip}" Classes.on="{Binding Mix.IsDucking}">
+                        <Button ToolTip.Tip="{x:Static l:Strings.Track_MixTip}" Classes.on="{Binding Mix.IsDucking}"
+                                AutomationProperties.Name="{x:Static l:Strings.Track_MixTip}">
+                          <controls:IconPath Glyph="{x:Static controls:Icons.Mixer}" Width="10" Height="10" StrokeThickness="1.3"/>
                           <Button.Flyout>
                             <Flyout Placement="RightEdgeAlignedTop">
                               <panels:TrackMixPanel DataContext="{Binding Mix}"/>

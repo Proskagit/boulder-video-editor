@@ -3732,7 +3732,7 @@
     <value>Щелчок принят — контур появится, как только модель будет готова…</value>
   </data>
   <data name="StartScreen_Tagline" xml:space="preserve">
-    <value>Видео о боулдеринге: зацепки, трассы, данные тренировки</value>
+    <value>Редактор видео о боулдеринге — с разметкой трасс и пульсом с часов</value>
   </data>
   <data name="StartScreen_New" xml:space="preserve">
     <value>Создать проект</value>
@@ -3788,5 +3788,8 @@
   </data>
   <data name="Media_RemovedFiles" xml:space="preserve">
     <value>Файлов удалено из проекта: {0} (клипов удалено: {1}).</value>
+  </data>
+  <data name="Template_NoHeartRateHere" xml:space="preserve">
+    <value>Плашка пульса добавлена, но в тренировке нет пульса для видео в этом месте: здесь плашка ничего не покажет.</value>
   </data>
 </root>

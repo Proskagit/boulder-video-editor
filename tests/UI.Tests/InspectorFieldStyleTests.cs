@@ -46,7 +46,11 @@ public sealed class InspectorFieldStyleTests
         var fields = Inspector().Descendants().Where(e => e.Name.LocalName == "CommitNumericUpDown").ToList();
 
         Assert.Equal(38, fields.Count);                         // Phase 27: + outline thickness, background opacity, two durations; Phase 28: + a transition's seconds; D048: + the hold animation's duration, the route's colour tolerance; D058: + the group's opacity, volume and outline width; D061 amendment 1: + the climber's place in the frame (X, Y); D064: + the sound fades in / out, the noise reduction, the voice enhancement; D065: + the hold contour's smoothing
-        Assert.All(fields, f => Assert.Equal("104", (string?)f.Attribute("Width")));
+        // D068 amendment 1: a field on a slider's line (label — slider — field, as CapCut) is 80 px, the others 104.
+        static bool OnSliderLine(System.Xml.Linq.XElement f) =>
+            f.Parent?.Parent is { } row && row.Elements().Any(e => e.Name.LocalName == "Slider" && (string?)e.Attribute("Classes") == "inline");
+        Assert.All(fields, f => Assert.Equal(OnSliderLine(f) ? "80" : "104", (string?)f.Attribute("Width")));
+        Assert.Equal(14, fields.Count(OnSliderLine));
     }
 
     /// <summary>FU-25.2: the three whole-value fields step by 1 and show a whole value as whole (a saved fraction as it is);
@@ -74,7 +78,7 @@ public sealed class InspectorFieldStyleTests
         Assert.Equal("0.##", (string?)fields["Rotation"].Attribute("FormatString"));
         Assert.Equal("0.##", (string?)fields["ScalePercent"].Attribute("FormatString"));
 
-        var slider = Style(xaml, "Slider.under");
+        var slider = Style(xaml, "Slider.inline");   // D068 amendment 1: on the field's line
         Assert.Equal("True", Setter(slider, "IsSnapToTickEnabled"));
         Assert.Equal("1", Setter(slider, "TickFrequency"));
     }

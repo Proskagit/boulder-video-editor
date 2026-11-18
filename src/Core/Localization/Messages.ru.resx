@@ -527,13 +527,13 @@
     <value>Нельзя {0}: при установке частоты кадров нет места, чтобы отодвинуть связанные клипы.</value>
   </data>
   <data name="Model_LoadFailed" xml:space="preserve">
-    <value>Не удалось загрузить модель зацепок на {0}: {1}</value>
+    <value>Не удалось загрузить ИИ-модель на {0}: {1}</value>
   </data>
   <data name="Model_Mismatch" xml:space="preserve">
-    <value>Файл модели зацепок {0} в {1} повреждён или другой версии (ожидается {2}, SHA-256 {3}). Модель не загружена. См. docs/AI_MODEL.md.</value>
+    <value>Файл ИИ-модели {0} в {1} повреждён или другой версии (ожидается {2}, SHA-256 {3}). Модель не загружена. См. docs/AI_MODEL.md.</value>
   </data>
   <data name="Model_NotInstalled" xml:space="preserve">
-    <value>Модель зацепок {0} не установлена: в {2} нет файла {1}. См. docs/AI_MODEL.md.</value>
+    <value>ИИ-модель {0} не установлена: в {2} нет файла {1}. См. docs/AI_MODEL.md.</value>
   </data>
   <data name="Model_RunFailed" xml:space="preserve">
     <value>Ошибка модели зацепок на {0}: {1}</value>

@@ -61,8 +61,9 @@ public sealed class InspectorSectionsTests : IDisposable
         var ids = view.GetLogicalDescendants().OfType<InspectorSection>().Select(s => s.SectionId).ToList();
         // The owner's acceptance of 2026-11-10: «Трансформация» + «Кадрирование» one section, «Появление и исчезание» +
         // «Скорость» one; «Зацепки», «Тренировка», «Звук», «Клип» apart.
-        Assert.Equal(new[] { "media", "media.tech", "template", "text", "text.animation", "frame", "people", "holds", "timing",
-            "training", "fit", "audio", "clip" }, ids);
+        // D068 amendment 1: in the rail's groups — Clip, Text / Template, People, Holds, FIT, Sound.
+        Assert.Equal(new[] { "media", "media.tech", "frame", "timing", "clip", "template", "text", "text.animation", "people", "holds",
+            "training", "fit", "audio" }, ids);
         Assert.Equal(ids.Count, ids.Distinct().Count());
         Assert.Empty(view.GetLogicalDescendants().OfType<TabControl>());
     }

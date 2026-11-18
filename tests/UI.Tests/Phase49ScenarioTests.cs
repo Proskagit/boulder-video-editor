@@ -167,4 +167,19 @@ public sealed class Phase49ScenarioTests : IDisposable
         Assert.Equal(3, _projects.Current.MediaAssets.Count);
         Assert.Equal(2, _projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips).Count());
     }
+
+    /// <summary>D068 amendment 1: «Пульс» is offered only with a training; added where there is no heart rate, it says so.</summary>
+    [Fact]
+    public void The_heart_rate_template_needs_a_training_and_warns_where_there_is_no_heart_rate()
+    {
+        var status = new StatusService();
+        var timeline = new TimelineViewModel(_projects, _edit, status, NullLogger<TimelineViewModel>.Instance);
+        Assert.False(timeline.HasTraining);
+        Assert.False(timeline.HasHeartRateAt(MediaTime.Zero));
+
+        timeline.AddTemplateCommand.Execute("HeartRate");
+
+        Assert.True(status.IsWarning);
+        Assert.Equal(Strings.Template_NoHeartRateHere, status.Message);
+    }
 }

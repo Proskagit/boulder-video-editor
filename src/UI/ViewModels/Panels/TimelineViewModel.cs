@@ -1175,9 +1175,35 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void AddTemplate(string kind)
     {
         if (!Enum.TryParse<TemplateKind>(kind, out var parsed)) return;
-        var result = _edit.AddTemplateClip(parsed, EditPlayhead);
+        var at = EditPlayhead;
+        var result = _edit.AddTemplateClip(parsed, at);
         SelectAdded(result);
         Report(result, successMessage: Strings.Template_Added);
+        // D068 amendment 1: a heart rate plate where the training has no samples shows nothing — said at once.
+        if (result.Success && parsed == TemplateKind.HeartRate && !HasHeartRateAt(at))
+            _status.ReportWarning(Strings.Template_NoHeartRateHere);
+    }
+
+    /// <summary>D068 amendment 1: «Пульс» is offered only with a usable training (it shows nothing without one).</summary>
+    public bool HasTraining => _projectService.Current.Training is { IsUsable: true };
+
+    /// <summary>The template menu is opening: its «Пульс» follows the training.</summary>
+    public void RefreshTemplateMenu() => OnPropertyChanged(nameof(HasTraining));
+
+    /// <summary>Whether the training has a heart rate for the picture of the topmost video clip at <paramref name="at"/>
+    /// (D055 §1: the file's time and the training's clock correction).</summary>
+    internal bool HasHeartRateAt(MediaTime at)
+    {
+        if (_projectService.Current.Training is not { Workout: { } workout } training) return false;
+        foreach (var track in Sequence.VideoTracks.OrderByDescending(t => t.Order))
+        {
+            if (track.Clips.OfType<VideoClip>().FirstOrDefault(c => c.TimelineStart <= at && at < c.TimelineEnd) is not { } clip) continue;
+            if (FindAsset(clip.MediaAssetId) is not { } asset || FitRouteBinding.FileTimeOf(asset, workout) is not { Zero: var zero }) continue;
+            var offset = at - clip.TimelineStart;
+            var source = new MediaTime(clip.SourceIn.Ticks + offset.Ticks * clip.Speed.Numerator / clip.Speed.Denominator);
+            if (TrainingAlignment.HeartRateAtSource(workout, zero, training.ClockCorrection, source) is not null) return true;
+        }
+        return false;
     }
 
     /// <summary>"Add to Timeline" from the Media Browser: end of V1 / A1.</summary>

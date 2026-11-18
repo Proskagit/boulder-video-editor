@@ -52,6 +52,9 @@ public partial class TimelineView : UserControl
     public TimelineView()
     {
         InitializeComponent();
+        // D068 amendment 1: «Пульс» in the template menu follows the training, read when the menu opens.
+        if (Resources["TemplateMenu"] is MenuFlyout templates)
+            templates.Opening += (_, _) => (DataContext as TimelineViewModel)?.RefreshTemplateMenu();
 
         ContentScroll.ScrollChanged += (_, _) => SyncViewport();
         MarkerLabelBox.AddHandler(KeyDownEvent, (_, e) =>

@@ -12,7 +12,7 @@
         Icon="/Assets/app.ico"
         Width="1440" Height="900"
         MinWidth="1024" MinHeight="640"
-        >
+        Background="{DynamicResource Surface0Brush}">
 
   <Grid x:Name="RootGrid" RowDefinitions="Auto,*,Auto,240,Auto">
 

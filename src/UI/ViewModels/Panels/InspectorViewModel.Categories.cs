@@ -39,32 +39,25 @@ public sealed partial class InspectorCategoryItem : ObservableObject
 }
 
 /// <summary>
-/// D068 item 8 (as the inspectors of CapCut, DaVinci Resolve and Insta360 Studio): a single clip's sections are grouped —
-/// Clip (frame, timing, clip), Text / Template, People, Holds, FIT, Sound — and the rail on the panel's edge shows one group
-/// at a time instead of one long list. A video clip opens on «Зацепки»; a group the user chose stays chosen for the next clip
-/// that has it (spatial stability), otherwise the clip's own default.
+/// D068 item 8, changed by amendment 1 (the owner): a single clip's sections are grouped — Clip (frame, timing, clip), Text /
+/// Template, People, Holds, FIT, Sound — and stay one list; the rail on the panel's left edge is navigation only: a button
+/// scrolls the list so that its group's first section is at the top, and the button of the group at the top is lit while
+/// the user scrolls.
 /// </summary>
 public sealed partial class InspectorViewModel
 {
-    private InspectorCategory? _chosenCategory;
     private bool _categoriesHooked;
-
     private IReadOnlyList<InspectorCategoryItem>? _categories;
 
-    /// <summary>The rail's buttons, in their order.</summary>
+    /// <summary>The rail's buttons, in their order (the order of the groups in the list).</summary>
     public IReadOnlyList<InspectorCategoryItem> Categories => _categories ??= CreateCategories();
 
+    /// <summary>The group at the top of the list (lit on the rail).</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowsClipCategory), nameof(ShowsTextCategory), nameof(ShowsPeopleCategory),
-        nameof(ShowsHoldsCategory), nameof(ShowsFitCategory), nameof(ShowsAudioCategory))]
     private InspectorCategory _selectedCategory = InspectorCategory.Clip;
 
-    public bool ShowsClipCategory => SelectedCategory == InspectorCategory.Clip;
-    public bool ShowsTextCategory => SelectedCategory == InspectorCategory.Text;
-    public bool ShowsPeopleCategory => SelectedCategory == InspectorCategory.People;
-    public bool ShowsHoldsCategory => SelectedCategory == InspectorCategory.Holds;
-    public bool ShowsFitCategory => SelectedCategory == InspectorCategory.Fit;
-    public bool ShowsAudioCategory => SelectedCategory == InspectorCategory.Audio;
+    /// <summary>Asks the view to scroll the list to a group's first section.</summary>
+    public event EventHandler<InspectorCategory>? ScrollToCategoryRequested;
 
     private IReadOnlyList<InspectorCategoryItem> CreateCategories()
     {
@@ -80,12 +73,18 @@ public sealed partial class InspectorViewModel
         };
     }
 
-    /// <summary>A rail button: the user's choice, kept for the next clips that have the group.</summary>
+    /// <summary>A rail button: the list scrolls to the group (nothing is hidden).</summary>
     public void ChooseCategory(InspectorCategory category)
     {
-        _chosenCategory = category;
+        if (!IsCategoryAvailable(category)) return;
         SelectedCategory = category;
-        RefreshCategoryItems();
+        ScrollToCategoryRequested?.Invoke(this, category);
+    }
+
+    /// <summary>The view: <paramref name="category"/> is the group at the top of the list now.</summary>
+    public void NoteCategoryAtTop(InspectorCategory category)
+    {
+        if (IsCategoryAvailable(category)) SelectedCategory = category;
     }
 
     /// <summary>Whether the shown clip has the group's sections (the same conditions as the sections' own visibility).</summary>
@@ -100,18 +99,11 @@ public sealed partial class InspectorViewModel
         _ => false
     };
 
-    private InspectorCategory DefaultCategory() =>
-        IsCategoryAvailable(InspectorCategory.Holds) ? InspectorCategory.Holds
-        : IsCategoryAvailable(InspectorCategory.Text) ? InspectorCategory.Text
-        : _clip is AudioClip ? InspectorCategory.Audio
-        : InspectorCategory.Clip;
-
-    /// <summary>Called whenever what the clip has may change: keeps the chosen group if the clip has it, else its default.</summary>
+    /// <summary>Called whenever what the clip has may change: which buttons the rail shows.</summary>
     private void RefreshCategories()
     {
         HookCategoryInputs();
-        var target = _chosenCategory is { } chosen && IsCategoryAvailable(chosen) ? chosen : DefaultCategory();
-        if (!IsCategoryAvailable(SelectedCategory) || SelectedCategory != target) SelectedCategory = target;
+        if (!IsCategoryAvailable(SelectedCategory)) SelectedCategory = InspectorCategory.Clip;
         RefreshCategoryItems();
     }
 
