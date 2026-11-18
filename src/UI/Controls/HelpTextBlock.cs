@@ -27,7 +27,12 @@ public sealed class HelpTextBlock : SelectableTextBlock
 
         var inlines = new InlineCollection();
         foreach (var span in Spans ?? Array.Empty<HelpSpan>())
-            inlines.Add(new Run(span.Text) { FontWeight = span.IsBold ? FontWeight.SemiBold : FontWeight.Normal });
+        {
+            // A plain run inherits the block's weight (a subheading is bold as a whole); only a marked run sets it.
+            var run = new Run(span.Text);
+            if (span.IsBold) run.FontWeight = FontWeight.SemiBold;
+            inlines.Add(run);
+        }
         Inlines = inlines;
     }
 }

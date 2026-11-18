@@ -35,7 +35,7 @@
             <DataTemplate x:DataType="help:HelpBlock">
               <Panel>
                 <controls:HelpTextBlock Spans="{Binding Spans}" IsVisible="{Binding IsHeading}"
-                                        FontSize="14" FontWeight="SemiBold" Margin="0,12,0,2" TextWrapping="Wrap"/>
+                                        FontSize="15" FontWeight="SemiBold" Foreground="#81C784" Margin="0,12,0,2" TextWrapping="Wrap"/>
                 <controls:HelpTextBlock Spans="{Binding Spans}" IsVisible="{Binding IsParagraph}"
                                         LineHeight="20" Margin="0,4" TextWrapping="Wrap"/>
                 <Grid ColumnDefinitions="18,*" IsVisible="{Binding IsBullet}" Margin="4,2">
