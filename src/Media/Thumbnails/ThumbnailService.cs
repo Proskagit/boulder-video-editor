@@ -101,15 +101,20 @@ public sealed class ThumbnailService : IThumbnailService
     }
 
     /// <summary>Video and images with completed analysis have a picture; audio and unanalysed media don't.</summary>
-    private static bool HasPicture(MediaAsset asset) =>
+    internal static bool HasPicture(MediaAsset asset) =>
         asset.Kind is MediaKind.Video or MediaKind.Image &&
         asset.AnalysisStatus == MediaAnalysisStatus.Completed && asset.Metadata is not null;
 
-    private async Task<Thumbnail> DecodeAsync(MediaAsset asset, CancellationToken ct)
+    private Task<Thumbnail> DecodeAsync(MediaAsset asset, CancellationToken ct) =>
+        DecodeAtAsync(asset, SourceTime(asset.Metadata), ct);
+
+    /// <summary>The picture at <paramref name="sourceTime"/> (from the file's start), by the same rule as the thumbnail's
+    /// (D068 item 10: the filmstrip's frames).</summary>
+    internal async Task<Thumbnail> DecodeAtAsync(MediaAsset asset, MediaTime sourceTime, CancellationToken ct)
     {
         var metadata = asset.Metadata!;
         var startTime = metadata.StartTime ?? MediaTime.Zero;
-        var point = new SourceSamplePoint(SourceTime(metadata).Ticks, 1);
+        var point = new SourceSamplePoint(sourceTime.Ticks, 1);
 
         await using var stream = await _decoder.OpenAsync(new VideoDecodeRequest
         {

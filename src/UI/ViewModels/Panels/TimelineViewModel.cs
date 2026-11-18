@@ -40,6 +40,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private readonly EditingLock _editingLock;
     private readonly InOutRangeService _inOut;
     private readonly WaveformCoordinator? _waveforms;
+    private readonly FilmstripCoordinator? _filmstrips;
     private readonly IDialogService? _dialogs;
 
     private readonly Dictionary<Guid, TimelineClipViewModel> _clipViewModels = new();
@@ -67,7 +68,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         SourceViewerService? source = null,
         ITextBoxMeasurer? textBoxes = null,
         IUserSettingsService? userSettings = null,
-        AudioProcessingCoordinator? audio = null)
+        AudioProcessingCoordinator? audio = null,
+        FilmstripCoordinator? filmstrips = null)
     {
         if (userSettings is not null) FollowsPlayheadSetting = () => userSettings.Current.TimelineFollowsPlayhead;
         Mixer = new MixerViewModel(projectService, edit, status, audio, () => !(editingLock?.IsLocked ?? false));
@@ -91,8 +93,12 @@ public sealed partial class TimelineViewModel : ViewModelBase
         {
             RefreshClipNames();
             RefreshWaveforms(); // a relinked file's old waveform is gone (D026 §3) — not only replaced by a new one
+            RefreshFilmstrips();
         };
         _waveforms = waveforms;
+        _filmstrips = filmstrips;
+        if (filmstrips is not null)
+            filmstrips.FilmstripReady += (_, _) => RefreshFilmstrips();
         _dialogs = dialogs;
         if (waveforms is not null)
             waveforms.WaveformReady += (_, _) => RefreshWaveforms();
@@ -421,6 +427,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         foreach (var vm in _clipViewModels.Values)
             vm.Layout(PixelsPerSecond);
         RefreshWaveforms();
+        RefreshFilmstrips();
         RefreshFades();
         RefreshVolumeShapes();
         RefreshStatusMarks();
@@ -533,6 +540,18 @@ public sealed partial class TimelineViewModel : ViewModelBase
         {
             foreach (var vm in track.Clips)
                 vm.Waveform = WaveformOf(vm.Clip, track.Track);
+        }
+    }
+
+    /// <summary>D068 item 10: every video clip's strip of pictures, from its video's filmstrip, its timing and the zoom.</summary>
+    private void RefreshFilmstrips()
+    {
+        foreach (var track in Tracks)
+        {
+            foreach (var vm in track.Clips)
+                vm.Filmstrip = vm.Clip is VideoClip video && _filmstrips?.Get(video.MediaAssetId) is { } strip
+                    ? new Rendering.ClipFilmstrip(strip, video.SourceIn, video.Speed, PixelsPerSecond)
+                    : null;
         }
     }
 

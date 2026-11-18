@@ -104,6 +104,7 @@ public static class ServiceCollectionExtensions
         // current project (saved: <project>/cache/thumbnails, unsaved: %LOCALAPPDATA%\…\cache\unsaved\<id>\thumbnails)
         // is ThumbnailCacheLocation's.
         services.AddSingleton<IThumbnailService, ThumbnailService>();
+        services.AddSingleton<IFilmstripService, FilmstripService>();          // D068 item 10
         services.AddSingleton<IThumbnailCacheLocation>(sp => new ThumbnailCacheLocation(
             sp.GetRequiredService<IProjectService>(), sp.GetRequiredService<RecoveryStore>(), AppPaths.UnsavedCacheRoot,
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ThumbnailCacheLocation>>()));
@@ -167,6 +168,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<PeopleAnalysisCoordinator>();   // D061: the people of videos with Follow / Occlusion
         services.AddSingleton<AudioProcessingCoordinator>();  // D064: the clean-ups and the speech of the ducking
         services.AddSingleton<WaveformCoordinator>();
+        services.AddSingleton<FilmstripCoordinator>();                         // D068 item 10
         services.AddSingleton<MediaAvailabilityMonitor>();
         services.AddSingleton<MediaImportWorkflow>();
         services.AddSingleton<TrainingSessionService>();   // Phase 35: the project's training, its FIT resolved at runtime (D049)

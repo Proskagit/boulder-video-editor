@@ -402,6 +402,8 @@
                                   Width="{Binding Width}" Height="36" Margin="0,4,0,0"
                                   CornerRadius="2" Background="{Binding ColorHex}" ClipToBounds="True">
                             <Grid ColumnDefinitions="6,*,6">
+                              <!-- D068 item 10: the video's pictures along the clip, under the waveform and the name. -->
+                              <rendering:FilmstripView Grid.ColumnSpan="3" Filmstrip="{Binding Filmstrip}" IsVisible="{Binding HasFilmstrip}"/>
                               <!-- Waveform of the clip's sound (D024 Step 9.5): the whole clip for audio, the lower half for video. -->
                               <rendering:WaveformView Grid.ColumnSpan="3" Waveform="{Binding Waveform}" IsVisible="{Binding HasWaveform}"/>
                               <!-- Debug prototype: the anchored clip's strip inside the «Боулдер» — green, orange over it, lilac; a dark

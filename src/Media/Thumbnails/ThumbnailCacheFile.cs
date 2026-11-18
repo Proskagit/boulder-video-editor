@@ -46,15 +46,22 @@ internal static class ThumbnailCacheFile
             return null;
         }
 
-        if (bytes.Length < HeaderLength || !bytes.AsSpan(0, 4).SequenceEqual(Magic))
+        return Decode(bytes);
+    }
+
+    /// <summary>A thumbnail encoded by <see cref="Encode"/> (also inside a filmstrip's file, D068 item 10), or null.</summary>
+    public static Thumbnail? Decode(ReadOnlyMemory<byte> data)
+    {
+        var bytes = data.Span;
+        if (bytes.Length < HeaderLength || !bytes[..4].SequenceEqual(Magic))
             return null;
-        var version = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(4));
-        var width = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(8));
-        var height = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(12));
+        var version = BinaryPrimitives.ReadInt32LittleEndian(bytes[4..]);
+        var width = BinaryPrimitives.ReadInt32LittleEndian(bytes[8..]);
+        var height = BinaryPrimitives.ReadInt32LittleEndian(bytes[12..]);
         if (version != FormatVersion || width is <= 0 or > MaxSide || height is <= 0 or > MaxSide)
             return null;
         if (bytes.Length - HeaderLength != (long)width * height * Thumbnail.BytesPerPixel)
             return null;
-        return new Thumbnail(width, height, bytes.AsMemory(HeaderLength));
+        return new Thumbnail(width, height, data[HeaderLength..]);
     }
 }

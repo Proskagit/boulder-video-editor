@@ -15,7 +15,10 @@ toolbar, F1 everywhere (also in a text box). Tests: AppDataMigration 4, Help 3, 
 Rendering 257, Export 142, Video 411 (+1 skipped), ExportEndToEnd 186 (+3 skipped), Vision 25 — all green. **Run (2026-11-18, the owner's yes; config and recovery copied first):** the owner's real folder moved whole ("moved 1, removed true", models intact); the title, the icon, «?», F1, the search, the topics, Esc checked on screen; the subheadings were not bold — fixed (`15f56c2`). 1.0 on this PC now has no models / settings (its folder is gone). **Research and audit (2026-11-18):** `docs/UX_CAPCUT_RESEARCH.md` part 2 (CapCut in full, Resolve Cut, Shotcut, GoPro Quik,
 Insta360 Studio — the latter seen live; CapCut and Resolve not opened live) and `docs/UX_AUDIT_1.1.md` (the workflow walked on copies of
 two 12x10 clips, the audit by screenshots in `docs/ux-1.1/before`, a design-system proposal, 15 prioritised changes + 3 owner
-decisions). Waiting for the owner's choice of the list before implementation (D068 §5).
+decisions). Waiting for the owner's choice of the list before implementation (D068 §5). **Implementation (2026-11-18, the owner chose items 1–18 and R1; R2–R4 rejected, D068 §6):** done and committed —
+items 1–4 (theme, accent, icons, message kinds), 5 (start screen), 6, 7, 8 (Inspector rail), 9, 10 (filmstrips), 11, 12, 13 + R1, 14.
+**Left:** P3 (15 template previews, 16 language names, 17 empty Preview hint, 18 section reset), the help's final texts, the
+full gates in Release + heavy, the phase review, push / PR, the owner's manual check. Not done in item 13: the cover frame.
 
 **Phase 48 — the owner's fixes before publishing 1.0 (D067, 2026-11-18) — on `feat/phase-48-release-fixes`.** Rubber-band
 selection in the Media Browser (from a blank place; Ctrl adds), the export's suggested name `yyyyMMdd_HHmm.mp4` (the last export's
