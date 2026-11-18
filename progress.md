@@ -2,6 +2,21 @@
 
 ## Current phase
 
+**Phase 49 — UX 1.1 (D068, 2026-11-18) — on `feat/phase-49-ux`.** The owner's answers: icon variant C, the name everywhere
+including the per-user folder, CapCut re-reviewed in full, the help inside the application, the rebranding in 1.1. **Step 1 (name
+and icon):** «Boulder Video Editor» in the title, `App:Name`, messages, docs; `BoulderVideoEditor.exe`, portable / models archive
+names, `Install-Models` target; `%LOCALAPPDATA%\BoulderVideoEditor` with `AppDataMigration` at startup (rename whole, or merge
+entry by entry — the new file wins, nothing overwritten or deleted, a held file left for the next start); namespaces, format ids,
+`AiVideoEditor.sln`, `AIVE_*` kept. Icon C by `tools/icon/make_icon.py` (Pillow from the E1 reference venv — the system Python has
+none). **Step 2 (help):** `HelpDocument` (a small Markdown subset, `Help/help.ru.md` / `help.en.md` embedded with
+`WithCulture=false`), `HelpViewModel` (search), `HelpView`, `AvaloniaHelpWindow` (one non-modal window, Esc closes), «?» on the
+toolbar, F1 everywhere (also in a text box). Tests: AppDataMigration 4, Help 3, F1 1. Gates (2026-11-18): Debug and Release
+`--no-incremental -warnaserror` 0 / 0; `git diff --check` clean; Release: Core 1 923, Project 749, Timeline 1 194, UI 1 281,
+Rendering 257, Export 142, Video 411 (+1 skipped), ExportEndToEnd 186 (+3 skipped), Vision 25 — all green. **Not run:** the app
+itself — its first start moves the owner's real `%LOCALAPPDATA%\AiVideoEditor` (1.0 would lose its models and settings); the
+owner decides. Next: the research update (CapCut in full, Resolve Cut, Shotcut, GoPro Quik), the workflow walk-through and the
+audit by screenshots.
+
 **Phase 48 — the owner's fixes before publishing 1.0 (D067, 2026-11-18) — on `feat/phase-48-release-fixes`.** Rubber-band
 selection in the Media Browser (from a blank place; Ctrl adds), the export's suggested name `yyyyMMdd_HHmm.mp4` (the last export's
 folder), Space = Play / Pause on the window's tunnel (only text inputs type it), Save As through the save dialog — a place and a

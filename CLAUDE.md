@@ -1,4 +1,4 @@
-# AI Video Editor — Claude Code Instructions
+# Boulder Video Editor — Claude Code Instructions
 
 ## 1. ROLE
 

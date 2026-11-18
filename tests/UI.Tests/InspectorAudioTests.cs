@@ -203,7 +203,7 @@ public sealed class InspectorAudioTests : IAsyncLifetime
         Assert.Equal(1, timelineChanges);                 // one edit, no echo from the Inspector refresh
         Assert.Equal(changes + 1, _historyChanges);
         Assert.True(_projects.Current.IsDirty);
-        Assert.EndsWith("* — AI Video Editor", _vm.Title);
+        Assert.EndsWith("* — Boulder Video Editor", _vm.Title);
 
         _undo.Undo();                                     // the volume step…
         Assert.Equal(1.0, clip.Volume);

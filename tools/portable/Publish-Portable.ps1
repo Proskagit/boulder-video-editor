@@ -5,8 +5,8 @@
 
 .DESCRIPTION
     Run from a clean checkout:  pwsh -File tools/portable/Publish-Portable.ps1
-    The result is artifacts/portable/AiVideoEditor-<version>-win-x64 (and a .zip of it with -Zip):
-      AiVideoEditor.exe, the .NET runtime and every dependency, appsettings.json,
+    The result is artifacts/portable/BoulderVideoEditor-<version>-win-x64 (and a .zip of it with -Zip):
+      BoulderVideoEditor.exe, the .NET runtime and every dependency, appsettings.json,
       README.txt (the user's instruction), THIRD-PARTY-NOTICES.txt and licenses\ (generated from the packages actually
       published - not a legal review), docs\AI_MODEL.md, BUILD-INFO.txt (commit, SDK, runtime, the folder's size).
     With -FfmpegPackage (the release, D066 par. 2) the minimal FFmpeg of tools/ffmpeg-minimal is put into ffmpeg\ with its
@@ -46,7 +46,7 @@ $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $templates = Join-Path $PSScriptRoot 'files'
 if (-not $OutputRoot) { $OutputRoot = Join-Path $repo 'artifacts\portable' }
 $rid = 'win-x64'
-$name = "AiVideoEditor-$Version-$rid"
+$name = "BoulderVideoEditor-$Version-$rid"
 $out = Join-Path $OutputRoot $name
 
 function Invoke-Native([string] $file, [string[]] $arguments) {
@@ -92,7 +92,7 @@ Invoke-Native 'dotnet' @(
 )
 
 # --- The runtime and the packages actually published (from the deps file) --------------------------------------
-$depsFile = Join-Path $out 'AiVideoEditor.deps.json'
+$depsFile = Join-Path $out 'BoulderVideoEditor.deps.json'
 $deps = Get-Content -Raw -Encoding UTF8 $depsFile | ConvertFrom-Json
 $packagesRoot = (& dotnet nuget locals global-packages --list) -replace '^global-packages:\s*', ''
 $packagesRoot = $packagesRoot.Trim()
@@ -180,7 +180,7 @@ if ($FfmpegPackage) {
     $ffmpegVersion = (& (Join-Path $ffmpegOut 'bin\ffmpeg.exe') -hide_banner -version | Select-Object -First 1)
     if ($ffmpegVersion -notmatch 'aive-minimal') { throw "-FfmpegPackage is not the minimal FFmpeg: $ffmpegVersion" }
     $lines.Add("FFmpeg / FFprobe - $ffmpegVersion")
-    $lines.Add('  The minimal FFmpeg of AiVideoEditor (DECISIONS.md D046 par. 13, D066 par. 2), built by tools/ffmpeg-minimal; in ffmpeg\.')
+    $lines.Add('  The minimal FFmpeg of Boulder Video Editor (DECISIONS.md D046 par. 13, D066 par. 2), built by tools/ffmpeg-minimal; in ffmpeg\.')
     $lines.Add('  Licence: GNU General Public License version 2 or later (FFmpeg configured with --enable-gpl, statically linked')
     $lines.Add('  with libx264). Its components, their licences and the toolchain runtime: ffmpeg\THIRD-PARTY-NOTICES.txt, ffmpeg\licenses\.')
     $lines.Add('  The complete corresponding source code is published with this release (aive-ffmpeg-minimal-*-sources.tar).')
@@ -266,7 +266,7 @@ $info = @(
     ".NET runtime: $(if ($runtime) { $runtime.Version } else { '(unknown)' })",
     "Files: $($files.Count + 1); size before this file: $bytes bytes ($([math]::Round($bytes / 1MB, 1)) MiB)",
     $ffmpegLine,
-    'AI models: not included - the separate archive AiVideoEditor-<version>-models.zip (README.txt, docs\AI_MODEL.md).'
+    'AI models: not included - the separate archive BoulderVideoEditor-<version>-models.zip (README.txt, docs\AI_MODEL.md).'
 )
 Set-Content -Path (Join-Path $out 'BUILD-INFO.txt') -Value $info -Encoding UTF8
 

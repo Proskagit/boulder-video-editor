@@ -656,7 +656,7 @@
     <value>«{0}» — недопустимый путь к папке.</value>
   </data>
   <data name="ProjectFile_Newer" xml:space="preserve">
-    <value>Этот проект сохранён более новой версией AI Video Editor и не может быть открыт.</value>
+    <value>Этот проект сохранён более новой версией Boulder Video Editor и не может быть открыт.</value>
   </data>
   <data name="ProjectFile_NoFolder" xml:space="preserve">
     <value>Не указана папка проекта.</value>
@@ -665,10 +665,10 @@
     <value>{0} не найден в {1}.</value>
   </data>
   <data name="ProjectFile_NotProject" xml:space="preserve">
-    <value>Этот файл не является проектом AI Video Editor.</value>
+    <value>Этот файл не является проектом Boulder Video Editor.</value>
   </data>
   <data name="ProjectFile_NotRecovery" xml:space="preserve">
-    <value>Этот файл не является файлом восстановления AI Video Editor.</value>
+    <value>Этот файл не является файлом восстановления Boulder Video Editor.</value>
   </data>
   <data name="ProjectFile_ReadFailed" xml:space="preserve">
     <value>Не удалось прочитать файл проекта: {0}</value>
@@ -677,7 +677,7 @@
     <value>Файл восстановления повреждён и не может быть использован.</value>
   </data>
   <data name="ProjectFile_RecoveryNewer" xml:space="preserve">
-    <value>Этот файл восстановления записан более новой версией AI Video Editor и не может быть использован.</value>
+    <value>Этот файл восстановления записан более новой версией Boulder Video Editor и не может быть использован.</value>
   </data>
   <data name="ProjectFile_SaveFailed" xml:space="preserve">
     <value>Не удалось сохранить проект: {0}</value>

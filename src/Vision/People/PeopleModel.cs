@@ -18,7 +18,7 @@ public static class PeopleModel
 {
     public const string Id = "people-v2";
 
-    /// <summary>The folder name under %LOCALAPPDATA%\AiVideoEditor\models.</summary>
+    /// <summary>The folder name under %LOCALAPPDATA%\BoulderVideoEditor\models.</summary>
     public const string FolderName = "people-v2";
 
     public static readonly HoldModelFile Detector =

@@ -1,4 +1,4 @@
-# AI Video Editor
+# Boulder Video Editor
 
 A simplified, desktop-first video editor (Windows 10/11 x64, Avalonia UI, .NET 8),
 architected so professional-grade features can be layered in over time without a
@@ -63,7 +63,7 @@ from a clean checkout by:
 pwsh -File tools/portable/Publish-Portable.ps1 -Zip
 ```
 
-It writes `artifacts/portable/AiVideoEditor-<version>-win-x64` (self-contained `win-x64`, an ordinary folder, no
+It writes `artifacts/portable/BoulderVideoEditor-<version>-win-x64` (self-contained `win-x64`, an ordinary folder, no
 single-file and no trimming) with the user's instruction `README.txt`, `THIRD-PARTY-NOTICES.txt` and `licenses\`
 (generated from the published packages, not yet reviewed), `docs\AI_MODEL.md` and `BUILD-INFO.txt`. FFmpeg and the AI
 model are not included. For a local technical check only, `-FfmpegDir <folder>` copies a local FFmpeg (e.g. the
@@ -139,7 +139,7 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
   behind `IVideoDecoder` / `IAudioDecoder` (Phase 5), thumbnails and waveforms behind
   `IThumbnailService` / `IWaveformService` (Phase 9), export behind `IExportService` (Phase 8).
 - **Serilog with per-area log files** (`app-*.log`, `ffmpeg-*.log`,
-  `errors-*.log` under `%LOCALAPPDATA%\AiVideoEditor\logs`; an `export-*.log` sink
+  `errors-*.log` under `%LOCALAPPDATA%\BoulderVideoEditor\logs`; an `export-*.log` sink
   is configured but nothing writes to it yet) — keeps FFmpeg noise separate from
   general app logs while still collecting every error in one place for quick triage.
 
@@ -180,7 +180,7 @@ shows as offline, a file put back is online again without reopening the project.
 warnings, undo) is implemented underneath, Step 11.5 the batch search in a chosen folder, Step 11.6 their UI: while
 media is offline the Media Browser shows Relink… (the selected item) and Find Missing… (a folder), undoable like any edit.
 Steps 11.7–11.8: `Recent ▾` next to Open lists the last 10 projects opened, saved as or recovered (kept in
-`%LOCALAPPDATA%\AiVideoEditor\config\recent-projects.json`); an entry whose project can't be found is shown as
+`%LOCALAPPDATA%\BoulderVideoEditor\config\recent-projects.json`); an entry whose project can't be found is shown as
 unavailable and can be removed with ✕.
 
 Phase 12 (DECISIONS.md D027; merged into `main` as `c0cb600` on 2026-10-05, CI green): editing essentials.

@@ -1,0 +1,152 @@
+# Getting started
+
+Boulder Video Editor is an editor for bouldering videos. Its core is working with holds: one click on a hold gives its exact outline, the route is highlighted, the outlines follow the camera and hide behind people. A training file from your watch (FIT) lays the climbs out on the clips by itself.
+
+## The main path
+
+- **Import.** Add videos to the «Media» panel («+ Import» or Ctrl+I) and drag them onto the timeline.
+- **Edit.** Trim and arrange the clips, split off what you don't need (S).
+- **Holds.** Pause on a clip and press «Mark holds» in the Inspector.
+- **Training.** «Import FIT Training…» on the toolbar binds the climbs to the clips.
+- **Design.** Add a template («Boulder», «Heart rate» and others), text and transitions.
+- **Export.** «Export» (Ctrl+E) saves the finished MP4 video.
+
+## The editor's window
+
+- **The toolbar** at the top: the project, undo, the training, the project settings, export, the settings and this help.
+- **Media** on the left: the project's files.
+- **Preview** in the middle: the timeline's frame or the source file. What you see here is what gets exported.
+- **The Inspector** on the right: the selected clip's properties; its sections collapse.
+- **The timeline** at the bottom: the video and sound tracks.
+
+## What the AI features need
+
+Marking holds, following people and cleaning sound need local models. They come as a separate models archive (Install-Models.cmd). Without them the editor works, and these features say the model is missing. Nothing is sent to the internet.
+
+# The project and its files
+
+- **A project is a folder** with a project.json file. «New» (Ctrl+N), «Open» (Ctrl+O), «Recent» — the latest projects.
+- **«Save»** (Ctrl+S) and **«Save As»** (Ctrl+Shift+S). «Save As» creates a folder with the name you type — handy for keeping versions side by side: «Project v1», «Project v2».
+- **Videos are not copied** into the project: it refers to your files. Don't move or rename them while you need the project.
+- **Autosave.** If the editor closed without saving, it offers to recover your work at the next start.
+- **«Project Settings…»** — the project's frame size and frame rate.
+- **«Settings…»** — the application's settings: language, FFmpeg, markup, FIT trainings.
+
+# Media and the timeline
+
+## Media
+
+- «+ Import» adds videos, sounds and pictures. Select files with a rubber band (Ctrl adds to the selection) and drag them onto the timeline as a group.
+- A double click opens a file in the source: in Preview pick the part you need (I — in, O — out) and put it on the timeline («,» — insert, «.» — overwrite).
+
+## The timeline
+
+- Drag a clip with the mouse; its edges trim it. **Snapping** (N) pulls clips to their neighbours and the playhead.
+- **S** — split at the playhead, **Delete** — delete, **Ctrl+D** — duplicate, **Ctrl+C / Ctrl+V** — copy and paste.
+- **Q / W** — trim the selected clip's start / end to the playhead; with Shift the following clips move too.
+- The buttons above the tracks: split, ripple delete, close the gap, link or unlink the sound, transition, text, template, marker, mixer.
+- Zoom: Ctrl+wheel, Ctrl+= / Ctrl+−, «\» — the whole timeline.
+- Undo and redo: Ctrl+Z / Ctrl+Y — for every edit.
+
+## The frame and motion
+
+- In Preview the selected clip can be moved, scaled and cropped (the buttons above the frame). It snaps to the frame's edges and centre.
+- **Keyframes** (the diamond button) make motion: the position and scale at different moments.
+- Speed, rotation and fades are in the Inspector's sections.
+
+# Marking holds
+
+A local neural network draws a hold's outline from one click.
+
+## Marking by hand
+
+- Pause on a clip and press **«Mark holds»** in the Inspector's «Holds» section.
+- Click a hold — its outline appears. **Enter** confirms, **Esc** discards, **Tab** switches between the outline's variants.
+- **Shift+click** refines an outline that took too much. A selected hold's points can be dragged; **Alt+click** adds a point, **Delete** removes the hold.
+- **«Done»** leaves the markup. The marked holds stay.
+
+## Proposals and automatic marking
+
+- **«Suggest holds automatically»** — entering the markup, the editor looks for holds by itself. Accept or reject each, or all at once: «Accept all» (Ctrl+A), «Reject all» (Ctrl+D).
+- **«Auto markup»** — click one hold of the route and the editor finds the other holds of its colour on a clean frame. «Colour tolerance» decides how similar a colour still counts. Delete the extra ones, click the missed ones and press «Accept».
+
+## Look and animation
+
+- **Colour, width, keyline** — how the outlines look. The keyline makes the line visible on a busy wall.
+- **«Animation»** — the holds appear one by one, then the whole route shows and fades out. «Order» — bottom to top, left to right and so on; «Set to playhead» — start the animation at the current frame.
+- **«Follow the camera»** — the outlines stick to the wall and stay on the holds when the camera moves. Where the camera's position is unreliable, they are hidden.
+- **Smoothing** of new outlines is in «Settings…».
+
+# FIT trainings and routes
+
+A training file from your watch (COROS, Garmin and others) knows when you climbed and what your heart rate was. The editor uses it to lay the climbs out on the clips.
+
+- **«Import FIT Training…» → «Import…»** — choose a .fit file. The project keeps a link to it; «Point to the file…» — if the file has moved.
+- **The climbs are bound to the clips** by the time they were filmed. If the watch and the phone disagree, adjust «Training clock correction, frames» in the same menu.
+- The clip's **«FIT training»** section in the Inspector shows its climb. The link can be set or removed by hand; wrong climbs are declined, and «Declined climbs» on the toolbar brings them back.
+- **The route** in the «Holds» section — which route the marked holds belong to. Next to a FIT climb the nearest route is chosen; pick another or «New route».
+- **«Lay out intro and final»** places the route's and the result's display at the climb's marks.
+
+# Following and people in the frame
+
+The Inspector's **«Follow and people»** section.
+
+- **«Follow the climber»** — the visible part of the frame moves with the chosen person. It needs room: scale the clip beyond «Fill». Follow the whole clip or «from here» — from the current frame.
+- **«Smoothness»** — how gently the frame catches up. **«Climber in the frame»** — where they stand in the frame; easier to drag the frame in Preview.
+- **«Hide outlines behind people»** — the hold outlines hide behind anyone who covers them.
+- The people analysis runs in the background with its progress in the section. Its results are kept, so it isn't computed twice.
+
+# Text, templates and transitions
+
+- **Text** — the «Add a text clip» button above the timeline. The font, colour, outline, background and its entrance animation are in the Inspector.
+- **Templates** — ready-made plates: «Boulder» (the route, grade, status TOP or attempt), «Heart rate», «Highlight», REC, VHS. The template's fields are in the Inspector's «Template» section; «Status appears» sets when the result shows.
+- **A transition** — select two neighbouring clips and press the transition button. On a sound track it is a cross-fade.
+
+# Sound
+
+- **A clip's volume** and its fade in / out are in the Inspector's «Audio» section. Volume points can be set and the line dragged right on the timeline.
+- **The mixer** (the button above the timeline): the master volume, each track's volume, «Mute», «Solo».
+- **«Lower during speech (ducking)»** — the music gets quieter by itself while a voice sounds on the chosen track.
+- A clip's **«Clean-up»**: «Noise reduction» removes a hall's steady noise, «Voice enhancement» brings out the voice. The original file is never changed; «Play the original sound (compare)» in the mixer lets you compare.
+
+# Export
+
+- **«Export»** (Ctrl+E) — choose the place and the file's name. The name offered is the date and time, for example 20261118_1430.mp4.
+- The export window chooses the resolution and, with an in and out set, the whole project or only that part.
+- **The export runs in the background:** keep working. The video holds the project as it was when the export started.
+- The export's progress shows in the editor's window, and it can be cancelled. With an NVIDIA graphics card the encoding runs on it.
+
+# Keyboard shortcuts
+
+## The project
+
+- **Ctrl+N** — new project, **Ctrl+O** — open, **Ctrl+S** — save, **Ctrl+Shift+S** — save as
+- **Ctrl+I** — import, **Ctrl+E** — export
+- **Ctrl+Z** — undo, **Ctrl+Y** or **Ctrl+Shift+Z** — redo
+- **F1** — help
+
+## Playback
+
+- **Space** — play / pause, **K** — pause, **L** — play, **Ctrl+L** — loop
+- **← / →** — a frame back / forward, with **Shift** — a second, **J** — a second back
+- **Home / End** — to the start / the end
+
+## The timeline
+
+- **S** — split, **Delete** — delete, **Ctrl+D** — duplicate, **Ctrl+C / Ctrl+V** — copy / paste
+- **Ctrl+A** — select all, **Esc** — clear the selection
+- **Q / W** — trim the start / end to the playhead (with Shift the following clips move)
+- **Alt+← / Alt+→** — nudge the selection by a frame (with Shift by a second)
+- **I / O** — in / out, **«,» / «.»** — insert / overwrite from the source
+- **N** — snapping, **Ctrl+= / Ctrl+−** — zoom, **\** — the whole timeline
+
+## Marking holds
+
+- **Enter** — confirm, **Esc** — discard, **Tab / Shift+Tab** — another outline variant
+- **Delete** — delete the hold, **Ctrl+A / Ctrl+D** — accept / reject all proposals
+
+# Where the data lives
+
+- **Projects** — in the folders you chose when saving.
+- **Settings, models, recovery and caches** — in %LOCALAPPDATA%\BoulderVideoEditor. The older version's folder (AiVideoEditor) is moved there at the first start.
+- **Logs** — in %LOCALAPPDATA%\BoulderVideoEditor\logs. If something goes wrong, attach the app-*.log, errors-*.log and ffmpeg-*.log files from there to your description.

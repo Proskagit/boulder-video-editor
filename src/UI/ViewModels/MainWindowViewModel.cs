@@ -43,8 +43,8 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// <summary>Asks, then cancels the running export.</summary>
     public IAsyncRelayCommand CancelExportCommand { get; }
 
-    /// <summary>"Name — AI Video Editor", with a "*" after the name while there are unsaved changes.</summary>
-    public string Title => $"{_projectService.Current.Name}{(_projectService.Current.IsDirty ? "*" : "")} — AI Video Editor";
+    /// <summary>"Name — Boulder Video Editor", with a "*" after the name while there are unsaved changes.</summary>
+    public string Title => $"{_projectService.Current.Name}{(_projectService.Current.IsDirty ? "*" : "")} — Boulder Video Editor";
 
     public ToolbarViewModel Toolbar { get; }
     public MediaBrowserViewModel MediaBrowser { get; }

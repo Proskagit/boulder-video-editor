@@ -11,7 +11,7 @@ namespace AiVideoEditor.Media.Caching;
 
 /// <summary>
 /// The people analyses kept between sessions (D061 §5) — the same rules as <see cref="CameraMotionCacheStore"/>: one file
-/// per analysis in a folder of the application's cache (<c>%LOCALAPPDATA%\AiVideoEditor\cache\people</c>, never the
+/// per analysis in a folder of the application's cache (<c>%LOCALAPPDATA%\BoulderVideoEditor\cache\people</c>, never the
 /// project); the file name is the SHA-256 of the key, the file repeats the key and ends with the SHA-256 of its content (a
 /// collision, a truncated or a damaged file is never read — it is deleted and the video analysed again); written atomically;
 /// above the size limit the least recently used files are removed; any failure is logged and treated as "not cached".

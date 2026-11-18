@@ -42,11 +42,11 @@ public class ProjectSerializerValidationTests
     public void Other_json_documents_are_not_projects()
     {
         var ex = Load("{\"name\":\"x\"}");
-        Assert.Contains("not an AI Video Editor project", ex.Message);
+        Assert.Contains("not an Boulder Video Editor project", ex.Message);
 
         var root = SampleJson();
         root["format"] = "SomethingElse";
-        Assert.Contains("not an AI Video Editor project", Load(root).Message);
+        Assert.Contains("not an Boulder Video Editor project", Load(root).Message);
     }
 
     [Fact]

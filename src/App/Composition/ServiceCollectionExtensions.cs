@@ -81,6 +81,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<FitCalibrationSaveSync>();     // Step 37.5: the saves' observations
         services.AddSingleton<IFitSettingsDialog, AvaloniaFitSettingsDialog>();
         services.AddSingleton<IAppSettingsDialog, AvaloniaAppSettingsDialog>();   // D057 §3.8: «Настройки…»
+        services.AddSingleton<IHelpWindow, AvaloniaHelpWindow>();                // D068 §3: the in-app help
         services.AddSingleton<IExportDialog, AvaloniaExportDialog>();   // the export dialog with the YouTube timestamps
         services.AddSingleton<FitSettingsWorkflow>();        // Step 37.6: «Настройки FIT…»
         // D057 §3.8: the user's FFmpeg paths (settings.json) win over the application's (appsettings.json); applied at start.

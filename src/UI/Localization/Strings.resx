@@ -3682,4 +3682,19 @@ If you don't save, your changes will be lost.</value>
   <data name="Keyframe_TipVolume" xml:space="preserve">
     <value>Keyframe {0}: volume {1}</value>
   </data>
+  <data name="Toolbar_Help" xml:space="preserve">
+    <value>Help</value>
+  </data>
+  <data name="Toolbar_HelpTip" xml:space="preserve">
+    <value>Help: how the editor works (F1)</value>
+  </data>
+  <data name="Help_Title" xml:space="preserve">
+    <value>Help — Boulder Video Editor</value>
+  </data>
+  <data name="Help_SearchWatermark" xml:space="preserve">
+    <value>Search the help</value>
+  </data>
+  <data name="Help_NothingFound" xml:space="preserve">
+    <value>Nothing found. Try another word.</value>
+  </data>
 </root>

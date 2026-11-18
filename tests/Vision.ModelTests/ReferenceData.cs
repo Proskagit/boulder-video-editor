@@ -12,7 +12,7 @@ internal static class ReferenceData
 {
     public static string ModelDir =>
         Environment.GetEnvironmentVariable("AIVE_AI_MODEL_DIR") is { Length: > 0 } dir ? dir
-            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AiVideoEditor", "models", HoldModel.FolderName);
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BoulderVideoEditor", "models", HoldModel.FolderName);
 
     public static string E1Dir =>
         Environment.GetEnvironmentVariable("AIVE_AI_E1_DIR") is { Length: > 0 } dir ? dir

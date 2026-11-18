@@ -1,5 +1,5 @@
 {
-  "comment": "S1 (D066 §3): the AI models of AiVideoEditor 1.0 — the folders under %LOCALAPPDATA%\\AiVideoEditor\\models and their files. Must equal the pinned files in src/Vision (HoldModel, PeopleModel, AudioModel); Vision.Tests checks it.",
+  "comment": "S1 (D066 §3): the AI models of Boulder Video Editor 1.0 — the folders under %LOCALAPPDATA%\\BoulderVideoEditor\\models and their files. Must equal the pinned files in src/Vision (HoldModel, PeopleModel, AudioModel); Vision.Tests checks it.",
   "version": "1.0",
   "folders": [
     {

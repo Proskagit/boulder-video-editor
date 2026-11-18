@@ -29,6 +29,13 @@ public sealed class ShortcutRoutingTests
     private readonly ProjectService _projects = new(new UndoRedoService(), NullLogger<ProjectService>.Instance);
     private readonly EditingLock _lock = new();
     private readonly MainWindowViewModel _vm;
+    private readonly CountingHelp _help = new();
+
+    private sealed class CountingHelp : IHelpWindow
+    {
+        public int Shown { get; private set; }
+        public void Show() => Shown++;
+    }
 
     public ShortcutRoutingTests()
     {
@@ -42,7 +49,7 @@ public sealed class ShortcutRoutingTests
             NullLogger<ProjectFileWorkflow>.Instance);
         var playback = new PlaybackService(new FakeVideoDecoder(), new FakeReferenceClock(), NullLogger<PlaybackService>.Instance);
         _vm = new MainWindowViewModel(
-            new ToolbarViewModel(undo, files, import, status, editingLock: _lock),
+            new ToolbarViewModel(undo, files, import, status, editingLock: _lock, help: _help),
             new MediaBrowserViewModel(_projects, import, NullLogger<MediaBrowserViewModel>.Instance, _lock),
             new PreviewViewModel(status, playback, _projects, NullLogger<PreviewViewModel>.Instance),
             new InspectorViewModel(edit, status, editingLock: _lock),
@@ -54,6 +61,17 @@ public sealed class ShortcutRoutingTests
 
     private bool Press(Key key, KeyModifiers modifiers = KeyModifiers.None, object? source = null, object? focused = null) =>
         ShortcutRouter.Handle(_vm, key, modifiers, source ?? new Button(), focused);
+
+    /// <summary>D068 §3: F1 opens the help wherever the focus is — also in a text box (it types nothing there).</summary>
+    [Fact]
+    public void F1_opens_the_help_even_while_typing()
+    {
+        Assert.True(Press(Key.F1));
+        Assert.True(Press(Key.F1, source: new TextBox(), focused: new TextBox()));
+        Assert.Equal(2, _help.Shown);
+        Assert.False(Press(Key.F1, KeyModifiers.Shift));
+        Assert.Equal(2, _help.Shown);
+    }
 
     [Fact]
     public void Every_existing_shortcut_keeps_its_key_and_command() =>

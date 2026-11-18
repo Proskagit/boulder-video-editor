@@ -50,4 +50,4 @@ $wsb = @"
 $path = Join-Path $Release 'S1-clean-check.wsb'
 Set-Content -Path $path -Value $wsb -Encoding UTF8
 Write-Host "Windows Sandbox configuration: $path"
-Write-Host 'Open it (double click). Inside: copy release\*.zip to the desktop, unpack, run Install-Models.cmd, then AiVideoEditor.exe.'
+Write-Host 'Open it (double click). Inside: copy release\*.zip to the desktop, unpack, run Install-Models.cmd, then BoulderVideoEditor.exe.'

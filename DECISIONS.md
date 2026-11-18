@@ -10961,3 +10961,62 @@ is closed with it (not seen again). The release `v1.0.0`'s assets are rebuilt fr
 ### Out of scope
 
 Keyframed clean-up (§3, backlog); the UX phase (1.1); the other windows' icons (dialogs keep the default).
+
+## D068 — Phase 49: UX 1.1 — the product's name and icon, the in-app help, the UX research and audit, a small design system *(set by the owner on 2026-11-18)*
+
+Date: 2026-11-18. **Status: the scope set by the product owner on 2026-11-18** (the first development phase after the MVP;
+the owner's answers: icon variant C, the name everywhere including the per-user folder, CapCut re-reviewed in full, the help
+inside the application, the rebranding inside 1.1). Branch `feat/phase-49-ux`. **No format change** (`project.json` v25).
+Manual plan: `docs/PHASE49_MANUAL_TEST_PLAN.md`. Built in steps; this decision grows with them.
+
+### 1. The name — Boulder Video Editor
+
+The product is **Boulder Video Editor** (it was «AI Video Editor»): the window's title («Имя[*] — Boulder Video Editor»),
+`App:Name`, the messages that name the product, the documents. The executable is `BoulderVideoEditor.exe`, the portable
+folder and archives `BoulderVideoEditor-<version>-win-x64(.zip)` and `BoulderVideoEditor-<version>-models.zip`. Not translated
+(the product's name, as D039's list said of the old one).
+
+**The per-user folder** is `%LOCALAPPDATA%\BoulderVideoEditor` (settings, recent projects, the start calibration, the models,
+recovery, logs, caches). At startup, before the logger writes anything, the old `%LOCALAPPDATA%\AiVideoEditor` is moved into
+it (`AppDataMigration`): renamed whole when the new folder is absent (the same disk — the models are not copied); merged entry
+by entry when it exists (1.1's models installed before the first start): a missing entry is moved, a folder in both is merged,
+a file in both stays in the old folder (the new one wins; nothing is overwritten or deleted). The old folder is removed only
+when it is empty. An entry that cannot be moved (a file held by a running 1.0) stays for the next start; startup never fails
+because of it; the result is logged. `Install-Models` installs into the new folder.
+
+**Kept as they are** (invisible to the user, changing them would break compatibility): the namespaces and assembly names
+`AiVideoEditor.*`, the file format identifiers (`"format": "AiVideoEditor.Project"`, `.Recovery`, `.RecentProjects`,
+`.FitCalibration`), the solution `AiVideoEditor.sln`, the environment variables `AIVE_*`, the repository's folder.
+
+### 2. The application's icon — variant C, «a pinch hold in its contour»
+
+A green pinch hold (a lit top face, a dark grip pocket, a bolt hole, a darker lower side) inside the white contour the
+editor draws around a marked hold, on the editor's dark rounded square. `tools/icon/make_icon.py` (Pillow; the sketch's Bézier
+paths) → `src/UI/Assets/app.ico` (16–256 px) and `app-256.png`; the exe's and the main window's icon (D067 §7 replaced).
+
+### 3. The in-app help
+
+A help window inside the application, offline, in the interface's language (Russian / English): «?» on the toolbar and F1
+open it. A table of contents on the left, a short text on the right — what each feature does and how to use it, without
+going into details: getting started, the media and the timeline, marking holds, FIT trainings and routes, people (Follow /
+Occlusion), text and templates, audio, export, the shortcuts, where the files live. Written last in the phase (after the
+interface changes), the window and its structure first.
+
+### 4. The UX research (update) and the audit
+
+`docs/UX_CAPCUT_RESEARCH.md` (2026-11-09, the input of Phase 38) is updated, not rewritten: CapCut re-reviewed in full (not
+only the Inspector and the timeline), plus DaVinci Resolve (the Cut page), Shotcut and GoPro Quik (automatic editing from
+data — the closest to our idea). The target workflow (`docs/TARGET_WORKFLOW.md`: import → holds → FIT and routes → template →
+export) walked step by step: where there are many clicks, where it is unclear, where there is no feedback. An audit by
+screenshots: spacing, fonts and colours; icons instead of text buttons; the panels' hierarchy; empty states and a start
+screen with the recent projects; progress and error messages; shortcuts.
+
+### 5. The result of §4
+
+A small design system (colours, typography, spacing, one icon set with its licence checked), a prioritised list of changes,
+and their implementation in steps with «before / after» screenshots. The steps and their scope are recorded here as amendments
+once the list is agreed with the owner (the timeline clips' thumbnails, D058 §7, are a candidate).
+
+### Out of scope
+
+New editing features; changing the file formats; the release 1.1's packaging (after the phase).

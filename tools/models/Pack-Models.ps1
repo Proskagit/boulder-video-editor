@@ -1,17 +1,17 @@
 <#
 .SYNOPSIS
-    Packs the AI models archive of AiVideoEditor (S1, DECISIONS.md D066 §3).
+    Packs the AI models archive of Boulder Video Editor (S1, DECISIONS.md D066 §3).
 
 .DESCRIPTION
     pwsh -File tools/models/Pack-Models.ps1 [-Source <models folder>] [-Version 1.0.0]
-    Takes every file listed in models.json from -Source (default %LOCALAPPDATA%\AiVideoEditor\models), refuses any file whose
-    size or SHA-256 differs, and writes artifacts/release/AiVideoEditor-<version>-models.zip:
+    Takes every file listed in models.json from -Source (default %LOCALAPPDATA%\BoulderVideoEditor\models), refuses any file whose
+    size or SHA-256 differs, and writes artifacts/release/BoulderVideoEditor-<version>-models.zip:
       models\<folder>\<files>, models.json, Install-Models.cmd / .ps1, README.txt, THIRD-PARTY-NOTICES.txt, licenses\.
     The archive is stored without compression (ONNX weights do not compress) and its SHA-256 is printed.
 #>
 [CmdletBinding()]
 param(
-    [string] $Source = (Join-Path $env:LOCALAPPDATA 'AiVideoEditor\models'),
+    [string] $Source = (Join-Path $env:LOCALAPPDATA 'BoulderVideoEditor\models'),
     [string] $Version = '1.0.0',
     [string] $OutputRoot
 )
@@ -22,7 +22,7 @@ $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 if (-not $OutputRoot) { $OutputRoot = Join-Path $repo 'artifacts\release' }
 $manifest = Get-Content -Raw -Encoding utf8 (Join-Path $PSScriptRoot 'models.json') | ConvertFrom-Json
-$stage = Join-Path $OutputRoot "AiVideoEditor-$Version-models"
+$stage = Join-Path $OutputRoot "BoulderVideoEditor-$Version-models"
 $zip = "$stage.zip"
 if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
 if (Test-Path $zip) { Remove-Item -Force $zip }

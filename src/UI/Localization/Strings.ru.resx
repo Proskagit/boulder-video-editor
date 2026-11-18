@@ -3686,4 +3686,19 @@
   <data name="Keyframe_TipVolume" xml:space="preserve">
     <value>Ключевой кадр {0}: громкость {1}</value>
   </data>
+  <data name="Toolbar_Help" xml:space="preserve">
+    <value>Справка</value>
+  </data>
+  <data name="Toolbar_HelpTip" xml:space="preserve">
+    <value>Справка: как работать с редактором (F1)</value>
+  </data>
+  <data name="Help_Title" xml:space="preserve">
+    <value>Справка — Boulder Video Editor</value>
+  </data>
+  <data name="Help_SearchWatermark" xml:space="preserve">
+    <value>Поиск по справке</value>
+  </data>
+  <data name="Help_NothingFound" xml:space="preserve">
+    <value>Ничего не найдено. Попробуйте другое слово.</value>
+  </data>
 </root>

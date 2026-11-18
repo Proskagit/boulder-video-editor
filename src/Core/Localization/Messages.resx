@@ -656,7 +656,7 @@
     <value>"{0}" is not a valid folder path.</value>
   </data>
   <data name="ProjectFile_Newer" xml:space="preserve">
-    <value>This project was saved by a newer version of AI Video Editor and can't be opened.</value>
+    <value>This project was saved by a newer version of Boulder Video Editor and can't be opened.</value>
   </data>
   <data name="ProjectFile_NoFolder" xml:space="preserve">
     <value>No project folder was given.</value>
@@ -665,10 +665,10 @@
     <value>{0} was not found in {1}.</value>
   </data>
   <data name="ProjectFile_NotProject" xml:space="preserve">
-    <value>This file is not an AI Video Editor project.</value>
+    <value>This file is not an Boulder Video Editor project.</value>
   </data>
   <data name="ProjectFile_NotRecovery" xml:space="preserve">
-    <value>This file is not an AI Video Editor recovery file.</value>
+    <value>This file is not an Boulder Video Editor recovery file.</value>
   </data>
   <data name="ProjectFile_ReadFailed" xml:space="preserve">
     <value>The project file couldn't be read: {0}</value>
@@ -677,7 +677,7 @@
     <value>The recovery file is damaged and can't be used.</value>
   </data>
   <data name="ProjectFile_RecoveryNewer" xml:space="preserve">
-    <value>This recovery file was written by a newer version of AI Video Editor and can't be used.</value>
+    <value>This recovery file was written by a newer version of Boulder Video Editor and can't be used.</value>
   </data>
   <data name="ProjectFile_SaveFailed" xml:space="preserve">
     <value>The project couldn't be saved: {0}</value>

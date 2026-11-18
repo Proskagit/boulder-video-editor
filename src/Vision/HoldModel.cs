@@ -16,7 +16,7 @@ public static class HoldModel
 {
     public const string Id = "sam2.1-large-v1";
 
-    /// <summary>The folder name under %LOCALAPPDATA%\AiVideoEditor\models.</summary>
+    /// <summary>The folder name under %LOCALAPPDATA%\BoulderVideoEditor\models.</summary>
     public const string FolderName = "sam2.1-large";
 
     public static readonly HoldModelFile Encoder =

@@ -34,6 +34,7 @@ public sealed partial class ToolbarViewModel : ViewModelBase, ITrainingClockCorr
     private readonly ITimelineEditService? _edit;
     private readonly IFitMarkEditService? _fitMarks;
     private readonly FitSettingsWorkflow? _fitSettings;
+    private readonly IHelpWindow? _help;
 
     /// <param name="exportWorkflow">Without it Export reports that exporting is unavailable.</param>
     /// <param name="editingLock">The app's shared lock; a private one when not given.</param>
@@ -44,6 +45,7 @@ public sealed partial class ToolbarViewModel : ViewModelBase, ITrainingClockCorr
     /// <param name="edit">Edits the training's clock correction (one Undo step); without it the field is read-only.</param>
     /// <param name="fitMarks">«Вернуть» of the declined FIT climbs (D051 §5.7); without it the list is not shown.</param>
     /// <param name="fitSettings">«Настройки FIT…» (D051 §8.3); without it the item is hidden.</param>
+    /// <param name="help">The in-app help (D068 §3); without it «?» is hidden and F1 does nothing.</param>
     public ToolbarViewModel(
         IUndoRedoService undoRedoService,
         ProjectFileWorkflow projectFiles,
@@ -57,8 +59,10 @@ public sealed partial class ToolbarViewModel : ViewModelBase, ITrainingClockCorr
         TrainingSessionService? trainingSession = null,
         ITimelineEditService? edit = null,
         IFitMarkEditService? fitMarks = null,
-        FitSettingsWorkflow? fitSettings = null)
+        FitSettingsWorkflow? fitSettings = null,
+        IHelpWindow? help = null)
     {
+        _help = help;
         _fitMarks = fitMarks;
         _fitSettings = fitSettings;
         _trainingImport = trainingImport;
@@ -154,6 +158,12 @@ public sealed partial class ToolbarViewModel : ViewModelBase, ITrainingClockCorr
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task AppSettings() => _fitSettings?.RunAsync(AppSettingsSection.General, this) ?? Task.CompletedTask;
+
+    /// <summary>D068 §3: «?» / F1 — the in-app help; always available (reading it changes nothing, also during an export).</summary>
+    public bool HasHelp => _help is not null;
+
+    [RelayCommand]
+    private void Help() => _help?.Show();
 
     private void RefreshDeclinedClimbs()
     {

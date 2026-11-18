@@ -2,13 +2,13 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <!-- D067 §7: the icon of AiVideoEditor.exe (Explorer, the taskbar). -->
+    <!-- D067 §7: D068 §1–§2: the icon of BoulderVideoEditor.exe (Explorer, the taskbar). -->
     <ApplicationIcon>..\UI\Assets\app.ico</ApplicationIcon>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>AiVideoEditor.App</RootNamespace>
-    <AssemblyName>AiVideoEditor</AssemblyName>
+    <AssemblyName>BoulderVideoEditor</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>

@@ -126,6 +126,11 @@
       <Button x:Name="AppSettingsButton" Content="{x:Static l:Strings.Toolbar_AppSettings}" Command="{Binding AppSettingsCommand}"
               IsVisible="{Binding HasAppSettings}" ToolTip.Tip="{x:Static l:Strings.Toolbar_AppSettingsTip}"/>
 
+      <!-- D068 §3: the in-app help (also F1). -->
+      <Button x:Name="HelpButton" Content="?" Command="{Binding HelpCommand}" IsVisible="{Binding HasHelp}" MinWidth="30"
+              FontWeight="SemiBold" HorizontalContentAlignment="Center"
+              ToolTip.Tip="{x:Static l:Strings.Toolbar_HelpTip}" AutomationProperties.Name="{x:Static l:Strings.Toolbar_Help}"/>
+
     </WrapPanel>
   </Border>
 

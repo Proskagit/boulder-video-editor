@@ -25,6 +25,13 @@ public static class ShortcutRouter
     /// Returns whether the key was consumed.</summary>
     public static bool Handle(MainWindowViewModel vm, Key key, KeyModifiers modifiers, object? source, object? focused)
     {
+        // D068 §3: F1 opens the help wherever the focus is — a text box types nothing with it.
+        if (key == Key.F1 && modifiers == KeyModifiers.None)
+        {
+            vm.Toolbar.HelpCommand.Execute(null);
+            return true;
+        }
+
         if (IsTextInput(source) || IsTextInput(focused)) return false;
 
         var command = CommandFor(vm, key, modifiers);

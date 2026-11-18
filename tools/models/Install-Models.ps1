@@ -1,16 +1,16 @@
 <#
 .SYNOPSIS
-    Installs the AI models of AiVideoEditor into %LOCALAPPDATA%\AiVideoEditor\models (S1, DECISIONS.md D066 §3).
+    Installs the AI models of Boulder Video Editor into %LOCALAPPDATA%\BoulderVideoEditor\models (S1, DECISIONS.md D066 §3).
 
 .DESCRIPTION
     Run from the unpacked models archive (Install-Models.cmd does it with a double click). Every file listed in models.json
     is checked by its size and SHA-256 before and after copying; a file already installed with the right content is kept.
-    Nothing is downloaded; nothing outside %LOCALAPPDATA%\AiVideoEditor\models is written; other folders there are left
+    Nothing is downloaded; nothing outside %LOCALAPPDATA%\BoulderVideoEditor\models is written; other folders there are left
     as they are. Exit code 0 when every model is in place, 1 otherwise.
 #>
 [CmdletBinding()]
 param(
-    [string] $Target = (Join-Path $env:LOCALAPPDATA 'AiVideoEditor\models')
+    [string] $Target = (Join-Path $env:LOCALAPPDATA 'BoulderVideoEditor\models')
 )
 
 Set-StrictMode -Version Latest
@@ -53,7 +53,7 @@ foreach ($folder in $manifest.folders) {
 }
 
 if ($failed -eq 0) {
-    Write-Host "`nThe models of AiVideoEditor $($manifest.version) are installed in $Target." -ForegroundColor Green
+    Write-Host "`nThe models of Boulder Video Editor $($manifest.version) are installed in $Target." -ForegroundColor Green
     exit 0
 }
 Write-Host "`n$failed file(s) not installed." -ForegroundColor Red

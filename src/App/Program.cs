@@ -1,5 +1,6 @@
 using AiVideoEditor.App.Composition;
 using AiVideoEditor.Core.Localization;
+using AiVideoEditor.Infrastructure.Configuration;
 using AiVideoEditor.Infrastructure.Logging;
 using Avalonia;
 using Microsoft.Extensions.Configuration;
@@ -20,11 +21,23 @@ internal static class Program
     {
         // Configure Serilog first so any startup failure (including one thrown by
         // Avalonia itself) is still captured in the application log.
+        // D068 §1: 1.0's per-user folder (settings, models, recovery, caches) moves under the new name before
+        // anything — the logger included — writes into the new one.
+        var migration = AppDataMigration.Result.Nothing;
+        Exception? migrationError = null;
+        try { migration = AppDataMigration.Run(); }
+        catch (Exception ex) { migrationError = ex; }
+
         Log.Logger = LoggingBootstrapper.CreateLogger();
 
         try
         {
-            Log.Information("Starting AI Video Editor.");
+            Log.Information("Starting Boulder Video Editor.");
+            if (migrationError is not null)
+                Log.Error(migrationError, "Moving the old per-user folder {Old} failed.", AppPaths.LegacyAppDataRoot);
+            else if (!ReferenceEquals(migration, AppDataMigration.Result.Nothing))
+                Log.Information("Moved the old per-user folder {Old} into {New}: moved {Moved}, kept {Kept}, removed {Removed}, failures {Failures}.",
+                    AppPaths.LegacyAppDataRoot, AppPaths.AppDataRoot, migration.Moved, migration.Kept, migration.OldFolderRemoved, migration.Failures);
 
             using var host = CreateHost(args);
             App.Services = host.Services;

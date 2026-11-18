@@ -12,6 +12,9 @@
   <ItemGroup>
     <!-- D067 §7: the application icon (tools/icon/make_icon.py). -->
     <AvaloniaResource Include="Assets\**" />
+    <!-- D068 §3: the in-app help, one file per interface language (HelpDocument). -->
+    <!-- WithCulture=false: "help.ru.md" stays in this assembly (not a Russian satellite) — HelpDocument picks the file. -->
+    <EmbeddedResource Include="Help\help.*.md" LogicalName="AiVideoEditor.UI.Help.%(Filename)%(Extension)" WithCulture="false" />
   </ItemGroup>
 
   <ItemGroup>

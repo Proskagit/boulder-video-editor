@@ -10,7 +10,7 @@ namespace AiVideoEditor.Media.Caching;
 
 /// <summary>
 /// The camera-motion tracks of the hold tracking kept between sessions (R2 → E, D4): one file per analysis in one folder
-/// of the application's cache (<c>%LOCALAPPDATA%\AiVideoEditor\cache\camera-motion</c>, not the project — like the HDR LUTs).
+/// of the application's cache (<c>%LOCALAPPDATA%\BoulderVideoEditor\cache\camera-motion</c>, not the project — like the HDR LUTs).
 /// <list type="bullet">
 /// <item>The file name is the SHA-256 of the key; the file repeats the key and ends with the SHA-256 of its content, so a
 /// collision, a truncated or a damaged file is never read as a track — it is deleted and the clip analysed again.</item>

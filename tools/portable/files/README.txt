@@ -14,7 +14,7 @@ AI Video Editor — портативная версия для Windows
 
 Запуск
 ------
-Запустите AiVideoEditor.exe.
+Запустите BoulderVideoEditor.exe.
 
 FFmpeg
 ------
@@ -23,7 +23,7 @@ FFmpeg
 1. Установить FFmpeg так, чтобы ffmpeg и ffprobe были доступны через PATH. Например:
        winget install "FFmpeg (Essentials Build)"
    и перезапустить редактор.
-2. Указать пути в appsettings.json рядом с AiVideoEditor.exe, раздел "Ffmpeg":
+2. Указать пути в appsettings.json рядом с BoulderVideoEditor.exe, раздел "Ffmpeg":
        "FfprobePath": "ffmpeg\\ffprobe.exe",
        "FfmpegPath":  "ffmpeg\\ffmpeg.exe"
    Путь может быть абсолютным или относительным — относительный считается от папки приложения.
@@ -32,17 +32,17 @@ FFmpeg
 AI-разметка зацепок
 -------------------
 Модель (около 0,9 ГБ) в поставку не входит и устанавливается вручную — см. docs\AI_MODEL.md: два файла
-кладутся в %LOCALAPPDATA%\AiVideoEditor\models\sam2.1-large\. Без модели недоступна только разметка зацепок,
+кладутся в %LOCALAPPDATA%\BoulderVideoEditor\models\sam2.1-large\. Без модели недоступна только разметка зацепок,
 остальное работает.
 
 Где редактор хранит данные
 --------------------------
-%LOCALAPPDATA%\AiVideoEditor\ — журналы (logs), файлы восстановления (recovery), кэш, список недавних
+%LOCALAPPDATA%\BoulderVideoEditor\ — журналы (logs), файлы восстановления (recovery), кэш, список недавних
 проектов, модель. Проекты сохраняются туда, куда вы их сохраняете; свои данные редактор в папке программы не хранит.
 
 Журналы
 -------
-%LOCALAPPDATA%\AiVideoEditor\logs — при проблеме приложите файлы app-*.log, errors-*.log и ffmpeg-*.log.
+%LOCALAPPDATA%\BoulderVideoEditor\logs — при проблеме приложите файлы app-*.log, errors-*.log и ffmpeg-*.log.
 
 Лицензии
 --------

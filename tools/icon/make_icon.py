@@ -1,56 +1,71 @@
-"""D067 §7: draws the application icon — a climbing hold (an orange, rounded, slightly uneven blob with two bolt holes'
-worth of texture removed for clarity) on a dark rounded square, a white Play triangle on the hold — and writes
-src/UI/Assets/app.ico (16 … 256 px) and src/UI/Assets/app-256.png.
+"""D068 §2 (variant C, chosen by the owner): draws the application icon — a green pinch hold with a lit top face, a grip
+pocket and a bolt hole, inside the white contour the editor draws around a marked hold, on the editor's dark rounded
+square — and writes src/UI/Assets/app.ico (16 … 256 px) and src/UI/Assets/app-256.png.
 
     python -I tools/icon/make_icon.py <repository root>
 
-Pillow only; drawn at 1024 px and downscaled per size (antialiased).
+Pillow only. The shapes are the cubic Bézier paths of the owner's chosen sketch (a 100 × 100 box), drawn at 1024 px and
+downscaled per size (antialiased).
 """
-import math
 import pathlib
 import sys
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 
 S = 1024
-BACKGROUND = (30, 36, 42, 255)        # the editor's dark grey-blue
-HOLD = (245, 124, 0, 255)             # the route orange
-HOLD_SHADE = (196, 88, 0, 255)
-EDGE = (76, 175, 80, 255)             # the route green, as the outline of a marked hold
-PLAY = (255, 255, 255, 255)
+K = S / 100                            # the sketch's 100-unit box → pixels
+BACKGROUND = (30, 36, 42, 255)         # the editor's dark grey-blue
+HOLD = (67, 160, 71, 255)              # the route green
+HOLD_LIGHT = (102, 187, 106, 255)
+HOLD_SHADE = (27, 94, 32, 255)
+POCKET = (15, 36, 22, 255)
+CONTOUR = (255, 255, 255, 255)         # the outline of a marked hold
+
+# The hold's outline: a start point and cubic segments (c1, c2, end).
+HOLD_PATH = ((26, 40), [((30, 28), (46, 22), (60, 26)), ((74, 30), (80, 44), (74, 58)),
+                        ((68, 72), (50, 78), (38, 72)), ((26, 66), (22, 52), (26, 40))])
+LIGHT_PATH = ((30, 40), [((34, 31), (46, 27), (58, 30)), ((67, 32), (73, 38), (74, 45)),
+                         ((66, 38), (56, 35), (46, 36)), ((40, 37), (34, 38), (30, 40))])
+POCKET_PATH = ((34, 52), [((40, 46), (52, 44), (64, 48)), ((60, 52), (50, 54), (42, 55)),
+                          ((38, 55), (35, 54), (34, 52))])
 
 
-def blob(cx, cy, r, wobble, points=180, phase=0.0):
-    pts = []
-    for i in range(points):
-        a = 2 * math.pi * i / points
-        k = 1 + wobble * (0.55 * math.sin(3 * a + phase) + 0.30 * math.sin(5 * a + 1.3 + phase) + 0.15 * math.sin(2 * a + 0.4))
-        pts.append((cx + r * k * math.cos(a), cy + r * 0.9 * k * math.sin(a)))
+def points(path, scale=1.0, dx=0.0, dy=0.0, steps=48):
+    """The path sampled into a polygon in pixels, scaled about the box's centre and shifted."""
+    def px(p):
+        return ((50 + (p[0] - 50) * scale + dx) * K, (50 + (p[1] - 50) * scale + dy) * K)
+
+    start, segments = path
+    pts = [px(start)]
+    p0 = start
+    for c1, c2, p3 in segments:
+        for i in range(1, steps + 1):
+            t = i / steps
+            u = 1 - t
+            x = u ** 3 * p0[0] + 3 * u * u * t * c1[0] + 3 * u * t * t * c2[0] + t ** 3 * p3[0]
+            y = u ** 3 * p0[1] + 3 * u * u * t * c1[1] + 3 * u * t * t * c2[1] + t ** 3 * p3[1]
+            pts.append(px((x, y)))
+        p0 = p3
     return pts
 
 
 def draw() -> Image.Image:
     img = Image.new('RGBA', (S, S), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle((32, 32, S - 32, S - 32), radius=200, fill=BACKGROUND)
+    d.rounded_rectangle((4 * K, 4 * K, 96 * K, 96 * K), radius=22 * K, fill=BACKGROUND)
 
-    cx, cy, r = S / 2, S / 2 + 20, 330
-    # The green outline the editor draws around a marked hold.
-    d.polygon(blob(cx, cy, r + 44, 0.07), fill=EDGE)
-    d.polygon(blob(cx, cy, r + 14, 0.07), fill=BACKGROUND)
-    # The hold, with a darker lower side for volume.
-    d.polygon(blob(cx, cy, r, 0.07), fill=HOLD_SHADE)
-    d.polygon(blob(cx - 10, cy - 26, r - 22, 0.07), fill=HOLD)
+    # The contour the editor draws around a marked hold, a little larger than the hold.
+    # A ring (two filled outlines) rather than a wide line: no seams at the joints.
+    d.polygon(points(HOLD_PATH, scale=1.235), fill=CONTOUR)
+    d.polygon(points(HOLD_PATH, scale=1.165), fill=BACKGROUND)
 
-    # Play: a rounded triangle, optically centred.
-    t = 230
-    tri = [(cx - t * 0.42, cy - t * 0.62), (cx - t * 0.42, cy + t * 0.62), (cx + t * 0.66, cy)]
-    play = Image.new('RGBA', (S, S), (0, 0, 0, 0))
-    ImageDraw.Draw(play).polygon(tri, fill=PLAY)
-    play = play.filter(ImageFilter.GaussianBlur(10))
-    alpha = play.split()[3].point(lambda v: 255 if v > 110 else 0)
-    play.putalpha(alpha)
-    img.alpha_composite(play)
+    # The hold: its shadow (lower side), body, lit top face, the grip pocket and the bolt hole.
+    d.polygon(points(HOLD_PATH, dy=4), fill=HOLD_SHADE)
+    d.polygon(points(HOLD_PATH), fill=HOLD)
+    d.polygon(points(LIGHT_PATH), fill=HOLD_LIGHT)
+    d.polygon(points(POCKET_PATH), fill=POCKET)
+    r = 3.5 * K
+    d.ellipse((52 * K - r, 63 * K - r, 52 * K + r, 63 * K + r), fill=POCKET)
     return img
 
 
