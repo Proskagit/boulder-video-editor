@@ -45,7 +45,7 @@ Marking holds, following people and cleaning sound need local models. They come 
 ## The timeline
 
 - Drag a clip with the mouse; its edges trim it. Clips always snap to their neighbours and the playhead (to place a clip a couple of frames from another, zoom in).
-- **The main track magnet** (the magnet button, N; on in new projects): the clips of V1 always lie one after another from zero — a removal closes its gap, a clip dropped onto V1 goes to the nearest cut and moves the others aside, a trim moves the clips after it. Its linked sound, plates, holds, Follow, FIT climbs and the clips of the upper tracks that start over it go with a clip; music on the sound tracks stays. Titles and templates never land on V1 — a V2 is added for them.
+- **The main track magnet** (the magnet button, N; on in new projects): the clips of V1 always lie one after another from zero — a removal closes its gap, a clip dropped onto V1 goes to the nearest cut and moves the others aside, a trim moves the clips after it. Its linked sound, plates, holds, Follow, FIT climbs and the clips of the upper tracks that start over it go with a clip; music on the sound tracks stays. A new title or template is never added to V1: with only one video track a V2 is added for it.
 - **S** — split at the playhead, **Delete** — delete, **Ctrl+D** — duplicate, **Ctrl+C / Ctrl+V** — copy and paste.
 - **Q / W** — trim the selected clip's start / end to the playhead; with Shift the following clips move too.
 - Above the tracks — icons with tooltips: tracks, «Text», «Template», «Keyframe», «Mixer», split, delete, ripple delete, duplicate, transition, magnet, zoom.

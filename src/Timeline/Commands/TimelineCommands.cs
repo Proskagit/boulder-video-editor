@@ -374,7 +374,6 @@ public sealed class SetTrackMixCommand(Track track, TrackMix before, TrackMix af
     }
 }
 
-/// <summary>D064 §1: sets the project's master volume; the changes of one gesture (a slider's drag) merge.</summary>
 /// <summary>D069 §7: a video clip's colour correction; the changes of one gesture (a slider's drag) merge into one step.</summary>
 public sealed class SetClipColorCommand(VideoClip clip, Core.Color.ColorCorrection before, Core.Color.ColorCorrection after, object? gesture = null)
     : IMergeableCommand
@@ -407,6 +406,7 @@ public sealed class SetMagneticMainTrackCommand(Sequence sequence, bool before, 
     public void Undo() => sequence.MagneticMainTrack = before;
 }
 
+/// <summary>D064 §1: sets the project's master volume; the changes of one gesture (a slider's drag) merge.</summary>
 public sealed class SetMasterVolumeCommand(Sequence sequence, double before, double after, object? gesture = null) : IMergeableCommand
 {
     public Sequence Sequence { get; } = sequence;

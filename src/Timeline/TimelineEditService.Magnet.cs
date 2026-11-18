@@ -59,7 +59,8 @@ public sealed partial class TimelineEditService
     /// what goes with the moved clips is planned. Null when planned (or nothing to do), otherwise the refusal.</summary>
     private string? ApplyMagnet(EditPlan plan)
     {
-        if (!Sequence.MagneticMainTrack || plan.NewFrameRate is not null || MainTrack is not { IsLocked: false } main) return null;
+        // A plan that fixes the frame rate (the first video, D007) is closed up too, on the new grid.
+        if (!Sequence.MagneticMainTrack || MainTrack is not { IsLocked: false } main) return null;
         if (!plan.AffectedTracks.Contains(main) && !main.Clips.Any(plan.Removes)) return null;
         return CompactMainTrack(plan, main);
     }
@@ -103,7 +104,8 @@ public sealed partial class TimelineEditService
                 PlanState(plan, partner, place.Track, partnerAfter);
             }
         }
-        CarryOtherVideoTracks(plan, main);
+        // A re-grid moves every clip by its own rule: the other tracks keep their re-gridded places.
+        if (plan.NewFrameRate is null) CarryOtherVideoTracks(plan, main);
         return null;
     }
 
@@ -165,6 +167,32 @@ public sealed partial class TimelineEditService
     {
         if (plan.InsertTrackOf(clip) is not null) state.ApplyTo(clip);
         else plan.Update(clip, track, state);
+    }
+
+    /// <summary>D069 §6: copies pasted onto the magnetic main track whose earliest one starts inside a clip there move — all of
+    /// them by the same frames — to that clip's nearest cut (MakeRoom then moves the clips after it).</summary>
+    private string? PasteToNearestCut(EditPlan plan, List<(Clip Clip, Track Track)> placed)
+    {
+        if (MainTrack is not { } main || !IsMagneticMain(main)) return null;
+        var rate = plan.Rate;
+        var onMain = placed.Where(p => p.Track == main).Select(p => p.Clip).ToHashSet();
+        if (onMain.Count == 0) return null;
+        var start = onMain.Min(c => c.TimelineStart.ToNearestFrame(rate));
+        long? delta = null;
+        foreach (var (clip, state) in plan.EffectiveClips(main))
+        {
+            if (onMain.Contains(clip)) continue;
+            long s = state.Start.ToNearestFrame(rate), e = state.End.ToNearestFrame(rate);
+            if (s < start && start < e) delta = NearestCut(s, e, start) - start;
+        }
+        if (delta is not { } d || d == 0) return null;
+        foreach (var (clip, _) in placed)
+        {
+            var (state, error) = ShiftedState(clip, d, rate);
+            if (error is not null) return error;
+            state.ApplyTo(clip);
+        }
+        return null;
     }
 
     /// <summary>D069 §6: the cut nearest <paramref name="frame"/> when it lies strictly inside [<paramref name="start"/>,

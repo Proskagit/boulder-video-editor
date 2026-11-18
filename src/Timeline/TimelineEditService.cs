@@ -391,7 +391,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (error is not null) return TimelineEditResult.Fail(error);
         if (plan is null) return TimelineEditResult.Unchanged();
 
-        Commit(plan, clips.Count == 1 ? "Move Clip" : "Move Clips");
+        if (!Commit(plan, clips.Count == 1 ? "Move Clip" : "Move Clips")) return TimelineEditResult.Unchanged();
         return TimelineEditResult.Ok(clips.Select(c => c.Id).ToList(), TransitionNote(plan));
     }
 
@@ -630,6 +630,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
         // D051 §5.4 (B1): never a second copy of a markup linked to a FIT climb.
         if (DuplicatesFitMarkup(clipboard)) return TimelineEditResult.Fail(string.Format(Messages.Edit_PasteDuplicateFitMarkup, verb));
 
+        // D069 §6: on the magnetic main track the copies go to the cut nearest the paste point.
+        if (PasteToNearestCut(plan, placed) is { } cutError) return TimelineEditResult.Fail($"Can't {verb}: {cutError}");
+
         // D037 §3 (Q10): the clips on the right make room; a copy starting inside a clip is refused.
         if (MakeRoom(plan, placed, verb) is { } roomError) return TimelineEditResult.Fail(roomError);
 
@@ -648,7 +651,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (error is not null) return TimelineEditResult.Fail(error);
         if (plan is null) return TimelineEditResult.Unchanged();
 
-        Commit(plan, "Trim Clip");
+        if (!Commit(plan, "Trim Clip")) return TimelineEditResult.Unchanged();
         return TimelineEditResult.Ok(new[] { clipId }, TransitionNote(plan));
     }
 
@@ -1117,13 +1120,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         if (Validate(plan) is { } error) return TimelineEditResult.Fail(string.Format(Messages.Edit_CantTrim, error));
 
-        Commit(plan, (ripple, edge) switch
+        if (!Commit(plan, (ripple, edge) switch
         {
             (false, ClipEdge.Start) => "Trim Start to Playhead",
             (false, _) => "Trim End to Playhead",
             (true, ClipEdge.Start) => "Ripple Trim Start to Playhead",
             _ => "Ripple Trim End to Playhead"
-        });
+        })) return TimelineEditResult.Unchanged();
         return new TimelineEditResult
         {
             Success = true,
@@ -1272,7 +1275,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (error is not null) return TimelineEditResult.Fail(error);
         if (plan is null) return stopped ? TimelineEditResult.Fail(note) : TimelineEditResult.Unchanged();
 
-        Commit(plan, edge == ClipEdge.Start ? "Ripple Trim Start" : "Ripple Trim End");
+        if (!Commit(plan, edge == ClipEdge.Start ? "Ripple Trim Start" : "Ripple Trim End")) return TimelineEditResult.Unchanged();
         return TimelineEditResult.Ok(new[] { clipId }, Join(stopped ? note : null, TransitionNote(plan)));
     }
 
@@ -2694,10 +2697,15 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     private static string? Join(string? a, string? b) => a is null ? b : b is null ? a : $"{a} {b}";
 
-    private void Commit(EditPlan plan, string description)
+    /// <summary>Executes the plan as one Undo step; false — nothing to do (D069 §6: every change the magnet undid again), no
+    /// step recorded.</summary>
+    private bool Commit(EditPlan plan, string description)
     {
+        plan.DropNoOpUpdates();
+        if (plan.IsEmpty) return false;
         var command = new NotifyingCommand(plan.BuildCommand(description), _projectService.NotifyTimelineChanged);
         ExecuteTracked(command);
+        return true;
     }
 
     private static Clip CreateClip(MediaAsset asset, ClipState state)

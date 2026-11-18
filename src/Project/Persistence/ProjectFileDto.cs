@@ -638,7 +638,6 @@ internal sealed class TextOutlineDto
     public double? Thickness { get; set; }
 }
 
-/// <summary>Format v7: «Подложка» — on / off, the colour, the opacity.</summary>
 /// <summary>D069 §7: a video clip's colour correction.</summary>
 internal sealed class ColorDto
 {
@@ -652,6 +651,7 @@ internal sealed class ColorDto
     public int Tint { get; set; }
 }
 
+/// <summary>Format v7: «Подложка» — on / off, the colour, the opacity.</summary>
 internal sealed class TextBackgroundDto
 {
     public bool? Enabled { get; set; }

@@ -11156,6 +11156,21 @@ is one Undo step (a drag merges); «Автоулучшение» is one step. `p
 Eight new types of the library (§0), each with its default and range as D044 §5, listed in the menu with a static diagram;
 Вытеснение and Смахивание have a direction as Сдвиг. The Preview and the export draw them the same way.
 
+### 9. Refined in implementation (2026-11-18, after the phase review)
+
+- §1: Backspace in the Media Browser removes the selection as Delete does.
+- §3: the place the window offers for a project never saved is the last Save As place of the session (then Documents); a saved
+  project offers its own parent folder.
+- §6: the magnet is skipped while V1 is locked (an edit of V1 is refused there anyway; turning the magnet on then only sets the
+  switch). A clip of another video track that would collide on its track after being carried stays where it is (the edit is
+  never refused for it); a linked sound that cannot follow on its own audio track refuses the edit as any move does (D037 §3,
+  nothing changes). An edit the magnet takes back entirely (a nudge of the last V1 clip) is no edit — no Undo step, not dirty. A
+  paste onto V1 goes to the nearest cut as a drop does; a three-point Insert («,») keeps its rule of splitting the clip at the
+  playhead (SQ6, D031) — no gap remains either way. The edit that fixes the frame rate (the first video, D007) is closed up on
+  the new grid (its other tracks keep their re-gridded places). The magnet is about adding: a title or template dragged onto V1 by hand is
+  placed there as any clip.
+- §8: the blur of Размытие / Смахивание runs its lines in parallel on a pooled copy of the frame (a 4K zone frame).
+
 ### Out of scope
 
 The export window's cover frame (backlog, the owner); keyframed colour; LUTs and curves; animated transition previews; a

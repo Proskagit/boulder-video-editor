@@ -22,17 +22,47 @@ public static class TransitionEffects
         if (effect.Glitch > 0) Glitch(pixels, width, height, stride, effect.Glitch, effect.Seed);
     }
 
-    /// <summary>Three box passes per axis (the colour channels; alpha kept).</summary>
+    /// <summary>Three box passes per axis (the colour channels; alpha kept); the lines of a pass in parallel for a large
+    /// picture (a 4K frame of a zone) — on a pooled copy of the pixels, written back at the end.</summary>
     public static void Blur(Span<byte> pixels, int width, int height, int stride, int radius, BlurAxis axis)
     {
-        var line = new int[Math.Max(width, height) * 3];
-        var output = new byte[Math.Max(width, height) * 3];
+        var length = stride * (height - 1) + width * 4;
+        var buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(length);
+        try
+        {
+            pixels[..length].CopyTo(buffer);
+            Blur(buffer, width, height, stride, radius, axis);
+            buffer.AsSpan(0, length).CopyTo(pixels);
+        }
+        finally
+        {
+            System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    public static void Blur(byte[] pixels, int width, int height, int stride, int radius, BlurAxis axis)
+    {
+        var size = Math.Max(width, height) * 3;
+        var parallel = (long)width * height >= 200_000;
         for (var pass = 0; pass < 3; pass++)
         {
-            if (axis != BlurAxis.Vertical)
-                for (var y = 0; y < height; y++) BoxLine(pixels, y * stride, 4, width, radius, line, output);
-            if (axis != BlurAxis.Horizontal)
-                for (var x = 0; x < width; x++) BoxLine(pixels, x * 4, stride, height, radius, line, output);
+            if (axis != BlurAxis.Vertical) Lines(height, y => y * stride, 4, width);
+            if (axis != BlurAxis.Horizontal) Lines(width, x => x * 4, stride, height);
+        }
+
+        void Lines(int count, Func<int, int> start, int step, int along)
+        {
+            if (!parallel)
+            {
+                var (sums, output) = (new int[size], new byte[size]);
+                for (var i = 0; i < count; i++) BoxLine(pixels, start(i), step, along, radius, sums, output);
+                return;
+            }
+            Parallel.For(0, count, () => (new int[size], new byte[size]), (i, _, buffers) =>
+            {
+                BoxLine(pixels, start(i), step, along, radius, buffers.Item1, buffers.Item2);
+                return buffers;
+            }, _ => { });
         }
     }
 

@@ -232,4 +232,135 @@ public class MagneticMainTrackTests
         Assert.Equal((0L, 20L), Span(c[1]));
         Assert.Equal((2L, 12L), Span(plate));
     }
+
+    // --- the review's cases (2026-11-18) -----------------------------------------------------------------------------
+
+    [Fact]
+    public void A_nudge_the_magnet_takes_back_is_no_edit_no_undo_step_and_not_dirty()
+    {
+        var (f, c) = Layout(true, (0, 10), (10, 20));
+        f.Project.IsDirty = false;
+        var before = f.Snapshot();
+
+        var result = f.Service.MoveClips(new[] { c[1].Id }, 1);
+
+        Assert.True(result.Success && result.NoChange, result.Message);
+        Assert.Equal(before, f.Snapshot());
+        Assert.False(f.UndoRedo.CanUndo);
+    }
+
+    [Theory]
+    [InlineData(12, 10)]
+    [InlineData(17, 20)]
+    public void A_paste_inside_a_clip_goes_to_the_nearest_cut(long at, long expectedStart)
+    {
+        var (f, c) = Layout(true, (0, 10), (10, 20), (20, 30));
+        var clipboard = f.Service.CopyClips(new[] { c[0].Id })!;
+        var before = f.Snapshot();
+
+        var result = f.Service.PasteClips(clipboard, F(at));
+
+        Assert.True(result.Success, result.Message);
+        var pasted = f.V1.Clips.Single(x => x.Id == result.ClipIds[0]);
+        Assert.Equal(expectedStart, Span(pasted).Item1);
+        var spans = f.V1.Clips.Select(Span).OrderBy(s => s.Item1).ToList();
+        for (var i = 1; i < spans.Count; i++) Assert.Equal(spans[i - 1].Item2, spans[i].Item1);
+        f.AssertValid();
+        AssertOneStep(f, before);
+    }
+
+    [Fact]
+    public void The_first_video_that_fixes_the_frame_rate_lines_up_from_zero()
+    {
+        var f = new TimelineFixture();
+        Assert.False(f.Settings.IsFrameRateLocked);
+        f.Project.Timeline.MagneticMainTrack = true;
+        var video = f.Video(4, Rate);
+
+        var result = f.Service.AddClip(video.Id, f.V1.Id, MediaTime.FromSeconds(5));
+
+        Assert.True(result.Success, result.Message);
+        Assert.True(f.Settings.IsFrameRateLocked);
+        Assert.Equal(MediaTime.Zero, f.V1.Clips.Single().TimelineStart);
+    }
+
+    [Fact]
+    public void Removing_a_files_clips_closes_their_gaps_in_one_step()
+    {
+        var (f, c) = Layout(true, (0, 10), (10, 20), (20, 30));
+        var before = f.Snapshot();
+
+        Assert.True(f.Service.RemoveMedia(c[1].MediaAssetId).Success);
+
+        Assert.Equal((10L, 20L), Span(c[2]));
+        f.AssertValid();
+        f.UndoRedo.Undo();
+        Assert.Equal(before, f.Snapshot());
+    }
+
+    [Fact]
+    public void A_linked_sound_that_cannot_follow_refuses_the_deletion_and_changes_nothing()
+    {
+        var f = new TimelineFixture();
+        f.Settings.FrameRate = Rate;
+        f.Settings.IsFrameRateLocked = true;
+        var a = f.Place<VideoClip>(f.V1, f.Video(60, Rate, "a.mp4"), F(0).Ticks, F(10).Ticks);
+        var b = f.Place<VideoClip>(f.V1, f.VideoWithSound(60, Rate, "b.mp4"), F(10).Ticks, F(20).Ticks);
+        Ok(f.Service.UnlinkAudio(b.Id));
+        var sound = f.A1.Clips.OfType<AudioClip>().Single();
+        Ok(f.Service.LinkClips(new[] { b.Id, sound.Id }));
+        f.Place<AudioClip>(f.A1, f.Audio(60), F(2).Ticks, F(8).Ticks);         // music where the sound would go
+        f.Project.Timeline.MagneticMainTrack = true;
+        var before = f.Snapshot();
+        var top = f.UndoRedo.CurrentPosition;
+
+        var result = f.Service.DeleteClips(new[] { a.Id });
+
+        Assert.False(result.Success);
+        Assert.Equal(before, f.Snapshot());
+        Assert.Same(top, f.UndoRedo.CurrentPosition);
+    }
+
+    [Fact]
+    public void A_locked_main_track_keeps_its_gaps_when_the_magnet_is_turned_on()
+    {
+        var (f, c) = Layout(false, (5, 15), (30, 40));
+        f.V1.IsLocked = true;
+
+        Ok(f.Service.SetMagneticMainTrack(true));
+
+        Assert.True(f.Project.Timeline.MagneticMainTrack);
+        Assert.Equal((5L, 15L), Span(c[0]));
+        Assert.Equal((30L, 40L), Span(c[1]));
+    }
+
+    [Fact]
+    public void A_deletion_that_carries_a_title_a_template_and_a_linked_sound_is_undone_exactly()
+    {
+        var f = new TimelineFixture();
+        f.Settings.FrameRate = Rate;
+        f.Settings.IsFrameRateLocked = true;
+        var a = f.Place<VideoClip>(f.V1, f.Video(60, Rate, "a.mp4"), F(0).Ticks, F(10).Ticks);
+        var b = f.Place<VideoClip>(f.V1, f.VideoWithSound(60, Rate, "b.mp4"), F(10).Ticks, F(30).Ticks);
+        Ok(f.Service.UnlinkAudio(b.Id));
+        var sound = f.A1.Clips.OfType<AudioClip>().Single();
+        Ok(f.Service.LinkClips(new[] { b.Id, sound.Id }));
+        Ok(f.Service.AddTrack(TrackType.Video));
+        var v2 = f.Project.Timeline.VideoTracks[^1];
+        var title = new TextClip { Text = "T", TimelineStart = F(11), Duration = F(3) };
+        var plate = new TemplateClip { Kind = TemplateKind.Boulder, TimelineStart = F(15), Duration = F(10), AnchorClipId = b.Id };
+        v2.Clips.Add(title);
+        v2.Clips.Add(plate);
+        f.Project.Timeline.MagneticMainTrack = true;
+        var before = f.Snapshot();
+
+        Ok(f.Service.DeleteClips(new[] { a.Id }));
+
+        Assert.Equal((0L, 20L), Span(b));
+        Assert.Equal((0L, 20L), Span(sound));
+        Assert.Equal((1L, 4L), Span(title));
+        Assert.Equal((5L, 15L), Span(plate));
+        f.AssertValid();
+        AssertOneStep(f, before);
+    }
 }

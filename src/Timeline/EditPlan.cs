@@ -80,6 +80,14 @@ public sealed class EditPlan
 
     public void Update(Clip clip, Track toTrack, ClipState after) => _updates[clip] = (toTrack, after);
 
+    /// <summary>D069 §6: drops the updates that leave a clip as it is (the magnet may close a gap an edit opened, so the clip
+    /// ends where it was) — a plan left empty is then no edit at all.</summary>
+    public void DropNoOpUpdates()
+    {
+        foreach (var (clip, (to, after)) in _updates.ToList())
+            if (to == TrackOf(clip) && after == ClipState.Capture(clip)) _updates.Remove(clip);
+    }
+
     /// <summary>D069 §6: drops a planned update again (a clip the magnet carried that would collide on its track).</summary>
     public void CancelUpdate(Clip clip) => _updates.Remove(clip);
 
