@@ -59,14 +59,15 @@ public sealed class TimelineFollowAndZoomTests
     // --- the initial zoom -----------------------------------------------------------------------------------------------
 
     [Fact]
-    public void A_new_project_shows_about_ten_minutes_across_and_adding_clips_keeps_the_zoom()
+    public void A_new_project_shows_about_ten_minutes_across_the_first_clips_are_shown_whole_and_later_ones_keep_the_zoom()
     {
         var timeline = Timeline();
         Assert.Equal(Viewport / 600, timeline.PixelsPerSecond, 6);            // 10 min across the viewport
         Assert.Equal(timeline.PixelsPerSecond, _projects.Current.Timeline.ZoomPixelsPerSecond, 6);
 
+        AddVideo(47);                                                          // D068 item 6: the first clip is shown whole
+        Assert.NotEqual(Viewport / 600, timeline.PixelsPerSecond);
         var zoom = timeline.PixelsPerSecond;
-        AddVideo(47);
         AddVideo(900);                                                         // 15 min: longer than the view
         Assert.Equal(zoom, timeline.PixelsPerSecond, 6);
         timeline.SetViewport(0, 900);                                          // a resize later never re-applies it

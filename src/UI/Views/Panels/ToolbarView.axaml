@@ -5,6 +5,17 @@
              x:Class="AiVideoEditor.UI.Views.Panels.ToolbarView">
 
   <Border Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,0,1" Padding="8,6">
+    <DockPanel>
+    <!-- D068 item 11: the project's save state, at the right end of the bar. -->
+    <TextBlock x:Name="SaveStateText" DockPanel.Dock="Right" DataContext="{Binding SaveState}"
+               IsVisible="{Binding $self.DataContext, Converter={x:Static ObjectConverters.IsNotNull}}"
+               Text="{Binding Text}" ToolTip.Tip="{Binding ToolTip}" VerticalAlignment="Center" Margin="12,0,4,0"
+               FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"
+               Classes.unsaved="{Binding HasUnsavedChanges}">
+      <TextBlock.Styles>
+        <Style Selector="TextBlock.unsaved"><Setter Property="Foreground" Value="{DynamicResource WarningTextBrush}"/></Style>
+      </TextBlock.Styles>
+    </TextBlock>
     <!-- D039 §6: the commands wrap onto a second row rather than push the window's layout wider (Russian labels are longer). -->
     <WrapPanel Orientation="Horizontal">
       <WrapPanel.Styles>
@@ -133,6 +144,7 @@
               ToolTip.Tip="{x:Static l:Strings.Toolbar_HelpTip}" AutomationProperties.Name="{x:Static l:Strings.Toolbar_Help}"/>
 
     </WrapPanel>
+    </DockPanel>
   </Border>
 
 </UserControl>

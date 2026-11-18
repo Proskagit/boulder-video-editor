@@ -181,6 +181,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         Inspector.Playhead = () => Timeline.Playhead;
         // Phase 35 (D050 amendment B4): the clip's training readout follows the playhead.
         Inspector.Training = training;
+        Inspector.ImportTrainingCommand = Toolbar.ImportTrainingCommand;   // D068 item 14
         WirePeople(people);
         Inspector.AudioProcessing = audioProcessing;   // D064: the clean-up's state in «Звук»
         Timeline.PlayheadChanged += (_, _) => Inspector.OnPlayheadMoved();

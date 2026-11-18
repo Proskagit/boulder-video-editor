@@ -46,6 +46,7 @@ public sealed partial class ToolbarViewModel : ViewModelBase, ITrainingClockCorr
     /// <param name="fitMarks">«Вернуть» of the declined FIT climbs (D051 §5.7); without it the list is not shown.</param>
     /// <param name="fitSettings">«Настройки FIT…» (D051 §8.3); without it the item is hidden.</param>
     /// <param name="help">The in-app help (D068 §3); without it «?» is hidden and F1 does nothing.</param>
+    /// <param name="saveState">The save state shown on the bar (D068 item 11); without it nothing is shown.</param>
     public ToolbarViewModel(
         IUndoRedoService undoRedoService,
         ProjectFileWorkflow projectFiles,
@@ -60,9 +61,11 @@ public sealed partial class ToolbarViewModel : ViewModelBase, ITrainingClockCorr
         ITimelineEditService? edit = null,
         IFitMarkEditService? fitMarks = null,
         FitSettingsWorkflow? fitSettings = null,
-        IHelpWindow? help = null)
+        IHelpWindow? help = null,
+        SaveStateViewModel? saveState = null)
     {
         _help = help;
+        SaveState = saveState;
         _fitMarks = fitMarks;
         _fitSettings = fitSettings;
         _trainingImport = trainingImport;
@@ -158,6 +161,9 @@ public sealed partial class ToolbarViewModel : ViewModelBase, ITrainingClockCorr
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task AppSettings() => _fitSettings?.RunAsync(AppSettingsSection.General, this) ?? Task.CompletedTask;
+
+    /// <summary>D068 item 11: «Сохранено в 10:26» / «Изменения не сохранены» on the bar.</summary>
+    public SaveStateViewModel? SaveState { get; }
 
     /// <summary>D068 §3: «?» / F1 — the in-app help; always available (reading it changes nothing, also during an export).</summary>
     public bool HasHelp => _help is not null;

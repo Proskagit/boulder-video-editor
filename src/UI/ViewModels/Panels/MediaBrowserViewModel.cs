@@ -96,6 +96,7 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
         SelectedItems.CollectionChanged += (_, _) => AddToTimelineCommand.NotifyCanExecuteChanged();
         _projectService.ProjectChanged += (_, _) => ReloadFromProject();
         _projectService.MediaAssetsChanged += (_, _) => ReloadFromProject();
+        if (importWorkflow is not null) importWorkflow.Imported += (_, ids) => SelectImported(ids);
 
         ReloadFromProject();
     }
@@ -128,6 +129,16 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasNoMedia));
         OnPropertyChanged(nameof(HasOfflineMedia));
         NotifyRelinkCommands();                                  // what is offline may have changed
+    }
+
+    /// <summary>D068 item 7: the files an import added become the selection, so «На таймлайн» acts on them at once.</summary>
+    internal void SelectImported(IReadOnlyCollection<Guid> ids)
+    {
+        var added = Items.Where(i => ids.Contains(i.Asset.Id)).ToList();
+        if (added.Count == 0) return;
+        SelectedItems.Clear();
+        foreach (var item in added) SelectedItems.Add(item);
+        SelectedItem = added[0];
     }
 
     // Thumbnails (D024 Step 9.4): the coordinator makes them; rows take the ready ones when they are (re)built and

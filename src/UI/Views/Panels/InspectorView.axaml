@@ -1073,6 +1073,12 @@
                  correction is a setting of the toolbar's COROS menu, never here. -->
             <controls:InspectorSection SectionId="training" Title="{x:Static l:Strings.Inspector_TrainingHeader}" IsVisible="{Binding ShowsTraining}">
               <StackPanel Spacing="6">
+                <!-- D068 item 14: no training yet — the import is offered here, where the training is shown. -->
+                <StackPanel Spacing="6" IsVisible="{Binding ShowsTrainingImport}" Margin="0,0,0,6">
+                  <TextBlock Text="{x:Static l:Strings.Inspector_NoTraining}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                  <Button x:Name="ImportTrainingButton" Content="{x:Static l:Strings.Inspector_ImportTraining}" Command="{Binding ImportTrainingCommand}"
+                          ToolTip.Tip="{x:Static l:Strings.Toolbar_TrainingTip}" HorizontalAlignment="Stretch"/>
+                </StackPanel>
                 <TextBlock Text="{Binding RecordingStartText}" Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap"/>
                 <!-- D055 §2: Z refines the route bounds only; the heart rate follows the file's time. -->
                 <TextBlock Text="{x:Static l:Strings.Inspector_RecordingStartRoutesOnly}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{DynamicResource FontSizeCaption}" TextWrapping="Wrap"/>

@@ -3697,4 +3697,31 @@ If you don't save, your changes will be lost.</value>
   <data name="Help_NothingFound" xml:space="preserve">
     <value>Nothing found. Try another word.</value>
   </data>
+  <data name="SaveState_NotSaved" xml:space="preserve">
+    <value>Project not saved</value>
+  </data>
+  <data name="SaveState_NotSavedTip" xml:space="preserve">
+    <value>The project has no folder yet: Save (Ctrl+S) chooses where it lives</value>
+  </data>
+  <data name="SaveState_Unsaved" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+  <data name="SaveState_UnsavedTip" xml:space="preserve">
+    <value>Save (Ctrl+S) writes them to the project's file</value>
+  </data>
+  <data name="SaveState_RecoveryAt" xml:space="preserve">
+    <value>Not saved to the project yet; a recovery copy was written at {0}</value>
+  </data>
+  <data name="SaveState_Saved" xml:space="preserve">
+    <value>Saved</value>
+  </data>
+  <data name="SaveState_SavedAt" xml:space="preserve">
+    <value>Saved at {0}</value>
+  </data>
+  <data name="Inspector_NoTraining" xml:space="preserve">
+    <value>No training from a watch in this project. A FIT file (COROS, Garmin and others) lays the climbs out on the clips.</value>
+  </data>
+  <data name="Inspector_ImportTraining" xml:space="preserve">
+    <value>Import FIT training…</value>
+  </data>
 </root>

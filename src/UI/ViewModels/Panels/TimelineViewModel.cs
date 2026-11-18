@@ -85,6 +85,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
         _projectService.TimelineChanged += (_, _) => Refresh();
         _projectService.TimelineChanged += (_, _) => NoteCanvasChange();
+        _projectService.TimelineChanged += (_, _) => FitWhenTheFirstClipsArrive();
         _projectService.ProjectChanged += (_, _) => OnProjectReplaced();
         _projectService.MediaAssetsChanged += (_, _) =>
         {
@@ -100,6 +101,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         _snappingEnabled = Sequence.SnappingEnabled;
         ResetCanvasOffer();
         Refresh();
+        _hadClips = HasClips();     // an opened project keeps its saved zoom
+        _userZoomed = false;
         PrepareInitialZoom();
     }
 
@@ -192,6 +195,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         SnappingEnabled = Sequence.SnappingEnabled;
         ResetCanvasOffer();
         Refresh();
+        _hadClips = HasClips();     // D068 item 6: an opened project keeps its saved zoom
+        _userZoomed = false;
         PrepareInitialZoom();
     }
 
@@ -661,6 +666,22 @@ public sealed partial class TimelineViewModel : ViewModelBase
     [RelayCommand] private void ZoomIn() => ZoomAroundPlayhead(ZoomStep);
     [RelayCommand] private void ZoomOut() => ZoomAroundPlayhead(1 / ZoomStep);
 
+    private bool _hadClips;
+    private bool _userZoomed;     // the user zoomed this project's timeline (wheel, − / +): the first clips keep that zoom
+
+    private bool HasClips() =>
+        Sequence.VideoTracks.Any(t => t.Clips.Count > 0) || Sequence.AudioTracks.Any(t => t.Clips.Count > 0);
+
+    /// <summary>D068 item 6 (changes D058's «adding clips keeps the zoom» for the first clips only): the first clips put on an
+    /// empty timeline are shown whole — they were a sliver at the start of the ten-minute ruler — unless the user already chose
+    /// a zoom; every later edit keeps the zoom.</summary>
+    private void FitWhenTheFirstClipsArrive()
+    {
+        var has = HasClips();
+        if (has && !_hadClips && !_userZoomed) ZoomToFit();
+        _hadClips = has;
+    }
+
     [RelayCommand]
     private void ZoomToFit()
     {
@@ -675,6 +696,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     public void ZoomAtPointer(double factor, double contentX)
     {
         SuspendFollowing();
+        _userZoomed = true;
         var anchorTime = TimelineCoordinateMapper.XToTime(Math.Max(0, contentX), PixelsPerSecond);
         var anchorViewportX = contentX - _scrollOffsetX;
         ApplyZoom(PixelsPerSecond * factor);
@@ -684,6 +706,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void ZoomAroundPlayhead(double factor)
     {
         SuspendFollowing();
+        _userZoomed = true;
         var playheadViewportX = PlayheadX - _scrollOffsetX;
         if (playheadViewportX < 0 || playheadViewportX > _viewportWidth)
             playheadViewportX = _viewportWidth / 2; // off-screen playhead: bring it to the centre

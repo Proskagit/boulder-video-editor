@@ -173,6 +173,7 @@ public static class ServiceCollectionExtensions
 
         // --- UI view models -------------------------------------------------------
         services.AddTransient<RecentProjectsViewModel>();
+        services.AddSingleton<SaveStateViewModel>();                   // D068 item 11
         services.AddTransient<ToolbarViewModel>();
         services.AddTransient<MediaBrowserViewModel>();
         services.AddTransient<PreviewViewModel>();

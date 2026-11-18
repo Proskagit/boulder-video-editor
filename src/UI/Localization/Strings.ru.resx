@@ -3701,4 +3701,31 @@
   <data name="Help_NothingFound" xml:space="preserve">
     <value>Ничего не найдено. Попробуйте другое слово.</value>
   </data>
+  <data name="SaveState_NotSaved" xml:space="preserve">
+    <value>Проект не сохранён</value>
+  </data>
+  <data name="SaveState_NotSavedTip" xml:space="preserve">
+    <value>У проекта ещё нет папки: «Сохранить» (Ctrl+S) выберет, где он будет лежать</value>
+  </data>
+  <data name="SaveState_Unsaved" xml:space="preserve">
+    <value>Изменения не сохранены</value>
+  </data>
+  <data name="SaveState_UnsavedTip" xml:space="preserve">
+    <value>«Сохранить» (Ctrl+S) запишет их в файл проекта</value>
+  </data>
+  <data name="SaveState_RecoveryAt" xml:space="preserve">
+    <value>В проект ещё не записано; копия для восстановления сохранена в {0}</value>
+  </data>
+  <data name="SaveState_Saved" xml:space="preserve">
+    <value>Сохранено</value>
+  </data>
+  <data name="SaveState_SavedAt" xml:space="preserve">
+    <value>Сохранено в {0}</value>
+  </data>
+  <data name="Inspector_NoTraining" xml:space="preserve">
+    <value>К проекту не подключена тренировка с часов. Файл FIT (COROS, Garmin и другие) сам разложит подъёмы по клипам.</value>
+  </data>
+  <data name="Inspector_ImportTraining" xml:space="preserve">
+    <value>Импортировать FIT-тренировку…</value>
+  </data>
 </root>
