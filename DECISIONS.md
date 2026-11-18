@@ -11171,6 +11171,28 @@ Eight new types of the library (§0), each with its default and range as D044 §
   placed there as any clip.
 - §8: the blur of Размытие / Смахивание runs its lines in parallel on a pooled copy of the frame (a 4K zone frame).
 
+### 10. Amendment 1 — the owner's check of 2026-11-18
+
+- **Save As:** a project's own folder picked by «Изменить…» means that project (its parent the folder, its name the name), so
+  «Заменить?» is asked; the window says before «Сохранить» that a project of that name is there. Saving under the open
+  project's own name is a plain save (no question), as before.
+- **The fields' arrows:** Fluent's arrow is a PathIcon 16 × 8 (the button's content) whose Path is stretched to fill it — the §4
+  change resized the Path and changed nothing; the icon itself is now 16 / 1.5 × 8 / 1.5 (checked in Fluent's real template).
+- **The magnetic main track:** a drag onto V1 takes the pointer as the dragged clips' start (as CapCut) — the grabbed point of a
+  long clip no longer decides the cut. A move the magnet takes back left the anchored plates moved (the plates were carried
+  before the magnet put the clip back) — the carried templates are planned again from the clips' final places; the timeline is
+  laid out again after a drag that changed nothing. A clip moved onto its own plates' track is refused (not reproduced as a
+  deletion; covered by the existing refusal «a template anchored to a clip stays inside that clip»).
+- **«ЦВЕТ»** in capitals as the other sections.
+- **The transition button** has its label «Переход»; with one clip selected it takes the clip's cut with the next clip (else the
+  previous one); with none — the cut under the playhead on the main track (two clips as before).
+- **The playhead** lands on a clip's start or end within the snap distance when the ruler is clicked or scrubbed.
+- **The Inspector's fields** narrower (60 px on a slider's line, 72 otherwise) and the label column 120 px, so
+  «Шумоподавление» stays on one line.
+- **Several clips selected** (the group's Inspector, D058 §3): also noise reduction and voice enhancement, the fades in / out
+  (whole frames, each at most its clip), and the colour — the eight values, «Сбросить цвет» and «Автоулучшение» (each video
+  clip by its own frames) — each change one Undo step over the group, «—» where the clips differ.
+
 ### Out of scope
 
 The export window's cover frame (backlog, the owner); keyframed colour; LUTs and curves; animated transition previews; a

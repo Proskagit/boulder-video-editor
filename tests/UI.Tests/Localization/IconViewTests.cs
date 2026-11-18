@@ -54,11 +54,11 @@ public sealed class IconViewTests
         Assert.Equal(new[] { "−", "+" }, glyphs.Select(b => (string)b.Attribute("Content")!));
 
         var labelled = buttons.Where(b => b.Elements().SingleOrDefault()?.Name == ui + "StackPanel").ToList();
-        Assert.Equal(new[] { "Timeline_AddText", "Timeline_Template", "Timeline_Keyframe", "Timeline_Mixer" },
+        Assert.Equal(new[] { "Timeline_AddText", "Timeline_Template", "Timeline_Keyframe", "Timeline_Mixer", "Timeline_Transition" },   // D069 am. 1
             labelled.Select(b => ((string)b.Elements().Single().Elements().Last().Attribute("Text")!).Replace("{x:Static l:Strings.", "").TrimEnd('}')));
 
         var icons = buttons.Except(glyphs).Except(labelled).ToList();
-        Assert.Equal(10, icons.Count);                  // + V / A, Split, Delete, Ripple delete, Duplicate, Transition, Snap, D048's Debug switch, Fit
+        Assert.Equal(9, icons.Count);                   // + V / A, Split, Delete, Ripple delete, Duplicate, the magnet, D048's Debug switch, Fit (D069 am. 1: Transition labelled)
         Assert.All(icons, b =>
         {
             Assert.Equal("IconPath", b.Elements().Single().Name.LocalName);

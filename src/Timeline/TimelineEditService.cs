@@ -2596,6 +2596,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
     private string? Validate(EditPlan plan)
     {
         if (ApplyMagnet(plan) is { } magnetError) return magnetError;               // D069 §6: no gaps on the main track
+        if (Sequence.MagneticMainTrack) plan.ResetCarried();   // D069 amendment 1: the templates follow where the clips end
         if (ReconcileOverlays(plan) is { } overlayError) return overlayError;   // D048: the overlays follow their clip
         if (PlanPartnerShifts(plan) is { } partnerError) return partnerError;
         plan.ReconcileTransitions();

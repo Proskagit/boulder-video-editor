@@ -88,6 +88,14 @@ public sealed class EditPlan
             if (to == TrackOf(clip) && after == ClipState.Capture(clip)) _updates.Remove(clip);
     }
 
+    /// <summary>D069 amendment 1: forgets what the overlay rules planned for the carried templates, so they are planned again
+    /// from the clips' final places (the magnet may take a move back after the templates were carried).</summary>
+    public void ResetCarried()
+    {
+        foreach (var template in Carried) _updates.Remove(template);
+        Carried.Clear();
+    }
+
     /// <summary>D069 §6: drops a planned update again (a clip the magnet carried that would collide on its track).</summary>
     public void CancelUpdate(Clip clip) => _updates.Remove(clip);
 

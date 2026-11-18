@@ -89,6 +89,13 @@ src/Timeline/TimelineEditService.cs	Remove Media
 src/Timeline/TimelineEditService.Framing.cs	Fill Frame
 src/Timeline/TimelineEditService.Framing.cs	Fit in Frame
 src/Timeline/TimelineEditService.cs	Ripple Delete Clip
+src/UI/ViewModels/Panels/ClipGroupViewModel.Mass.cs	Change Noise Reduction (Group)
+src/UI/ViewModels/Panels/ClipGroupViewModel.Mass.cs	Change Voice Enhancement (Group)
+src/UI/ViewModels/Panels/ClipGroupViewModel.Mass.cs	Change Fade In (Group)
+src/UI/ViewModels/Panels/ClipGroupViewModel.Mass.cs	Change Fade Out (Group)
+src/UI/ViewModels/Panels/ClipGroupViewModel.Mass.cs	Change Colour (Group)
+src/UI/ViewModels/Panels/ClipGroupViewModel.Mass.cs	Reset Colour (Group)
+src/UI/ViewModels/Panels/ClipGroupViewModel.Mass.cs	Auto Enhance (Group)
 src/Timeline/TimelineEditService.Magnet.cs	Magnetic Main Track
 src/Timeline/TimelineEditService.Magnet.cs	Close Gaps
 src/Timeline/TimelineEditService.cs	Ripple Delete Clips

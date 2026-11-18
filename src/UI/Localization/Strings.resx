@@ -3849,7 +3849,7 @@ If you don't save, your changes will be lost.</value>
     <value>Main track magnet off.</value>
   </data>
   <data name="Inspector_ColorHeading" xml:space="preserve">
-    <value>Colour</value>
+    <value>COLOUR</value>
   </data>
   <data name="Color_Exposure" xml:space="preserve">
     <value>Exposure</value>
@@ -3958,5 +3958,11 @@ If you don't save, your changes will be lost.</value>
   </data>
   <data name="TransitionType_Push_Desc" xml:space="preserve">
     <value>The next clip pushes the previous one out</value>
+  </data>
+  <data name="SaveAs_WillAskReplace" xml:space="preserve">
+    <value>A project of this name is already here — saving asks whether to replace it.</value>
+  </data>
+  <data name="Color_Reset" xml:space="preserve">
+    <value>Reset colour</value>
   </data>
 </root>

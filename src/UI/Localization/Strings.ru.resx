@@ -3853,7 +3853,7 @@
     <value>Магнит главной дорожки выключен.</value>
   </data>
   <data name="Inspector_ColorHeading" xml:space="preserve">
-    <value>Цвет</value>
+    <value>ЦВЕТ</value>
   </data>
   <data name="Color_Exposure" xml:space="preserve">
     <value>Экспозиция</value>
@@ -3962,5 +3962,11 @@
   </data>
   <data name="TransitionType_Push_Desc" xml:space="preserve">
     <value>Следующий клип выталкивает предыдущий</value>
+  </data>
+  <data name="SaveAs_WillAskReplace" xml:space="preserve">
+    <value>Здесь уже есть проект с таким именем — при сохранении будет вопрос о замене.</value>
+  </data>
+  <data name="Color_Reset" xml:space="preserve">
+    <value>Сбросить цвет</value>
   </data>
 </root>

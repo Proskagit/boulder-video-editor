@@ -18,6 +18,8 @@
 
     <TextBlock Text="{Binding TargetFolder, StringFormat={x:Static l:Strings.SaveAs_Target}}" IsVisible="{Binding TargetFolder, Converter={x:Static ObjectConverters.IsNotNull}}"
                FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap"/>
+    <TextBlock Text="{Binding ReplaceNote}" IsVisible="{Binding ReplaceNote, Converter={x:Static ObjectConverters.IsNotNull}}"
+               FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap"/>
     <TextBlock Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}"
                FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource DangerTextBrush}" TextWrapping="Wrap"/>
 

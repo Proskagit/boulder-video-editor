@@ -650,12 +650,31 @@ public sealed partial class TimelineViewModel : ViewModelBase
         PlayheadX = TimelineCoordinateMapper.TimeToX(position, PixelsPerSecond);
         DropKeyframeSelectionOffFrame();
         NotifyKeyframeCommands();
+        OpenTransitionMenuCommand.NotifyCanExecuteChanged();   // D069 amendment 1: the cut under the playhead
+        AddTransitionCommand.NotifyCanExecuteChanged();
+        AddDissolveCommand.NotifyCanExecuteChanged();
         RefreshRange();
         PlayheadChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void SetPlayheadFromX(double contentX) =>
-        SetPlayhead(SnapToKeyframe(TimelineCoordinateMapper.XToFrameTime(contentX, PixelsPerSecond, FrameRate)));
+        SetPlayhead(SnapToKeyframe(SnapToCut(TimelineCoordinateMapper.XToFrameTime(contentX, PixelsPerSecond, FrameRate))));
+
+    /// <summary>D069 amendment 1: a click or a scrub on the ruler lands on a clip's start or end (any track) within the snap
+    /// distance — so the playhead stands exactly between two clips, as in other editors.</summary>
+    private MediaTime SnapToCut(MediaTime time)
+    {
+        if (!SnappingEnabled) return time;
+        MediaTime? best = null;
+        var bestPixels = SnapTolerancePixels;
+        foreach (var clip in Sequence.VideoTracks.Concat(Sequence.AudioTracks).SelectMany(t => t.Clips))
+            foreach (var edge in new[] { clip.TimelineStart, clip.TimelineEnd })
+            {
+                var pixels = Math.Abs(TimelineCoordinateMapper.TimeToX(edge - time, PixelsPerSecond));
+                if (pixels <= bestPixels) (best, bestPixels) = (edge, pixels);
+            }
+        return best ?? time;
+    }
 
     public void StepFrames(long frames)
     {
@@ -764,13 +783,36 @@ public sealed partial class TimelineViewModel : ViewModelBase
     /// an audio track (D032 R9) — fits there is the edit service's call (D025 §3–§5).</summary>
     private bool CanAddDissolve() => CanEdit() && DissolvePair() is not null;
 
+    private (Clip Left, Clip Right)? Neighbour(Track track, Clip clip)
+    {
+        var rate = FrameRate;
+        var next = track.Clips.FirstOrDefault(c => c.TimelineStart.ToNearestFrame(rate) == clip.TimelineEnd.ToNearestFrame(rate));
+        if (next is not null) return (clip, next);
+        var previous = track.Clips.FirstOrDefault(c => c.TimelineEnd.ToNearestFrame(rate) == clip.TimelineStart.ToNearestFrame(rate));
+        return previous is null ? null : (previous, clip);
+    }
+
+    private (Clip Left, Clip Right)? CutAtPlayhead()
+    {
+        var rate = FrameRate;
+        if (Sequence.VideoTracks.OrderBy(t => t.Order).FirstOrDefault() is not { } main) return null;
+        var at = Playhead.ToNearestFrame(rate);
+        var right = main.Clips.FirstOrDefault(c => c.TimelineStart.ToNearestFrame(rate) == at);
+        var left = main.Clips.FirstOrDefault(c => c.TimelineEnd.ToNearestFrame(rate) == at);
+        return left is not null && right is not null ? (left, right) : null;
+    }
+
     private (Clip Left, Clip Right)? DissolvePair()
     {
-        if (_selection.Count == 0 || !_clipViewModels.TryGetValue(_selection[^1], out var primary)) return null;
+        // D069 amendment 1: two clips of one track — their cut (as before); one (a linked partner on another track aside) — its
+        // cut with the next clip, else the previous one; none — the cut under the playhead on the main track.
+        if (_selection.Count == 0) return CutAtPlayhead();
+        if (!_clipViewModels.TryGetValue(_selection[^1], out var primary)) return null;
         var track = TrackOf(primary);
         var clips = _selection.Select(id => _clipViewModels.TryGetValue(id, out var vm) ? vm : null)
             .Where(vm => vm is not null && TrackOf(vm) == track).Select(vm => vm!.Clip).OrderBy(c => c.TimelineStart).ToList();
-        return clips.Count == 2 ? (clips[0], clips[1]) : null;
+        if (clips.Count == 2) return (clips[0], clips[1]);
+        return clips.Count == 1 && track is not null ? Neighbour(track.Track, clips[0]) : null;
     }
 
     private void OnEditingLockChanged()
@@ -1696,7 +1738,19 @@ public sealed partial class TimelineViewModel : ViewModelBase
         if (g.StripHandle is { } handle) UpdateStrip(g, handle, rawDelta);
         else if (g.Slip) UpdateSlip(g, rawDelta);
         else if (g.Edge is { } edge) UpdateTrim(g, edge, rawDelta);
-        else UpdateMove(g, rawDelta, trackUnderPointer);
+        else UpdateMove(g, MagnetDelta(g, contentX, trackUnderPointer) ?? rawDelta, trackUnderPointer);
+    }
+
+    /// <summary>D069 amendment 1: a drag onto the magnetic main track takes the pointer as the dragged clips' start (as CapCut
+    /// does) — where the pointer is, not where the grabbed point of a long clip is, decides the cut the clips go to. Null:
+    /// any other drag (the grabbed point keeps its offset).</summary>
+    private MediaTime? MagnetDelta(Gesture g, double contentX, TimelineTrackViewModel? trackUnderPointer)
+    {
+        if (!Sequence.MagneticMainTrack || Sequence.VideoTracks.OrderBy(t => t.Order).FirstOrDefault() is not { } main) return null;
+        var target = g.SourceTrack is not null && trackUnderPointer is not null && trackUnderPointer != g.SourceTrack ? trackUnderPointer : g.SourceTrack;
+        if (target?.Track != main) return null;
+        var pointer = TimelineCoordinateMapper.XToTime(Math.Max(0, contentX), PixelsPerSecond);
+        return pointer - g.Clips.Min(c => c.Clip.TimelineStart);
     }
 
     private void UpdateMove(Gesture g, MediaTime rawDelta, TimelineTrackViewModel? trackUnderPointer)
@@ -1884,7 +1938,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
                 : _edit.TrimClip(g.Clips[0].Id, edge, g.TrimTime, g.Alone)
             : _edit.MoveClips(g.Clips.Select(c => c.Id).ToList(), g.FrameDelta, g.TargetTrack?.Track.Id, insertOnDrop: true);
         Report(result);
-        if (!result.Success) Relayout(); // restore the pre-drag positions
+        // Restore the pre-drag positions — also when nothing changed (D069 amendment 1: a drag the magnet took back left the
+        // carried plates where the preview had them).
+        if (!result.Success || result.NoChange) Relayout();
     }
 
     public void CancelGesture()

@@ -374,8 +374,14 @@
             </Button>
             <!-- D044 §6: "Transition" — on a video track the menu of the library's five types, on an audio track the
                  crossfade at once (the view model raises TransitionMenuRequested for the menu). -->
-            <Button x:Name="TransitionButton" Classes="icon" Command="{Binding OpenTransitionMenuCommand}" FlyoutBase.AttachedFlyout="{StaticResource TransitionMenu}" ToolTip.Tip="{x:Static l:Strings.Timeline_TransitionTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_Transition}">
-              <controls:IconPath Glyph="{x:Static controls:Icons.Dissolve}"/>
+            <!-- D069 amendment 1: with its label (it was not found as an icon); one selected clip — its cut with the next clip; none —
+                 the cut under the playhead. -->
+            <Button x:Name="TransitionButton" Command="{Binding OpenTransitionMenuCommand}" FlyoutBase.AttachedFlyout="{StaticResource TransitionMenu}" ToolTip.Tip="{x:Static l:Strings.Timeline_TransitionTip}"
+                    AutomationProperties.Name="{x:Static l:Strings.Timeline_Transition}" FontSize="{DynamicResource FontSizeCaption}">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.Dissolve}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_Transition}"/>
+              </StackPanel>
             </Button>
             <!-- D069 §6: the main track's magnet (snapping is always on). -->
             <ToggleButton x:Name="MagnetButton" Classes="icon" IsChecked="{Binding MagneticMainTrack}" ToolTip.Tip="{x:Static l:Strings.Timeline_SnapTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_Snap}">

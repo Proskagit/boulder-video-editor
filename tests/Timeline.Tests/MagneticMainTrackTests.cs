@@ -392,4 +392,23 @@ public class MagneticMainTrackTests
         Assert.True(nudged.NoChange, nudged.Message);
         Assert.Same(top, f.UndoRedo.CurrentPosition);
     }
+
+    /// <summary>D069 amendment 1 (the owner's check): a move the magnet takes back leaves the anchored plates where they were.</summary>
+    [Fact]
+    public void A_move_the_magnet_takes_back_leaves_the_anchored_plates_in_place()
+    {
+        var (f, c) = Layout(true, (0, 100), (100, 200));
+        Ok(f.Service.AddTrack(TrackType.Video));
+        var plate = new TemplateClip { Kind = TemplateKind.Boulder, TimelineStart = F(110), Duration = F(50), AnchorClipId = c[1].Id };
+        f.Project.Timeline.VideoTracks[^1].Clips.Add(plate);
+        var before = f.Snapshot();
+        var top = f.UndoRedo.CurrentPosition;
+
+        var result = f.Service.MoveClips(new[] { c[1].Id }, 30, insertOnDrop: true);
+
+        Assert.True(result.NoChange, result.Message);
+        Assert.Equal((110L, 160L), Span(plate));
+        Assert.Equal(before, f.Snapshot());
+        Assert.Same(top, f.UndoRedo.CurrentPosition);
+    }
 }

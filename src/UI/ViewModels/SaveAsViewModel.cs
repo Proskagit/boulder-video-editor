@@ -33,6 +33,10 @@ public sealed partial class SaveAsViewModel : ObservableObject
     /// <summary>The folder the project would be written into, or null while the name or the folder is not valid.</summary>
     public string? TargetFolder => Error is null ? Path.Combine(Folder, Name.Trim()) : null;
 
+    /// <summary>D069 amendment 1: said in the window before «Сохранить» — a project of that name is there (the next step asks
+    /// to replace it).</summary>
+    public string? ReplaceNote => TargetFolder is { } target && File.Exists(Path.Combine(target, "project.json")) ? Strings.SaveAs_WillAskReplace : null;
+
     /// <summary>Raised by «Сохранить» (true) and «Отмена» (false); the window closes.</summary>
     public event EventHandler<bool>? CloseRequested;
 
@@ -46,6 +50,7 @@ public sealed partial class SaveAsViewModel : ObservableObject
     {
         Error = ReasonAgainst(Name, Folder);
         OnPropertyChanged(nameof(TargetFolder));
+        OnPropertyChanged(nameof(ReplaceNote));
         SaveCommand.NotifyCanExecuteChanged();
     }
 
@@ -97,6 +102,19 @@ public sealed partial class SaveAsViewModel : ObservableObject
             Title = Strings.SaveAs_FolderPickerTitle,
             StartFolder = Directory.Exists(Folder) ? Folder : null
         });
-        if (picked is not null) Folder = picked;
+        if (picked is not null) UsePicked(picked);
+    }
+
+    /// <summary>D069 amendment 1: a project's own folder picked by «Изменить…» means that project — its parent becomes the folder
+    /// and its name the name (so «Заменить?» is asked), never a project saved inside a project.</summary>
+    internal void UsePicked(string picked)
+    {
+        var folder = Path.TrimEndingDirectorySeparator(picked);
+        if (File.Exists(Path.Combine(folder, "project.json")) && Path.GetDirectoryName(folder) is { Length: > 0 } parent)
+        {
+            Name = Path.GetFileName(folder);
+            Folder = parent;
+        }
+        else Folder = folder;
     }
 }

@@ -87,9 +87,9 @@ public class CommitNumericUpDown : NumericUpDown
     /// <summary>D069 §4: how much smaller a stacked button's arrow glyph is than Fluent's, and its width when Fluent sets
     /// none.</summary>
     internal const double ArrowGlyphShrink = 1.5;
-    internal const double ArrowGlyphWidth = 8;
+    internal const double ArrowGlyphWidth = 16 / ArrowGlyphShrink;
 
-    private static bool StackButtons(Visual field)
+    internal static bool StackButtons(Visual field)
     {
         var buttons = field.GetVisualDescendants().OfType<RepeatButton>().ToList();
         if (buttons.Count != 2 || buttons[0].GetVisualParent() is not Panel panel || buttons[1].GetVisualParent() != panel) return false;
@@ -117,14 +117,30 @@ public class CommitNumericUpDown : NumericUpDown
             button.VerticalAlignment = VerticalAlignment.Stretch;
             // D069 §4: Fluent's arrow glyph is sized for its wide button — in the 16 px column it filled the button and
             // stuck out of it; about 1.5 times smaller, it fits.
-            foreach (var glyph in button.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Shape>())
+            // D069 amendment 1: Fluent draws the arrow as a PathIcon 16 × 8 — the button's content, made before the button's own
+            // template shows it — whose Path is stretched to fill it: the icon itself gets the smaller size.
+            foreach (var glyph in Glyphs(button))
             {
-                glyph.Width = double.IsNaN(glyph.Width) ? ArrowGlyphWidth : Math.Round(glyph.Width / ArrowGlyphShrink, 1);
-                glyph.Height = double.IsNaN(glyph.Height) ? ArrowGlyphWidth / 2 : Math.Round(glyph.Height / ArrowGlyphShrink, 1);
-                glyph.Stretch = Avalonia.Media.Stretch.Uniform;
+                glyph.Width = ArrowGlyphWidth;
+                glyph.Height = ArrowGlyphWidth / 2;
+                glyph.MinWidth = 0;   // a minimum of the theme would keep the old size
+                glyph.MinHeight = 0;
+                glyph.HorizontalAlignment = HorizontalAlignment.Center;
+                glyph.VerticalAlignment = VerticalAlignment.Center;
+                if (glyph is Avalonia.Controls.Shapes.Shape shape) shape.Stretch = Avalonia.Media.Stretch.Uniform;
             }
         }
         return true;
+    }
+
+    /// <summary>The arrow glyph of a spinner button: its content when that is an icon or a shape, else the icons / bare shapes
+    /// it shows.</summary>
+    private static IEnumerable<Control> Glyphs(RepeatButton button)
+    {
+        if (button.Content is PathIcon or Avalonia.Controls.Shapes.Shape) return new[] { (Control)button.Content! };
+        return button.GetVisualDescendants()
+            .Where(v => v is PathIcon || v is Avalonia.Controls.Shapes.Shape && v.FindAncestorOfType<PathIcon>() is null)
+            .OfType<Control>().ToList();
     }
 
     protected override void OnTextChanged(string? oldValue, string? newValue)

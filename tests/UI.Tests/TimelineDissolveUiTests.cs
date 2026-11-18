@@ -97,9 +97,9 @@ public sealed class TimelineDissolveUiTests : IAsyncLifetime
         Assert.True(_edit.Split(F(200)).Success);
         var c = V1.Clips[2];
 
-        Assert.False(Timeline.AddDissolveCommand.CanExecute(null));
+        Assert.False(Timeline.AddDissolveCommand.CanExecute(null));                   // nothing selected, no cut at the playhead
         Timeline.OnClipPressed(ClipVm(a), toggle: false);
-        Assert.False(Timeline.AddDissolveCommand.CanExecute(null));
+        Assert.True(Timeline.AddDissolveCommand.CanExecute(null));                    // D069 amendment 1: one clip — its cut with the next
         Timeline.OnClipPressed(ClipVm(b), toggle: true);
         Assert.True(Timeline.AddDissolveCommand.CanExecute(null));
         Timeline.OnClipPressed(ClipVm(c), toggle: true);
@@ -121,18 +121,18 @@ public sealed class TimelineDissolveUiTests : IAsyncLifetime
         var state = Timeline.AddDissolveCommand.CanExecute(null);
         Timeline.AddDissolveCommand.CanExecuteChanged += (_, _) => state = Timeline.AddDissolveCommand.CanExecute(null);
 
+        Assert.False(state);                                                       // nothing selected, no cut at the playhead
         Timeline.OnClipPressed(ClipVm(a), toggle: false);
-        Assert.False(state);
+        Assert.True(state);                                                        // D069 amendment 1: one clip — its cut
         Timeline.OnClipPressed(ClipVm(b), toggle: true);                          // 1 → 2 clips
         Assert.True(state);
-        Timeline.OnClipPressed(ClipVm(b), toggle: true);                          // 2 → 1
-        Assert.False(state);
-        Timeline.OnClipPressed(ClipVm(b), toggle: true);
         using (_lock.Acquire())
             Assert.False(state);
         Assert.True(state);
         Timeline.ClearSelection();
         Assert.False(state);
+        Timeline.SetPlayhead(b.TimelineStart);                                     // the cut under the playhead
+        Assert.True(state);
     }
 
     [Fact]
