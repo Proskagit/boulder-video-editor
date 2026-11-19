@@ -59,7 +59,7 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
         _heartRateOffsetSeconds = Seconds(current.HeartRateDisplayOffsetTicks);
         _garminHeartRateOffsetSeconds = Seconds(current.GarminHeartRateDisplayOffsetTicks);
         _otherHeartRateOffsetSeconds = Seconds(current.OtherHeartRateDisplayOffsetTicks);
-        _holdProposalsEnabled = current.HoldProposalsEnabled;
+        _routeProposalsEnabled = current.RouteProposalsEnabled;
         _timelineFollowsPlayhead = current.TimelineFollowsPlayhead;
         _canvasSnapPixels = (decimal)current.CanvasSnapPixels;
         _showPeopleMasks = current.ShowPeopleMasks;
@@ -229,10 +229,10 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
         OtherHeartRateOffsetSeconds = Seconds(UserSettings.DefaultOtherHeartRateDisplayOffset.Ticks);
     }
 
-    /// <summary>D057 §3.15: generate hold proposals on entering the markup mode (off by default).</summary>
-    [ObservableProperty] private bool _holdProposalsEnabled;
+    /// <summary>D072 §3: «Предлагать трассу» (on by default).</summary>
+    [ObservableProperty] private bool _routeProposalsEnabled;
 
-    partial void OnHoldProposalsEnabledChanged(bool value) => _settings.Update(s => s with { HoldProposalsEnabled = value });
+    partial void OnRouteProposalsEnabledChanged(bool value) => _settings.Update(s => s with { RouteProposalsEnabled = value });
 
     /// <summary>D058 §1: «Таймлайн следует за плейхедом».</summary>
     [ObservableProperty] private bool _timelineFollowsPlayhead;

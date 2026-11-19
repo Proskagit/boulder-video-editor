@@ -3,7 +3,6 @@ using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Holds;
-using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Localization;
 using AiVideoEditor.Core.Playback;
 using AiVideoEditor.UI.Localization;
@@ -13,172 +12,152 @@ using CommunityToolkit.Mvvm.Input;
 namespace AiVideoEditor.UI.ViewModels.Panels;
 
 /// <summary>
-/// D048 §2, the route selection at <c>T</c> ("Place holds") in the markup mode: paused on <c>T</c> the user presses the
-/// button and clicks the control hold on the Preview → the click is carried to the clean frame 5 s earlier
-/// (<see cref="RouteSelectionService"/>), the clean frame is encoded and the holds of the control hold's colour are found
-/// (<see cref="RouteHoldFinder"/>) → the Preview shows the clean frame with the D047 review: remove a proposal, add a
-/// missed hold by a click (Enter adds it to the route, not yet to the clip), change the tolerance (no model call) →
-/// "Accept" adds them all with one <see cref="Core.Interfaces.ITimelineEditService.AddHolds"/> — one Undo step, the holds
-/// marked at <c>t_C</c> — and the playhead goes back to <c>T</c>. Cancel, Esc or any failure: nothing changed, back to
-/// <c>T</c>. The playhead never leaves <c>T</c> meanwhile (the clean frame may lie before the clip, in its handle), so the
-/// overlay draws the clean frame itself (<see cref="ShowsMarkupFrame"/>).
+/// D072 §3, the route from its first hold: in the markup mode, with «Предлагать трассу» on and the current route without holds
+/// on the clip, the session's first plain click on the frame is the route's first hold → the window «Подождите, идёт анализ»
+/// (<see cref="IsRouteAnalyzing"/>, «Отмена») while <see cref="RouteHoldFinder"/> searches the encoded markup frame
+/// (<see cref="RouteHoldSearchOptions.Production"/>) → the route's holds are proposals on the frame: remove a proposal, add a
+/// missed hold by a click (Enter adds it to the proposals, not yet to the clip), change the tolerance (no model call) →
+/// «Принять» adds them all with one <see cref="Core.Interfaces.ITimelineEditService.AddHolds"/> — one Undo step, at the markup
+/// frame's source time — and the markup goes on. «Отменить» drops the proposals. The analysis runs once per session; a failure
+/// turns the click into an ordinary candidate.
 /// </summary>
 public sealed partial class HoldMarkupViewModel
 {
-    private enum RoutePhase { None, Picking, Preparing, Reviewing }
+    private enum RoutePhase { None, Analyzing, Reviewing }
 
-    private RouteSelectionService? _routeSelection;
     private RoutePhase _routePhase;
-    private MediaTime _routeT;
+    private bool _routeTried;
+    private CancellationTokenSource? _routeCts;
     private RouteHoldSearch? _routeSearch;
-    private FrameSize? _pickSize;
     private readonly HashSet<Guid> _routeRejected = new();
     private readonly List<RouteHoldCandidate> _routeManual = new();
     private readonly Dictionary<Guid, RouteHoldCandidate> _routeShown = new();
 
-    /// <summary>Moves the timeline's playhead (set by the shell): the return to <c>T</c>.</summary>
-    public Action<MediaTime> SeekTo { get; set; } = _ => { };
+    /// <summary>D072 §3: «Предлагать трассу» — the first click on a hold proposes the whole route (a global setting, on by
+    /// default).</summary>
+    [ObservableProperty] private bool _isRouteProposalEnabled;
 
-    /// <summary>A route selection is running (from the button to accept / cancel).</summary>
+    partial void OnIsRouteProposalEnabledChanged(bool value) =>
+        _settings?.Update(s => s with { RouteProposalsEnabled = value });
+
+    /// <summary>A route is analysed or reviewed (from the first click to «Принять» / «Отменить»).</summary>
     [ObservableProperty] private bool _isRouteSelection;
 
-    /// <summary>The route's holds are proposed on the clean frame: the tolerance, Accept and Cancel are shown.</summary>
+    /// <summary>The window «Подождите, идёт анализ» is shown: the route's holds are being searched.</summary>
+    [ObservableProperty] private bool _isRouteAnalyzing;
+
+    /// <summary>The analysis's progress (0…1), shown in its window.</summary>
+    [ObservableProperty] private double _routeProgress;
+
+    /// <summary>The route's holds are proposed: the tolerance, «Принять» and «Отменить» are shown.</summary>
     [ObservableProperty] private bool _isRouteReview;
 
-    /// <summary>The overlay draws <see cref="MarkupFrame"/> over the clip's picture: the clean frame is not the frame under
-    /// the playhead.</summary>
-    [ObservableProperty] private bool _showsMarkupFrame;
+    /// <summary>D072 amendment 1: the colour the route's proposals are drawn in — the one its holds will get (the route's manual
+    /// colour, or the Auto colour of the proposals as holds), so they read on the wall as the result will.</summary>
+    [ObservableProperty] private string _proposalColorHex = RouteColor.Palette[0].Hex;
 
-    /// <summary>The colour tolerance (OKLab distance, L weighted ½); a change re-selects without the model.</summary>
-    [ObservableProperty] private decimal? _routeTolerance = (decimal)RouteHoldColor.DefaultTolerance;
+    /// <summary>Whether the proposals get the keyline (as the route's holds would).</summary>
+    [ObservableProperty] private bool _proposalKeyline;
 
-    public decimal MinRouteTolerance => (decimal)RouteHoldColor.MinTolerance;
-    public decimal MaxRouteTolerance => (decimal)RouteHoldColor.MaxTolerance;
+    /// <summary>How many holds are proposed now (the review's count; the list itself is gone — amendment 1).</summary>
+    public int ProposalCount => _proposalSource.Count;
 
-    private void InitRoute(RouteSelectionService? routeSelection) => _routeSelection = routeSelection;
 
-    private bool CanPlaceHolds() => _routeSelection is not null && CanStart();
+    /// <summary>Whether a plain click at <paramref name="point"/> starts the route's analysis (D072 §3).</summary>
+    private bool StartsRoute(NormalizedPoint point) =>
+        IsRouteProposalEnabled && !_routeTried && _routePhase == RoutePhase.None && _clip is not null &&
+        (MarkupOf(_clip)?.Holds.IsEmpty ?? true) && HitHold(point) is null;
 
-    /// <summary>"Place holds": the mode starts on the frame under the playhead (<c>T</c>) waiting for the control hold.</summary>
-    [RelayCommand(CanExecute = nameof(CanPlaceHolds))]
-    private void PlaceHolds()
+    /// <summary>The first hold's click: the window, the search on the markup frame, the review.</summary>
+    private async Task AnalyzeRouteAsync(NormalizedPoint click)
     {
-        if (!CanPlaceHolds()) return;
-        var metadata = Asset(_clip!)!.Metadata!;
-        var width = metadata.DisplayWidth ?? metadata.Width;
-        var height = metadata.DisplayHeight ?? metadata.Height;
-        if (width is not > 0 || height is not > 0)
-        {
-            _status.ReportError(Messages.RouteSelectionMediaUnavailable);
-            return;
-        }
-        _modeCts = new CancellationTokenSource();
-        _modePlayhead = Playhead();
-        _routeT = _modePlayhead;
-        _pickSize = new FrameSize(width.Value, height.Value);
-        _routePhase = RoutePhase.Picking;
+        if (_clip is not { } clip || _encoded is not { } encoded || MarkupFrame is not { } frame || _modeCts is not { } mode) return;
+        _routeTried = true;
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(mode.Token);
+        _routeCts = cts;
+        _routePhase = RoutePhase.Analyzing;
         IsRouteSelection = true;
-        IsActive = true;
-        IsPreparing = false;
-        ModeText = Strings.Holds_RoutePickControl;
-        UpdateOverlay();
-        RefreshCommands();
-    }
-
-    /// <summary>The click on the control hold at <c>T</c>: the transfer, the clean frame, the search, the review.</summary>
-    private async Task PickControlAsync(NormalizedPoint click)
-    {
-        if (_routePhase != RoutePhase.Picking || _clip is null || _routeSelection is null || _segmentation is null) return;
-        if (Asset(_clip) is not { } asset) return;
-        var clip = _clip;
-        var cts = _modeCts ??= new CancellationTokenSource();
-        var rate = _projects.Current.Settings.FrameRate;
-        _routePhase = RoutePhase.Preparing;
-        IsPreparing = true;
-        PrepareProgress = 0;
-        ModeText = Strings.Holds_RouteFindingCleanFrame;
+        IsRouteAnalyzing = true;
+        RouteProgress = 0;
+        ModeText = Strings.Holds_RouteFindingHolds;
         RefreshCommands();
         try
         {
-            var status = await _segmentation.EnsureReadyAsync(null, cts.Token);
-            if (_modeCts != cts) return;
-            if (!status.IsReady)
-            {
-                FailRoute(status.Message ?? Strings.Holds_ModelUnavailable);
-                return;
-            }
-            if (_segmentation.Device == InferenceDevice.Cpu) _status.ReportWarning(CpuMessage);
-
-            var preparation = await _routeSelection.PrepareAsync(clip, asset, _routeT.ToFrameFloor(rate), rate, click, cts.Token);
-            if (_modeCts != cts) return;
-            if (preparation.Prepared is not { } prepared)
-            {
-                FailRoute(preparation.Error!);
-                return;
-            }
-
-            PrepareProgress = 0.3;
-            ModeText = Strings.Holds_PreparingFrame;
-            var encoded = await _segmentation.PrepareFrameAsync(prepared.Clean.Frame, cts.Token);
-            if (_modeCts != cts)
-            {
-                encoded.Dispose();
-                return;
-            }
-            _encoded = encoded;
-            _sourceTime = prepared.Clean.SourceTime;
-            MarkupFrame = prepared.Clean.Frame;
-            ShowsMarkupFrame = true;
-            UpdateOverlay();
-
-            PrepareProgress = 0.5;
-            ModeText = Strings.Holds_RouteFindingHolds;
             var existing = ExistingContours(clip);
-            // Made here, on the UI thread: its reports come back here (the overlay reacts to the mode's properties).
-            var progress = new Progress<double>(p => { if (_modeCts == cts) PrepareProgress = 0.5 + 0.5 * p; });
-            var found = await Task.Run(() => RouteHoldFinder.FindAsync(encoded, prepared.Clean.Frame, prepared.ControlPoint, existing,
-                new RouteHoldSearchOptions(), progress, cts.Token));
-            if (_modeCts != cts) return;
+            var style = MarkupOf(clip) ?? new HoldMarkup();
+            var tolerance = RouteHoldColor.DefaultTolerance;
+            var sourceTime = _sourceTime;
+            // Made here, on the UI thread: its reports come back here.
+            var progress = new Progress<double>(p => { if (_routeCts == cts) RouteProgress = p; });
+            var (found, color) = await Task.Run(async () =>
+            {
+                var result = await RouteHoldFinder.FindAsync(encoded, frame, click, existing, RouteHoldSearchOptions.Production, progress, cts.Token);
+                if (result.Search is not { } s) return (result, default((string, bool)));
+                // Amendment 1: the colour the holds would get — the proposals drawn in it.
+                var holds = RouteHoldFinder.ToHolds(frame, s.Select(tolerance), existing, sourceTime);
+                return (result, RouteColor.Resolve(style with { Holds = style.Holds.AddRange(holds) }));
+            });
+            if (_routeCts != cts) return;
             if (found.Search is not { } search)
             {
-                FailRoute(found.Error!);
+                EndRoute();
+                _status.Report(found.Error!);
+                await ManualClickAsync(click);
                 return;
             }
 
             _routeSearch = search;
+            (ProposalColorHex, ProposalKeyline) = color;
             _routePhase = RoutePhase.Reviewing;
+            IsRouteAnalyzing = false;
             IsRouteReview = true;
-            IsPreparing = false;
-            PrepareProgress = 1;
+            RouteProgress = 1;
             RefreshRoute();
-            if (prepared.Frames.CleanAtFileStart) _status.ReportWarning(Strings.Holds_RouteCleanAtFileStart);
             if (_proposalSource.Count == 0) _status.Report(Messages.RouteSelectionNothingNew);
+            else _status.Report(string.Format(Strings.Holds_RouteFound, _proposalSource.Count));
             ModeText = Strings.Holds_RouteReview;
         }
         catch (OperationCanceledException) when (cts.IsCancellationRequested)
         {
-            // left meanwhile: nothing changed
+            // «Отмена» or the mode left meanwhile: nothing changed
+            if (_routeCts == cts) EndRoute();
         }
-        catch (Exception ex) when (_modeCts == cts)
+        catch (Exception ex) when (_routeCts == cts)
         {
-            FailRoute(string.Format(Strings.Holds_NotPossible, ex.Message));
+            EndRoute();
+            _status.ReportWarning(string.Format(Strings.Holds_NotPossible, ex.Message));
+            await ManualClickAsync(click);
+        }
+        catch (Exception)
+        {
+            // the mode left meanwhile (its encoded frame disposed under the search): nothing to report, nothing changed
         }
         finally
         {
+            if (_routeCts == cts) _routeCts = null;   // the analysis is over: nothing left to cancel
+            cts.Dispose();
             RefreshCommands();
         }
     }
 
-    /// <summary>A failure: the message, the mode left, back to <c>T</c>; the project untouched.</summary>
-    private void FailRoute(string message)
+    /// <summary>A failed analysis: the click is an ordinary candidate at that point (never lost).</summary>
+    private async Task ManualClickAsync(NormalizedPoint point)
     {
-        _status.Report(message);
-        CancelRoute();
+        if (!IsActive || IsPreparing || _encoded is null || MarkupFrame is null) return;
+        _points.Clear();
+        _points.Add(new PointD(point.X * MarkupFrame.Width, point.Y * MarkupFrame.Height));
+        await PredictAsync();
     }
 
-    partial void OnRouteToleranceChanged(decimal? value)
+    private bool CanCancelRouteAnalysis() => IsRouteAnalyzing;
+
+    /// <summary>«Отмена» in the analysis window (or Esc): nothing changed, the markup goes on by hand.</summary>
+    [RelayCommand(CanExecute = nameof(CanCancelRouteAnalysis))]
+    private void CancelRouteAnalysis()
     {
-        if (IsRouteReview) RefreshRoute();
+        if (!IsRouteAnalyzing) return;
+        EndRoute();
+        RefreshCommands();
     }
 
     /// <summary>The proposals now: the control hold, the user's added holds, then the selection at the tolerance —
@@ -186,8 +165,9 @@ public sealed partial class HoldMarkupViewModel
     private void RefreshRoute()
     {
         if (_routeSearch is null) return;
-        var tolerance = (double)Math.Clamp(RouteTolerance ?? (decimal)RouteHoldColor.DefaultTolerance, MinRouteTolerance, MaxRouteTolerance);
-        var selected = _routeSearch.Select(tolerance, _routeRejected);
+        // Amendment 2: the tolerance is no longer the user's (its control re-selected among the holds already found and did
+        // not help) — D048's 0.08 with the strict gates.
+        var selected = _routeSearch.Select(RouteHoldColor.DefaultTolerance, _routeRejected);
         var shown = selected.Where(c => c.IsControl).Concat(_routeManual).Concat(selected.Where(c => !c.IsControl)).ToList();
         var selectedId = SelectedProposal?.Proposal.Id;
         _routeShown.Clear();
@@ -198,6 +178,7 @@ public sealed partial class HoldMarkupViewModel
             _proposalSource.Add(new HoldProposal(c.Id, c.Contour, c.Centroid, c.Score, c.AreaFraction));
         }
         RefreshProposals();
+        OnPropertyChanged(nameof(ProposalCount));
         var index = selectedId is { } id ? Proposals.ToList().FindIndex(p => p.Proposal.Id == id) : -1;
         if (index >= 0) SelectedProposalIndex = index;
     }
@@ -226,11 +207,14 @@ public sealed partial class HoldMarkupViewModel
 
     private bool CanAcceptRoute() => IsRouteReview && !IsRefiningProposals && _proposalSource.Count > 0 && _clip is not null && MarkupFrame is not null;
 
-    /// <summary>"Accept": every proposal of the review as holds of the clean frame — one step — then back to <c>T</c>.</summary>
+    /// <summary>«Принять»: every proposal of the review as holds of the markup frame — one step; the markup goes on.</summary>
     [RelayCommand(CanExecute = nameof(CanAcceptRoute))]
-    private async Task AcceptRoute()
+    private async Task AcceptRoute() => await AcceptRouteCoreAsync();
+
+    /// <summary>The accept itself; true when the holds were added.</summary>
+    private async Task<bool> AcceptRouteCoreAsync()
     {
-        if (!CanAcceptRoute()) return;
+        if (!CanAcceptRoute()) return false;
         var clip = _clip!;
         var frame = MarkupFrame!;
         var accepted = _proposalSource.Select(p => _routeShown[p.Id]).ToList();
@@ -239,12 +223,12 @@ public sealed partial class HoldMarkupViewModel
         if (accepted.Count > room)
         {
             _status.ReportWarning(string.Format(Messages.Holds_MaxHolds, HoldMarkupRules.MaxHolds));
-            return;
+            return false;
         }
         if (_lock.IsLocked)
         {
             _status.ReportWarning(Strings.Holds_OutlineExportRunning);
-            return;
+            return false;
         }
 
         IsRefiningProposals = true;
@@ -253,21 +237,23 @@ public sealed partial class HoldMarkupViewModel
         {
             var sourceTime = _sourceTime;
             var holds = await Task.Run(() => SmoothHolds(RouteHoldFinder.ToHolds(frame, accepted, existing, sourceTime), frame.Width, frame.Height));
-            if (!IsRouteReview || !ReferenceEquals(_clip, clip)) return;   // left meanwhile: nothing added
+            if (!IsRouteReview || !ReferenceEquals(_clip, clip)) return false;   // left meanwhile: nothing added
             var result = _edit.AddHolds(clip.Id, holds, RouteForEdit());
             if (!result.Success)
             {
                 _status.ReportWarning(result.Message ?? Strings.Holds_NotAdded);
-                return;
+                return false;
             }
-            _status.Report(string.Format(Strings.Holds_AcceptedAll, holds.Count));
-            var t = _routeT;
-            Exit();
-            SeekTo(t);
+            if (!result.NoChange) _status.Report(string.Format(Strings.Holds_AcceptedAll, holds.Count));
+            EndRoute();
+            LoadStyle();
+            UpdateOverlay();
+            return true;
         }
         catch (Exception ex)
         {
             _status.ReportError(string.Format(Strings.Holds_AddFailed, ex.Message));
+            return false;
         }
         finally
         {
@@ -276,35 +262,46 @@ public sealed partial class HoldMarkupViewModel
         }
     }
 
-    private bool CanCancelRoute() => IsRouteSelection;
+    private bool CanCancelRoute() => IsRouteReview;
 
-    /// <summary>"Cancel": nothing changed, back to <c>T</c>.</summary>
+    /// <summary>«Отменить»: the proposals dropped, nothing changed; the markup goes on.</summary>
     [RelayCommand(CanExecute = nameof(CanCancelRoute))]
     private void CancelRoute()
     {
-        if (!IsRouteSelection) return;
-        var t = _routeT;
-        Exit();
-        SeekTo(t);
+        if (!IsRouteReview) return;
+        EndRoute();
+        RefreshCommands();
     }
 
-    /// <summary>Part of <see cref="Exit"/>: the route selection's state forgotten.</summary>
-    private void ResetRoute()
+    /// <summary>The route's analysis or review ended (accepted, cancelled, failed): its state forgotten, the markup by hand.</summary>
+    private void EndRoute()
     {
+        var cts = _routeCts;
+        _routeCts = null;
+        cts?.Cancel();
         _routePhase = RoutePhase.None;
         _routeSearch = null;
-        _pickSize = null;
         _routeRejected.Clear();
         _routeManual.Clear();
         _routeShown.Clear();
         IsRouteSelection = false;
+        IsRouteAnalyzing = false;
         IsRouteReview = false;
-        ShowsMarkupFrame = false;
+        ClearProposals();
+        OnPropertyChanged(nameof(ProposalCount));
+        if (IsActive && !IsPreparing) ModeText = ReadyText;
+    }
+
+    /// <summary>Part of <see cref="Exit"/>: the route's state forgotten, the next session may analyse again.</summary>
+    private void ResetRoute()
+    {
+        EndRoute();
+        _routeTried = false;
     }
 
     private void RefreshRouteCommands()
     {
-        PlaceHoldsCommand.NotifyCanExecuteChanged();
+        CancelRouteAnalysisCommand.NotifyCanExecuteChanged();
         AcceptRouteCommand.NotifyCanExecuteChanged();
         CancelRouteCommand.NotifyCanExecuteChanged();
     }

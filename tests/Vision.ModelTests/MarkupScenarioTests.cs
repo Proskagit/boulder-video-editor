@@ -40,7 +40,9 @@ public sealed class MarkupScenarioTests(ITestOutputHelper output)
         using var service = new OnnxHoldSegmentationService(ReferenceData.ModelDir);
         var decoder = new FfmpegVideoDecoder(new FfmpegLocator(options, NullLogger<FfmpegLocator>.Instance), NullLogger<FfmpegVideoDecoder>.Instance);
         var status = new StatusService();
-        var markup = new HoldMarkupViewModel(edit, projects, status, service, new HoldMarkupFrameSource(decoder))
+        // The manual markup (D034): «Предлагать трассу» off (D072 §3), so every click is one hold.
+        var markup = new HoldMarkupViewModel(edit, projects, status, service, new HoldMarkupFrameSource(decoder),
+            settings: new InMemoryUserSettings(new UserSettings { RouteProposalsEnabled = false }))
         {
             Playhead = () => MediaTime.FromSeconds(0.5)
         };

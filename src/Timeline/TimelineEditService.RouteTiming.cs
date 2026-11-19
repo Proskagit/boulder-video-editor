@@ -38,10 +38,23 @@ public sealed partial class TimelineEditService
     public TimelineEditResult LayOutIntroAndFinal(Guid videoClipId, MediaTime t, Guid? routeId = null) =>
         LayOutIntroAndFinal(videoClipId, t, routeId, null, null);
 
+    /// <summary>The animation's standard length in the layout from its start (D072 amendment 2): 5 s — the Fa of a full 7 s intro.</summary>
+    private static readonly MediaTime LayoutAnimation = MediaTime.FromSeconds(5);
+
+    /// <summary>
+    /// D072 amendment 2 (the owner: the route's animation starts where its holds are marked): as
+    /// <see cref="LayOutIntroAndFinal(Guid, MediaTime, Guid?)"/>, but from the orange's start <c>As</c> = <paramref name="animationStart"/>
+    /// (<c>Vs ≤ As &lt; Ve</c>): the animation on <c>[As, As + 5 s)</c> (shortened at the clip's end), <c>T</c> = its end, the
+    /// «Боулдер» from <c>max(Vs, As − 2 s)</c> (a full intro's 7 s before <c>T</c>; also when the animation is shortened), the
+    /// rest as there.
+    /// </summary>
+    public TimelineEditResult LayOutIntroAndFinalFrom(Guid videoClipId, MediaTime animationStart, Guid? routeId = null) =>
+        LayOutIntroAndFinal(videoClipId, animationStart, routeId, null, null, fromAnimationStart: true);
+
     /// <summary>As <see cref="LayOutIntroAndFinal(Guid, MediaTime, Guid?)"/>, with <paramref name="also"/> — told whether an
     /// animation is made — adding a command to the same step (D051 §8.2: «Разметить трассу от метки» links the clip).</summary>
     private TimelineEditResult LayOutIntroAndFinal(Guid videoClipId, MediaTime t, Guid? routeId, IReadOnlySet<Core.Telemetry.ClimbIdentity>? keep,
-        Func<bool, Guid, IUndoableCommand?>? also)
+        Func<bool, Guid, IUndoableCommand?>? also, bool fromAnimationStart = false)
     {
         if (MarkupClip(videoClipId, out var video) is { } clipError) return TimelineEditResult.Fail(clipError);
         if (MarkupRoute(video, routeId, create: true, out var rid, out var markup) is { } routeError) return TimelineEditResult.Fail(routeError);
@@ -50,13 +63,23 @@ public sealed partial class TimelineEditService
         var plan = new EditPlan(Sequence, Settings);
         var rate = plan.Rate;
         long vs = video.TimelineStart.ToNearestFrame(rate), ve = video.TimelineEnd.ToNearestFrame(rate);
-        var tf = t.ToNearestFrame(rate);
-        if (tf < vs || tf > ve) return TimelineEditResult.Fail(Messages.Layout_OutsideClip);
-
-        var available = tf - vs;
-        var intro = Math.Min(LayoutIntro.ToNearestFrame(rate), available);
-        var animationFrames = (10 * intro + 7) / 14;
-        var ps = tf - intro;
+        long tf, ps, animationFrames;
+        if (fromAnimationStart)
+        {
+            var asf = t.ToNearestFrame(rate);
+            if (asf < vs || asf >= ve) return TimelineEditResult.Fail(Messages.Layout_OutsideClip);
+            animationFrames = Math.Min(LayoutAnimation.ToNearestFrame(rate), ve - asf);
+            tf = asf + animationFrames;
+            ps = Math.Max(vs, asf - (LayoutIntro - LayoutAnimation).ToNearestFrame(rate));   // 2 s before the orange, always
+        }
+        else
+        {
+            tf = t.ToNearestFrame(rate);
+            if (tf < vs || tf > ve) return TimelineEditResult.Fail(Messages.Layout_OutsideClip);
+            var intro = Math.Min(LayoutIntro.ToNearestFrame(rate), tf - vs);
+            animationFrames = (10 * intro + 7) / 14;
+            ps = tf - intro;
+        }
         var template = RouteTemplates(plan, video, rid).Where(p => p.Kind == TemplateKind.Boulder).OrderBy(p => p.TimelineStart).FirstOrDefault();
         var existingEnd = template?.TimelineEnd.ToNearestFrame(rate);
         var pe = existingEnd is { } end && end > tf

@@ -53,8 +53,20 @@ public sealed class HoldMarkupOverlay : Control, ICustomHitTest
     private static readonly IPen Crosshair = new Pen(new SolidColorBrush(Color.FromArgb(220, 255, 255, 255)), 1);
     private static readonly IPen InvalidPen = new Pen(new SolidColorBrush(Color.Parse("#FF1744")), 2, lineJoin: PenLineJoin.Round);
     // Phase 31 (D047): proposals are drawn as translucent dashed neutral outlines; the selected one is highlighted.
-    private static readonly IPen ProposalKeyline = new Pen(new SolidColorBrush(Color.FromArgb(180, 0, 0, 0)), 3, lineJoin: PenLineJoin.Round);
-    private static readonly IPen ProposalPen = new Pen(new SolidColorBrush(Color.Parse("#B0B0B0")), 1.5, new DashStyle(new double[] { 4, 3 }, 0), lineJoin: PenLineJoin.Round);
+    private string? _proposalHex;
+    private bool _proposalKeylineOn;
+    private (IPen Pen, IPen? Keyline) _proposalPens;
+
+    /// <summary>The proposals' pens for the route's colour (cached while it stays).</summary>
+    private (IPen Pen, IPen? Keyline) ProposalPens(string hex, bool keyline)
+    {
+        if (hex == _proposalHex && keyline == _proposalKeylineOn) return _proposalPens;
+        var color = Color.TryParse(hex, out var parsed) ? parsed : Colors.White;
+        IPen? under = keyline ? new Pen(new SolidColorBrush(Color.Parse(RouteColor.KeylineHex(hex))), 5, lineJoin: PenLineJoin.Round) : null;
+        (_proposalHex, _proposalKeylineOn, _proposalPens) = (hex, keyline, (new Pen(new SolidColorBrush(color), 2.5, lineJoin: PenLineJoin.Round), under));
+        return _proposalPens;
+    }
+
     private static readonly IPen SelectedProposalPen = new Pen(new SolidColorBrush(Color.Parse("#FFEA00")), 2, new DashStyle(new double[] { 4, 3 }, 0), lineJoin: PenLineJoin.Round);
     private static readonly IPen HandleBorder = new Pen(Brushes.Black, 1);
     private static readonly IBrush HandleFill = Brushes.White;
@@ -293,14 +305,17 @@ public sealed class HoldMarkupOverlay : Control, ICustomHitTest
         if (_markup is not { IsActive: true, Geometry: { } geometry } markup || !markup.Canvas.IsValid) return;
         var view = Bounds.Size;
 
-        // D048 §2: the route review is on the clean frame, not the frame under the playhead — drawn here over the picture.
-        if (markup.ShowsMarkupFrame && markup.MarkupFrame is { } clean) DrawFrame(context, geometry, markup.Canvas, view, clean);
-
-        // Phase 31 (D047): ranked automatic proposals, translucent and dashed; the selected one highlighted.
-        for (var i = 0; i < markup.ProposalContours.Length; i++)
+        // D072 amendment 1: the route's proposals in the colour its holds will get, solid (a dashed grey line vanished on busy
+        // walls); the selected one marked by the yellow dashes over it.
+        if (markup.ProposalContours.Length > 0)
         {
-            var pen = i == markup.SelectedProposalIndex ? SelectedProposalPen : ProposalPen;
-            DrawContour(context, geometry, markup.Canvas, view, markup.ProposalContours[i], ProposalKeyline, pen);
+            var (pen, keyline) = ProposalPens(markup.ProposalColorHex, markup.ProposalKeyline);
+            for (var i = 0; i < markup.ProposalContours.Length; i++)
+            {
+                DrawContour(context, geometry, markup.Canvas, view, markup.ProposalContours[i], keyline, pen);
+                if (i == markup.SelectedProposalIndex)
+                    DrawContour(context, geometry, markup.Canvas, view, markup.ProposalContours[i], null, SelectedProposalPen);
+            }
         }
 
         // An animated route (D036): the composition shows this frame's honest state; every contour — also those hidden on
@@ -351,18 +366,6 @@ public sealed class HoldMarkupOverlay : Control, ICustomHitTest
             context.FillRectangle(i == active ? HoveredFill : HandleFill, rect);
             context.DrawRectangle(null, HandleBorder, rect);
         }
-    }
-
-    /// <summary>The frame itself where the clip's picture lies (its crop, scale, rotation and position — D018).</summary>
-    private void DrawFrame(DrawingContext context, LayerGeometry geometry, FrameSize canvas, Size view, DecodedFrame frame)
-    {
-        if (EnsureBitmap(frame) is not { } bitmap) return;
-        var toView = CompositionDrawPlan.Viewport(canvas, view.Width, view.Height).Compose(geometry.Transform);
-        double sx = geometry.Source.Width / (double)frame.Width, sy = geometry.Source.Height / (double)frame.Height;
-        var crop = geometry.SourceRect;
-        var source = new Rect(crop.X / sx, crop.Y / sy, crop.Width / sx, crop.Height / sy);
-        using (context.PushTransform(new Matrix(toView.A, toView.C, toView.B, toView.D, toView.Tx, toView.Ty)))
-            context.DrawImage(bitmap, source, new Rect(0, 0, crop.Width, crop.Height));
     }
 
     private WriteableBitmap? EnsureBitmap(DecodedFrame frame)

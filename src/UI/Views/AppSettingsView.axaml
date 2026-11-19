@@ -73,7 +73,7 @@
             <TextBlock Text="{x:Static l:Strings.Unit_Px}" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
           </StackPanel>
           <TextBlock Classes="note" Text="{x:Static l:Strings.AppSettings_CanvasSnapNote}"/>
-          <CheckBox x:Name="ProposalsBox" Content="{x:Static l:Strings.Holds_ProposeAutomatically}" IsChecked="{Binding HoldProposalsEnabled, Mode=TwoWay}"/>
+          <CheckBox x:Name="ProposalsBox" Content="{x:Static l:Strings.Holds_ProposeAutomatically}" IsChecked="{Binding RouteProposalsEnabled, Mode=TwoWay}"/>
           <TextBlock Classes="note" Text="{x:Static l:Strings.AppSettings_ProposalsNote}"/>
           <CheckBox x:Name="PeopleMasksBox" Content="{x:Static l:Strings.Inspector_ShowPeopleMasks}" IsChecked="{Binding ShowPeopleMasks, Mode=TwoWay}"/>
           <TextBlock Classes="note" Text="{x:Static l:Strings.AppSettings_PeopleMasksNote}"/>

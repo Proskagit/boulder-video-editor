@@ -17,14 +17,34 @@ public sealed record RouteHoldSearchOptions
     public bool UseGrid { get; init; } = true;
     public int GridDivisions { get; init; } = new ProposalPipelineOptions().GridDivisions;
     public double NmsIouThreshold { get; init; } = new ProposalPipelineOptions().NmsIouThreshold;
+
+    /// <summary>D072 §4: a colour-map region larger than <see cref="LargeRegionFactor"/> × the control hold is split again at
+    /// this distance (null: no split — D048 §2's planner).</summary>
+    public double? SplitDistance { get; init; }
+
+    public double LargeRegionFactor { get; init; } = 4.0;
+
+    /// <summary>D072 §4: the chroma and hue gates of the selection (null: the tolerance alone).</summary>
+    public RouteHoldGates? Gates { get; init; }
+
+    /// <summary>D072 §4, the application's search: the D048 research variant's split 0.06 without the grid, and the strict gates
+    /// of amendment 1 (chroma 0.5, hue 20°, the route's group, at most 15). (The record's own defaults stay D048 §2's — the
+    /// frozen research suite reproduces with them.)</summary>
+    public static RouteHoldSearchOptions Production { get; } = new()
+    {
+        UseGrid = false,
+        SplitDistance = 0.06,
+        Gates = RouteHoldGates.Strict
+    };
 }
 
 /// <summary>Every candidate of one clean frame, the reference colour and the control hold — selection by tolerance is
 /// <see cref="RouteHoldSelector"/>'s, without the model.</summary>
-public sealed record RouteHoldSearch(OkLabColor Reference, IReadOnlyList<RouteHoldCandidate> Candidates, int Prompts)
+public sealed record RouteHoldSearch(OkLabColor Reference, IReadOnlyList<RouteHoldCandidate> Candidates, int Prompts,
+    RouteHoldGates? Gates = null)
 {
     public IReadOnlyList<RouteHoldCandidate> Select(double tolerance, IReadOnlySet<Guid>? rejected = null) =>
-        RouteHoldSelector.Select(Candidates, tolerance, rejected);
+        RouteHoldSelector.Select(Candidates, tolerance, rejected, Gates, Reference);
 }
 
 /// <summary>A search, or why there is none (nothing is created either way).</summary>
@@ -57,7 +77,9 @@ public static class RouteHoldFinder
         var (controlCrop, controlScore, controlContour) = controlMask.Value;
         var reference = Surface(frame, controlCrop);
 
-        var prompts = ColorPromptPlanner.Plan(frame, reference, options.MapThreshold, maxPrompts: options.MaxColorPrompts).ToList();
+        var controlFraction = (double)controlCrop.Area / ((long)w * h);
+        var prompts = ColorPromptPlanner.Plan(frame, reference, options.MapThreshold, ColorPromptPlanner.MapWidth, options.MaxColorPrompts,
+            options.SplitDistance, options.LargeRegionFactor * controlFraction).ToList();
         if (options.UseGrid) prompts.AddRange(HoldProposalService.GridPoints(w, h, options.GridDivisions));
 
         var candidates = new List<RouteHoldCandidate>
@@ -83,7 +105,7 @@ public static class RouteHoldFinder
         progress?.Report(1);
 
         var fresh = candidates.Where(c => !existingHolds.Any(e => e.Length >= 3 && Contains(e, c.Centroid))).ToList();
-        return new RouteHoldSearchResult(new RouteHoldSearch(reference, fresh, prompts.Count), null);
+        return new RouteHoldSearchResult(new RouteHoldSearch(reference, fresh, prompts.Count, options.Gates), null);
     }
 
     /// <summary>The accepted candidates as holds of the clean frame: their contours and the D034 colour samples (the wall

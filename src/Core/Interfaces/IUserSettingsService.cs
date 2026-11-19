@@ -34,8 +34,11 @@ public sealed record UserSettings
     /// <summary>D062 amendment 1: the display offset of a training from any other watch.</summary>
     public long OtherHeartRateDisplayOffsetTicks { get; init; } = DefaultOtherHeartRateDisplayOffset.Ticks;
 
-    /// <summary>D057 §3.15: automatic hold proposals on entering the markup mode — off by default.</summary>
-    public bool HoldProposalsEnabled { get; init; }
+    /// <summary>D072 §3: «Предлагать трассу» — the markup's first click on a hold proposes the whole route. Off by default
+    /// (amendment 2, the owner: not yet stable enough to be the default). Saved as <c>suggestRoute</c>: the test builds 1.5.0 /
+    /// 1.5.1 wrote <c>routeProposalsEnabled</c> on by default, no longer read; nor is D057 §3.15's <c>holdProposalsEnabled</c>.</summary>
+    [System.Text.Json.Serialization.JsonPropertyName("suggestRoute")]
+    public bool RouteProposalsEnabled { get; init; }
 
     /// <summary>D061 amendment 1: the people's masks drawn over the Preview — a diagnostic of the segmentation, off by default;
     /// never exported.</summary>
@@ -52,7 +55,7 @@ public sealed record UserSettings
     /// of the hold markup.</summary>
     public int HoldContourSmoothing { get; init; } = Holds.ContourSmoothing.DefaultStrength;
 
-    /// <summary>D071 §2: the Preview's picture quality, chosen on the Preview's bar («Среднее», 1080p, by default) — the largest
+    /// <summary>D071 §2: the Preview's picture quality, chosen on the Preview's bar («Оригинал» by default since D072 §0; «Среднее» in D071) — the largest
     /// picture the Preview decodes (amendment 3: no proxies).</summary>
     public Playback.PreviewQuality PreviewQuality { get; init; } = Playback.PreviewDecoding.DefaultQuality;
 

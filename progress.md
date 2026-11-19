@@ -2,6 +2,72 @@
 
 ## Current phase
 
+**Phase 53 amendment 3 (D072, the owner's check of 1.5.2, 2026-11-19):** the group's link raised to 20 % of the long side
+(was 7 … 12 %), then simplified to one constant `RouteHoldGrouping.Link` (the spacing-based link removed — the owner: one threshold
+is enough). Release `-warnaserror` 0 / 0, the route's tests green (Core 21, UI 16); the full suites by the PR's CI. PR #83;
+portable 1.5.3. The phase closes on the owner's merge.
+
+**Phase 53 amendment 2 (D072, the owner's check of 1.5.1, 2026-11-19):** the strict colour works; «Допуск цвета» removed (it only
+re-selected among the found holds); «Готово» lays out from the markup's frame — `LayOutIntroAndFinalFrom`: the orange
+`[As, As + 5 s)`, `T` its end, the «Боулдер» from `As − 2 s`; the group's median ignores touching pairs (gap < 0.005), the link
+0.07 … 0.12; «Предлагать трассу» off by default, saved as `suggestRoute` (1.5.x's `routeProposalsEnabled` not read). Tests:
+`RouteTimingEditTests` +2 (the layout from the markup's frame, at the clip's ends), `RouteHoldV1Tests` +1 (a touching pair),
+the UI «Готово» test checks the orange's start, settings tests for off by default and the old keys. After it the owner closes
+the phase.
+**Review: PASS WITH NOTES** (taken: the plate always 2 s before the orange, also when the animation is shortened at the clip's
+end (+ a check); the manual plan's tolerance lines; DEVELOPMENT_PLAN's row 53 — `suggestRoute`, off by default). The first gate
+run caught an xUnit2000 analyzer error in the new test and the Inspector's field count (57 now); both fixed.
+**Gates (2026-11-19, amendment 2, the final code):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `Vision.ModelTests`
+builds; `git diff --check` clean; Release + `AIVE_HEAVY_TESTS=1` with `--blame-hang`: Vision 37, Project 759, Core 1 977, Export
+142, Rendering 264, UI 1 319, Timeline 1 255, Video 418 (+1 environment-gated skip), ExportEndToEnd 189 — all green (6 360).
+
+**Phase 53, amendment 1 (1.5.1):**
+
+**Phase 53 amendment 1 (D072, the owner's check of 1.5.0, 2026-11-19):** too many / too far proposals (a green route got
+turquoise, a turquoise click blue / white / black, 21 for a route of 10, two at the frame's far edge), dashed proposals invisible,
+the list useless. Done: `RouteHoldGrouping` (the route's group grown from the control hold, link 2.5 × the median nearest gap in
+0.04 … 0.10 of the long side; rejections kept as links), at most 15, `RouteHoldGates.Strict` (chroma 0.5, no white / grey / black
+on a coloured route, hue 20°) in `RouteHoldSearchOptions.Production`; the proposals drawn solid in the colour the route will get
+(`ProposalColorHex` / `ProposalKeyline`); the Inspector's list replaced by «Предложено: N». Tests: `RouteHoldV1Tests` (10: strict
+gates, the group and the far hold, 15 at most, a removed middle hold), `RouteFromFirstHoldUiTests` on a clustered route with a far
+red hold (the far one never proposed, the proposals' colour = the route's after «Принять»).
+**Review: PASS WITH NOTES** (taken: the 15 − k rule and the colour worked out once recorded in D072, `V1`'s comment, the manual
+plan's A3 / A4, ROADMAP / DEVELOPMENT_PLAN, the leftover `ProposalItem.Label` / `Holds_ProposalRank` removed).
+**Gates (2026-11-19, amendment 1):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `Vision.ModelTests` builds;
+`git diff --check` clean; Release + `AIVE_HEAVY_TESTS=1` with `--blame-hang`: Vision 37, Project 759, Core 1 976, Export 142,
+Rendering 264, UI 1 319, Timeline 1 253, Video 418 (+1 environment-gated skip), ExportEndToEnd 189 — all green (6 357); after the
+leftover's removal UI 1 319 and Core 1 976 again, both builds 0 / 0.
+
+**Phase 53 (D072), the first build 1.5.0:**
+
+**Phase 53 — the route from its first hold (D072, 2026-11-19) — on `feat/phase-53-route-from-hold`** (cut from
+`feat/phase-52-proxy` at `4b7daf4`; PR #82 not merged yet). The second of the owner's queue after 1.3.0. **Step 0:** Phase 52
+accepted by the owner (D071 «Acceptance»); the Preview's quality «Оригинал» by default (the owner's word). The owner's answers
+(D072 §2): the check box becomes «Предлагать трассу» and the first click on a hold starts the analysis (D047's proposals removed),
+the clicked frame, proposals + «Принять», the research variant V1 in production. The owner's concept of the «Итоги» template
+recorded for its phase: `docs/SUMMARY_TEMPLATE_CONCEPT.md`.
+**Done:** `ColorPromptPlanner` splits a region larger than 4× the control at 0.06; `RouteHoldGates` (chroma ≥ 0.3 × the control's,
+hue ≤ 30° above chroma 0.025) in `RouteHoldSelector`; `RouteHoldSearchOptions.Production` (split + gates, no grid; the record's
+defaults stay D048's for the research suite); `HoldMarkupViewModel.Route.cs` rewritten: the first plain click of a session on a
+route without holds → `IsRouteAnalyzing` (the window «Подождите, идёт анализ» over the main window, «Отмена»; `ShortcutRouter`
+lets only Esc through) → the review on the markup frame → «Принять» (one `AddHolds`, the markup goes on) / «Отменить» / «Готово»
+accepts first; once per session; a failure → an ordinary candidate; leaving the mode meanwhile throws nothing.
+`UserSettings.RouteProposalsEnabled` (on) replaces `HoldProposalsEnabled`. Removed: D047's generation / refinement in the markup,
+«Показать N», per-proposal «Принять», «Принять все», the hidden «Авторазметка» with its clean frame (Core classes kept for the
+research suite; its six harnesses of the removed flows excluded from `Vision.ModelTests`' compile), unused strings. Help (ru /
+en), the manual plan `docs/PHASE53_MANUAL_TEST_PLAN.md`.
+**Tests:** `RouteFromFirstHoldUiTests` (11, replacing `RouteSelectionUiTests`), `RouteProposalDefaultTests`, `RouteHoldV1Tests`
+(6), the settings file of 1.3 with the old key; `HoldMarkupProposalUiTests` (D047) removed with the feature; the manual markup
+tests run with the check box off.
+**Review (phase-reviewer): FAIL** — `MarkupScenarioTests` (Vision.ModelTests) would run into the route with the check box on by
+default, and the review's rules lacked tests (keys, a click on a proposal, the manual fallback, a seek). Fixed (the scenario with
+the box off; +5 tests, the fallback mutation-checked); notes taken (D072 §3 / §4 wording, dead `DrawFrame`, a test name, no status
+on `NoChange`). **Re-review: PASS WITH NOTES.**
+**Gates (2026-11-19, the final code):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `Vision.ModelTests` builds;
+`git diff --check` clean; Release + `AIVE_HEAVY_TESTS=1` with `--blame-hang`: Vision 37, Project 759, Core 1 973, Export 142,
+Rendering 264, UI 1 319, Timeline 1 253, Video 418 (+1 environment-gated skip), ExportEndToEnd 189 — all green (6 354).
+**Not done:** push / PR (awaiting the owner's word; PR #82 not merged yet), the owner's manual check.
+
 **Phase 52 — proxies for 4K / HEVC and the Preview's quality (D071, 2026-11-19) — on `feat/phase-52-proxy`.** The first of the
 owner's queue after 1.3.0 (ROADMAP «The owner's queue after 1.3.0»). The owner's answers (D071 §1): proxies made automatically
 (a switch in the settings), the Preview's quality on its bar instead of a «Прокси / Оригинал» toggle — «Оригинал», «Высокое»

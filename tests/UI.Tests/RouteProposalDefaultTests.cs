@@ -1,6 +1,6 @@
+using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Project;
-using AiVideoEditor.Core.Common;
 using AiVideoEditor.Timeline;
 using AiVideoEditor.UI.Services;
 using AiVideoEditor.UI.ViewModels.Panels;
@@ -9,8 +9,8 @@ using Xunit;
 
 namespace AiVideoEditor.UI.Tests;
 
-/// <summary>D057 §3.15: automatic hold proposals are off by default; the user's choice is kept in the settings.</summary>
-public class HoldProposalDefaultTests
+/// <summary>D072 amendment 2: «Предлагать трассу» is off by default; the user's choice is kept in the settings.</summary>
+public class RouteProposalDefaultTests
 {
     private static HoldMarkupViewModel Markup(IUserSettingsService settings)
     {
@@ -21,21 +21,21 @@ public class HoldProposalDefaultTests
     }
 
     [Fact]
-    public void A_fresh_user_has_the_proposals_off()
+    public void A_fresh_user_has_the_route_proposals_off()
     {
-        Assert.False(Markup(new InMemoryUserSettings()).IsProposalGenerationEnabled);
-        Assert.False(new UserSettings().HoldProposalsEnabled);
+        Assert.False(Markup(new InMemoryUserSettings()).IsRouteProposalEnabled);
+        Assert.False(new UserSettings().RouteProposalsEnabled);
     }
 
     [Fact]
     public void Turning_them_on_is_kept_for_the_next_start()
     {
         var settings = new InMemoryUserSettings();
-        Markup(settings).IsProposalGenerationEnabled = true;
-        Assert.True(settings.Current.HoldProposalsEnabled);
-        Assert.True(Markup(settings).IsProposalGenerationEnabled);
+        Markup(settings).IsRouteProposalEnabled = true;
+        Assert.True(settings.Current.RouteProposalsEnabled);
+        Assert.True(Markup(new InMemoryUserSettings(settings.Current)).IsRouteProposalEnabled);
 
-        Markup(settings).IsProposalGenerationEnabled = false;
-        Assert.False(Markup(new InMemoryUserSettings(settings.Current)).IsProposalGenerationEnabled);
+        Markup(settings).IsRouteProposalEnabled = false;
+        Assert.False(Markup(new InMemoryUserSettings(settings.Current)).IsRouteProposalEnabled);
     }
 }

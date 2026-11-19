@@ -456,6 +456,11 @@ public interface ITimelineEditService
     /// from the last 5 s but never before <c>T</c>. One Undo step; an explicit action — accepting a route never runs it.</summary>
     TimelineEditResult LayOutIntroAndFinal(Guid videoClipId, MediaTime t, Guid? routeId = null);
 
+    /// <summary>D072 amendment 2: the same layout from the animation's start <paramref name="animationStart"/> (the markup's
+    /// frame — the route's animation starts where its holds are marked): the orange on <c>[As, As + 5 s)</c>, <c>T</c> its end, the
+    /// «Боулдер» from <c>As − 2 s</c> (not before the clip). One Undo step.</summary>
+    TimelineEditResult LayOutIntroAndFinalFrom(Guid videoClipId, MediaTime animationStart, Guid? routeId = null);
+
     /// <summary>The overlay strip of a video clip (D048 §4.1) in timeline frames, or null when it has neither an anchored
     /// «Боулдер» nor a Duration-mode animation.</summary>
     OverlayStripState? OverlayStripOf(Guid videoClipId, Guid? routeId = null);

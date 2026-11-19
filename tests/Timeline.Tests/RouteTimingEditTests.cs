@@ -82,6 +82,38 @@ public class RouteTimingEditTests
     }
 
     [Fact]
+    public void From_the_markups_frame_the_orange_starts_there_and_the_plate_2_s_before_in_one_undo_step()
+    {
+        // D072 amendment 2: the route's animation starts where its holds were marked.
+        var f = WithMarkedVideo(out var clip);
+        var result = f.Service.LayOutIntroAndFinalFrom(clip.Id, Frame(150));
+        Assert.True(result.Success, result.Message);
+        Assert.Equal((150, 275), Orange(clip));                       // [As, As + 5 s), T = its end
+        var template = TemplateOf(f, clip);
+        Assert.Equal((100L, 500L), (F(template.TimelineStart), F(template.TimelineEnd)));   // As − 2 s (T − 7 s) … the clip's end
+        Assert.Equal(275, F(template.RouteStart!.Value));             // the route's start: T
+
+        f.UndoRedo.Undo();
+        Assert.Null(clip.HoldMarkup!.Animation);
+        Assert.Empty(f.Project.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<TemplateClip>());
+    }
+
+    [Fact]
+    public void From_the_markups_frame_near_the_clips_ends_the_plate_starts_with_the_clip_and_the_animation_is_shortened()
+    {
+        var f = WithMarkedVideo(out var clip);
+        Assert.True(f.Service.LayOutIntroAndFinalFrom(clip.Id, Frame(20)).Success);
+        Assert.Equal((20, 145), Orange(clip));
+        Assert.Equal(0, F(TemplateOf(f, clip).TimelineStart));         // not before the clip
+
+        f.UndoRedo.Undo();
+        Assert.True(f.Service.LayOutIntroAndFinalFrom(clip.Id, Frame(460)).Success);
+        Assert.Equal((460, 500), Orange(clip));                        // 40 frames to the clip's end
+        Assert.Equal(410, F(TemplateOf(f, clip).TimelineStart));       // still 2 s before the orange
+        Assert.False(f.Service.LayOutIntroAndFinalFrom(clip.Id, Frame(500)).Success);   // the clip's end: no frame of it
+    }
+
+    [Fact]
     public void A_short_intro_is_split_2_to_5_and_with_no_time_before_T_there_is_no_animation_and_a_message()
     {
         var f = WithMarkedVideo(out var clip);

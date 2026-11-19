@@ -260,6 +260,7 @@ public partial class MainWindow : Window
         public TimelineEditResult AddTemplateClip(TemplateKind kind, MediaTime start) => Nothing;
         public TimelineEditResult SetClipSpeed(Guid clipId, ClipSpeed speed) => Nothing;
         public TimelineEditResult LayOutIntroAndFinal(Guid videoClipId, MediaTime t, Guid? routeId = null) => Nothing;
+        public TimelineEditResult LayOutIntroAndFinalFrom(Guid videoClipId, MediaTime animationStart, Guid? routeId = null) => Nothing;
         public OverlayStripState? OverlayStripOf(Guid videoClipId, Guid? routeId = null) => null;
         public TimelineEditResult EditOverlayStrip(Guid videoClipId, OverlayStripHandle handle, long frameDelta, Guid? routeId = null) => Nothing;
         public OverlayStripPreview? PreviewOverlayStrip(Guid videoClipId, OverlayStripHandle handle, long frameDelta, Guid? routeId = null) => null;

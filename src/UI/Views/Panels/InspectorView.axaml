@@ -1157,54 +1157,24 @@
                     <TextBlock Text="{Binding RouteChoiceHint}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" IsVisible="{Binding RouteChoiceHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                   </StackPanel>
 
-                  <!-- D048 §2: the route selection at T — the control hold, the clean frame 5 s earlier, the review.
-                       Hidden for now by the product owner's decision (2026-10-28, docs/HOLD_AUTO_DETECTION_RESEARCH.md §9):
-                       the automatic route scan is not yet practical. The command, the services and the review stay; to
-                       restore the button, set IsVisible back to "{Binding !IsActive}". -->
-                  <Button Content="{x:Static l:Strings.Holds_PlaceHolds}" Command="{Binding PlaceHoldsCommand}" IsVisible="False"
-                          ToolTip.Tip="{x:Static l:Strings.Holds_PlaceHoldsTip}"/>
-                  <StackPanel Spacing="6" IsVisible="{Binding IsRouteSelection}">
-                    <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsRouteReview}">
-                      <TextBlock Text="{x:Static l:Strings.Holds_RouteTolerance}" Classes="label" ToolTip.Tip="{x:Static l:Strings.Holds_RouteToleranceTip}"/>
-                      <controls:CommitNumericUpDown Value="{Binding RouteTolerance, Mode=TwoWay}" Increment="0.01" Minimum="{Binding MinRouteTolerance}"
-                                     Maximum="{Binding MaxRouteTolerance}" FormatString="0.00" Width="72" ToolTip.Tip="{x:Static l:Strings.Holds_RouteToleranceTip}"/>
-                    </StackPanel>
+                  <!-- D072 §3: the route proposed from its first hold — the review: «Принять», «Отменить» (amendment 2: no tolerance). -->
+                  <StackPanel Spacing="6" IsVisible="{Binding IsRouteReview}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                      <Button Content="{x:Static l:Strings.Holds_RouteAccept}" Command="{Binding AcceptRouteCommand}" IsVisible="{Binding IsRouteReview}"/>
+                      <Button Content="{x:Static l:Strings.Holds_RouteAccept}" Command="{Binding AcceptRouteCommand}"/>
                       <Button Content="{x:Static l:Strings.Holds_RouteCancel}" Command="{Binding CancelRouteCommand}"/>
                     </StackPanel>
                   </StackPanel>
 
-                  <!-- Phase 31 (D047): automatic proposals on the first markup frame. -->
-                  <CheckBox Content="{x:Static l:Strings.Holds_ProposeAutomatically}" IsChecked="{Binding IsProposalGenerationEnabled, Mode=TwoWay}"
+                  <!-- D072 §3: «Предлагать трассу» — the first click on a hold proposes the route. -->
+                  <CheckBox Content="{x:Static l:Strings.Holds_ProposeAutomatically}" IsChecked="{Binding IsRouteProposalEnabled, Mode=TwoWay}"
                             IsVisible="{Binding CanShowProposalToggle}" ToolTip.Tip="{x:Static l:Strings.Holds_ProposeAutomaticallyTip}"/>
-                  <ProgressBar Value="{Binding ProposalProgress}" Maximum="1" IsVisible="{Binding IsGeneratingProposals}"/>
-                  <ProgressBar Value="{Binding ProposalProgress}" Maximum="1" IsVisible="{Binding IsRefiningProposals}"/>
 
-                  <StackPanel Spacing="6" IsVisible="{Binding HasProposals}">
-                    <TextBlock Text="{x:Static l:Strings.Holds_ProposalsHeading}" FontSize="{DynamicResource FontSizeCaption}" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}"/>
-                    <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding !IsRouteSelection}">
-                      <TextBlock Text="{x:Static l:Strings.Holds_ShowTop}" Classes="label" VerticalAlignment="Center"/>
-                      <ComboBox ItemsSource="{Binding MaxProposalsOptions}" SelectedItem="{Binding MaxProposalsToShow, Mode=TwoWay}" Width="70"/>
-                    </StackPanel>
-                    <ListBox x:Name="ProposalsListBox" ItemsSource="{Binding Proposals}" SelectedIndex="{Binding SelectedProposalIndex, Mode=TwoWay}" Height="160">
-                      <ListBox.ItemTemplate>
-                        <DataTemplate>
-                          <Grid ColumnDefinitions="*,Auto,Auto">
-                            <TextBlock Text="{Binding Label}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <Button Grid.Column="1" Content="{x:Static l:Strings.Holds_Accept}" Margin="0,0,4,0"
-                                    Command="{Binding #ProposalsListBox.DataContext.AcceptSelectedProposalCommand}"
-                                    IsVisible="{Binding !#ProposalsListBox.DataContext.IsRouteSelection}"/>
-                            <Button Grid.Column="2" Content="{x:Static l:Strings.Holds_Reject}"
-                                    Command="{Binding #ProposalsListBox.DataContext.RejectSelectedProposalCommand}"/>
-                          </Grid>
-                        </DataTemplate>
-                      </ListBox.ItemTemplate>
-                    </ListBox>
-                    <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding !IsRouteSelection}">
-                      <Button Content="{x:Static l:Strings.Holds_AcceptAll}" Command="{Binding AcceptAllProposalsCommand}"/>
-                      <Button Content="{x:Static l:Strings.Holds_RejectAll}" Command="{Binding RejectAllProposalsCommand}"/>
-                    </StackPanel>
+                  <!-- D072 amendment 1: no list — the proposals are reviewed on the Preview (a click selects, Delete removes); here their
+                       count and «Отклонить все». -->
+                  <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsRouteReview}">
+                    <TextBlock Text="{Binding ProposalCount, StringFormat={x:Static l:Strings.Holds_RouteProposalCount}}" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <Button Content="{x:Static l:Strings.Holds_RejectAll}" Command="{Binding RejectAllProposalsCommand}"/>
                   </StackPanel>
 
                   <Grid ColumnDefinitions="Auto,Auto,Auto">

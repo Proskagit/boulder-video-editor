@@ -43,8 +43,6 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     private readonly IProjectService _projects;
     private readonly IHoldSegmentationService? _segmentation;
     private readonly IHoldMarkupFrameSource? _frames;
-    private readonly IHoldProposalGenerator? _proposalGenerator;
-    private readonly IHoldProposalRefiner? _proposalRefiner;
     private readonly StatusService _status;
     private readonly EditingLock _lock;
     private readonly SynchronizationContext? _ui;
@@ -241,9 +239,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
     public HoldMarkupViewModel(ITimelineEditService edit, IProjectService projects, StatusService status,
         IHoldSegmentationService? segmentation = null, IHoldMarkupFrameSource? frames = null, EditingLock? editingLock = null,
-        IHoldProposalGenerator? proposalGenerator = null, IHoldProposalRefiner? proposalRefiner = null,
-        CameraMotionCoordinator? cameraMotion = null, RouteSelectionService? routeSelection = null,
-        IUserSettingsService? settings = null)
+        CameraMotionCoordinator? cameraMotion = null, IUserSettingsService? settings = null)
     {
         _edit = edit;
         _settings = settings ?? new InMemoryUserSettings();
@@ -251,8 +247,6 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         _status = status;
         _segmentation = segmentation;
         _frames = frames;
-        _proposalGenerator = proposalGenerator;
-        _proposalRefiner = proposalRefiner;
         _lock = editingLock ?? new EditingLock();
         _ui = SynchronizationContext.Current;
 
@@ -262,12 +256,10 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (_segmentation is not null)
             _segmentation.DeviceChanged += (_, _) => OnUi(() => _status.ReportWarning(CpuMessage));
 
-        MaxProposalsToShow = 30;
-        // D057 §3.15: off by default; the user's choice is kept across restarts.
-        IsProposalGenerationEnabled = _settings.Current.HoldProposalsEnabled;
+        // D072 §3: «Предлагать трассу», on by default; the user's choice is kept across restarts.
+        IsRouteProposalEnabled = _settings.Current.RouteProposalsEnabled;
         ContourSmoothing = _settings.Current.HoldContourSmoothing;
         InitTracking(cameraMotion);
-        InitRoute(routeSelection);
     }
 
     /// <summary>The playhead (the timeline's), set by the shell.</summary>
@@ -294,16 +286,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     }
     public IReadOnlyList<string> KeylineModes { get; } = new[] { Strings.Holds_ModeAuto, Strings.Holds_KeylineOnItem, Strings.Holds_KeylineOffItem };
 
-    // ---- proposal review (Phase 31, D047) --------------------------------------------------------------------------
-
-    public IReadOnlyList<int> MaxProposalsOptions { get; } = new[] { 10, 20, 30, 50, 100 };
-
-    [ObservableProperty] private bool _isProposalGenerationEnabled;
-
     private readonly IUserSettingsService _settings;
-
-    partial void OnIsProposalGenerationEnabledChanged(bool value) =>
-        _settings?.Update(s => s with { HoldProposalsEnabled = value });
 
     /// <summary>D065 §3: «Сглаживание» of a new hold's contour (0…100), a global setting; moving it re-smooths the shown
     /// candidate at once. Confirmed holds never change.</summary>
@@ -341,20 +324,12 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         return holds.Select(hold => new Hold(hold.Id, SmoothContour(hold.Points, w, h), hold.SurfaceLab, hold.WallLab, hold.SourceTime)).ToList();
     }
     [ObservableProperty] private bool _canShowProposalToggle;
-    [ObservableProperty] private bool _isGeneratingProposals;
     [ObservableProperty] private bool isRefiningProposals;
     [ObservableProperty] private bool _hasProposals;
     [ObservableProperty] private double _proposalProgress;
     [ObservableProperty] private IReadOnlyList<ProposalItem> _proposals = Array.Empty<ProposalItem>();
     [ObservableProperty] private int _selectedProposalIndex = -1;
-    [ObservableProperty] private int _maxProposalsToShow = 30;
     [ObservableProperty] private ImmutableArray<ImmutableArray<NormalizedPoint>> _proposalContours = ImmutableArray<ImmutableArray<NormalizedPoint>>.Empty;
-
-    partial void OnMaxProposalsToShowChanged(int value)
-    {
-        if (value is < 10 or > 100) return;
-        RefreshProposals();
-    }
 
     /// <summary>The selected proposal in the visible list, or null.</summary>
     public ProposalItem? SelectedProposal => SelectedProposalIndex >= 0 && SelectedProposalIndex < Proposals.Count ? Proposals[SelectedProposalIndex] : null;
@@ -808,12 +783,6 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             }
             if (_segmentation.Device == InferenceDevice.Cpu) _status.ReportWarning(CpuMessage);
 
-            if (CanGenerateProposals(clip))
-            {
-                await GenerateProposalsAsync(clip, asset, cts);
-                if (_modeCts != cts) return;
-            }
-
             ModeText = Strings.Holds_DecodingFrame;
             PrepareProgress = 0.55;
             var frame = await _frames!.GetAsync(clip, asset, _modePlayhead, FrameGridAt(_modePlayhead), cts.Token);
@@ -834,7 +803,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             IsPreparing = false;
             LoadStyle();   // the dashed contours of an animated route (D036)
             UpdateOverlay();
-            ModeText = HasProposals ? Strings.Holds_ReviewProposals : ReadyText;
+            ModeText = ReadyText;
             if (_pendingClick is { } pending)
             {
                 _pendingClick = null;
@@ -870,60 +839,9 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         return FrameNavigation.NavigationRate(project.Timeline, id => project.MediaAssets.FirstOrDefault(a => a.Id == id), rate);
     }
 
-    private bool CanGenerateProposals(VideoClip clip) =>
-        IsProposalGenerationEnabled &&
-        _proposalGenerator is not null &&
-        (MarkupOf(clip) is null || MarkupOf(clip)!.Holds.IsEmpty);
-
-    private async Task GenerateProposalsAsync(VideoClip clip, MediaAsset asset, CancellationTokenSource cts)
-    {
-        IsGeneratingProposals = true;
-        ProposalProgress = 0;
-        ModeText = Strings.Holds_GeneratingProposals;
-        try
-        {
-            var rate = _projects.Current.Settings.FrameRate;
-            var options = new ProposalPipelineOptions { GridDivisions = 15, NmsIouThreshold = 0.70, MaxProposals = 100 };
-            var result = await _proposalGenerator!.GenerateAsync(clip, asset, _modePlayhead, rate, options,
-                new Progress<double>(p =>
-                {
-                    if (_modeCts == cts) ProposalProgress = p;
-                }), cts.Token);
-            if (_modeCts != cts) return;
-
-            _proposalSource.Clear();
-            _proposalSource.AddRange(result.Proposals);
-            if (_proposalSource.Count == 0)
-            {
-                _status.ReportWarning(Strings.Holds_NoProposals);
-            }
-            else
-            {
-                SelectedProposalIndex = 0;
-            }
-
-            RefreshProposals();
-        }
-        catch (OperationCanceledException) when (cts.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception ex) when (_modeCts == cts)
-        {
-            _status.ReportError(string.Format(Strings.Holds_ProposalsError, ex.Message));
-            ClearProposals();
-        }
-        finally
-        {
-            IsGeneratingProposals = false;
-            if (_modeCts == cts)
-                ModeText = HasProposals ? Strings.Holds_ReviewProposals : ReadyText;
-        }
-    }
-
     private void RefreshProposals()
     {
-        var visible = (IsRouteSelection ? _proposalSource : _proposalSource.Take(MaxProposalsToShow)).Select((p, i) => new ProposalItem(i + 1, p)).ToList();
+        var visible = _proposalSource.Select((p, i) => new ProposalItem(i + 1, p)).ToList();
         Proposals = visible;
         HasProposals = visible.Count > 0;
         ProposalContours = visible.Select(p => p.Contour).ToImmutableArray();
@@ -948,35 +866,40 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     /// no animation yet, its intro and final are laid out at once from the markup's frame (<c>T</c>, as «Разложить вступление
     /// и финал» does from the playhead — the animation, the route plate, Top / Attempt; following the camera as it is), its own
     /// undo step. A route already laid out is never laid out again, so «Готово» twice or after reopening adds nothing.
+    /// D072 §3: the route's proposals still shown are accepted first (what is on the screen is kept); a refused accept keeps
+    /// the mode.
     /// </summary>
     [RelayCommand]
-    private void Done()
+    private async Task Done()
     {
+        if (IsRouteAnalyzing) return;
+        if (IsRouteReview && _proposalSource.Count > 0 && !await AcceptRouteCoreAsync()) return;
         var clip = _clip;
         var route = _routeId;
         var at = _modePlayhead;
         var layOut = clip is not null && route is not null && Markup is { Holds.Length: > 0, Animation: null } && !_lock.IsLocked;
         Exit();
         if (!layOut) return;
-        var result = _edit.LayOutIntroAndFinal(clip!.Id, at, route);
+        // D072 amendment 2: the route's animation (the orange) starts on the markup's frame, where its holds were marked.
+        var result = _edit.LayOutIntroAndFinalFrom(clip!.Id, at, route);
         if (!result.Success) _status.ReportWarning(result.Message ?? Strings.Holds_AnimationNotChanged);
         LoadStyle();
         RefreshCommands();
     }
 
-    /// <summary>Esc: discards the candidate; without one deselects; during the proposal review (D047 §2) leaves the review
-    /// unchanged — «Готово», Play or a seek leave it; otherwise leaves the mode.</summary>
+    /// <summary>Esc: cancels the route's analysis; discards the candidate; without one deselects; during the route's review
+    /// (D072 §3) leaves the review unchanged — «Отменить», «Готово», Play or a seek end it; otherwise leaves the mode.</summary>
     [RelayCommand]
     private void Escape()
     {
         if (!IsActive) return;
-        if (IsPreparing) { if (IsRouteSelection) CancelRoute(); else Exit(); return; }
+        if (IsRouteAnalyzing) { CancelRouteAnalysis(); return; }
+        if (IsPreparing) { Exit(); return; }
         if (!_confirming.IsCompleted) return;   // Enter came first: the hold is being added
         if (IsDraggingVertex) { CancelVertexDrag(); return; }
         if (HasCandidate) { ClearCandidate(); return; }
         if (SelectedHoldId is not null) { Select(null); return; }
-        if (IsRouteSelection) { CancelRoute(); return; }   // D048 §2: back to T, nothing changed
-        if (HasProposals) return;                           // D047 §2: the proposal review stays as it is
+        if (IsRouteReview) return;                          // D072 §3: the review stays as it is
         Exit();
     }
 
@@ -988,57 +911,26 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
     // ---- proposal commands (Phase 31, D047) ------------------------------------------------------------------------
 
-    private bool CanAcceptSelectedProposal() =>
-        IsActive && !IsRouteSelection && !IsRefiningProposals && SelectedProposal is not null && _proposalRefiner is not null && _clip is not null;
-
-    [RelayCommand(CanExecute = nameof(CanAcceptSelectedProposal))]
-    private async Task AcceptSelectedProposalAsync()
-    {
-        var proposal = SelectedProposal?.Proposal;
-        if (proposal is null || _clip is null || _proposalRefiner is null) return;
-        await AcceptProposalsAsync(new[] { proposal });
-    }
-
     private bool CanRejectSelectedProposal() =>
-        IsActive && !IsRefiningProposals && SelectedProposal is not null;
+        IsActive && IsRouteReview && !IsRefiningProposals && SelectedProposal is not null;
 
     [RelayCommand(CanExecute = nameof(CanRejectSelectedProposal))]
     private void RejectSelectedProposal()
     {
         var proposal = SelectedProposal?.Proposal;
         if (proposal is null) return;
-        if (IsRouteSelection)
-        {
-            RejectRouteProposal(proposal.Id);
-            return;
-        }
-        _proposalSource.Remove(proposal);
-        RefreshProposals();
-    }
-
-    private bool CanAcceptAllProposals() =>
-        IsActive && !IsRouteSelection && !IsRefiningProposals && Proposals.Count > 0 && _proposalRefiner is not null && _clip is not null;
-
-    [RelayCommand(CanExecute = nameof(CanAcceptAllProposals))]
-    private async Task AcceptAllProposalsAsync()
-    {
-        if (Proposals.Count == 0 || _clip is null || _proposalRefiner is null) return;
-        await AcceptProposalsAsync(Proposals.Select(p => p.Proposal).ToList());
+        RejectRouteProposal(proposal.Id);
     }
 
     private bool CanRejectAllProposals() =>
-        IsActive && !IsRefiningProposals && _proposalSource.Count > 0;
+        IsActive && IsRouteReview && !IsRefiningProposals && _proposalSource.Count > 0;
 
     [RelayCommand(CanExecute = nameof(CanRejectAllProposals))]
     private void RejectAllProposals()
     {
-        if (IsRouteSelection)
-        {
-            foreach (var p in _proposalSource) _routeRejected.Add(p.Id);
-            _routeManual.Clear();
-        }
-        ClearProposals();
-        RefreshCommands();
+        foreach (var p in _proposalSource) _routeRejected.Add(p.Id);
+        _routeManual.Clear();
+        RefreshRoute();
     }
 
     [RelayCommand(CanExecute = nameof(CanMoveProposalSelection))]
@@ -1057,24 +949,12 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     }
 
     /// <summary>The unified handlers used by <see cref="ShortcutRouter"/>: they choose between proposals and the manual candidate.</summary>
-    public bool CanConfirmOrAccept() =>
-        CanAcceptSelectedProposal() || CanConfirm();
+    public bool CanConfirmOrAccept() => CanConfirm();
 
     [RelayCommand(CanExecute = nameof(CanConfirmOrAccept))]
     private async Task ConfirmOrAcceptAsync()
     {
-        // D047 §2: a manual candidate (started by a click or Shift+click during the review) is confirmed by Enter as in D034;
-        // the proposals stay for review. Without one Enter accepts the selected proposal.
-        if (HasCandidate && CanConfirm())
-        {
-            await Confirm();
-            return;
-        }
-        if (CanAcceptSelectedProposal())
-        {
-            await AcceptSelectedProposalAsync();
-            return;
-        }
+        // D072 §3: during the route's review a candidate confirmed by Enter joins the proposals (Confirm decides that).
         if (CanConfirm()) await Confirm();
     }
 
@@ -1108,72 +988,6 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         else if (HasCandidate) CycleAlternative(-1);
     }
 
-    private async Task AcceptProposalsAsync(IReadOnlyList<HoldProposal> proposals)
-    {
-        if (_clip is null || _proposalRefiner is null || proposals.Count == 0) return;
-        var clip = _clip;
-        var asset = Asset(clip);
-        if (asset is null) return;
-
-        IsRefiningProposals = true;
-        ProposalProgress = 0;
-        ModeText = Strings.Holds_RefiningProposals;
-        RefreshCommands();
-        try
-        {
-            var rate = _projects.Current.Settings.FrameRate;
-            var results = await _proposalRefiner.RefineBatchAsync(proposals, clip, asset, _modePlayhead, rate,
-                new Progress<double>(p => ProposalProgress = p), _modeCts?.Token ?? CancellationToken.None);
-
-            var currentHolds = MarkupOf(clip)?.Holds.Length ?? 0;
-            var room = Math.Max(0, HoldMarkupRules.MaxHolds - currentHolds);
-            var accepted = proposals.Zip(results)
-                .Where(pair => pair.Second.IsSuccess)
-                .Take(room)
-                .ToList();
-            var holds = SmoothHolds(accepted.Select(pair => pair.Second.Hold!));
-            var skipped = proposals.Count - holds.Count;
-
-            if (holds.Count > 0)
-            {
-                var result = _edit.AddHolds(clip.Id, holds, RouteForEdit());
-                if (!result.Success)
-                {
-                    _status.ReportWarning(result.Message ?? Strings.Holds_NotAdded);
-                }
-                else
-                {
-                    foreach (var (p, _) in accepted) _proposalSource.Remove(p);
-                    _status.Report(string.Format(Strings.Holds_AcceptedAll, holds.Count));
-                }
-            }
-            else if (skipped > 0)
-            {
-                _status.ReportError(Messages.Holds_RefinementFailed);
-            }
-
-            if (room < proposals.Count && holds.Count == room)
-            {
-                _status.ReportWarning(string.Format(Messages.Holds_MaxHolds, HoldMarkupRules.MaxHolds));
-            }
-
-            RefreshProposals();
-        }
-        catch (OperationCanceledException) when (_modeCts?.IsCancellationRequested == true)
-        {
-        }
-        catch (Exception ex)
-        {
-            _status.ReportError(string.Format(Strings.Holds_RefinementFailedFor, ex.Message));
-        }
-        finally
-        {
-            IsRefiningProposals = false;
-            ModeText = HasProposals ? Strings.Holds_ReviewProposals : ReadyText;
-            RefreshCommands();
-        }
-    }
-
     /// <summary>The wheel over the Preview: one step per notch.</summary>
     public void OnWheel(double delta)
     {
@@ -1188,11 +1002,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     {
         // A confirm still sampling the colours finishes first: a quick next click never drops it.
         if (!_confirming.IsCompleted) await _confirming;
-        if (_routePhase == RoutePhase.Picking)
-        {
-            if (point.X is >= 0 and <= 1 && point.Y is >= 0 and <= 1) await PickControlAsync(point);
-            return;
-        }
+        if (_routePhase == RoutePhase.Analyzing) return;   // the analysis window is shown
         if (IsActive && IsPreparing && _routePhase == RoutePhase.None && point.X is >= 0 and <= 1 && point.Y is >= 0 and <= 1)
         {
             // D068 item 9: a click while the model or the frame is still being prepared is kept and applied once ready — it
@@ -1203,6 +1013,15 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         }
         if (!IsActive || IsPreparing || _encoded is null || MarkupFrame is null) return;
         if (point.X is < 0 or > 1 || point.Y is < 0 or > 1) return;
+
+        // D072 §3: the session's first plain click on a hold of a route without holds proposes the whole route.
+        if (!additive && !HasCandidate && StartsRoute(point))
+        {
+            _confirmPending = false;
+            Select(null);
+            await AnalyzeRouteAsync(point);
+            return;
+        }
 
         _confirmPending = false;
         if (!(additive && HasCandidate))
@@ -1429,7 +1248,6 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         IsPreparing = false;
         ModeText = null;
         IsActive = false;
-        IsGeneratingProposals = false;
         ClearProposals();
         ResetRoute();
         RefreshCommands();
@@ -1658,7 +1476,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     {
         var settings = _projects.Current.Settings;
         Canvas = new FrameSize(settings.FrameWidth, settings.FrameHeight);
-        var size = MarkupFrame is { } frame ? new FrameSize(frame.Width, frame.Height) : _pickSize;
+        var size = MarkupFrame is { } frame ? new FrameSize(frame.Width, frame.Height) : (FrameSize?)null;
         var visual = _clip is not null ? VisualProperties.Of(_clip) : null;
         // D063: the markup frame's own transform — the clip's keyframes there, and with Follow the framing there.
         var shownAt = _clip is VideoClip keyed && MarkupFrame is { } keyedFrame
@@ -1697,7 +1515,6 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         public HoldProposal Proposal { get; }
         public double Score => Proposal.Score;
         public ImmutableArray<NormalizedPoint> Contour => Proposal.Contour;
-        public string Label => string.Format(Strings.Holds_ProposalRank, Rank, Score);
     }
 
     private void RefreshCommands()
@@ -1707,9 +1524,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         LayOutIntroAndFinalCommand.NotifyCanExecuteChanged();
         ConfirmCommand.NotifyCanExecuteChanged();
         DeleteSelectedCommand.NotifyCanExecuteChanged();
-        AcceptSelectedProposalCommand.NotifyCanExecuteChanged();
         RejectSelectedProposalCommand.NotifyCanExecuteChanged();
-        AcceptAllProposalsCommand.NotifyCanExecuteChanged();
         RejectAllProposalsCommand.NotifyCanExecuteChanged();
         NextProposalCommand.NotifyCanExecuteChanged();
         PreviousProposalCommand.NotifyCanExecuteChanged();
