@@ -84,15 +84,16 @@ pwsh -File tools/installer/Test-Installer.ps1 -Stage artifacts/release/<version>
 and run `docs/PHASE51_MANUAL_TEST_PLAN.md` on a clean Windows account.
 
 **The models release** (once per models version; the web Setup downloads from it): a published GitHub release with the tag
-`models-1.0` whose assets are the files of `artifacts/release/<version>/models-1.0-assets\` (13 model files, `SHA256SUMS`)
-and the models' notices (`stage\BoulderVideoEditor-<version>-models\THIRD-PARTY-NOTICES.txt`, `licenses\`):
+`models-1.0` whose assets are the files of `artifacts/release/<version>/models-1.0-assets\` (13 model files, `SHA256SUMS`,
+`MODELS-THIRD-PARTY-NOTICES.txt` and the licence texts). It must be **published** (not a draft) in the **public** repository:
+the web Setup downloads anonymously.
 
 ```
 gh release create models-1.0 artifacts/release/1.3.0/models-1.0-assets/* --title "AI models 1.0" --notes "The AI models of Boulder Video Editor (for the web Setup)."
 ```
 
-Never delete or replace it while a web Setup that points at it is published; a new model is a new models release. The GitHub Release (a tag `v<version>`, the four
-files, release notes) is published by the product owner.
+Never delete or replace it while a web Setup that points at it is published; a new model is a new models release. The GitHub Release (a tag `v<version>`: the setup, the web
+setup, the portable zip, the FFmpeg sources tar, `SHA256SUMS`, release notes) is published by the product owner.
 
 ### A new version
 

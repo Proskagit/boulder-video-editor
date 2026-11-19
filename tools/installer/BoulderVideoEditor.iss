@@ -102,6 +102,10 @@ english.ConfirmUninstall=Remove %1?%n%nProjects, videos, exports and settings ar
 russian.ModelsComponent=ИИ-модели (около 1,2 ГБ) устанавливаются в %LOCALAPPDATA%\{#DataFolder}\models.
 english.ModelsComponent=The AI models (about 1.2 GB) are installed into %LOCALAPPDATA%\{#DataFolder}\models.
 russian.ModelsDownload=Модели, которых ещё нет на компьютере, будут скачаны из релиза моделей на GitHub (нужен интернет); каждый файл проверяется по SHA-256. Без интернета используйте полный установщик.
+russian.ModelsDownloading=Загрузка ИИ-моделей с GitHub; каждый файл проверяется по SHA-256.
+english.ModelsDownloading=Downloading the AI models from GitHub; each file is checked by its SHA-256.
+russian.ModelsDownloadFailed=Не удалось скачать ИИ-модель %1: %2%n%nНичего не установлено и не изменено. Проверьте подключение к интернету и нажмите «Далее» ещё раз, или используйте полный установщик (без интернета).
+english.ModelsDownloadFailed=The AI model %1 could not be downloaded: %2%n%nNothing was installed or changed. Check the internet connection and press Next again, or use the full installer (no internet needed).
 english.ModelsDownload=The models not yet on this computer are downloaded from the models release on GitHub (internet needed); each file is checked by its SHA-256. Without internet use the full installer.
 russian.UninstallTitle=Удаление {#AppName}
 english.UninstallTitle=Uninstall {#AppName}
@@ -218,6 +222,81 @@ begin
   if MemoTasksInfo <> '' then
     Result := Result + NewLine + NewLine + MemoTasksInfo;
 end;
+
+#ifdef WebModels
+{ --- The web Setup's downloads (D070 §7) -------------------------------------------------------------------------------
+  Every model the computer lacks is downloaded into {tmp} and checked by its SHA-256 BEFORE anything is installed: on
+  «Готово к установке» (with the download page; an error keeps the wizard there — Next retries, Cancel leaves the computer as
+  it was), and again in PrepareToInstall for what is still missing (a silent run). A failure there stops Setup before the
+  first file is touched, so an offline update never leaves a half-updated program. }
+var
+  DownloadPage: TDownloadWizardPage;
+
+procedure InitializeWizard();
+begin
+  DownloadPage := CreateDownloadPage(SetupMessage(msgWizardPreparing), CustomMessage('ModelsDownloading'), nil);
+  DownloadPage.ShowBaseNameInsteadOfUrl := True;
+end;
+
+function Downloaded(const Name: String): Boolean;
+begin
+  Result := FileExists(ExpandConstant('{tmp}\' + Name));
+end;
+
+{ Adds every model still needed and not yet downloaded to the page; the count. }
+function QueueDownloads(): Integer;
+var
+  Urls, Names, Shas, Relatives: TArrayOfString;
+  I: Integer;
+begin
+  Result := 0;
+  WebModels(Urls, Names, Shas, Relatives);
+  DownloadPage.Clear;
+  for I := 0 to GetArrayLength(Urls) - 1 do
+    if ModelNeeded(Relatives[I], Shas[I]) and not Downloaded(Names[I]) then
+    begin
+      DownloadPage.Add(Urls[I], Names[I], Shas[I]);
+      Result := Result + 1;
+    end;
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  if (CurPageID <> wpReady) or (QueueDownloads() = 0) then Exit;
+  DownloadPage.Show;
+  try
+    try
+      DownloadPage.Download;
+    except
+      if not DownloadPage.AbortedByUser then
+        SuppressibleMsgBox(FmtMessage(CustomMessage('ModelsDownloadFailed'), [DownloadPage.LastBaseNameOrUrl, GetExceptionMessage]),
+          mbCriticalError, MB_OK, IDOK);
+      Result := False;
+    end;
+  finally
+    DownloadPage.Hide;
+  end;
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  Urls, Names, Shas, Relatives: TArrayOfString;
+  I: Integer;
+begin
+  Result := '';
+  WebModels(Urls, Names, Shas, Relatives);
+  for I := 0 to GetArrayLength(Urls) - 1 do
+    if ModelNeeded(Relatives[I], Shas[I]) and not Downloaded(Names[I]) then
+    try
+      Log('Downloading the model ' + Relatives[I]);
+      DownloadTemporaryFile(Urls[I], Names[I], Shas[I], nil);
+    except
+      Result := FmtMessage(CustomMessage('ModelsDownloadFailed'), [Names[I], GetExceptionMessage]);
+      Exit;
+    end;
+end;
+#endif
 
 { --- Uninstall ------------------------------------------------------------------------------------------------------- }
 

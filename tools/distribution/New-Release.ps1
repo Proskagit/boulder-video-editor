@@ -179,6 +179,9 @@ if (-not $SkipSetup) {
             }
         }
         Set-Content -Path (Join-Path $assetsDir 'SHA256SUMS') -Value $modelSums -Encoding ascii
+        # The models' notices and licence texts go with the weights (Apache-2.0 / MIT); flat names, as assets have no folders.
+        Copy-Item (Join-Path $models 'THIRD-PARTY-NOTICES.txt') (Join-Path $assetsDir 'MODELS-THIRD-PARTY-NOTICES.txt')
+        foreach ($licence in Get-ChildItem -File (Join-Path $models 'licenses')) { Copy-Item $licence.FullName (Join-Path $assetsDir $licence.Name) }
         Write-Host "Models release assets: $assetsDir (tag models-$($manifest.version))"
     }
 }

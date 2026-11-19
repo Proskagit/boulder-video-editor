@@ -22,7 +22,8 @@
           because another file is in it, the settings and projects kept.
       W0–W3 the web Setup (D070 §7, unless -SkipWeb) against a local HTTP server on 127.0.0.1 (Python's http.server) standing
           for the models release: light; a tampered model on the server refused and never in place; the right files
-          downloaded with their SHA-256; run again — nothing requested from the server.
+          downloaded with their SHA-256; run again — nothing requested from the server; W4 an update with the server down and
+          a model missing refused before any file is touched (the installed version kept).
     The test identity's folders are removed at the end (also after a failure); nothing of the real Boulder Video Editor is
     read or written by the installers.
 #>
@@ -311,6 +312,17 @@ try {
         } finally {
             if (-not $server.HasExited) { $server.Kill() }
         }
+
+        Write-Host "`nW4  web update $next -> $third with the server down and a model missing"
+        $third = "$($parts[0]).$($parts[1]).$([int]$parts[2] + 2)"
+        & (Find-Iscc) '/Qp' "/DAppVersion=$third" "/DAppDir=$appDir" "/DModelsDir=$modelsDir" "/DModelsInclude=$webInclude" '/DWebModels=1' `
+            "/DOutputDir=$out" "/DRepoRoot=$repo" "/DAppName=$name" "/DAppIdGuid=$guid" "/DDataFolder=$dataFolderName" (Join-Path $PSScriptRoot 'BoulderVideoEditor.iss') | Out-Host
+        if ($LASTEXITCODE -ne 0) { throw 'ISCC failed for the second web Setup' }
+        Remove-Item (Join-Path $models "audio-v1\$damagedName")
+        $code = Run-Setup (Join-Path $out "BoulderVideoEditor-$third-web-setup.exe") (Join-Path $work 'w4.log')
+        Check 'W4' "refused (exit code $code)" ($code -ne 0)
+        Check 'W4' "the installed version is still $next" ((Get-ItemProperty $uninstallKey).DisplayVersion -eq $next)
+        Check 'W4' 'no program file touched (no file entry in the setup log)' (-not (Select-String -Path (Join-Path $work 'w4.log') -SimpleMatch '-- File entry --' -Quiet))
     }
 }
 finally {

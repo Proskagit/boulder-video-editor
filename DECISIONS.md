@@ -11324,19 +11324,23 @@ The owner asked for a third asset beside the full Setup and the Portable archive
 application itself, the full Setup and the Portable archive still never download anything.
 - `BoulderVideoEditor-<version>-web-setup.exe` — the same `.iss` compiled with `/DWebModels=1`: the program, .NET, FFmpeg and
   the models' notices (about 50 MB); the same AppId, so the full and the web Setup update one installation.
-- The models are downloaded by Inno Setup's `[Files] … Flags: external download` with the pinned `Hash:` (SHA-256) and
-  `ExternalSize`: a file whose SHA-256 differs never takes its place (the installation stops); a file already in place with
-  its SHA-256 is not downloaded (`ModelNeeded`), so an update or a repair downloads only what is missing or damaged.
+- The models are downloaded **before anything is installed**: on «Готово к установке» (Inno's download page) and, for what
+  is still missing (a silent run), in `PrepareToInstall` — each into `{tmp}` with its pinned SHA-256 checked by Inno — then
+  copied like the packed ones (`[Files] Source: "{tmp}\<file>"; external`). A file whose SHA-256 differs is refused; a file
+  already in place with its SHA-256 is not downloaded (`ModelNeeded`), so an update or a repair downloads only what is
+  missing or damaged. (Refined after the review: Inno's in-line `external download` would have downloaded only after the
+  program's files were copied, so an offline update could have left a half-updated program.)
 - **Where from:** the GitHub release **`models-<models.json version>`** (now `models-1.0`) of the project's repository — the
   pinned files as flat assets (every name is unique; `New-ModelsInclude.ps1 -BaseUrl` refuses otherwise). A models release
   is made once per models version, independent of the program's versions, so a web Setup keeps working while that release
-  exists. `New-Release.ps1` writes its assets (`models-1.0-assets\`, with `SHA256SUMS`); the owner publishes the release.
-  Licences: the models are Apache-2.0 / MIT (docs/AI_MODEL.md); their notices are in the installed `models-licenses\` and
-  must be attached to the models release too.
-- **Without internet** the download fails with Inno's message (retry, or cancel — the program is not installed half-way);
-  the page «Готово к установке» says that the internet is needed and that the full Setup is the offline way.
-- Checked by `Test-Installer.ps1` W0–W3 against a local HTTP server: light; a tampered asset refused; the right files
-  downloaded with their SHA-256; run again — nothing requested.
+  exists (and the repository is public: an anonymous download from a private one is a 404). `New-Release.ps1` writes its
+  assets (`models-1.0-assets\`: the 13 files, `SHA256SUMS`, the models' notices and licence texts); the owner publishes it.
+- **Without internet** the download fails before anything is installed: a message (nothing installed or changed; Next
+  retries, Cancel leaves the computer as it was; a silent run exits with an error); the page «Готово к установке» says that
+  the internet is needed and that the full Setup is the offline way.
+- Checked by `Test-Installer.ps1` W0–W4 against a local HTTP server: light; a tampered asset refused; the right files
+  downloaded with their SHA-256; run again — nothing requested; an update with the server down refused before any file is
+  touched. The real GitHub download (its redirect, 1.2 GB) only by the manual rows W1–W4.
 
 ### Out of scope
 
