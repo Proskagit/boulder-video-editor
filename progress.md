@@ -17,9 +17,9 @@ distributions + SHA256SUMS), `tools/installer/New-ModelsInclude.ps1`, `tools/ins
 (phase-reviewer): FAIL** — only the gates and progress.md were not recorded; no code or data-loss defect. Its notes taken: the models
 installation is cancelled only after every close question (as the export, D060 §5), `CloseApplications=no`, the read / write error
 mapping (+2 tests), a running copy's fresh temporary file kept (stale ones only removed), `-OutputRoot` guarded, the downgrade wording
-(`/SUPPRESSMSGBOXES`). **Gates (2026-11-19, `9e16f98`):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check`
+(`/SUPPRESSMSGBOXES`). **Re-review: PASS WITH NOTES** (notes: no MainWindowViewModel-level test of the close order; a locked package file is reported as damaged). **Gates (2026-11-19, `9e16f98`):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check`
 clean; Release + `AIVE_HEAVY_TESTS=1` with `--blame-hang`: Vision 37, Project 757, Core 1 959, Rendering 264, UI 1 334, Timeline 1 241,
-Video 418 (+1 skipped), ExportEndToEnd 189 — green; Export 141 / 142 under the full load (the known rasterizer flake of
+Video 418 (+1 skipped — the same environment-gated test as in every phase since 49), ExportEndToEnd 189 — green; Export 141 / 142 under the full load (the known rasterizer flake of
 `ExportServiceTests`, this time `A_rasterizer_failure_propagates_and_abandons_the_encoding`; Export untouched by the phase), 142 / 142
 three times alone. **Release 1.3.0** built from `9e16f98` (`artifacts/release/1.3.0`): `BoulderVideoEditor-1.3.0-setup.exe` 1 234 MiB
 (SHA-256 0b0ba283…), `BoulderVideoEditor-1.3.0-win-x64-portable.zip` 1 250 MiB (71d986c0…). **`Test-Installer.ps1`: 36 / 36 PASS**
