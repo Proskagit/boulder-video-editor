@@ -112,7 +112,8 @@ public sealed partial class ClipGroupViewModel : ViewModelBase
         HasOpacity = _visuals.Count > 0;
         HasAudio = _sounds.Count > 0;
         HasHoldStyle = _videos.Count > 0 && _routes.Count > 0;
-        HasNothing = !(HasBackground || HasFraming || HasOpacity || HasAudio || HasHoldStyle);
+        ShowMass();   // D069 amendment 1
+        HasNothing = !(HasBackground || HasFraming || HasOpacity || HasAudio || HasHoldStyle || HasFades || HasColor);
         Load();
     }
 
@@ -149,6 +150,7 @@ public sealed partial class ClipGroupViewModel : ViewModelBase
                 ? ColorOptions.ToList().FindIndex(o => (o.Hex?.ToUpperInvariant() ?? "auto") == colours[0])
                 : -1;
             KeylineIndex = Same(_routes.Select(r => (int)r.Route.Keyline)) ?? -1;
+            LoadMass();
         }
         finally
         {

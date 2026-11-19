@@ -89,7 +89,7 @@ public sealed partial class InspectorViewModel
     }
 
     /// <summary>Whether the shown clip has the group's sections (the same conditions as the sections' own visibility).</summary>
-    public bool IsCategoryAvailable(InspectorCategory category) => category switch
+    public bool IsCategoryAvailable(InspectorCategory category) => Group.IsActive ? GroupHas(category) : category switch
     {
         InspectorCategory.Clip => true,
         InspectorCategory.Text => HasTextProperties || HasTemplate,
@@ -100,12 +100,25 @@ public sealed partial class InspectorViewModel
         _ => false
     };
 
+    /// <summary>D069 amendment 2: the groups of several selected clips — Clip (frame, colour), Holds (outlines), Sound.</summary>
+    private bool GroupHas(InspectorCategory category) => category switch
+    {
+        InspectorCategory.Clip => Group.HasClipSection || Group.HasColor,
+        InspectorCategory.Holds => Group.HasHoldStyle,
+        InspectorCategory.Audio => Group.HasAudio,
+        _ => false
+    };
+
+    /// <summary>D069 amendment 2: the rail is shown for one clip and for several (the same navigation).</summary>
+    public bool ShowsRail => IsSingleClipSelected || (IsTimelineClipSelected && Group.IsActive);
+
     /// <summary>Called whenever what the clip has may change: which buttons the rail shows.</summary>
     private void RefreshCategories()
     {
         HookCategoryInputs();
         if (!IsCategoryAvailable(SelectedCategory)) SelectedCategory = InspectorCategory.Clip;
         RefreshCategoryItems();
+        OnPropertyChanged(nameof(ShowsRail));
     }
 
     private void RefreshCategoryItems()

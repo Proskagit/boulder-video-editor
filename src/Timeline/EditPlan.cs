@@ -80,6 +80,45 @@ public sealed class EditPlan
 
     public void Update(Clip clip, Track toTrack, ClipState after) => _updates[clip] = (toTrack, after);
 
+    /// <summary>D069 §6: drops the updates that leave a clip as it is (the magnet may close a gap an edit opened, so the clip
+    /// ends where it was) — a plan left empty is then no edit at all.</summary>
+    public void DropNoOpUpdates()
+    {
+        foreach (var (clip, (to, after)) in _updates.ToList())
+            if (to == TrackOf(clip) && after == ClipState.Capture(clip)) _updates.Remove(clip);
+    }
+
+    /// <summary>D069 amendment 1: the templates the overlay follow rule (a clip's move, trim or speed) planned — never one an edit
+    /// lays out itself (a «Боулдер»'s layout, the FIT areas, an insert's split).</summary>
+    public HashSet<Clip> FollowCarried { get; } = new();
+
+    /// <summary>D069 amendment 1: forgets what the follow rule planned for the templates, so they are planned again from the clips'
+    /// final places (the magnet may take a move back after the templates were carried). The templates an edit lays out itself
+    /// keep their timing.</summary>
+    public void ResetCarried()
+    {
+        foreach (var template in FollowCarried)
+        {
+            _updates.Remove(template);
+            Carried.Remove(template);
+        }
+        FollowCarried.Clear();
+    }
+
+    /// <summary>D069 §6: drops a planned update again (a clip the magnet carried that would collide on its track).</summary>
+    public void CancelUpdate(Clip clip) => _updates.Remove(clip);
+
+    /// <summary>D069 §6: the clips of other video tracks the magnet carries with a main track clip.</summary>
+    public HashSet<Clip> MagnetCarried { get; } = new();
+
+    /// <summary>The track the plan inserts <paramref name="clip"/> into, or null when it is not a new clip of the plan.</summary>
+    public Track? InsertTrackOf(Clip clip)
+    {
+        foreach (var (track, inserted) in _inserts)
+            if (inserted == clip) return track;
+        return null;
+    }
+
     /// <summary>The timing the plan gives an existing clip, or null when it doesn't change it.</summary>
     public ClipState? PlannedState(Clip clip) => _updates.TryGetValue(clip, out var u) ? u.After : null;
 
@@ -141,6 +180,23 @@ public sealed class EditPlan
     }
 
     public void Insert(Track track, Clip clip) => _inserts.Add((track, clip));
+
+    /// <summary>D069 amendment 2: video tracks the step adds (above the others), in order; added before the plan's clip changes.</summary>
+    public List<Track> NewTracks { get; } = new();
+
+    /// <summary>D069 amendment 2: the templates the step moved to another track so as not to push a clip — the track every later
+    /// rule of the step keeps them on.</summary>
+    public Dictionary<Clip, Track> Relocated { get; } = new();
+
+    /// <summary>The track a template stays on in this step: where it was relocated, else its own.</summary>
+    public Track TrackFor(Clip clip) => Relocated.TryGetValue(clip, out var track) ? track : TrackOf(clip);
+
+    /// <summary>D069 amendment 2: moves a clip the plan inserts to another track.</summary>
+    public void MoveInsert(Clip clip, Track track)
+    {
+        var index = _inserts.FindIndex(i => i.Clip == clip);
+        if (index >= 0) _inserts[index] = (track, clip);
+    }
 
     public void Remove(Clip clip) => _removes[clip] = _currentTrack[clip];
 
@@ -422,6 +478,8 @@ public sealed class EditPlan
     public IUndoableCommand BuildCommand(string description)
     {
         var commands = new List<IUndoableCommand>();
+
+        foreach (var track in NewTracks) commands.Add(new AddTrackCommand(_sequence, track));   // D069 amendment 2
 
         if (NewFrameRate is { } rate)
             commands.Add(new SetFrameRateCommand(_settings, _settings.FrameRate, _settings.IsFrameRateLocked, rate, NewFrameRateLocked));

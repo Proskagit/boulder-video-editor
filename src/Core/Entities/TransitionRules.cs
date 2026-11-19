@@ -8,7 +8,9 @@ namespace AiVideoEditor.Core.Entities;
 /// The structural rules of transitions (D025 §1, §3; D044). A transition of <c>F</c> frames sits on the cut <c>c</c>
 /// between A and B (A's end is exactly B's start); its zone is <c>[c − ⌊F/2⌋, c + ⌈F/2⌉)</c>: <see cref="Zone"/>'s
 /// <c>BeforeCut</c> frames lie in A, <c>AfterCut</c> frames in B. Source handles are not checked here — they depend
-/// on the media (D025 §4) — and only the types of <see cref="RequiresHandles"/> need them (D044 §3).
+/// on the media (D025 §4). D069 amendment 2: only the audio crossfade needs them (<see cref="NeedsSourceHandles"/>); a video
+/// type whose source runs out holds the clip's edge frame. <see cref="RequiresHandles"/> now means «shows both clips at once»
+/// (the pictures extend into the zone).
 /// </summary>
 public static class TransitionRules
 {
@@ -27,11 +29,38 @@ public static class TransitionRules
     /// <summary>Сдвиг: B pushes A out from <see cref="Transition.Direction"/>, both from their handles (D044 §2).</summary>
     public const string Push = "push";
 
+    // D069 §8: eight more types (the popular ones of CapCut).
+
+    /// <summary>Размытие: each clip on its own frames, blurred more and more up to the cut.</summary>
+    public const string Blur = "blur";
+
+    /// <summary>Вытеснение: B over A, revealed by an edge moving from <see cref="Transition.Direction"/>, both from their handles.</summary>
+    public const string Wipe = "wipe";
+
+    /// <summary>Круг: B over A, revealed by a circle growing from the canvas centre, both from their handles.</summary>
+    public const string Circle = "circle";
+
+    /// <summary>Шторки: B over A, revealed by a band opening from the canvas centre to the sides, both from their handles.</summary>
+    public const string Doors = "doors";
+
+    /// <summary>Отдаление: each clip on its own frames, shrinking towards the cut (the canvas around it black).</summary>
+    public const string ZoomOut = "zoomOut";
+
+    /// <summary>Вращение: each clip on its own frames, turned and enlarged towards the cut.</summary>
+    public const string Spin = "spin";
+
+    /// <summary>Смахивание: a fast push with a motion blur along its direction, both from their handles.</summary>
+    public const string Whip = "whip";
+
+    /// <summary>Глитч: each clip on its own frames, its colour channels split and the picture jerked about the cut.</summary>
+    public const string Glitch = "glitch";
+
     /// <summary>The transition of an audio track (D032 R9): a linear crossfade of the two clips' sound.</summary>
     public const string Crossfade = "crossfade";
 
     /// <summary>The video transitions of the library, in the order the interface lists them (D044 §1).</summary>
-    public static readonly ImmutableArray<string> VideoTypes = ImmutableArray.Create(CrossDissolve, DipToBlack, Flash, Zoom, Push);
+    public static readonly ImmutableArray<string> VideoTypes =
+        ImmutableArray.Create(CrossDissolve, DipToBlack, Flash, Zoom, Push, Blur, Wipe, Circle, Doors, ZoomOut, Spin, Whip, Glitch);
 
     /// <summary>The default transition type of a track of <paramref name="trackType"/>: a dissolve on a video track, a
     /// crossfade on an audio track.</summary>
@@ -44,13 +73,17 @@ public static class TransitionRules
 
     /// <summary>True for the types that show both clips at once and so need source handles (D044 §3; D032 R9 for the
     /// crossfade).</summary>
-    public static bool RequiresHandles(string typeId) => typeId is CrossDissolve or Push or Crossfade;
+    public static bool RequiresHandles(string typeId) => typeId is CrossDissolve or Push or Crossfade or Wipe or Circle or Doors or Whip;
+
+    /// <summary>D069 amendment 2: the types an edit refuses without source handles — the audio crossfade only; a video type
+    /// whose source runs out holds the clip's edge frame (<see cref="Playback.PictureSpan.HoldsFirstFrame"/>).</summary>
+    public static bool NeedsSourceHandles(string typeId) => typeId == Crossfade;
 
     /// <summary>True for the types drawn with a fill colour whose peak — the cut frame — is fully covered (D044 §2, §4).</summary>
     public static bool IsFill(string typeId) => typeId is DipToBlack or Flash;
 
     /// <summary>True for the type that has a <see cref="Transition.Direction"/>.</summary>
-    public static bool HasDirection(string typeId) => typeId == Push;
+    public static bool HasDirection(string typeId) => typeId is Push or Wipe or Whip;
 
     /// <summary>The direction a new transition of the type gets: from the right for a push, none otherwise (D044 §11).</summary>
     public static TransitionDirection? DefaultDirection(string typeId) => HasDirection(typeId) ? TransitionDirection.FromRight : null;
@@ -62,15 +95,26 @@ public static class TransitionRules
     /// one-second default, at least <see cref="MinFrames"/> frames, no maximum).</summary>
     public static TransitionLimits LimitsOf(string typeId) => typeId switch
     {
-        DipToBlack => new(Seconds(0.6), Seconds(0.1), null),
-        Flash => new(Seconds(0.2), Seconds(0.1), Seconds(0.5)),
-        Zoom => new(Seconds(0.3), Seconds(0.2), Seconds(1.0)),
-        Push => new(Seconds(0.3), Seconds(0.2), null),
+        DipToBlack => new(Seconds(0.6), Seconds(0.1), MaxSeconds),
+        Flash => new(Seconds(0.2), Seconds(0.1), MaxSeconds),
+        Zoom => new(Seconds(0.3), Seconds(0.2), MaxSeconds),
+        Push => new(Seconds(0.3), Seconds(0.2), MaxSeconds),
+        Blur => new(Seconds(0.5), Seconds(0.2), MaxSeconds),     // D069 §8
+        Wipe => new(Seconds(0.5), Seconds(0.2), MaxSeconds),
+        Circle => new(Seconds(0.6), Seconds(0.2), MaxSeconds),
+        Doors => new(Seconds(0.6), Seconds(0.2), MaxSeconds),
+        ZoomOut => new(Seconds(0.4), Seconds(0.2), MaxSeconds),
+        Spin => new(Seconds(0.5), Seconds(0.3), MaxSeconds),
+        Whip => new(Seconds(0.3), Seconds(0.2), MaxSeconds),
+        Glitch => new(Seconds(0.4), Seconds(0.2), MaxSeconds),
         Crossfade => new(Seconds(1.0), null, null),
-        _ => new(Seconds(1.0), Seconds(0.1), null)          // the dissolve
+        _ => new(Seconds(1.0), Seconds(0.1), MaxSeconds)          // the dissolve
     };
 
     private static MediaTime Seconds(double seconds) => MediaTime.FromSeconds(seconds);
+
+    /// <summary>D069 amendment 2 (the owner): every video transition up to 5 s (the clips' frames permitting).</summary>
+    public static readonly MediaTime MaxSeconds = MediaTime.FromSeconds(5);
 
     /// <summary>The shortest duration of the type a user may set, in frames: its minimum rounded up to whole frames, so
     /// the interface never shows less than the minimum, and never below <see cref="MinFrames"/> (D044 §5).</summary>

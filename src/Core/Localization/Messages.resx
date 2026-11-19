@@ -1438,4 +1438,34 @@
   <data name="Preflight_SoloActive" xml:space="preserve">
     <value>Solo is on ({0}): only the solo tracks are heard in the export.</value>
   </data>
+  <data name="Magnet_GapsKept" xml:space="preserve">
+    <value>The magnet is on, but the main track's gaps could not be closed: {0}</value>
+  </data>
+  <data name="Color_OutOfRange" xml:space="preserve">
+    <value>A colour value must lie between −100 and +100.</value>
+  </data>
+  <data name="TransitionName_Blur" xml:space="preserve">
+    <value>Blur</value>
+  </data>
+  <data name="TransitionName_Wipe" xml:space="preserve">
+    <value>Wipe</value>
+  </data>
+  <data name="TransitionName_Circle" xml:space="preserve">
+    <value>Circle</value>
+  </data>
+  <data name="TransitionName_Doors" xml:space="preserve">
+    <value>Doors</value>
+  </data>
+  <data name="TransitionName_ZoomOut" xml:space="preserve">
+    <value>Zoom out</value>
+  </data>
+  <data name="TransitionName_Spin" xml:space="preserve">
+    <value>Spin</value>
+  </data>
+  <data name="TransitionName_Whip" xml:space="preserve">
+    <value>Whip</value>
+  </data>
+  <data name="TransitionName_Glitch" xml:space="preserve">
+    <value>Glitch</value>
+  </data>
 </root>

@@ -280,6 +280,9 @@ internal sealed class SequenceDto
     public double ZoomPixelsPerSecond { get; set; }
     public bool SnappingEnabled { get; set; }
 
+    /// <summary>Format v26 (D069 §6): the main track's magnet; absent in an older file — off.</summary>
+    public bool? MagneticMainTrack { get; set; }
+
     /// <summary>Format v25 (D064 §1): the master volume; written only when not 1.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? MasterVolume { get; set; }
@@ -373,6 +376,10 @@ internal sealed class VideoClipDto : MediaBackedClipDto
     /// (absent: black).</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Background { get; set; }
+
+    /// <summary>Format v26 (D069 §7): the colour correction (eight values −100…+100); written only when not neutral.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ColorDto? Color { get; set; }
 
     /// <summary>Format v20 (D061): the clip's automatic Follow; written only when on.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -629,6 +636,19 @@ internal sealed class TextOutlineDto
     public bool? Enabled { get; set; }
     public string? ColorHex { get; set; }
     public double? Thickness { get; set; }
+}
+
+/// <summary>D069 §7: a video clip's colour correction.</summary>
+internal sealed class ColorDto
+{
+    public int Exposure { get; set; }
+    public int Brightness { get; set; }
+    public int Contrast { get; set; }
+    public int Highlights { get; set; }
+    public int Shadows { get; set; }
+    public int Saturation { get; set; }
+    public int Temperature { get; set; }
+    public int Tint { get; set; }
 }
 
 /// <summary>Format v7: «Подложка» — on / off, the colour, the opacity.</summary>

@@ -1,6 +1,7 @@
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Playback;
 using AiVideoEditor.Project;
 using AiVideoEditor.Timeline;
 using AiVideoEditor.Timeline.Playback;
@@ -233,5 +234,91 @@ public sealed class ClipGroupEditingTests : IAsyncLifetime
         Assert.All(clips, c => Assert.Equal(ClipBackground.Black, c.Background));
         Assert.False(_undo.CanUndo && _undo.NextUndo is GroupEditCommand);
         Assert.Equal(0, Group.BackgroundIndex);
+    }
+
+    // --- D069 amendment 1: the mass settings -----------------------------------------------------------------------------
+
+    /// <summary>Returns small frames of one colour for every clip.</summary>
+    private sealed class DarkFrames : IClipFrameSampler
+    {
+        public int Calls { get; private set; }
+
+        public Task<IReadOnlyList<DecodedFrame>> SampleAsync(VideoClip clip, MediaAsset asset, FrameRate rate, int count, int maxWidth, CancellationToken ct)
+        {
+            Calls++;
+            var px = new byte[16 * 9 * 4];
+            for (var i = 0; i < 16 * 9; i++) (px[i * 4], px[i * 4 + 1], px[i * 4 + 2], px[i * 4 + 3]) = (110, 60, (byte)(40 + i % 5), 255);
+            return Task.FromResult<IReadOnlyList<DecodedFrame>>(new[] { new DecodedFrame(16, 9, 64, px, new SourceTimestamp(0, new TimeBase(1, 25))) });
+        }
+    }
+
+    [Fact]
+    public void The_clean_up_and_the_fades_of_every_clip_change_in_one_undo_step()
+    {
+        var clips = Videos(3, sound: true);
+        SelectAll();
+        Assert.True(Group.HasAudio && Group.HasFades);
+        Assert.Equal(0, Group.NoiseReduction);
+
+        Group.NoiseReduction = 40;
+        Group.FadeInFrames = 10;
+
+        Assert.All(clips, c => Assert.Equal(40, c.Cleanup!.Value.NoiseReduction));
+        Assert.All(clips, c => Assert.Equal(10, c.FadeIn.ToNearestFrame(Rate)));
+        _undo.Undo();
+        Assert.All(clips, c => Assert.Equal(MediaTime.Zero, c.FadeIn));
+        Assert.All(clips, c => Assert.Equal(40, c.Cleanup!.Value.NoiseReduction));
+        _undo.Undo();
+        Assert.All(clips, c => Assert.Null(c.Cleanup));
+    }
+
+    [Fact]
+    public void One_colour_slider_sets_that_value_on_every_clip_and_keeps_their_others()
+    {
+        var clips = Videos(2);
+        Assert.True(_edit.SetClipColor(clips[0].Id, Core.Color.ColorCorrection.Neutral.With(6, 30)).Success);
+        SelectAll();
+        Assert.True(Group.HasColor);
+        Assert.Null(Group.ColorTemperature);                                // the clips differ: «—»
+        Assert.Equal(0, Group.ColorContrast);
+
+        Group.ColorContrast = 25;
+
+        Assert.All(clips, c => Assert.Equal(25, c.Color.Contrast));
+        Assert.Equal(30, clips[0].Color.Temperature);
+        Assert.Equal(0, clips[1].Color.Temperature);
+        _undo.Undo();
+        Assert.All(clips, c => Assert.Equal(0, c.Color.Contrast));
+        Group.ResetColorCommand.Execute(null);
+        Assert.All(clips, c => Assert.True(c.Color.IsNeutral));
+    }
+
+    [Fact]
+    public async Task Auto_enhance_of_a_group_measures_each_clip_and_is_one_undo_step()
+    {
+        var clips = Videos(3);
+        var frames = new DarkFrames();
+        Group.ColorFrames = frames;
+        SelectAll();
+
+        await Group.AutoEnhanceCommand.ExecuteAsync(null);
+
+        Assert.Equal(3, frames.Calls);
+        Assert.All(clips, c => Assert.True(c.Color.Exposure > 0));
+        _undo.Undo();
+        Assert.All(clips, c => Assert.True(c.Color.IsNeutral));
+    }
+
+    /// <summary>D069 amendment 2 (the owner's check): several clips have the rail and the groups of one clip's Inspector.</summary>
+    [Fact]
+    public void Several_clips_show_the_rail_with_their_groups()
+    {
+        Videos(3, sound: true);
+        SelectAll();
+
+        Assert.True(Inspector.ShowsRail);
+        var available = Inspector.Categories.Where(c => c.IsAvailable).Select(c => c.Category).ToList();
+        Assert.Equal(new[] { InspectorCategory.Clip, InspectorCategory.Audio }, available);
+        Assert.True(Group.HasClipSection && Group.HasColor);
     }
 }

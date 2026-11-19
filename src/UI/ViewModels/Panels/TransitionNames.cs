@@ -16,6 +16,14 @@ public static class TransitionNames
         TransitionRules.Flash => Strings.TransitionType_Flash,
         TransitionRules.Zoom => Strings.TransitionType_Zoom,
         TransitionRules.Push => Strings.TransitionType_Push,
+        TransitionRules.Blur => Strings.TransitionType_Blur,
+        TransitionRules.Wipe => Strings.TransitionType_Wipe,
+        TransitionRules.Circle => Strings.TransitionType_Circle,
+        TransitionRules.Doors => Strings.TransitionType_Doors,
+        TransitionRules.ZoomOut => Strings.TransitionType_ZoomOut,
+        TransitionRules.Spin => Strings.TransitionType_Spin,
+        TransitionRules.Whip => Strings.TransitionType_Whip,
+        TransitionRules.Glitch => Strings.TransitionType_Glitch,
         TransitionRules.Crossfade => Strings.Transition_Crossfade,
         _ => Strings.TransitionType_CrossDissolve
     };
@@ -35,6 +43,14 @@ public static class TransitionNames
         TransitionRules.Flash => "✦",
         TransitionRules.Zoom => "⊕",
         TransitionRules.Push => "⇢",
+        TransitionRules.Blur => "≋",
+        TransitionRules.Wipe => "▐",
+        TransitionRules.Circle => "◯",
+        TransitionRules.Doors => "⇔",
+        TransitionRules.ZoomOut => "⊖",
+        TransitionRules.Spin => "↻",
+        TransitionRules.Whip => "⇶",
+        TransitionRules.Glitch => "▚",
         _ => "⨯"
     };
 

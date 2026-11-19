@@ -65,7 +65,7 @@ public sealed partial class InspectorViewModel
             var fits = _edit.MaxTransitionFrames(t.LeftClipId, t.RightClipId, option.TypeId) ?? 0;
             option.IsAvailable = option.IsSelected || fits >= TransitionRules.MinFramesOf(option.TypeId, rate);
             option.Tip = option.IsAvailable ? null
-                : TransitionRules.RequiresHandles(option.TypeId) ? Messages.Transition_NotEnoughMediaType : Messages.TransitionRule_ClipTooShort;
+                : Messages.TransitionRule_ClipTooShort;   // D069 amendment 2: no video type needs source handles
         }
         IsPushSelected = TransitionRules.HasDirection(typeId);
         foreach (var option in TransitionDirections) option.IsSelected = IsPushSelected && option.Direction == t.Direction;

@@ -374,6 +374,38 @@ public sealed class SetTrackMixCommand(Track track, TrackMix before, TrackMix af
     }
 }
 
+/// <summary>D069 §7: a video clip's colour correction; the changes of one gesture (a slider's drag) merge into one step.</summary>
+public sealed class SetClipColorCommand(VideoClip clip, Core.Color.ColorCorrection before, Core.Color.ColorCorrection after, object? gesture = null)
+    : IMergeableCommand
+{
+    public VideoClip Clip { get; } = clip;
+    public Core.Color.ColorCorrection Before { get; } = before;
+    public Core.Color.ColorCorrection After { get; } = after;
+    public object? Gesture { get; } = gesture;
+
+    public string Description => "Change Colour";
+
+    public void Execute() => Clip.Color = After;
+    public void Undo() => Clip.Color = Before;
+
+    public bool TryMerge(IUndoableCommand next, out IUndoableCommand? merged)
+    {
+        merged = null;
+        if (next is not SetClipColorCommand n || n.Clip != Clip || n.Before != After || Gesture is null || !ReferenceEquals(n.Gesture, Gesture))
+            return false;
+        if (n.After != Before) merged = new SetClipColorCommand(Clip, Before, n.After, Gesture);
+        return true;
+    }
+}
+
+/// <summary>D069 §6: switches the main track's magnet.</summary>
+public sealed class SetMagneticMainTrackCommand(Sequence sequence, bool before, bool after) : IUndoableCommand
+{
+    public string Description => "Magnetic Main Track";
+    public void Execute() => sequence.MagneticMainTrack = after;
+    public void Undo() => sequence.MagneticMainTrack = before;
+}
+
 /// <summary>D064 §1: sets the project's master volume; the changes of one gesture (a slider's drag) merge.</summary>
 public sealed class SetMasterVolumeCommand(Sequence sequence, double before, double after, object? gesture = null) : IMergeableCommand
 {

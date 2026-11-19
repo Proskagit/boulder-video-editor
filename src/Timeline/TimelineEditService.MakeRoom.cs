@@ -17,9 +17,10 @@ public sealed partial class TimelineEditService
     /// nothing to do), otherwise the refusal ("Can't <paramref name="verb"/>: …"). The placed clips must already be planned
     /// at their new places (updated or inserted), their partners too.
     /// </summary>
-    private string? MakeRoom(EditPlan plan, IReadOnlyCollection<(Clip Clip, Track Track)> placed, string verb)
+    private string? MakeRoom(EditPlan plan, IReadOnlyCollection<(Clip Clip, Track Track)> placedIn, string verb)
     {
         var rate = plan.Rate;
+        var placed = RelocateAnchoredTemplates(plan, placedIn);   // D069 amendment 2: plates never push other clips
         var placedSet = placed.Select(p => p.Clip).ToHashSet();
         var pushed = new Dictionary<Clip, (Track Track, long Delta)>();
 
@@ -100,6 +101,47 @@ public sealed partial class TimelineEditService
             }
         }
         return null;
+    }
+
+    /// <summary>
+    /// D069 amendment 2 (the owner's check): a template anchored to a clip (a «Боулдер» with its heart rate, holds, route) that
+    /// the edit places where it would overlap a clip it does not place goes to the lowest unlocked video track above its clip
+    /// free over its span — or to a new track at the top in the same step — instead of pushing that clip (two clips on one
+    /// canvas each keep their own plate).
+    /// </summary>
+    private List<(Clip Clip, Track Track)> RelocateAnchoredTemplates(EditPlan plan, IReadOnlyCollection<(Clip Clip, Track Track)> placed)
+    {
+        var rate = plan.Rate;
+        var result = placed.ToList();
+        var placedSet = placed.Select(p => p.Clip).ToHashSet();
+        for (var i = 0; i < result.Count; i++)
+        {
+            if (result[i] is not (TemplateClip { AnchorClipId: { } anchorId } template, var track)) continue;
+            var state = plan.PlannedState(template) ?? ClipState.Capture(template);
+            long start = state.Start.ToNearestFrame(rate), end = state.End.ToNearestFrame(rate);
+            bool Collides(Track t) => plan.EffectiveClips(t).Any(c => c.Clip != template && !placedSet.Contains(c.Clip) &&
+                c.State.Start.ToNearestFrame(rate) < end && start < c.State.End.ToNearestFrame(rate));
+            if (!Collides(track)) continue;
+
+            var anchorOrder = plan.AllTracks.Concat(plan.NewTracks).FirstOrDefault(t => plan.EffectiveClips(t).Any(c => c.Clip.Id == anchorId))?.Order ?? -1;
+            var target = Sequence.VideoTracks.Concat(plan.NewTracks).Where(t => t != track && !t.IsLocked && t.Order > anchorOrder)
+                .OrderBy(t => t.Order).FirstOrDefault(t => !Collides(t));
+            if (target is null)
+            {
+                target = NewTrack(TrackType.Video);
+                if (plan.NewTracks.Count > 0)
+                {
+                    var top = plan.NewTracks.Max(t => t.Order);
+                    target = new Track { Type = TrackType.Video, Name = $"V{Sequence.VideoTracks.Count + plan.NewTracks.Count + 1}", Order = top + 1 };
+                }
+                plan.NewTracks.Add(target);
+            }
+            if (plan.InsertTrackOf(template) is not null) plan.MoveInsert(template, target);
+            else plan.Update(template, target, state);
+            plan.Relocated[template] = target;
+            result[i] = (template, target);
+        }
+        return result;
     }
 
     /// <summary>The placed clips of <paramref name="plan"/>: every clip it moves to a new place (with the partners that

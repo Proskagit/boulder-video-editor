@@ -312,6 +312,8 @@ public partial class MainWindow : Window
         public TimelineEditResult SetTrackVolume(Guid trackId, double volume, object? gesture = null) => Nothing;
         public TimelineEditResult SetTrackDucking(Guid trackId, Core.Audio.DuckingSettings? ducking, object? gesture = null) => Nothing;
         public TimelineEditResult SetMasterVolume(double volume, object? gesture = null) => Nothing;
+        public TimelineEditResult SetMagneticMainTrack(bool on) => Nothing;
+        public TimelineEditResult SetClipColor(Guid clipId, Core.Color.ColorCorrection color, object? gesture = null) => Nothing;
         public TimelineEditResult BakeDucking(Guid trackId, Core.Audio.DuckingCurve curve) => Nothing;
         public int CountClipsUsing(Guid mediaAssetId) => 0;
         public string? GetRemoveMediaBlockReason(Guid mediaAssetId) => "Design time.";

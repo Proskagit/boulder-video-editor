@@ -97,9 +97,9 @@ public sealed class TimelineDissolveUiTests : IAsyncLifetime
         Assert.True(_edit.Split(F(200)).Success);
         var c = V1.Clips[2];
 
-        Assert.False(Timeline.AddDissolveCommand.CanExecute(null));
+        Assert.False(Timeline.AddDissolveCommand.CanExecute(null));                   // nothing selected, no cut at the playhead
         Timeline.OnClipPressed(ClipVm(a), toggle: false);
-        Assert.False(Timeline.AddDissolveCommand.CanExecute(null));
+        Assert.True(Timeline.AddDissolveCommand.CanExecute(null));                    // D069 amendment 1: one clip — its cut with the next
         Timeline.OnClipPressed(ClipVm(b), toggle: true);
         Assert.True(Timeline.AddDissolveCommand.CanExecute(null));
         Timeline.OnClipPressed(ClipVm(c), toggle: true);
@@ -121,18 +121,18 @@ public sealed class TimelineDissolveUiTests : IAsyncLifetime
         var state = Timeline.AddDissolveCommand.CanExecute(null);
         Timeline.AddDissolveCommand.CanExecuteChanged += (_, _) => state = Timeline.AddDissolveCommand.CanExecute(null);
 
+        Assert.False(state);                                                       // nothing selected, no cut at the playhead
         Timeline.OnClipPressed(ClipVm(a), toggle: false);
-        Assert.False(state);
+        Assert.True(state);                                                        // D069 amendment 1: one clip — its cut
         Timeline.OnClipPressed(ClipVm(b), toggle: true);                          // 1 → 2 clips
         Assert.True(state);
-        Timeline.OnClipPressed(ClipVm(b), toggle: true);                          // 2 → 1
-        Assert.False(state);
-        Timeline.OnClipPressed(ClipVm(b), toggle: true);
         using (_lock.Acquire())
             Assert.False(state);
         Assert.True(state);
         Timeline.ClearSelection();
         Assert.False(state);
+        Timeline.SetPlayhead(b.TimelineStart);                                     // the cut under the playhead
+        Assert.True(state);
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public sealed class TimelineDissolveUiTests : IAsyncLifetime
         Assert.True(Inspector.IsVideoTransitionSelected);                          // Phase 28: seconds of whole frames (D044 §5)
         Assert.Equal(1m, Inspector.TransitionSeconds);
         Assert.Equal("1 s · 25 frames", Inspector.TransitionDurationDisplay);
-        Assert.Equal($"Longest that fits here: {8.04m.ToString(System.Globalization.CultureInfo.CurrentCulture)} s · 201 frames", Inspector.TransitionLimitDisplay);   // ⌊F/2⌋ ≤ 100 in A
+        Assert.Equal("Longest that fits here: 5 s · 125 frames", Inspector.TransitionLimitDisplay);   // D069 amendment 2: at most 5 s
 
         _undo.Undo();
         Assert.Empty(V1.Transitions);
@@ -189,7 +189,8 @@ public sealed class TimelineDissolveUiTests : IAsyncLifetime
 
         SelectBoth(a, b);
         Timeline.AddDissolveCommand.Execute(null);
-        Assert.Equal(AiVideoEditor.Core.Localization.Messages.Transition_NotEnoughMediaType, _status.Message);   // names Dip to black and Flash (D044 §6)
+        Assert.Single(V1.Transitions);                                               // D069 amendment 2: no handles needed
+        _undo.Undo();
 
         Assert.True(_edit.MoveClips(new[] { b.Id }, 10).Success);                    // now they don't meet
         SelectBoth(a, b);
@@ -425,13 +426,14 @@ public sealed class TimelineDissolveUiTests : IAsyncLifetime
     [Fact]
     public void A_refused_speed_is_reported_and_the_field_shows_the_clip_speed()
     {
-        var (a, b) = SplitVideo(at: 25);                                             // B has 25 frames before it
-        _edit.AddTransition(a.Id, b.Id, F(24));                                      // needs 12 before the cut
+        var (a, b) = SplitVideo(at: 25);
+        _edit.AddTransition(a.Id, b.Id, F(24));
         Timeline.OnClipPressed(ClipVm(b), toggle: false);
+        V1.IsLocked = true;                                                          // D069 amendment 2: the refusal of a locked track
 
-        Inspector.SpeedValue = 4m;                                                   // 4x: 6 frames, too few
+        Inspector.SpeedValue = 4m;
 
-        Assert.Contains(TimelineEditService.NotEnoughMedia, _status.Message);
+        Assert.Contains("locked", _status.Message);
         Assert.Equal(ClipSpeed.Normal, ((MediaBackedClip)b).Speed);
         Assert.Equal(1m, Inspector.SpeedValue);
         Assert.Single(V1.Transitions);

@@ -60,7 +60,7 @@ public class TextStylePersistenceTests
     public void Every_member_survives_a_save_open_save_exactly_in_the_current_version()
     {
         var first = Save(Build(Styled));
-        Assert.Equal(25, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(26, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
 
         var loaded = Text(Load(first));
         Assert.True(loaded.Bold);

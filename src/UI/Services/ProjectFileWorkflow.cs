@@ -1,6 +1,7 @@
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Localization;
 using AiVideoEditor.UI.Localization;
+using AiVideoEditor.UI.ViewModels;
 using Microsoft.Extensions.Logging;
 
 namespace AiVideoEditor.UI.Services;
@@ -35,8 +36,10 @@ public sealed class ProjectFileWorkflow
         ILogger<ProjectFileWorkflow> logger,
         IThumbnailCacheLocation? thumbnailCache = null,
         IWaveformCacheLocation? waveformCache = null,
-        IRecentProjectsStore? recentProjects = null)
+        IRecentProjectsStore? recentProjects = null,
+        IProjectSaveAsDialog? saveAsDialog = null)
     {
+        _saveAsDialog = saveAsDialog;
         _projectService = projectService;
         _analysisCoordinator = analysisCoordinator;
         _autosave = autosave;
@@ -151,32 +154,8 @@ public sealed class ProjectFileWorkflow
     {
         BeforeSave?.Invoke(this, EventArgs.Empty);
         var current = _projectService.Current;
-        var picked = await _picker.PickSaveFileAsync(new SaveFilePickerRequest
-        {
-            Title = Strings.Project_SaveAsPickerTitle,
-            StartFolder = ParentOf(current.ProjectFolderPath),
-            SuggestedFileName = current.Name
-        });
-        if (picked is null) return false;
-        var folder = ProjectFolderFor(Path.TrimEndingDirectorySeparator(picked.Trim()));
-        if (File.Exists(folder))
-        {
-            _status.ReportError(string.Format(Strings.Project_SaveFailed, current.Name, string.Format(Strings.Project_SaveAsFileExists, Path.GetFileName(folder))));
-            return false;
-        }
-
-        var isCurrentFolder = current.ProjectFolderPath is { } own &&
-                              string.Equals(Path.GetFullPath(own), Path.GetFullPath(folder), StringComparison.OrdinalIgnoreCase);
-        if (!isCurrentFolder && File.Exists(Path.Combine(folder, "project.json")))
-        {
-            var replace = await _dialogs.AskAsync(new DialogRequest
-            {
-                Title = Strings.Project_ReplaceTitle,
-                Message = string.Format(Strings.Project_ReplaceQuestion, folder, current.Name),
-                Buttons = new[] { Strings.Common_Replace, Strings.Common_Cancel }
-            });
-            if (replace != 0) return false;
-        }
+        var folder = _saveAsDialog is null ? await PickWithSystemDialogAsync(current) : await AskWithOwnWindowAsync(current);
+        if (folder is null) return false;
 
         try
         {
@@ -194,6 +173,67 @@ public sealed class ProjectFileWorkflow
         var savedFolder = Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder));
         await RememberRecentAsync(savedFolder, Path.GetFileName(savedFolder) is { Length: > 0 } name ? name : current.Name);
         return true;
+    }
+
+    private readonly IProjectSaveAsDialog? _saveAsDialog;
+
+    /// <summary>D069 §3: the place the last Save As window saved into (this session), offered next time for a project never
+    /// saved.</summary>
+    private string? _lastSaveAsFolder;
+
+    /// <summary>D069 §3: our own window — the name and the folder; a name of another project there asks «Заменить?» at once,
+    /// and a «no» brings the window back with what was typed. Returns the project folder to write, or null (cancelled).</summary>
+    private async Task<string?> AskWithOwnWindowAsync(Core.Entities.Project current)
+    {
+        var place = ParentOf(current.ProjectFolderPath) ?? _lastSaveAsFolder ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var name = current.ProjectFolderPath is { } saved ? Path.GetFileName(Path.TrimEndingDirectorySeparator(saved)) : current.Name;
+        while (true)
+        {
+            var window = new SaveAsViewModel(name, place, _picker);
+            await _saveAsDialog!.ShowAsync(window);
+            if (!window.Accepted || window.TargetFolder is not { } folder) return null;
+            (name, place) = (window.Name.Trim(), window.Folder);
+            // D069 amendment 2: the window always asks over a project there — the open one's own folder too.
+            if (await ConfirmReplaceAsync(current, folder, evenTheOpenProject: true))
+            {
+                _lastSaveAsFolder = place;
+                return folder;
+            }
+        }
+    }
+
+    /// <summary>D067 §6 / D068 §7: the system's save dialog (kept for a workflow built without our window — the tests).</summary>
+    private async Task<string?> PickWithSystemDialogAsync(Core.Entities.Project current)
+    {
+        var picked = await _picker.PickSaveFileAsync(new SaveFilePickerRequest
+        {
+            Title = Strings.Project_SaveAsPickerTitle,
+            StartFolder = ParentOf(current.ProjectFolderPath),
+            SuggestedFileName = current.Name
+        });
+        if (picked is null) return null;
+        var folder = ProjectFolderFor(Path.TrimEndingDirectorySeparator(picked.Trim()));
+        if (File.Exists(folder))
+        {
+            _status.ReportError(string.Format(Strings.Project_SaveFailed, current.Name, string.Format(Strings.Project_SaveAsFileExists, Path.GetFileName(folder))));
+            return null;
+        }
+        return await ConfirmReplaceAsync(current, folder) ? folder : null;
+    }
+
+    /// <summary>True when <paramref name="folder"/> holds no other project, or the user agreed to replace it.</summary>
+    private async Task<bool> ConfirmReplaceAsync(Core.Entities.Project current, string folder, bool evenTheOpenProject = false)
+    {
+        var isCurrentFolder = current.ProjectFolderPath is { } own &&
+                              string.Equals(Path.GetFullPath(own), Path.GetFullPath(folder), StringComparison.OrdinalIgnoreCase);
+        if ((isCurrentFolder && !evenTheOpenProject) || !File.Exists(Path.Combine(folder, "project.json"))) return true;
+        var replace = await _dialogs.AskAsync(new DialogRequest
+        {
+            Title = Strings.Project_ReplaceTitle,
+            Message = string.Format(Strings.Project_ReplaceQuestion, folder, current.Name),
+            Buttons = new[] { Strings.Common_Replace, Strings.Common_Cancel }
+        });
+        return replace == 0;
     }
 
     private string SavedMessage(string message) => _projectService.Current.IsDirty

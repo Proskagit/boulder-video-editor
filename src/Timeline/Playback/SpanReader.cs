@@ -61,7 +61,8 @@ internal sealed class SpanReader : IAsyncDisposable
     private bool IsStill => Span.Status == SpanStatus.StillImage;
 
     public SourceSamplePoint SamplePoint(long timelineFrame) =>
-        SourceFrameSelector.SamplePoint(Span.TimelineStart, Span.SourceIn, Span.Speed, timelineFrame, _rate, _asset.NominalFrameRate);
+        SourceFrameSelector.SamplePoint(Span.TimelineStart, Span.SourceIn, Span.Speed, Span.SourceFrameOf(timelineFrame, _rate), _rate,
+            _asset.NominalFrameRate);   // D069 amendment 2: a held edge frame where the source ends
 
     /// <summary>True once <see cref="TryGet"/> would return a certain answer for the frame, without consuming anything.</summary>
     public bool IsReady(long timelineFrame)

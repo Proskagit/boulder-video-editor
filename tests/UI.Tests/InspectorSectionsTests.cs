@@ -62,7 +62,8 @@ public sealed class InspectorSectionsTests : IDisposable
         // The owner's acceptance of 2026-11-10: «Трансформация» + «Кадрирование» one section, «Появление и исчезание» +
         // «Скорость» one; «Зацепки», «Тренировка», «Звук», «Клип» apart.
         // D068 amendment 1: in the rail's groups — Clip, Text / Template, People, Holds, FIT, Sound.
-        Assert.Equal(new[] { "media", "media.tech", "frame", "timing", "clip", "template", "text", "text.animation", "people", "holds",
+        // D069 amendment 2: the group's sections too, in the same groups.
+        Assert.Equal(new[] { "media", "media.tech", "group.frame", "group.color", "group.audio", "group.holds", "frame", "color", "timing", "clip", "template", "text", "text.animation", "people", "holds",
             "training", "fit", "audio" }, ids);
         Assert.Equal(ids.Count, ids.Distinct().Count());
         Assert.Empty(view.GetLogicalDescendants().OfType<TabControl>());

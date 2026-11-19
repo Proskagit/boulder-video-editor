@@ -56,12 +56,29 @@ public class TransitionLibraryPersistenceTests
     public void Every_type_and_the_push_direction_survive_a_save_open_save_exactly()
     {
         var first = Save(Library());
-        Assert.Equal(25, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(26, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
 
         var loaded = Load(first).Timeline.VideoTracks[0].Transitions;
         Assert.Equal(new[] { "crossDissolve", "dipToBlack", "flash", "zoom", "push" }, loaded.Select(t => t.TransitionTypeId));
         Assert.Equal(new TransitionDirection?[] { null, null, null, null, TransitionDirection.FromBottom }, loaded.Select(t => t.Direction));
         Assert.All(loaded, t => Assert.Equal(F(6), t.Duration));
+        Assert.Equal(first, Save(Load(first)));
+    }
+
+    /// <summary>D069 §8: the eight new types, the wipe's and the whip's directions.</summary>
+    [Fact]
+    public void The_new_types_and_their_directions_survive_a_save_open_save_exactly()
+    {
+        var project = Build(60, (TransitionRules.Blur, null), (TransitionRules.Wipe, TransitionDirection.FromTop),
+            (TransitionRules.Circle, null), (TransitionRules.Doors, null), (TransitionRules.ZoomOut, null), (TransitionRules.Spin, null),
+            (TransitionRules.Whip, TransitionDirection.FromLeft), (TransitionRules.Glitch, null));
+        var first = Save(project);
+
+        var loaded = Load(first).Timeline.VideoTracks[0].Transitions;
+
+        Assert.Equal(new[] { "blur", "wipe", "circle", "doors", "zoomOut", "spin", "whip", "glitch" }, loaded.Select(t => t.TransitionTypeId));
+        Assert.Equal(new TransitionDirection?[] { null, TransitionDirection.FromTop, null, null, null, null, TransitionDirection.FromLeft, null },
+            loaded.Select(t => t.Direction));
         Assert.Equal(first, Save(Load(first)));
     }
 

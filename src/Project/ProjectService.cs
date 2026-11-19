@@ -54,6 +54,13 @@ public sealed class ProjectService : IProjectService
     {
     }
 
+    /// <summary>D069 §6: the application's service — its new projects (the first one too) have the main track's magnet on.
+    /// The other constructors (tests, tools) keep it off, so a sequence built for a test lays its clips out freely.</summary>
+    public ProjectService(IUndoRedoService undoRedo, ILogger<ProjectService> logger, bool magneticMainTrackInNewProjects)
+        : this(undoRedo, logger, new ProjectFileStore(), File.Exists, magneticMainTrackInNewProjects)
+    {
+    }
+
     internal ProjectService(IUndoRedoService undoRedo, ILogger<ProjectService> logger, ProjectFileStore store)
         : this(undoRedo, logger, store, File.Exists)
     {
@@ -62,8 +69,9 @@ public sealed class ProjectService : IProjectService
     /// <param name="fileExists">Whether a media file is there — <see cref="File.Exists(string)"/> in the app; tests
     /// replace it (a file that comes and goes, a drive that answers slowly).</param>
     internal ProjectService(IUndoRedoService undoRedo, ILogger<ProjectService> logger, ProjectFileStore store,
-        Func<string, bool> fileExists)
+        Func<string, bool> fileExists, bool magneticMainTrackInNewProjects = false)
     {
+        _magneticInNewProjects = magneticMainTrackInNewProjects;
         _undoRedo = undoRedo;
         _logger = logger;
         _store = store;
@@ -73,6 +81,8 @@ public sealed class ProjectService : IProjectService
         UpdateDirty();
     }
 
+    private readonly bool _magneticInNewProjects;
+
     public Core.Entities.Project CreateNew(string name, ProjectSettings? settings = null)
     {
         Replace(NewProject(name, settings));
@@ -81,13 +91,15 @@ public sealed class ProjectService : IProjectService
     }
 
     /// <summary>Every project starts with one video track (V1) and one audio track (A1).</summary>
-    private static Core.Entities.Project NewProject(string name, ProjectSettings? settings)
+    private Core.Entities.Project NewProject(string name, ProjectSettings? settings)
     {
+        var magnetic = _magneticInNewProjects;
         var project = new Core.Entities.Project
         {
             Name = name,
             Settings = settings ?? new ProjectSettings()
         };
+        project.Timeline.MagneticMainTrack = magnetic;   // D069 §6: on in the application's new projects
         project.Timeline.VideoTracks.Add(new Track { Type = TrackType.Video, Name = "V1", Order = 0 });
         project.Timeline.AudioTracks.Add(new Track { Type = TrackType.Audio, Name = "A1", Order = 0 });
         return project;

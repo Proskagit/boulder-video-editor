@@ -29,7 +29,8 @@ namespace AiVideoEditor.Project.Persistence;
 public static class ProjectSerializer
 {
     public const string FormatId = "AiVideoEditor.Project";
-    /// <summary>20 since Phase 42 (D061): a video clip's Follow and its outlines hidden behind people. 19 since Phase 38: a video clip's blurred background.
+    /// <summary>26 since Phase 50 (D069): the main track's magnet and a video clip's colour correction.
+    /// 20 since Phase 42 (D061): a video clip's Follow and its outlines hidden behind people. 19 since Phase 38: a video clip's blurred background.
     /// 14 since R2 → E (K3): a hold markup's "Follow the camera" off. 13 since Phase 35.5: the heart-rate overlay (a template kind with its look and corner). 12 since Phase 37
     /// (D051): the FIT marks and the declined climbs. 11 since Phase 35 (D049): the COROS training. 10 since D048: the route
     /// timing and the template anchor. 9 since Phase 29 (D045): templates.
@@ -42,7 +43,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 25;
+    public const int CurrentFormatVersion = 26;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -132,6 +133,15 @@ public static class ProjectSerializer
     /// <summary>The first version with the audio mix (D064): a track's volume, solo and ducking, the master volume, a clip's volume
     /// points, a video clip's sound-only fades and the clean-up. A v24 file has none and is saved as v25.</summary>
     private const int AudioMixVersion = 25;
+
+    private static Core.Color.ColorCorrection ReadColor(ColorDto c)
+    {
+        var color = new Core.Color.ColorCorrection(c.Exposure, c.Brightness, c.Contrast, c.Highlights, c.Shadows, c.Saturation, c.Temperature, c.Tint);
+        return color.IsValid ? color : throw Damaged("colour correction out of range");
+    }
+
+    /// <summary>The first version with the main track's magnet and a video clip's colour correction (D069 §6, §7).</summary>
+    private const int Phase50Version = 26;
 
     /// <summary>Whether a template of <paramref name="kind"/> in a file of <paramref name="formatVersion"/> carries the
     /// heart-rate look and corner: the overlay (v13), a «Боулдер» from v16 (D055 §5).</summary>
@@ -449,6 +459,7 @@ public static class ProjectSerializer
         PlayheadTicks = s.PlayheadPosition.Ticks,
         ZoomPixelsPerSecond = s.ZoomPixelsPerSecond,
         SnappingEnabled = s.SnappingEnabled,
+        MagneticMainTrack = s.MagneticMainTrack,
         MasterVolume = s.MasterVolume.Equals(1.0) ? null : s.MasterVolume
     };
 
@@ -600,6 +611,11 @@ public static class ProjectSerializer
                 Opacity = v.Opacity, Volume = v.Volume, IsMuted = v.IsMuted, Crop = ToDto(v.Crop),
                 IsAudioDetached = v.IsAudioDetached,
                 Background = v.Background == ClipBackground.Blur ? "blur" : null,
+                Color = v.Color.IsNeutral ? null : new ColorDto
+                {
+                    Exposure = v.Color.Exposure, Brightness = v.Color.Brightness, Contrast = v.Color.Contrast, Highlights = v.Color.Highlights,
+                    Shadows = v.Color.Shadows, Saturation = v.Color.Saturation, Temperature = v.Color.Temperature, Tint = v.Color.Tint
+                },
                 Follow = v.Follow is { } follow ? ToDto(follow) : null,
                 Keyframes = v.Keyframes is { } keyframes ? ToDto(keyframes) : null,
                 VolumePoints = ToDto(v.Volumes),
@@ -1000,6 +1016,7 @@ public static class ProjectSerializer
             PlayheadPosition = new MediaTime(dto.PlayheadTicks),
             ZoomPixelsPerSecond = dto.ZoomPixelsPerSecond,
             SnappingEnabled = dto.SnappingEnabled,
+            MagneticMainTrack = formatVersion >= Phase50Version && dto.MagneticMainTrack == true,
             MasterVolume = formatVersion < AudioMixVersion || dto.MasterVolume is null ? 1.0 : CheckVolume(dto.MasterVolume.Value, "master volume")
         };
 
@@ -1159,6 +1176,8 @@ public static class ProjectSerializer
                 // v1–v18: black (D057 §3.7).
                 Background = formatVersion < BackgroundVersion || v.Background is null ? ClipBackground.Black
                     : v.Background == "blur" ? ClipBackground.Blur : throw Damaged("unknown clip background"),
+                // v1–v25: neutral (D069 §7).
+                Color = formatVersion < Phase50Version || v.Color is null ? Core.Color.ColorCorrection.Neutral : ReadColor(v.Color),
                 // v1–v19: neither (D061).
                 Follow = formatVersion < PeopleVersion || v.Follow is null ? null : FromDto(v.Follow, formatVersion),
                 // v1–v23: none (D063).

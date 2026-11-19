@@ -63,12 +63,16 @@ public sealed partial class InspectorViewModel : ViewModelBase
     /// <param name="dialogs">Asks before a frame is matched to a climb other than the one at the playhead (D056 §1);
     /// without it the match is done without asking.</param>
     public InspectorViewModel(ITimelineEditService edit, StatusService status, IFontCatalog? fonts = null, EditingLock? editingLock = null,
-        ITextBoxMeasurer? textBoxes = null, IDialogService? dialogs = null)
+        ITextBoxMeasurer? textBoxes = null, IDialogService? dialogs = null, IClipFrameSampler? colorFrames = null)
     {
+        ColorFrames = colorFrames;   // D069 §7: «Автоулучшение»
         Group = new ClipGroupViewModel(edit, status, () => editingLock?.IsLocked == true, id => _findAsset?.Invoke(id));
         Group.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(ClipGroupViewModel.IsActive)) OnPropertyChanged(nameof(IsSingleClipSelected));
+            // D069 amendment 2: what the group has decides the rail's buttons.
+            if (e.PropertyName is { } name && (name == nameof(ClipGroupViewModel.IsActive) || name.StartsWith("Has", StringComparison.Ordinal)))
+                RefreshCategories();
         };
         _edit = edit;
         Group.FramingTimeOf = KeyframeTimeForFraming;   // D063 §5: Fill / Fit of a group writes each keyframed clip's playhead keyframe
@@ -78,6 +82,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         _systemFonts = fonts?.FamilyNames ?? Array.Empty<string>();
         _editingLock = editingLock ?? new EditingLock();
         _editingLock.PropertyChanged += (_, _) => OnPropertyChanged(nameof(IsEditingAllowed));
+        Group.ColorFrames = colorFrames;   // D069 amendment 1: the group's «Автоулучшение»
     }
 
     /// <summary>False while an export runs: the clip fields are disabled and no edit is sent.</summary>
@@ -577,6 +582,9 @@ public sealed partial class InspectorViewModel : ViewModelBase
         // D062 amendment 1: a route's orange is its holds alone — the Inspector shows the «Зацепки» section only.
         IsHoldsOnly = selection.IsOrange;
         _findAsset = selection.FindAsset;
+        _clipAsset = selection.Asset;   // D069 §7: «Автоулучшение» decodes the clip's file
+        _clipRate = selection.Rate;
+        Group.Rate = selection.Rate;   // D069 amendment 1: the group's fades in whole frames
         Group.Show(selection.Selected ?? new[] { selection.Clip });
         var clip = selection.Clip;
         _clip = clip;
@@ -694,6 +702,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
                 IsMuted = audio.IsMuted;
             }
             SyncAudioExtras(_clip);   // D064
+            SyncColor();              // D069 §7
             if (VisualProperties.Of(_clip) is { } visual)
             {
                 PositionX = (decimal)visual.PositionX;

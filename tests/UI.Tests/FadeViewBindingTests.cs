@@ -159,8 +159,9 @@ public sealed class FadeViewBindingTests
         var view = new InspectorView { DataContext = inspector };
         var speed = view.GetLogicalDescendants().OfType<NumericUpDown>().Single(n => n.Maximum == 4m);
 
-        speed.Value = 4m;                                                        // refused: not enough media before B
-        Assert.Contains("not enough media", status.Message);
+        track.IsLocked = true;                                                   // D069 amendment 2: refused as the track is locked
+        speed.Value = 4m;
+        Assert.Contains("locked", status.Message);
         Assert.Equal(ClipSpeed.Normal, ((MediaBackedClip)b).Speed);
 
         inspector.ShowModelValues();                                             // what losing the focus does

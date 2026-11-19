@@ -96,14 +96,15 @@
     <!-- Composition (Phase 7 Step 7): the project canvas with its real proportions, letterboxed
          in the available space; every layer is drawn by CompositionView (D018/D019). -->
     <Grid Grid.Row="1" Margin="16">
-      <rendering:CompositionView Layers="{Binding Layers}" Canvas="{Binding Canvas}"/>
+      <rendering:CompositionView x:Name="Composition" Layers="{Binding Layers}" Canvas="{Binding Canvas}"/>
       <!-- D068 item 17: an empty timeline's Preview says what to do. -->
-      <StackPanel x:Name="EmptyHint" IsVisible="{Binding ShowsEmptyHint}" HorizontalAlignment="Center" VerticalAlignment="Center"
+      <!-- D069 §2: its width follows the canvas's picture (EmptyHintWidth), so a narrow vertical canvas keeps it inside. -->
+      <StackPanel x:Name="EmptyHint" IsVisible="{Binding ShowsEmptyHint}" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="420"
                   Spacing="6" IsHitTestVisible="False">
         <TextBlock Text="{x:Static l:Strings.Preview_EmptyTitle}" FontSize="{DynamicResource FontSizeHeading}" FontWeight="SemiBold"
                    Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
         <TextBlock Text="{x:Static l:Strings.Preview_EmptyHint}" Foreground="{DynamicResource TextMutedBrush}"
-                   HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="420"/>
+                   HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
       </StackPanel>
       <!-- D068 item 9: the hold markup mode frames the picture in the mode's green. -->
       <Border x:Name="HoldMarkupFrame" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="2" CornerRadius="4" Margin="-8"

@@ -339,20 +339,46 @@ public sealed class MediaRemovalUiTests
     }
 
     [Fact]
-    public async Task The_context_menus_remove_takes_the_file_it_was_opened_on_even_inside_a_group()
+    public async Task The_context_menus_remove_inside_a_group_removes_the_whole_group_after_one_question_as_one_undo_step()
     {
+        // D069 §1 (the owner's check of Phase 49): both selected files go, one question, one Undo step.
         var a = Import("a.mp4");
         var b = Import("b.mp4");
-        var browser = Browser();
+        var c = Import("c.mp4");
+        Assert.True(_edit.AddClips(new[] { a.Id, b.Id }).Success);
+        var dialogs = new ScriptedDialogs(0);
+        var browser = Browser(dialogs);
         MediaBrowserItemViewModel Row(MediaAsset asset) => browser.Items.Single(i => i.Asset.Id == asset.Id);
         browser.SelectedItems.Add(Row(a));
         browser.SelectedItems.Add(Row(b));
         browser.SelectedItem = Row(a);
 
         browser.PrepareContextMenu(Row(b));
+        await browser.RemoveContextItemCommand.ExecuteAsync(null);
+
+        Assert.Single(dialogs.Asked);
+        Assert.DoesNotContain(_projects.Current.MediaAssets, m => m.Id == a.Id || m.Id == b.Id);
+        Assert.Contains(_projects.Current.MediaAssets, m => m.Id == c.Id);
+        _undo.Undo();
+        Assert.Equal(3, _projects.Current.MediaAssets.Count);
+    }
+
+    [Fact]
+    public async Task The_context_menus_remove_on_a_file_outside_the_selection_removes_that_file_alone()
+    {
+        var a = Import("a.mp4");
+        var b = Import("b.mp4");
+        var c = Import("c.mp4");
+        var browser = Browser();
+        MediaBrowserItemViewModel Row(MediaAsset asset) => browser.Items.Single(i => i.Asset.Id == asset.Id);
+        browser.SelectedItems.Add(Row(a));
+        browser.SelectedItems.Add(Row(b));
+        browser.SelectedItem = Row(a);
+
+        browser.PrepareContextMenu(Row(c));
         await browser.RemoveContextItemCommand.ExecuteAsync(null);          // unused: removed without asking
 
-        Assert.DoesNotContain(_projects.Current.MediaAssets, m => m.Id == b.Id);
-        Assert.Contains(_projects.Current.MediaAssets, m => m.Id == a.Id);
+        Assert.DoesNotContain(_projects.Current.MediaAssets, m => m.Id == c.Id);
+        Assert.Equal(2, _projects.Current.MediaAssets.Count);
     }
 }

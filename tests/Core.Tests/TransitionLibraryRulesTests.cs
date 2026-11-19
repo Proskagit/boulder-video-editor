@@ -22,9 +22,11 @@ public class TransitionLibraryRulesTests
     public static TheoryData<string> Rates => new() { "23.976", "24", "25", "29.97", "30", "50", "59.94", "60" };
 
     [Fact]
-    public void The_library_has_five_video_types_and_the_audio_track_keeps_the_crossfade()
+    public void The_library_has_its_video_types_and_the_audio_track_keeps_the_crossfade()
     {
-        Assert.Equal(new[] { "crossDissolve", "dipToBlack", "flash", "zoom", "push" }, TransitionRules.VideoTypes);
+        // D044: five; D069 §8: eight more.
+        Assert.Equal(new[] { "crossDissolve", "dipToBlack", "flash", "zoom", "push",
+            "blur", "wipe", "circle", "doors", "zoomOut", "spin", "whip", "glitch" }, TransitionRules.VideoTypes);
         foreach (var type in TransitionRules.VideoTypes)
         {
             Assert.True(TransitionRules.Allows(TrackType.Video, type), type);
@@ -32,7 +34,7 @@ public class TransitionLibraryRulesTests
         }
         Assert.True(TransitionRules.Allows(TrackType.Audio, TransitionRules.Crossfade));
         Assert.False(TransitionRules.Allows(TrackType.Video, TransitionRules.Crossfade));
-        Assert.False(TransitionRules.Allows(TrackType.Video, "wipe"));
+        Assert.False(TransitionRules.Allows(TrackType.Video, "iris"));
         Assert.False(TransitionRules.Allows(TrackType.Video, null));
         Assert.Equal(TransitionRules.CrossDissolve, TransitionRules.TypeFor(TrackType.Video));
         Assert.Equal(TransitionRules.Crossfade, TransitionRules.TypeFor(TrackType.Audio));
@@ -77,10 +79,11 @@ public class TransitionLibraryRulesTests
             Assert.Equal(min01, TransitionRules.MinFramesOf(type, rate));
         Assert.Equal(min02, TransitionRules.MinFramesOf(TransitionRules.Zoom, rate));
         Assert.Equal(min02, TransitionRules.MinFramesOf(TransitionRules.Push, rate));
-        Assert.Equal(max05, TransitionRules.MaxFramesOf(TransitionRules.Flash, rate));
-        Assert.Equal(max10, TransitionRules.MaxFramesOf(TransitionRules.Zoom, rate));
-        foreach (var type in new[] { TransitionRules.CrossDissolve, TransitionRules.DipToBlack, TransitionRules.Push, TransitionRules.Crossfade })
-            Assert.Equal(long.MaxValue, TransitionRules.MaxFramesOf(type, rate));
+        // D069 amendment 2 (the owner): every video type up to 5 s (rounded down to whole frames); the crossfade unlimited.
+        _ = (max05, max10);
+        foreach (var type in TransitionRules.VideoTypes)
+            Assert.Equal(MediaTime.FromSeconds(5).ToFrameFloor(rate), TransitionRules.MaxFramesOf(type, rate));
+        Assert.Equal(long.MaxValue, TransitionRules.MaxFramesOf(TransitionRules.Crossfade, rate));
         Assert.Equal(TransitionRules.MinFrames, TransitionRules.MinFramesOf(TransitionRules.Crossfade, rate));   // D032 unchanged
     }
 
@@ -127,11 +130,12 @@ public class TransitionLibraryRulesTests
     {
         var rate = FrameRate.Fps30;
         Assert.Equal(6, TransitionRules.ClampFrames(TransitionRules.Zoom, 6, long.MaxValue, rate));        // Flash 0.2 s → Zoom: kept
-        Assert.Equal(15, TransitionRules.ClampFrames(TransitionRules.Flash, 30, long.MaxValue, rate));     // Dissolve 1 s → Flash: 0.5 s
+        Assert.Equal(30, TransitionRules.ClampFrames(TransitionRules.Flash, 30, long.MaxValue, rate));     // Dissolve 1 s → Flash: kept (≤ 5 s)
+        Assert.Equal(150, TransitionRules.ClampFrames(TransitionRules.Flash, 200, long.MaxValue, rate));   // over 5 s → 5 s
         Assert.Equal(6, TransitionRules.ClampFrames(TransitionRules.Push, 3, long.MaxValue, rate));        // below Push's 0.2 s
         Assert.Equal(10, TransitionRules.ClampFrames(TransitionRules.Push, 18, 10, rate));                // to the longest that fits
         Assert.Null(TransitionRules.ClampFrames(TransitionRules.Push, 18, 5, rate));                      // less than the minimum fits
-        Assert.Equal(30, TransitionRules.ClampFrames(TransitionRules.Zoom, 45, 60, rate));                // the type's maximum wins
+        Assert.Equal(150, TransitionRules.ClampFrames(TransitionRules.Zoom, 200, 300, rate));             // the type's maximum wins
     }
 
     // --- validation ---------------------------------------------------------------------------------------------------
@@ -156,17 +160,21 @@ public class TransitionLibraryRulesTests
     }
 
     [Fact]
-    public void Every_video_type_is_valid_on_a_video_track_and_only_a_push_has_a_direction()
+    public void Every_video_type_is_valid_on_a_video_track_and_only_a_push_a_wipe_and_a_whip_have_a_direction()
     {
-        foreach (var type in TransitionRules.VideoTypes.Where(t => t != TransitionRules.Push))
+        var directed = new[] { TransitionRules.Push, TransitionRules.Wipe, TransitionRules.Whip };   // D069 §8: + wipe, whip
+        foreach (var type in TransitionRules.VideoTypes.Except(directed))
         {
             Assert.Null(Validate(type, null));
             Assert.Equal(Messages.TransitionRule_Direction, Validate(type, TransitionDirection.FromLeft));
         }
-        foreach (var direction in Enum.GetValues<TransitionDirection>())
-            Assert.Null(Validate(TransitionRules.Push, direction));
-        Assert.Equal(Messages.TransitionRule_Direction, Validate(TransitionRules.Push, null));
-        Assert.Equal(Messages.TransitionRule_Direction, Validate(TransitionRules.Push, (TransitionDirection)42));
+        foreach (var type in directed)
+        {
+            foreach (var direction in Enum.GetValues<TransitionDirection>())
+                Assert.Null(Validate(type, direction));
+            Assert.Equal(Messages.TransitionRule_Direction, Validate(type, null));
+            Assert.Equal(Messages.TransitionRule_Direction, Validate(type, (TransitionDirection)42));
+        }
     }
 
     [Fact]
@@ -174,7 +182,7 @@ public class TransitionLibraryRulesTests
     {
         Assert.Equal(Messages.TransitionRule_VideoOnly, Validate(TransitionRules.Zoom, null, TrackType.Audio));
         Assert.Equal(Messages.TransitionRule_AudioOnly, Validate(TransitionRules.Crossfade, null));
-        Assert.Equal(Messages.TransitionRule_UnknownType, Validate("wipe", null));
+        Assert.Equal(Messages.TransitionRule_UnknownType, Validate("iris", null));
         Assert.Null(Validate(TransitionRules.Crossfade, null, TrackType.Audio));
     }
 

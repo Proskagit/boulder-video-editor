@@ -189,20 +189,16 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
         Assert.Equal($"Dip to black added: {TransitionNames.Duration(10, Rate)}, the longest that fits here.", _status.Message);
     }
 
+    /// <summary>D069 amendment 2 (the owner's check): whole files without handles take every video type — the clips' edge
+    /// frames are held — and every type's button is available.</summary>
     [Fact]
-    public void A_type_needing_handles_is_refused_without_them_and_its_button_says_why()
+    public void Every_type_is_added_to_whole_videos_and_every_button_is_available()
     {
         var (a, b) = WholeVideos();
         SelectBoth(a, b);
-        Timeline.AddTransitionCommand.Execute(TransitionRules.Push);
-        Assert.Equal(Messages.Transition_NotEnoughMediaType, _status.Message);
-        Assert.Empty(V1.Transitions);
-
-        Timeline.AddTransitionCommand.Execute(TransitionRules.Zoom);                     // needs none
-        Assert.Single(V1.Transitions);
-        foreach (var type in new[] { TransitionRules.CrossDissolve, TransitionRules.Push })
-            Assert.Equal((false, Messages.Transition_NotEnoughMediaType), (Option(type).IsAvailable, Option(type).Tip));
-        foreach (var type in new[] { TransitionRules.DipToBlack, TransitionRules.Flash, TransitionRules.Zoom })
+        Timeline.AddTransitionCommand.Execute(TransitionRules.Doors);
+        Assert.Equal(TransitionRules.Doors, Assert.Single(V1.Transitions).TransitionTypeId);
+        foreach (var type in TransitionRules.VideoTypes)
             Assert.Equal((true, (string?)null), (Option(type).IsAvailable, Option(type).Tip));
     }
 
@@ -214,18 +210,18 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
         var (a, b) = SplitVideo();
         var t = AddSelected(a, b, TransitionRules.CrossDissolve);                       // 25 frames
 
-        Inspector.SetTransitionTypeCommand.Execute(TransitionRules.Flash);               // 1 s → 0.48 s (12 frames at 25)
-        Assert.Equal((TransitionRules.Flash, F(12)), (t.TransitionTypeId, t.Duration));
-        Assert.Equal($"Transition changed to Flash; its duration is now {TransitionNames.Duration(12, Rate)}.", _status.Message);
+        Inspector.SetTransitionTypeCommand.Execute(TransitionRules.Flash);               // 1 s kept: every type up to 5 s (D069 am. 2)
+        Assert.Equal((TransitionRules.Flash, F(25)), (t.TransitionTypeId, t.Duration));
+        Assert.Equal("Transition changed to Flash.", _status.Message);
         Assert.Equal(TransitionNames.Glyph(TransitionRules.Flash), ZoneVm().Glyph);
         Assert.True(Option(TransitionRules.Flash).IsSelected);
 
-        Inspector.SetTransitionTypeCommand.Execute(TransitionRules.Zoom);                // 12 frames lie in Zoom's 5–25
-        Assert.Equal(F(12), t.Duration);
+        Inspector.SetTransitionTypeCommand.Execute(TransitionRules.Zoom);                // 25 frames lie in Zoom's 5–125
+        Assert.Equal(F(25), t.Duration);
         Assert.Equal("Transition changed to Zoom.", _status.Message);
 
         _undo.Undo();
-        Assert.Equal((TransitionRules.Flash, F(12)), (t.TransitionTypeId, t.Duration));
+        Assert.Equal((TransitionRules.Flash, F(25)), (t.TransitionTypeId, t.Duration));
         Assert.True(Option(TransitionRules.Flash).IsSelected);                           // the section follows undo
         _undo.Undo();
         Assert.Equal((TransitionRules.CrossDissolve, F(25)), (t.TransitionTypeId, t.Duration));
@@ -276,8 +272,8 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
         _undo.Undo();                                                                     // the duration changes merged
         Assert.Equal(F(7), t.Duration);
 
-        Inspector.TransitionSeconds = 1.5m;                                               // above Zoom's 1 s
-        Assert.Equal(string.Format(Messages.Transition_DurationRange, 5, 24), _status.Message);
+        Inspector.TransitionSeconds = 5.5m;                                               // above every type's 5 s (D069 am. 2)
+        Assert.Equal(string.Format(Messages.Transition_DurationRange, 5, 120), _status.Message);
         Assert.Equal(F(7), t.Duration);
         Assert.Equal(0.29m, Inspector.TransitionSeconds);                                 // the field shows the model again
     }
@@ -351,7 +347,8 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
         var section = view.GetLogicalDescendants().OfType<StackPanel>().Single(p => p.Name == "TransitionLibrarySection");
         var types = view.GetLogicalDescendants().OfType<ItemsControl>().Single(i => i.Name == "TransitionTypeButtons");
         Assert.Same(Inspector.TransitionTypes, types.ItemsSource);
-        Assert.Equal(new[] { "Dissolve", "Dip to black", "Flash", "Zoom", "Push" }, Inspector.TransitionTypes.Select(o => o.Name));
+        Assert.Equal(new[] { "Dissolve", "Dip to black", "Flash", "Zoom", "Push",
+            "Blur", "Wipe", "Circle", "Doors", "Zoom out", "Spin", "Whip", "Glitch" }, Inspector.TransitionTypes.Select(o => o.Name));   // D069 §8
         var directions = view.GetLogicalDescendants().OfType<ItemsControl>().Single(i => i.Name == "TransitionDirectionButtons");
         Assert.Same(Inspector.TransitionDirections, directions.ItemsSource);
         var field = view.GetLogicalDescendants().OfType<CommitNumericUpDown>().Single(n => n.Name == "TransitionSecondsField");
@@ -360,7 +357,7 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
     }
 
     [Fact]
-    public void The_timeline_menu_lists_the_five_types_with_their_ids()
+    public void The_timeline_menu_lists_every_type_with_its_id_diagram_name_and_line()
     {
         var root = new DirectoryInfo(AppContext.BaseDirectory);
         while (root is not null && !File.Exists(Path.Combine(root.FullName, "AiVideoEditor.sln"))) root = root.Parent;
@@ -373,7 +370,11 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
 
         Assert.Equal(TransitionRules.VideoTypes, items.Select(i => (string?)i.Attribute("CommandParameter")));
         Assert.All(items, i => Assert.Equal("{Binding AddTransitionCommand}", (string?)i.Attribute("Command")));
-        Assert.All(items, i => Assert.StartsWith("{x:Static l:Strings.TransitionType_", (string?)i.Attribute("Header")));
+        // D069 §8: a diagram and the name with a line on what it does.
+        Assert.All(items, i => Assert.StartsWith("{x:Static controls:Icons.Transition",
+            (string?)i.Descendants().Single(e => e.Name.LocalName == "IconPath").Attribute("Glyph")));
+        Assert.All(items, i => Assert.Equal(2, i.Descendants().Count(e => e.Name.LocalName == "TextBlock" &&
+            ((string?)e.Attribute("Text"))!.StartsWith("{x:Static l:Strings.TransitionType_", StringComparison.Ordinal))));
     }
 
     // --- fixes after the Phase 28 manual run (D1, D3, D4, O1, O2) ------------------------------------------------------
@@ -407,11 +408,11 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
     {
         _projects.Current.Settings.FrameRate = FrameRate.Fps60;
         var (a, b) = SplitVideo(at: 600, rate: FrameRate.Fps60);
-        var t = AddSelected(a, b, TransitionRules.Flash);                               // 0.1–0.5 s: 6–30 frames
+        var t = AddSelected(a, b, TransitionRules.Flash);                               // 0.1–5 s: 6–300 frames (D069 am. 2)
 
-        Inspector.TransitionSeconds = 0.5m;
+        Inspector.TransitionSeconds = 5m;
         Inspector.StepTransitionSecondsCommand.Execute(1);
-        Assert.Equal(F(30), t.Duration);                                                  // nothing beyond the maximum
+        Assert.Equal(F(300), t.Duration);                                                 // nothing beyond the maximum
         Inspector.TransitionSeconds = 0.1m;
         Inspector.StepTransitionSecondsCommand.Execute(-1);
         Assert.Equal(F(6), t.Duration);                                                   // nothing below the minimum
@@ -458,13 +459,13 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
     {
         var (a, b) = SplitVideo();
         AddSelected(a, b, TransitionRules.CrossDissolve);
-        Assert.Equal(string.Format(Strings.Transition_Longest, TransitionNames.Duration(201, Rate)), Inspector.TransitionLimitDisplay);
+        Assert.Equal(string.Format(Strings.Transition_Longest, TransitionNames.Duration(125, Rate)), Inspector.TransitionLimitDisplay);
 
         foreach (var asset in _projects.Current.MediaAssets) asset.Metadata = null;     // the source's length unknown (O2)
         Timeline.OnTransitionPressed(ZoneVm());
 
-        Assert.Equal(Strings.Transition_NoLonger, Inspector.TransitionLimitDisplay);
-        Assert.Equal(1m, Inspector.MaxTransitionSeconds);                                 // the stored 25 frames stay reachable
+        // D069 amendment 2: the source's length no longer limits a video transition — the clips' frames and 5 s do.
+        Assert.Equal(string.Format(Strings.Transition_Longest, TransitionNames.Duration(125, Rate)), Inspector.TransitionLimitDisplay);
     }
 
     [Fact]

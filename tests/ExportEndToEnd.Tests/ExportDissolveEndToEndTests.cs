@@ -174,31 +174,22 @@ public sealed class ExportDissolveEndToEndTests
     }
 
     [FfmpegFact]
-    public async Task Handles_missing_at_render_time_refuse_the_export_while_the_Preview_holds_the_first_frame()
+    // D069 amendment 2 (the owner's check): without source handles the dissolve is exported, B holding its first frame
+    // before the cut and A its last after it — the same frames as the Preview (it was refused since Phase 28).
+    public async Task Without_handles_the_export_holds_the_edge_frames_as_the_Preview()
     {
         var p = new ProjectBuilder(FrameRate.Fps25);
         var v1 = p.VideoTrack();
         var pattern = _media.Pattern();
-        var a = p.Video(v1, _media.Solid(Red, FrameRate.Fps25), 0, 40);
+        var red = _media.Solid(Red, FrameRate.Fps25);
+        var a = p.Video(v1, red, 0, 40);
         var b = p.Video(v1, pattern, 40, 80);                                     // SourceIn 0: no handle before B
-        Dissolve(p, v1, a, b, 20);                                                // B shown from 30 anyway (media changed since)
-        var destination = Path.Combine(_media.OutputFolder(), "dissolve-no-handles.mp4");
-        File.WriteAllBytes(destination, "previous export"u8.ToArray());
-        var job = Preflight(p.Project, destination);
+        Dissolve(p, v1, a, b, 20);                                                // [30, 50)
+        var run = await Export(p, "dissolve-no-handles");
 
-        // D025 §4 as changed in Phase 28: the export is refused before anything is written, the old file stays.
-        var error = await Assert.ThrowsAsync<ExportException>(() =>
-            Service(EncoderHarness.Encoder()).ExportAsync(job, new SyncProgress(_ => { }), CancellationToken.None));
-        Assert.Equal(ExportFailure.TransitionSourceMissing, error.Failure);
-        Assert.Equal(new MissingTransitionSource(TransitionRules.CrossDissolve, v1.Id, a.Id, b.Id, p.F(40), BeforeRendering: true), error.MissingSource);
-        Assert.Equal("previous export"u8.ToArray(), File.ReadAllBytes(destination));
-        Assert.Equal(new[] { destination }, Directory.GetFiles(Path.GetDirectoryName(destination)!));
-        AssertNoFfmpegLeft();
-
-        // The Preview still holds B's first frame there (it is not a deliverable).
-        var first = SourceFrame(pattern.FilePath, 0);
-        var redFrame = SourceFrame(_media.Solid(Red, FrameRate.Fps25).FilePath, 0);
-        AssertBlend((await Preview(job.Snapshot, 35)).Pixels, redFrame, first, FadeRule.Ramp(5, 20), "held first frame in the Preview");
+        await AssertPreviewEqualsExport(run, "held edge frames", 30, 35, 39, 40, 45, 49);
+        AssertBlend((await Preview(run.Job.Snapshot, 35)).Pixels, SourceFrame(red.FilePath, 0), SourceFrame(pattern.FilePath, 0),
+            FadeRule.Ramp(5, 20), "B's first frame held");
     }
 
     // --- sound and cancel -------------------------------------------------------------------------------------------------

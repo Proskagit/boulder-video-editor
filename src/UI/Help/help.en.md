@@ -28,7 +28,7 @@ Marking holds, following people and cleaning sound need local models. They come 
 # The project and its files
 
 - **A project is a folder** with a project.json file. «New» (Ctrl+N), «Open» (Ctrl+O), «Recent» — the latest projects.
-- **«Save»** (Ctrl+S) and **«Save As»** (Ctrl+Shift+S). «Save As» creates a folder with the name you type — handy for keeping versions side by side: «Project v1», «Project v2». To replace an existing project, open its folder in the save window and save under the same name — the editor asks before replacing it.
+- **«Save»** (Ctrl+S) and **«Save As»** (Ctrl+Shift+S). «Save As» opens a window: the project's name and its folder («Change…» picks another); the project is saved into a folder of that name — handy for keeping versions side by side: «Project v1», «Project v2». If a project of that name is already there, the editor asks at once whether to replace it.
 - **Videos are not copied** into the project: it refers to your files. Don't move or rename them while you need the project.
 - **Autosave.** If the editor closed without saving, it offers to recover your work at the next start.
 - **«Project Settings…»** — the project's frame size and frame rate.
@@ -44,10 +44,11 @@ Marking holds, following people and cleaning sound need local models. They come 
 
 ## The timeline
 
-- Drag a clip with the mouse; its edges trim it. **Snapping** (N) pulls clips to their neighbours and the playhead.
+- Drag a clip with the mouse; its edges trim it. Clips always snap to their neighbours and the playhead (to place a clip a couple of frames from another, zoom in).
+- **The main track magnet** (the magnet button, N; on in new projects): the clips of V1 always lie one after another from zero — a removal closes its gap, a clip dropped onto V1 goes to the cut nearest the mouse pointer and moves the others aside, a trim moves the clips after it. Its linked sound, plates, holds, Follow, FIT climbs and the clips of the upper tracks that start over it go with a clip; music on the sound tracks stays. A new title or template is never added to V1: with only one video track a V2 is added for it.
 - **S** — split at the playhead, **Delete** — delete, **Ctrl+D** — duplicate, **Ctrl+C / Ctrl+V** — copy and paste.
 - **Q / W** — trim the selected clip's start / end to the playhead; with Shift the following clips move too.
-- Above the tracks — icons with tooltips: tracks, «Text», «Template», «Keyframe», «Mixer», split, delete, ripple delete, duplicate, transition, snapping, zoom.
+- Above the tracks — icons with tooltips: tracks, «Text», «Template», «Keyframe», «Mixer», split, delete, ripple delete, duplicate, transition, magnet, zoom.
 - A right click on a clip opens its menu with every clip command: copy, paste, duplicate, trim to the playhead, link or unlink the sound, close the gap, mark holds, delete.
 - Zoom: Ctrl+wheel, Ctrl+= / Ctrl+−, «\» — the whole timeline.
 - Undo and redo: Ctrl+Z / Ctrl+Y — for every edit.
@@ -57,6 +58,8 @@ Marking holds, following people and cleaning sound need local models. They come 
 - In Preview the selected clip can be moved, scaled and cropped (the buttons above the frame). It snaps to the frame's edges and centre.
 - **Keyframes** (the diamond button) make motion: the position and scale at different moments.
 - Speed, rotation and fades are in the Inspector's sections.
+- With several clips selected the Inspector changes them all: background, frame, opacity, volume, noise reduction, voice enhancement, fades, colour with «Auto enhance»; «—» means the clips differ.
+- **Colour** (the Inspector's section of a video clip): exposure, brightness, contrast, highlights, shadows, saturation, temperature and tint from −100 to +100; «Auto enhance» sets the sliders from the clip's frames — adjust them afterwards. The export has the same colours as the Preview.
 
 # Marking holds
 
@@ -104,7 +107,8 @@ The Inspector's **«Follow and people»** section.
 
 - **Text** — the «Add a text clip» button above the timeline. The font, colour, outline, background and its entrance animation are in the Inspector.
 - **Templates** — ready-made plates: «Boulder» (the route, grade, status TOP or attempt), «Heart rate» (in the menu once a training is imported), «Highlight», REC, VHS. The template's fields are in the Inspector's «Template» section; «Status appears» sets when the result shows.
-- **A transition** — select two neighbouring clips and press the transition button. On a sound track it is a cross-fade.
+- **A transition** — the «Transition» button above the timeline: for two selected neighbouring clips, for one clip (its cut nearest the playhead) or, with nothing selected, for the cut under the playhead (a click on the ruler near a cut puts the playhead exactly on it): the menu has 13 transitions with a diagram and a line each — dissolve, dip to black, flash, zoom, push, blur, wipe, circle, doors, zoom out, spin, whip, glitch. Push, wipe and whip take a side in the Inspector. Up to 5 s long: in the Inspector or by dragging an edge of the transition's zone on the timeline. Where a clip has no media beyond the cut, its edge frame is held during the transition. On a sound track it is a cross-fade.
+- The **«Heart rate»** plate is added only where the training has a heart rate for that place of the video; otherwise the editor says so in a window.
 
 # Sound
 
@@ -144,7 +148,7 @@ The Inspector's **«Follow and people»** section.
 - **Q / W** — trim the start / end to the playhead (with Shift the following clips move)
 - **Alt+← / Alt+→** — nudge the selection by a frame (with Shift by a second)
 - **I / O** — in / out, **«,» / «.»** — insert / overwrite from the source
-- **N** — snapping, **Ctrl+= / Ctrl+−** — zoom, **\** — the whole timeline
+- **N** — the main track magnet, **Ctrl+= / Ctrl+−** — zoom, **\** — the whole timeline
 
 ## Marking holds
 

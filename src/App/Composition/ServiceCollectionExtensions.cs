@@ -39,7 +39,9 @@ public static class ServiceCollectionExtensions
     {
         // --- Core / subsystem services -----------------------------------------
         services.AddSingleton<IUndoRedoService, UndoRedoService>();
-        services.AddSingleton<IProjectService, ProjectService>();
+        // D069 §6: the application's new projects have the main track's magnet on.
+        services.AddSingleton<IProjectService>(sp => new ProjectService(sp.GetRequiredService<IUndoRedoService>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ProjectService>>(), magneticMainTrackInNewProjects: true));
         services.AddSingleton<IMediaImportService, MediaImportService>();
         services.AddSingleton<ITrainingImportService, TrainingImportService>();   // Phase Coros C1: the FIT training
         services.AddSingleton<IFfprobeLocator, FfprobeLocator>();
@@ -176,6 +178,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<MediaRelinkWorkflow>();
         services.AddSingleton<ProjectFileWorkflow>();
         services.AddSingleton<IProjectSettingsDialog, AvaloniaProjectSettingsDialog>();
+        services.AddSingleton<IProjectSaveAsDialog, AvaloniaProjectSaveAsDialog>();
+        services.AddSingleton<IClipFrameSampler, ClipFrameSampler>();   // D069 §7: «Автоулучшение»
         services.AddSingleton<ProjectSettingsWorkflow>();
 
         // --- UI view models -------------------------------------------------------

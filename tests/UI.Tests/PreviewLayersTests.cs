@@ -274,7 +274,10 @@ public sealed class PreviewLayersTests : IAsyncLifetime
         var first = _decoder.Gate(asset.FilePath);
         Preview.Seek(F(200));
         Preview.Seek(F(120));                                              // waits for the first one's picture
-        await TickUntil(() => _decoder.OpenCount(asset.FilePath) > opens, "the first seek's open");
+        // The 200 seek's own open (not any other open of the file, e.g. a read-ahead one): only once that open has taken
+        // the first gate may the next gate be set, or the interim picture is held by the newest gate (a race seen on CI).
+        await TickUntil(() => _decoder.Requests.Skip(opens).Any(r => r.FilePath == asset.FilePath &&
+            r.FirstSamplePoint.TicksNumerator / r.FirstSamplePoint.TicksDenominator >= F(150).Ticks), "the first seek's open");
         // The newest seek's open is held until the interim picture has been seen: without it, on a slow machine both
         // seeks could finish between two ticks and the interim picture would never be observable.
         var newest = _decoder.Gate(asset.FilePath);

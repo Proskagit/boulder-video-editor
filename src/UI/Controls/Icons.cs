@@ -8,6 +8,21 @@ namespace AiVideoEditor.UI.Controls;
 /// </summary>
 public static class Icons
 {
+    // D069 §8: the transition menu's diagrams, one per type of the library.
+    public const string TransitionCrossDissolve = "M1.5,4 H9.5 V12 H1.5 Z M6.5,4 H14.5 V12 H6.5 Z";
+    public const string TransitionDipToBlack = "M1.5,4 H14.5 V12 H1.5 Z M8,4 V12 M4,6 L6,10 M10,6 L12,10";
+    public const string TransitionFlash = "M8,1.5 V4.5 M8,11.5 V14.5 M1.5,8 H4.5 M11.5,8 H14.5 M3.5,3.5 L5.5,5.5 M10.5,10.5 L12.5,12.5 M12.5,3.5 L10.5,5.5 M5.5,10.5 L3.5,12.5";
+    public const string TransitionZoom = "M1.5,3 H14.5 V13 H1.5 Z M5,6 H11 V10 H5 Z";
+    public const string TransitionPush = "M1.5,4 H14.5 V12 H1.5 Z M8,4 V12 M10,8 H14 M12,6 L14,8 L12,10";
+    public const string TransitionBlur = "M2,5 C4,3.5 6,6.5 8,5 C10,3.5 12,6.5 14,5 M2,8 C4,6.5 6,9.5 8,8 C10,6.5 12,9.5 14,8 M2,11 C4,9.5 6,12.5 8,11 C10,9.5 12,12.5 14,11";
+    public const string TransitionWipe = "M1.5,4 H14.5 V12 H1.5 Z M10,4 V12 M5,8 H9 M7,6 L9,8 L7,10";
+    public const string TransitionCircle = "M1.5,3 H14.5 V13 H1.5 Z M5,8 A3,3 0 1 0 11,8 A3,3 0 1 0 5,8 Z";
+    public const string TransitionDoors = "M1.5,4 H14.5 V12 H1.5 Z M6,4 V12 M10,4 V12 M5,8 H2.5 M11,8 H13.5";
+    public const string TransitionZoomOut = "M1.5,3 H14.5 V13 H1.5 Z M6,6.5 H10 V9.5 H6 Z M2.5,4 L5,6 M13.5,4 L11,6 M2.5,12 L5,10 M13.5,12 L11,10";
+    public const string TransitionSpin = "M13,8 A5,5 0 1 1 11,4 M11,1.5 V4.5 H14";
+    public const string TransitionWhip = "M5.5,4 H14.5 V12 H5.5 Z M1.5,6 H4 M1,8 H4 M1.5,10 H4";
+    public const string TransitionGlitch = "M1.5,4 H8 V7 H14.5 M1.5,9 H6 V12 H14.5 M3,6 H11 M5,10.5 H13";
+
     public const string Play = "M4.5,2.5 L13.5,8 L4.5,13.5 Z";
     public const string Pause = "M4.5,2.5 V13.5 M11.5,2.5 V13.5";
     public const string Stop = "M3.5,3.5 H12.5 V12.5 H3.5 Z";

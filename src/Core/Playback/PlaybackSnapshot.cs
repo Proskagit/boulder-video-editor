@@ -45,6 +45,9 @@ public sealed record PictureSpan(
     /// <summary>D057 §3.7: the canvas around the picture — black or the picture blurred (presentation only).</summary>
     public Entities.ClipBackground Background { get; init; }
 
+    /// <summary>D069 §7: the colour correction of the picture (presentation only; neutral: none).</summary>
+    public Color.ColorCorrection Color { get; init; } = AiVideoEditor.Core.Color.ColorCorrection.Neutral;
+
     /// <summary>The clip's speed (D022): part of the timing, so a change is never presentation-only.</summary>
     public ClipSpeed Speed { get; init; }
 
@@ -60,6 +63,21 @@ public sealed record PictureSpan(
     /// <see cref="TimelineStart"/> / <see cref="SourceIn"/>). Part of the timing: a change is never presentation-only.</summary>
     public MediaTime? ExtendedStart { get; init; }
     public MediaTime? ExtendedEnd { get; init; }
+
+    /// <summary>D069 amendment 2: the source has too little before the clip's start (after its end) for the zone's extension —
+    /// the extension holds the clip's first (last) frame, as other editors do, instead of the transition being refused.</summary>
+    public bool HoldsFirstFrame { get; init; }
+    public bool HoldsLastFrame { get; init; }
+
+    /// <summary>The timeline frame whose source frame <paramref name="timelineFrame"/> shows: itself, or the clip's own first /
+    /// last frame on an extension the source cannot fill (<see cref="HoldsFirstFrame"/>, <see cref="HoldsLastFrame"/>). The
+    /// Preview's and the export's readers both ask this.</summary>
+    public long SourceFrameOf(long timelineFrame, FrameRate rate)
+    {
+        if (HoldsFirstFrame && timelineFrame < TimelineStart.ToFrameCeiling(rate)) return TimelineStart.ToFrameCeiling(rate);
+        if (HoldsLastFrame && timelineFrame >= TimelineEnd.ToFrameCeiling(rate)) return TimelineEnd.ToFrameCeiling(rate) - 1;
+        return timelineFrame;
+    }
 
     /// <summary>Where the picture may be shown: the clip, extended into its dissolve zones.</summary>
     public MediaTime ShownStart => ExtendedStart ?? TimelineStart;
@@ -481,6 +499,41 @@ public sealed class PlaybackSnapshot
                 var zoomed = clip with { Motion = new CanvasMotion(TransitionPresentation.ZoomScale(j, zone.Frames), 0, 0) };
                 topDown.Add(zoomed);
                 return zoomed is PictureLayer { OccludesBelow: true } occluder && (mayOcclude?.Invoke(occluder) ?? true);
+            }
+            // D069 §8: B over A, B revealed through a shape; both from their handles.
+            case TransitionRules.Wipe or TransitionRules.Circle or TransitionRules.Doors:
+            {
+                var reveal = TransitionPresentation.Reveal(zone.TypeId, j, zone.Frames, zone.Direction ?? TransitionDirection.FromRight, Canvas);
+                if (ClipLayer(layer, zone.Cut, time, 1.0, ref frame) is { } b) topDown.Add(b with { Reveal = reveal });
+                if (ClipLayer(layer, new MediaTime(zone.Cut.Ticks - 1), time, 1.0, ref frame) is { } a) topDown.Add(a);
+                return false;
+            }
+            case TransitionRules.Whip:
+            {
+                var (motionA, motionB, blur) = TransitionPresentation.WhipMotions(j, zone.Frames, zone.Direction ?? TransitionDirection.FromRight, Canvas);
+                if (ClipLayer(layer, zone.Cut, time, 1.0, ref frame) is { } b) topDown.Add(b with { Motion = motionB, Effect = blur });
+                if (ClipLayer(layer, new MediaTime(zone.Cut.Ticks - 1), time, 1.0, ref frame) is { } a) topDown.Add(a with { Motion = motionA, Effect = blur });
+                return false;
+            }
+            // D069 §8: each clip on its own frames, with its effect peaking at the cut.
+            case TransitionRules.Blur or TransitionRules.ZoomOut or TransitionRules.Spin or TransitionRules.Glitch:
+            {
+                if (ClipLayer(layer, own, time, 1.0, ref frame) is not { } clip) return false;
+                var shown = zone.TypeId switch
+                {
+                    TransitionRules.Blur => clip with
+                    {
+                        Effect = new LayerEffect(TransitionPresentation.BlurPeak * TransitionPresentation.Bump(j, zone.Frames), BlurAxis.Both, 0, 0)
+                    },
+                    TransitionRules.ZoomOut => clip with { Motion = new CanvasMotion(TransitionPresentation.ZoomOutScale(j, zone.Frames), 0, 0) },
+                    TransitionRules.Spin => clip with { Motion = TransitionPresentation.SpinMotion(j, zone.Frames) },
+                    _ => Glitched(clip, TransitionPresentation.GlitchAt(j, zone.Frames, Canvas))
+                };
+                topDown.Add(shown);
+                return shown is PictureLayer { OccludesBelow: true } occluder && (mayOcclude?.Invoke(occluder) ?? true);
+
+                static CompositionLayer Glitched(CompositionLayer clip, (CanvasMotion Motion, LayerEffect Effect) glitch) =>
+                    clip with { Motion = glitch.Motion, Effect = glitch.Effect };
             }
             default:   // Dip to black, Flash
             {

@@ -23,6 +23,21 @@ public partial class PreviewView : UserControl
         InitializeComponent();
         _timer = new DispatcherTimer(TickInterval, DispatcherPriority.Render, (_, _) => _viewModel?.Tick());
         SourceBar.FrameRequested += (_, frame) => _viewModel?.SeekSource(frame);
+        // D069 §2: the empty timeline's hint wraps to the canvas's picture, not to the whole Preview.
+        Composition.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == BoundsProperty || e.Property == Rendering.CompositionView.CanvasProperty)
+                EmptyHint.MaxWidth = EmptyHintWidth(Composition.Bounds.Size, Composition.Canvas);
+        };
+    }
+
+    /// <summary>D069 §2: the widest the empty hint may be — the canvas fitted into <paramref name="area"/> (letterboxed, as
+    /// the composition draws it) less a margin, at most 420 px and at least 120.</summary>
+    internal static double EmptyHintWidth(Size area, Core.Composition.FrameSize canvas)
+    {
+        if (area.Width <= 0 || area.Height <= 0 || canvas.Width <= 0 || canvas.Height <= 0) return 420;
+        var fitted = Math.Min(area.Width, area.Height * canvas.Width / canvas.Height);
+        return Math.Clamp(fitted - 24, 120, 420);
     }
 
     protected override void OnDataContextChanged(EventArgs e)

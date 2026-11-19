@@ -1648,10 +1648,10 @@ Recover them now? Discarded changes can't be restored.</value>
     <value>Delete the selected clips and move the later clips of their tracks left to close up</value>
   </data>
   <data name="Timeline_Snap" xml:space="preserve">
-    <value>Snap</value>
+    <value>Main track magnet</value>
   </data>
   <data name="Timeline_SnapTip" xml:space="preserve">
-    <value>Snapping (N)</value>
+    <value>Main track magnet (N): the clips of V1 close up without gaps</value>
   </data>
   <data name="Timeline_Split" xml:space="preserve">
     <value>Split</value>
@@ -3783,7 +3783,10 @@ If you don't save, your changes will be lost.</value>
     <value>Files removed from the project: {0} (clips removed: {1}).</value>
   </data>
   <data name="Template_NoHeartRateHere" xml:space="preserve">
-    <value>The heart rate plate was added, but the training has no heart rate for the video at this place: the plate will show nothing here.</value>
+    <value>The training has no heart rate for this place of the video — the «Heart rate» plate was not added.</value>
+  </data>
+  <data name="Template_NoHeartRateTitle" xml:space="preserve">
+    <value>No heart rate</value>
   </data>
   <data name="Preview_EmptyTitle" xml:space="preserve">
     <value>The timeline is empty</value>
@@ -3811,5 +3814,155 @@ If you don't save, your changes will be lost.</value>
   </data>
   <data name="Export_SnapshotNotSaved" xml:space="preserve">
     <value>not saved — exported as it is now</value>
+  </data>
+  <data name="SaveAs_Title" xml:space="preserve">
+    <value>Save project as</value>
+  </data>
+  <data name="SaveAs_Name" xml:space="preserve">
+    <value>Project name</value>
+  </data>
+  <data name="SaveAs_Folder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="SaveAs_Change" xml:space="preserve">
+    <value>Change…</value>
+  </data>
+  <data name="SaveAs_Target" xml:space="preserve">
+    <value>The project will be saved into: {0}</value>
+  </data>
+  <data name="SaveAs_NameEmpty" xml:space="preserve">
+    <value>Type the project's name.</value>
+  </data>
+  <data name="SaveAs_NameInvalid" xml:space="preserve">
+    <value>The name has a character a folder name cannot have, or ends with a dot.</value>
+  </data>
+  <data name="SaveAs_NoFolder" xml:space="preserve">
+    <value>Choose the folder.</value>
+  </data>
+  <data name="SaveAs_FolderPickerTitle" xml:space="preserve">
+    <value>The folder for the project</value>
+  </data>
+  <data name="Magnet_On" xml:space="preserve">
+    <value>Main track magnet on: the clips of V1 close up without gaps.</value>
+  </data>
+  <data name="Magnet_Off" xml:space="preserve">
+    <value>Main track magnet off.</value>
+  </data>
+  <data name="Inspector_ColorHeading" xml:space="preserve">
+    <value>COLOUR</value>
+  </data>
+  <data name="Color_Exposure" xml:space="preserve">
+    <value>Exposure</value>
+  </data>
+  <data name="Color_Brightness" xml:space="preserve">
+    <value>Brightness</value>
+  </data>
+  <data name="Color_Contrast" xml:space="preserve">
+    <value>Contrast</value>
+  </data>
+  <data name="Color_Highlights" xml:space="preserve">
+    <value>Highlights</value>
+  </data>
+  <data name="Color_Shadows" xml:space="preserve">
+    <value>Shadows</value>
+  </data>
+  <data name="Color_Saturation" xml:space="preserve">
+    <value>Saturation</value>
+  </data>
+  <data name="Color_Temperature" xml:space="preserve">
+    <value>Temperature</value>
+  </data>
+  <data name="Color_Tint" xml:space="preserve">
+    <value>Tint</value>
+  </data>
+  <data name="Color_Auto" xml:space="preserve">
+    <value>Auto enhance</value>
+  </data>
+  <data name="Color_AutoTip" xml:space="preserve">
+    <value>Sets the sliders from the clip's frames; adjust them afterwards</value>
+  </data>
+  <data name="Color_AutoRunning" xml:space="preserve">
+    <value>Analysing the clip's frames…</value>
+  </data>
+  <data name="Color_AutoDone" xml:space="preserve">
+    <value>Auto enhance applied — the sliders can be adjusted.</value>
+  </data>
+  <data name="Color_AutoNoFrames" xml:space="preserve">
+    <value>The clip's frames could not be read — nothing changed.</value>
+  </data>
+  <data name="Color_AutoFailed" xml:space="preserve">
+    <value>Auto enhance failed: {0}</value>
+  </data>
+  <data name="Color_AutoUnavailable" xml:space="preserve">
+    <value>Auto enhance needs the clip's file.</value>
+  </data>
+  <data name="TransitionType_Blur" xml:space="preserve">
+    <value>Blur</value>
+  </data>
+  <data name="TransitionType_Wipe" xml:space="preserve">
+    <value>Wipe</value>
+  </data>
+  <data name="TransitionType_Circle" xml:space="preserve">
+    <value>Circle</value>
+  </data>
+  <data name="TransitionType_Doors" xml:space="preserve">
+    <value>Doors</value>
+  </data>
+  <data name="TransitionType_ZoomOut" xml:space="preserve">
+    <value>Zoom out</value>
+  </data>
+  <data name="TransitionType_Spin" xml:space="preserve">
+    <value>Spin</value>
+  </data>
+  <data name="TransitionType_Whip" xml:space="preserve">
+    <value>Whip</value>
+  </data>
+  <data name="TransitionType_Glitch" xml:space="preserve">
+    <value>Glitch</value>
+  </data>
+  <data name="TransitionType_Blur_Desc" xml:space="preserve">
+    <value>Each picture blurs into the cut</value>
+  </data>
+  <data name="TransitionType_Wipe_Desc" xml:space="preserve">
+    <value>An edge moves across and reveals the next clip</value>
+  </data>
+  <data name="TransitionType_Circle_Desc" xml:space="preserve">
+    <value>The next clip opens in a growing circle</value>
+  </data>
+  <data name="TransitionType_Doors_Desc" xml:space="preserve">
+    <value>The next clip opens from the middle to the sides</value>
+  </data>
+  <data name="TransitionType_ZoomOut_Desc" xml:space="preserve">
+    <value>The picture shrinks into the cut and grows back</value>
+  </data>
+  <data name="TransitionType_Spin_Desc" xml:space="preserve">
+    <value>The picture turns into the cut</value>
+  </data>
+  <data name="TransitionType_Whip_Desc" xml:space="preserve">
+    <value>A fast slide with a motion blur</value>
+  </data>
+  <data name="TransitionType_Glitch_Desc" xml:space="preserve">
+    <value>Split colours and jerks around the cut</value>
+  </data>
+  <data name="TransitionType_CrossDissolve_Desc" xml:space="preserve">
+    <value>The next clip appears over the previous one</value>
+  </data>
+  <data name="TransitionType_DipToBlack_Desc" xml:space="preserve">
+    <value>Through black</value>
+  </data>
+  <data name="TransitionType_Flash_Desc" xml:space="preserve">
+    <value>One white frame at the cut</value>
+  </data>
+  <data name="TransitionType_Zoom_Desc" xml:space="preserve">
+    <value>The picture grows into the cut</value>
+  </data>
+  <data name="TransitionType_Push_Desc" xml:space="preserve">
+    <value>The next clip pushes the previous one out</value>
+  </data>
+  <data name="SaveAs_WillAskReplace" xml:space="preserve">
+    <value>A project of this name is already here — saving asks whether to replace it.</value>
+  </data>
+  <data name="Transition_Dragging" xml:space="preserve">
+    <value>Transition length: {0}</value>
   </data>
 </root>

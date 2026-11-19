@@ -54,6 +54,8 @@ public class TransitionHandleReservationTests
     [InlineData("dipToBlack")]
     [InlineData("flash")]
     [InlineData("zoom")]
+    [InlineData("crossDissolve")]   // D069 amendment 2: no video type reserves the source any more (the edge frame is held)
+    [InlineData("push")]
     public void A_slip_reaches_the_sources_ends_beside_a_transition_without_handles(string type)
     {
         var (f, a, b, t) = Cut(type);
@@ -71,23 +73,11 @@ public class TransitionHandleReservationTests
     }
 
     [Theory]
-    [InlineData("crossDissolve")]
-    [InlineData("push")]
-    public void A_slip_keeps_the_handles_of_a_dissolve_or_a_push(string type)
-    {
-        var (f, a, b, t) = Cut(type);
-        var (beforeCut, afterCut) = Zone(t);
-
-        UndoRedo(f, () => f.Service.SlipClip(b.Id, -1000), () => Assert.Equal(beforeCut, Frame(b.SourceIn)));
-        UndoRedo(f, () => f.Service.SlipClip(a.Id, 1000), () => Assert.Equal(500 - afterCut, Frame(a.SourceOut)));
-    }
-
-    [Theory]
     [InlineData("dipToBlack", false)]
     [InlineData("flash", false)]
     [InlineData("zoom", false)]
-    [InlineData("crossDissolve", true)]
-    [InlineData("push", true)]
+    [InlineData("crossDissolve", false)]   // D069 amendment 2
+    [InlineData("push", false)]
     public void A_ripple_trim_outward_on_the_cut_keeps_a_handle_only_for_the_types_that_need_one(string type, bool handles)
     {
         var (f, a, b, t) = Cut(type);
@@ -123,34 +113,6 @@ public class TransitionHandleReservationTests
         Assert.Equal(afterCut, Frame(b.TimelineEnd) - Frame(b.TimelineStart));
         f.AssertValid();
         f.UndoRedo.Undo();
-    }
-
-    [Fact]
-    public void Beside_a_dissolve_and_a_flash_only_the_dissolve_keeps_a_handle_and_the_note_names_it()
-    {
-        var f = new TimelineFixture();
-        f.Settings.FrameRate = Rate;
-        Ok(f.Service.AddClip(f.Video(20, Rate).Id));
-        Ok(f.Service.Split(F(100)));
-        Ok(f.Service.Split(F(300)));
-        var clips = f.V1.Clips.OrderBy(c => c.TimelineStart).Cast<MediaBackedClip>().ToList();
-        var b = clips[1];
-        Ok(f.Service.AddTransition(clips[0].Id, b.Id, TransitionRules.Flash));             // at B's start: no handle
-        var dissolve = f.Service.AddTransition(b.Id, clips[2].Id, TransitionRules.CrossDissolve);   // at B's end: a handle
-        Ok(dissolve);
-        var afterCut = Zone(f.V1.Transitions.Single(t => t.Id == dissolve.TransitionId)).AfterCut;
-
-        UndoRedo(f, () => f.Service.SlipClip(b.Id, -1000), () => Assert.Equal(0, Frame(b.SourceIn)));
-        var later = f.Service.SlipClip(b.Id, 1000);
-        Ok(later);
-        Assert.Equal(500 - afterCut, Frame(b.SourceOut));
-        Assert.Equal("The slip stopped where a dissolve needs the clip's source.", later.Message);
-        Assert.Equal(2, f.V1.Transitions.Count);
-        f.UndoRedo.Undo();
-
-        var trim = f.Service.RippleTrimClip(b.Id, ClipEdge.End, F(1000));
-        Ok(trim);
-        Assert.Equal("The trim stopped where a dissolve needs the clip's frames.", trim.Message);
     }
 
     [Fact]

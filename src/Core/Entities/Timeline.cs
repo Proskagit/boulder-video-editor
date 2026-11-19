@@ -64,7 +64,12 @@ public sealed class Sequence
     /// timeline's initial zoom (about ten minutes across) once the view knows its width.</summary>
     public const double DefaultZoomPixelsPerSecond = 60;
 
+    /// <summary>Kept in the file for older versions (D069 §6): the timeline snaps always; not a switch any more.</summary>
     public bool SnappingEnabled { get; set; } = true;
+
+    /// <summary>D069 §6 (format v26): the main track's magnet — the lowest video track (V1) has no gaps, its clips go from 0
+    /// one after another. Off for a project saved before v26 and for a sequence built in code; a new project turns it on.</summary>
+    public bool MagneticMainTrack { get; set; }
 
     /// <summary>D064 §1: the project's master volume (linear 0–2).</summary>
     public double MasterVolume { get; set; } = 1.0;

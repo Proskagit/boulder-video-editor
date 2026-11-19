@@ -97,7 +97,7 @@ public sealed class AvaloniaCompositionRasterizer : ICompositionRasterizer
             var key = (frame.ClipId, frame.IsBackground);
             visible.Add(key);
             var bitmap = _bitmaps[key] = FrameBitmap.Ensure(_bitmaps.GetValueOrDefault(key), frame.Frame);
-            FrameBitmap.Copy(frame.Frame, bitmap);
+            FrameBitmap.Copy(frame.Frame, bitmap, frame.Color, frame.Effect);   // D069 §7, §8: the colour, the effect — as the Preview
         }
         foreach (var gone in _bitmaps.Keys.Where(id => !visible.Contains(id)).ToList())
         {

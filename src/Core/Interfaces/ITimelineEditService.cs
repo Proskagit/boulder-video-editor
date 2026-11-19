@@ -288,6 +288,9 @@ public interface ITimelineEditService
     /// <summary>D064 §1: the master volume (linear 0–2); a gesture's changes merge.</summary>
     TimelineEditResult SetMasterVolume(double volume, object? gesture = null);
 
+    /// <summary>D069 §6: switches the main track's magnet; turning it on closes the main track's gaps in the same Undo step.</summary>
+    TimelineEditResult SetMagneticMainTrack(bool on);
+
     /// <summary>D064 §4 «Закрепить в точки»: the ducking <paramref name="curve"/> (timeline samples) written into the volume
     /// points of the track's clips — multiplied with their own — and the track's ducking turned off; one Undo step. Refused on a
     /// locked track.</summary>
@@ -337,6 +340,10 @@ public interface ITimelineEditService
     /// <paramref name="hideOutlinesBehindPeople"/> also the clip's Occlusion; one undo step; refused for another kind of clip or
     /// a locked track.</summary>
     TimelineEditResult SetClipFollow(Guid clipId, FollowSettings? follow, bool? hideOutlinesBehindPeople = null, ClipPropertyGesture? gesture = null);
+
+    /// <summary>D069 §7: sets a video clip's colour correction — one Undo step; the changes of one <paramref name="gesture"/> (a
+    /// slider's drag) merge into one. Refused for a clip without a picture of its own, on a locked track, or out of range.</summary>
+    TimelineEditResult SetClipColor(Guid clipId, Color.ColorCorrection color, object? gesture = null);
 
     /// <summary>D061: whether a video clip's hold outlines are hidden behind people (Occlusion); one undo step.</summary>
     TimelineEditResult SetClipHidesOutlinesBehindPeople(Guid clipId, bool hides);

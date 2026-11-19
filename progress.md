@@ -2,6 +2,42 @@
 
 ## Current phase
 
+**Phase 50 — the 1.1 remarks, the magnetic main track, colour correction, more transitions (D069, 2026-11-18) — on
+`feat/phase-50-capcut-features`.** Step 0: Phase 49's acceptance recorded (D068 §8, DEVELOPMENT_PLAN, ROADMAP). The owner's answers
+(D069 §0): our own Save As window; «Пульс» without heart rate not created + a message; snapping always on, «Привязка» becomes the
+main track's magnet (on in new projects), other tracks' clips move with their V1 clip; eight colour sliders + «Автоулучшение» by the
+clip's frames; eight new transitions. **Implemented (2026-11-18):** part A (`ce6b204`: the Media Browser selection removed by
+✕ / menu / Delete, the empty timeline's hints, our own Save As window, the arrows 1.5× smaller, «Пульс» not created + an «ОК»
+window); §6 the magnetic main track (`4880d8c`, v26 `magneticMainTrack`); §7 colour correction with «Автоулучшение» (`f8f09e4`, v26
+`color`); §8 eight transitions (`3729352`); the help (`f2458d1`). **Review (phase-reviewer): FAIL** — an edit the magnet takes back
+left an empty Undo step and a dirty project; a paste inside a V1 clip was refused; the rate-fixing first video skipped the magnet;
+tests and records missing. **Fixed** (`35eea61` + a partner test): no-op updates dropped, an empty plan is no edit; paste to the
+nearest cut; the rate-fixing plan closed up; 9 more magnet tests; D069 §9 «Refined»; blur in parallel. **Re-review: PASS WITH
+NOTES.** **Gates (2026-11-18, after the fixes):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check`
+clean; Release + `AIVE_HEAVY_TESTS=1` with `--blame-hang`: Core 1 959, Timeline 1 227 (1 228 with the last test), Project 757,
+UI 1 312, Rendering 263, Export 142, Video 418 (+1 skipped), ExportEndToEnd 189, Vision 25 — all green. Not done: the owner's
+manual check (`docs/PHASE50_MANUAL_TEST_PLAN.md`; the app was not checked on screen by me — the computer-use tool could not reach
+the build's window); ExportEndToEnd scenes with colour and the new transitions through FFmpeg and a 4K blur timing.
+**Amendment 1 (D069 §10, the owner's check of 2026-11-18, commits `5a849bc`, `8e6dff9`):** Save As over a project picked by its
+folder, the arrows (Fluent's PathIcon), the magnet drag by the pointer, plates left moved by a taken-back move (the follow-carried
+templates planned again), «ЦВЕТ», the labelled Transition button (one clip / the playhead's cut), the playhead on cuts, fields
+60 / 72 and labels 120, the group's clean-up / fades / colour with «Автоулучшение». Review: FAIL (the reset dropped templates an
+edit lays out itself) → fixed (FollowCarried, magnet-on equality tests) → PASS WITH NOTES. **Gates (2026-11-19, `8e6dff9`):**
+Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check` clean; Release + `AIVE_HEAVY_TESTS=1` with
+`--blame-hang`: Core 1 959, Timeline 1 231, Project 757, UI 1 319, Rendering 264, Export 142, Video 418 (+1 skipped),
+ExportEndToEnd 189, Vision 25 — all green. Portable `artifacts/portable/BoulderVideoEditor-1.2.1-win-x64`. Not done: the owner's
+re-check (plan rows R1–R10).
+**Amendment 2 (D069 §11, the owner's check of 2026-11-19, commits `f9b8b96`, `9b97791`, `1f4d6ea` + the Esc follow-up):** Save As
+always asks over a project (its own folder too); plates of different clips never push each other (relocated to a free track above
+or a new one, one Undo step); video transitions need no source handles — the edge frame is held, all-or-nothing per edge, with a
+frame of margin (Preview and export alike); every video type up to 5 s; a zone's edge dragged on the timeline; one clip — the
+cut nearest the playhead; several clips — the rail and collapsible sections. Review: FAIL (the zone drag not cancelled by Esc /
+a lost capture) → fixed → PASS WITH NOTES (notes taken: the window's Esc path, plan row S4a, S4's wording). **Gates (2026-11-19,
+`1f4d6ea`):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check` clean; Debug + `AIVE_HEAVY_TESTS=1`:
+Core 1 959, Timeline 1 241, Project 757, UI 1 324, Rendering 264, Export 142, Video 418 (+1 skipped), ExportEndToEnd 189,
+Vision 25 — all green. Known: the resource `Transition_NotEnoughMediaType` is no longer used (kept). Not done: the owner's
+re-check (plan rows S1–S7, S4a); not checked on screen by me.
+
 **Phase 49 — UX 1.1 (D068, 2026-11-18) — on `feat/phase-49-ux`.** The owner's answers: icon variant C, the name everywhere
 including the per-user folder, CapCut re-reviewed in full, the help inside the application, the rebranding in 1.1. **Step 1 (name
 and icon):** «Boulder Video Editor» in the title, `App:Name`, messages, docs; `BoulderVideoEditor.exe`, portable / models archive
@@ -28,7 +64,7 @@ nested project, the field's spinner waiting for being shown, the phase-41 script
 (+1 skipped), ExportEndToEnd 189 — green; Export 141 / 142 under the full load (the known flake
 `A_rasterizer_failure_while_the_writer_waits_never_deadlocks`), 142 / 142 three times alone. The first full run before the fixes:
 Project.Tests hung under the full load (749 / 749 four times alone and in the second full run), the WASAPI device test failed
-once (passes alone; real audio device). **Re-review: PASS WITH NOTES** (no blocking issue; its two small notes fixed). PR #77. Not done: the owner's manual check of steps 3–4.
+once (passes alone; real audio device). **Re-review: PASS WITH NOTES** (no blocking issue; its two small notes fixed). PR #77. **The owner's manual check passed — accepted by the product owner on 2026-11-18** (merged, PR #77); its remarks → Phase 50 (D069 §1–§5).
 
 **Phase 48 — the owner's fixes before publishing 1.0 (D067, 2026-11-18) — on `feat/phase-48-release-fixes`.** Rubber-band
 selection in the Media Browser (from a blank place; Ctrl adds), the export's suggested name `yyyyMMdd_HHmm.mp4` (the last export's

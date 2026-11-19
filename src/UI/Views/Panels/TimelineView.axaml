@@ -13,12 +13,125 @@
       <panels:MixerPanel DataContext="{Binding Mixer}"/>
     </Flyout>
     <!-- D044 §6: the menu of the library's five types under "Transition" (shown by the view when the view model asks). -->
+    <!-- D069 §8: the thirteen types, each with its diagram and a line on what it does. -->
     <MenuFlyout x:Key="TransitionMenu" Placement="BottomEdgeAlignedLeft">
-      <MenuItem Header="{x:Static l:Strings.TransitionType_CrossDissolve}" Command="{Binding AddTransitionCommand}" CommandParameter="crossDissolve"/>
-      <MenuItem Header="{x:Static l:Strings.TransitionType_DipToBlack}" Command="{Binding AddTransitionCommand}" CommandParameter="dipToBlack"/>
-      <MenuItem Header="{x:Static l:Strings.TransitionType_Flash}" Command="{Binding AddTransitionCommand}" CommandParameter="flash"/>
-      <MenuItem Header="{x:Static l:Strings.TransitionType_Zoom}" Command="{Binding AddTransitionCommand}" CommandParameter="zoom"/>
-      <MenuItem Header="{x:Static l:Strings.TransitionType_Push}" Command="{Binding AddTransitionCommand}" CommandParameter="push"/>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="crossDissolve">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionCrossDissolve}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_CrossDissolve}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_CrossDissolve_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="dipToBlack">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionDipToBlack}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_DipToBlack}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_DipToBlack_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="flash">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionFlash}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Flash}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Flash_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="zoom">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionZoom}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Zoom}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Zoom_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="push">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionPush}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Push}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Push_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="blur">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionBlur}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Blur}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Blur_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="wipe">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionWipe}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Wipe}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Wipe_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="circle">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionCircle}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Circle}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Circle_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="doors">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionDoors}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Doors}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Doors_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="zoomOut">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionZoomOut}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_ZoomOut}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_ZoomOut_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="spin">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionSpin}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Spin}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Spin_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="whip">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionWhip}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Whip}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Whip_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
+      <MenuItem Command="{Binding AddTransitionCommand}" CommandParameter="glitch">
+        <MenuItem.Icon><controls:IconPath Glyph="{x:Static controls:Icons.TransitionGlitch}"/></MenuItem.Icon>
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Glitch}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TransitionType_Glitch_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
     </MenuFlyout>
     <!-- D045 §5: the menu of the four templates of Phase 29 under «Шаблон», and the heart-rate overlay (Phase 35.5). -->
     <MenuFlyout x:Key="TemplateMenu" Placement="BottomEdgeAlignedLeft">
@@ -261,10 +374,17 @@
             </Button>
             <!-- D044 §6: "Transition" — on a video track the menu of the library's five types, on an audio track the
                  crossfade at once (the view model raises TransitionMenuRequested for the menu). -->
-            <Button x:Name="TransitionButton" Classes="icon" Command="{Binding OpenTransitionMenuCommand}" FlyoutBase.AttachedFlyout="{StaticResource TransitionMenu}" ToolTip.Tip="{x:Static l:Strings.Timeline_TransitionTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_Transition}">
-              <controls:IconPath Glyph="{x:Static controls:Icons.Dissolve}"/>
+            <!-- D069 amendment 1: with its label (it was not found as an icon); one selected clip — its cut with the next clip; none —
+                 the cut under the playhead. -->
+            <Button x:Name="TransitionButton" Command="{Binding OpenTransitionMenuCommand}" FlyoutBase.AttachedFlyout="{StaticResource TransitionMenu}" ToolTip.Tip="{x:Static l:Strings.Timeline_TransitionTip}"
+                    AutomationProperties.Name="{x:Static l:Strings.Timeline_Transition}" FontSize="{DynamicResource FontSizeCaption}">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.Dissolve}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_Transition}"/>
+              </StackPanel>
             </Button>
-            <ToggleButton Classes="icon" IsChecked="{Binding SnappingEnabled}" ToolTip.Tip="{x:Static l:Strings.Timeline_SnapTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_Snap}">
+            <!-- D069 §6: the main track's magnet (snapping is always on). -->
+            <ToggleButton x:Name="MagnetButton" Classes="icon" IsChecked="{Binding MagneticMainTrack}" ToolTip.Tip="{x:Static l:Strings.Timeline_SnapTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_Snap}">
               <controls:IconPath Glyph="{x:Static controls:Icons.Snap}"/>
             </ToggleButton>
             <!-- D048 variant B is the default (segments inside the «Боулдер»); this Debug-only switch turns back to the lane. -->
@@ -680,13 +800,17 @@
           </Grid>
         </ScrollViewer>
 
-        <!-- Empty timeline (D024 Step 9.8): how to add a clip. Not hit-testable, so drops reach the tracks. -->
-        <StackPanel Grid.Column="1" IsVisible="{Binding IsEmpty}" IsHitTestVisible="False" Spacing="4" Margin="16,0,16,28"
-                    HorizontalAlignment="Center" VerticalAlignment="Bottom">
-          <TextBlock Text="{x:Static l:Strings.Timeline_Empty}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{DynamicResource FontSizeBody}" HorizontalAlignment="Center"/>
-          <TextBlock Text="{x:Static l:Strings.Timeline_EmptyHint}"
-                     Foreground="{DynamicResource TextMutedBrush}" FontSize="{DynamicResource FontSizeCaption}" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
-        </StackPanel>
+        <!-- Empty timeline (D024 Step 9.8): how to add a clip. Not hit-testable, so drops reach the tracks. D069 §2: in the middle
+             of the free area below the ruler and the tracks (the first row is their height), never on a track's line. -->
+        <Grid x:Name="EmptyTimelineHint" Grid.Column="1" IsVisible="{Binding IsEmpty}" IsHitTestVisible="False" ClipToBounds="True"
+              RowDefinitions="Auto,*">
+          <Border Height="{Binding PlayheadHeight}"/>
+          <StackPanel Grid.Row="1" Spacing="4" Margin="16,4" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock Text="{x:Static l:Strings.Timeline_Empty}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{DynamicResource FontSizeBody}" HorizontalAlignment="Center"/>
+            <TextBlock Text="{x:Static l:Strings.Timeline_EmptyHint}"
+                       Foreground="{DynamicResource TextMutedBrush}" FontSize="{DynamicResource FontSizeCaption}" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
+          </StackPanel>
+        </Grid>
 
       </Grid>
 

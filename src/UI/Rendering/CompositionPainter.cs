@@ -115,12 +115,22 @@ public static class CompositionPainter
         return surface.Upload();
     }
 
+    /// <summary>D069 §8: the reveal as a clip — a rectangle, or a circle as a rounded square of half its side (no Geometry: the
+    /// export paints off the UI thread, where Avalonia's geometries cannot be made).</summary>
+    private static RoundedRect RevealClip(RevealShape reveal)
+    {
+        var rect = RenderConversions.ToRect(reveal.Bounds);
+        return reveal.IsEllipse ? new RoundedRect(rect, Math.Min(rect.Width, rect.Height) / 2) : new RoundedRect(rect);
+    }
+
     private static void DrawOperations(DrawingContext context, ImmutableArray<DrawOperation> operations, int from, int to,
         Func<FrameDraw, IImage?> image, TextGlyphCache? glyphs, CancellationToken ct)
     {
         for (var index = from; index < to; index++)
         {
             var op = operations[index];
+            // D069 §8: a revealed layer only in its shape (target pixels, outside the operation's own transform).
+            using (op.Reveal is { } reveal ? context.PushClip(RevealClip(reveal)) : default(DrawingContext.PushedState?))
             using (context.PushTransform(RenderConversions.ToMatrix(op.Transform)))
             // An outline composites its opacity itself, as a group (D036 §4).
             using (context.PushOpacity(op is OutlineDraw ? 1.0 : op.Opacity))
@@ -332,7 +342,22 @@ public static class FrameBitmap
         return new WriteableBitmap(new PixelSize(frame.Width, frame.Height), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Unpremul);
     }
 
-    public static void Copy(DecodedFrame frame, WriteableBitmap bitmap)
+    public static void Copy(DecodedFrame frame, WriteableBitmap bitmap) => Copy(frame, bitmap, null);
+
+    /// <summary>D069 §7, §8: the frame's pixels with the colour correction and then a transition's effect applied in the
+    /// bitmap's memory.</summary>
+    public static unsafe void Copy(DecodedFrame frame, WriteableBitmap bitmap, Core.Color.ColorCorrection? color, LayerEffect effect)
+    {
+        Copy(frame, bitmap, color);
+        if (effect.IsNone) return;
+        using var target = bitmap.Lock();
+        var pixels = new Span<byte>((void*)target.Address, target.RowBytes * frame.Height);
+        TransitionEffects.Apply(pixels, frame.Width, frame.Height, target.RowBytes, effect);
+    }
+
+    /// <summary>D069 §7: the frame's pixels with the clip's colour correction applied on the way (the frame itself is never
+    /// changed — decoders and caches share it); a neutral or null correction copies them as they are.</summary>
+    public static void Copy(DecodedFrame frame, WriteableBitmap bitmap, Core.Color.ColorCorrection? color)
     {
         using var target = bitmap.Lock();
         // DecodedFrame buffers are array-backed; copy rows straight from the array.
@@ -342,5 +367,19 @@ public static class FrameBitmap
         var rowBytes = frame.Width * DecodedFrame.BytesPerPixel;
         for (var y = 0; y < frame.Height; y++)
             Marshal.Copy(source.Array!, source.Offset + y * frame.Stride, target.Address + y * target.RowBytes, rowBytes);
+        if (color is { IsNeutral: false })
+            Correct(target.Address, target.RowBytes, frame.Width, frame.Height, Core.Color.ColorAdjust.For(color));   // in the bitmap's memory
+    }
+
+    /// <summary>D069 §7: the correction applied to the bitmap's rows in place (rows in parallel for a large picture).</summary>
+    private static unsafe void Correct(nint address, int rowBytes, int width, int height, Core.Color.ColorAdjust adjust)
+    {
+        var bytes = width * DecodedFrame.BytesPerPixel;
+        if ((long)width * height < 200_000)
+        {
+            for (var y = 0; y < height; y++) adjust.ApplyRow(new Span<byte>((byte*)address + (long)y * rowBytes, bytes));
+            return;
+        }
+        Parallel.For(0, height, y => adjust.ApplyRow(new Span<byte>((byte*)address + (long)y * rowBytes, bytes)));
     }
 }

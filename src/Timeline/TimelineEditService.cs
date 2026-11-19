@@ -216,7 +216,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         {
             startFrame = Math.Max(0, requested.ToNearestFrame(rateForAdd));
             // D057 §3.12: a new file dropped on a clip goes right after it (D037 §3 pushes the later clips).
-            if (insertOnDrop && DropOnClipEnd(plan, track, startFrame, rateForAdd) is { } after) startFrame = after;
+            if (insertOnDrop && DropOnClipEnd(plan, track, startFrame, rateForAdd, IsMagneticMain(track)) is { } after) startFrame = after;
         }
         else
         {
@@ -236,13 +236,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
 
     /// <summary>D057 §3.12: the end frame of the clip of <paramref name="track"/> that <paramref name="frame"/> lies strictly
-    /// inside, or null.</summary>
-    private static long? DropOnClipEnd(EditPlan plan, Track track, long frame, FrameRate rate)
+    /// inside, or null; on the magnetic main track (D069 §6) the cut nearest the frame — its start or its end.</summary>
+    private static long? DropOnClipEnd(EditPlan plan, Track track, long frame, FrameRate rate, bool nearest = false)
     {
         foreach (var clip in plan.EffectiveClips(track))
         {
             long start = clip.State.Start.ToNearestFrame(rate), end = clip.State.End.ToNearestFrame(rate);
-            if (start < frame && frame < end) return end;
+            if (start < frame && frame < end) return nearest ? NearestCut(start, end, frame) : end;
         }
         return null;
     }
@@ -279,7 +279,10 @@ public sealed partial class TimelineEditService : ITimelineEditService
         return null;
     }
 
-    public TimelineEditResult AddTextClip(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox = null)
+    public TimelineEditResult AddTextClip(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox = null) =>
+        OverMainTrack("Add Text", () => AddTextClipOnTop(start, measureBox));
+
+    private TimelineEditResult AddTextClipOnTop(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox)
     {
         // Titles go over the picture: the topmost video track, never a new one.
         var track = Sequence.VideoTracks.OrderByDescending(t => t.Order).FirstOrDefault();
@@ -323,6 +326,11 @@ public sealed partial class TimelineEditService : ITimelineEditService
     public TimelineEditResult AddTemplateClip(TemplateKind kind, MediaTime start)
     {
         if (!Enum.IsDefined(kind)) throw new ArgumentOutOfRangeException(nameof(kind));
+        return OverMainTrack("Add Template", () => AddTemplateClipOnTop(kind, start));
+    }
+
+    private TimelineEditResult AddTemplateClipOnTop(TemplateKind kind, MediaTime start)
+    {
 
         // D045 §5: over the picture as a text — the topmost video track, never a new one.
         var track = Sequence.VideoTracks.OrderByDescending(t => t.Order).FirstOrDefault();
@@ -383,7 +391,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (error is not null) return TimelineEditResult.Fail(error);
         if (plan is null) return TimelineEditResult.Unchanged();
 
-        Commit(plan, clips.Count == 1 ? "Move Clip" : "Move Clips");
+        if (!Commit(plan, clips.Count == 1 ? "Move Clip" : "Move Clips")) return TimelineEditResult.Unchanged();
         return TimelineEditResult.Ok(clips.Select(c => c.Id).ToList(), TransitionNote(plan));
     }
 
@@ -469,7 +477,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
         {
             if (moving.Contains(other.Clip)) continue;
             long otherStart = other.State.Start.ToNearestFrame(rate), otherEnd = other.State.End.ToNearestFrame(rate);
-            if (otherStart < start && start < otherEnd) return frameDelta + (otherStart - start);
+            if (otherStart < start && start < otherEnd)
+                return frameDelta + ((IsMagneticMain(track) ? NearestCut(otherStart, otherEnd, start) : otherStart) - start);   // D069 §6
         }
         return frameDelta;
     }
@@ -621,6 +630,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
         // D051 §5.4 (B1): never a second copy of a markup linked to a FIT climb.
         if (DuplicatesFitMarkup(clipboard)) return TimelineEditResult.Fail(string.Format(Messages.Edit_PasteDuplicateFitMarkup, verb));
 
+        // D069 §6: on the magnetic main track the copies go to the cut nearest the paste point.
+        if (PasteToNearestCut(plan, placed) is { } cutError) return TimelineEditResult.Fail($"Can't {verb}: {cutError}");
+
         // D037 §3 (Q10): the clips on the right make room; a copy starting inside a clip is refused.
         if (MakeRoom(plan, placed, verb) is { } roomError) return TimelineEditResult.Fail(roomError);
 
@@ -639,7 +651,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (error is not null) return TimelineEditResult.Fail(error);
         if (plan is null) return TimelineEditResult.Unchanged();
 
-        Commit(plan, "Trim Clip");
+        if (!Commit(plan, "Trim Clip")) return TimelineEditResult.Unchanged();
         return TimelineEditResult.Ok(new[] { clipId }, TransitionNote(plan));
     }
 
@@ -1108,13 +1120,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         if (Validate(plan) is { } error) return TimelineEditResult.Fail(string.Format(Messages.Edit_CantTrim, error));
 
-        Commit(plan, (ripple, edge) switch
+        if (!Commit(plan, (ripple, edge) switch
         {
             (false, ClipEdge.Start) => "Trim Start to Playhead",
             (false, _) => "Trim End to Playhead",
             (true, ClipEdge.Start) => "Ripple Trim Start to Playhead",
             _ => "Ripple Trim End to Playhead"
-        });
+        })) return TimelineEditResult.Unchanged();
         return new TimelineEditResult
         {
             Success = true,
@@ -1205,7 +1217,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             // A dissolve on the dragged edge needs the source beyond it: A after its end, B before its start (D025 §4) — only
             // the types that need handles (D044 §3: Dissolve, Push; D032: the crossfade).
             var needed = 0L;
-            foreach (var t in track.Transitions.Where(t => TransitionRules.RequiresHandles(t.TransitionTypeId)))
+            foreach (var t in track.Transitions.Where(t => TransitionRules.NeedsSourceHandles(t.TransitionTypeId)))
             {
                 var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(t.Duration, rate));
                 if (edge == ClipEdge.End && t.LeftClipId == clip.Id) needed = afterCut;
@@ -1263,7 +1275,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (error is not null) return TimelineEditResult.Fail(error);
         if (plan is null) return stopped ? TimelineEditResult.Fail(note) : TimelineEditResult.Unchanged();
 
-        Commit(plan, edge == ClipEdge.Start ? "Ripple Trim Start" : "Ripple Trim End");
+        if (!Commit(plan, edge == ClipEdge.Start ? "Ripple Trim Start" : "Ripple Trim End")) return TimelineEditResult.Unchanged();
         return TimelineEditResult.Ok(new[] { clipId }, Join(stopped ? note : null, TransitionNote(plan)));
     }
 
@@ -1350,7 +1362,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         // A dissolve keeps the source it needs beyond the clip (D025 §4): before its start (B), after its end (A) — only the
         // types that need handles (D044 §3: Dissolve, Push; D032: the crossfade).
         long needBefore = 0, needAfter = 0;
-        foreach (var t in track.Transitions.Where(t => TransitionRules.RequiresHandles(t.TransitionTypeId)))
+        foreach (var t in track.Transitions.Where(t => TransitionRules.NeedsSourceHandles(t.TransitionTypeId)))
         {
             var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(t.Duration, rate));
             if (t.RightClipId == clip.Id) needBefore = beforeCut;
@@ -1464,6 +1476,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (plan.AllTracks.FirstOrDefault(t => t.IsLocked && t.Clips.Any(plan.Removes)) is { } lockedTemplateTrack)
             return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, lockedTemplateTrack.Name));
         plan.ReconcileTransitions();   // a deleted clip's dissolves go with it (D025 §5)
+        if (CloseMainTrackGaps(plan) is { } magnetError) return TimelineEditResult.Fail(magnetError);   // D069 §6
 
         Commit(plan, clips.Count == 1 ? "Delete Clip" : "Delete Clips");
         return TimelineEditResult.Ok(clips.Select(c => c.Id).ToList(), TransitionNote(plan));
@@ -1843,6 +1856,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var plan = new EditPlan(Sequence, Settings);
         var clips = plan.AllTracks.SelectMany(t => t.Clips).Where(c => ids.Any(id => Uses(c, id))).ToList();
         foreach (var clip in clips) plan.Remove(clip);
+        if (CloseMainTrackGaps(plan) is { } magnetError) return TimelineEditResult.Fail(magnetError);   // D069 §6
         plan.ReconcileTransitions();   // the removed clips' dissolves go with them (D025 §5)
         plan.ReconcileLinks();         // and the links of their partners (D032 R5), never on a locked track (AQ12)
         if (plan.ClearedLinks.FirstOrDefault(c => plan.TrackOf(c).IsLocked) is { } lockedPartner)
@@ -2356,7 +2370,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (ResolveCut(plan, leftClipId, rightClipId, out var track, out var left, out var right, allowLocked: true) is not null)
             return null;
         var own = track.Transitions.FirstOrDefault(t => t.LeftClipId == left.Id);
-        return MaxFrames(track, left, right, plan.Rate, except: own, own?.TransitionTypeId ?? TransitionRules.TypeFor(track.Type));
+        var type = own?.TransitionTypeId ?? TransitionRules.TypeFor(track.Type);
+        return Math.Min(MaxFrames(track, left, right, plan.Rate, except: own, type), TransitionRules.MaxFramesOf(type, plan.Rate));   // D069 am. 2: ≤ 5 s
     }
 
     public long? MaxTransitionFrames(Guid leftClipId, Guid rightClipId, string typeId)
@@ -2376,19 +2391,17 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var min = TransitionRules.MinFramesOf(typeId, rate);
         var max = TransitionRules.MaxFramesOf(typeId, rate);
         if (frames >= min && frames <= max) return null;
-        if (typeId is TransitionRules.CrossDissolve or TransitionRules.Crossfade)
+        if (frames < min && typeId is TransitionRules.CrossDissolve or TransitionRules.Crossfade)
             return string.Format(Tr(noun, Messages.Transition_MinDissolve, Messages.Transition_MinCrossfade), min);
         return max == long.MaxValue
             ? string.Format(Messages.Transition_DurationMin, min)
             : string.Format(Messages.Transition_DurationRange, min, max);
     }
 
-    /// <summary>Why not even the type's minimum fits the cut: the source handles for a type that needs them (naming the
-    /// types that need none, D044 §6), else the clips' length.</summary>
+    /// <summary>Why not even the type's minimum fits the cut: the source handles for the crossfade, else the clips' length
+    /// (D069 amendment 2: no video type needs handles).</summary>
     private static string NothingFits(string typeId, string noun) =>
-        !TransitionRules.RequiresHandles(typeId) ? Messages.TransitionRule_ClipTooShort
-        : typeId == TransitionRules.Crossfade ? NotEnoughMediaFor(noun)
-        : Messages.Transition_NotEnoughMediaType;
+        TransitionRules.NeedsSourceHandles(typeId) ? NotEnoughMediaFor(noun) : Messages.TransitionRule_ClipTooShort;
 
     /// <summary>What a transition of <paramref name="track"/> is called: a dissolve on a video track, a crossfade on an audio
     /// track (D032 R9).</summary>
@@ -2421,7 +2434,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
     /// <paramref name="except"/> is the cut's own transition.</summary>
     private long MaxFrames(Track track, Clip left, Clip right, FrameRate rate, Transition? except, string typeId)
     {
-        var handles = TransitionRules.RequiresHandles(typeId);
+        var handles = TransitionRules.NeedsSourceHandles(typeId);
         var others = track.Transitions.Where(t => t != except).ToList();
         long PartAtStart(Clip clip) => others.Where(t => t.RightClipId == clip.Id)
             .Select(t => TransitionRules.Zone(TransitionRules.Frames(t.Duration, rate)).AfterCut).DefaultIfEmpty(0).Max();
@@ -2441,7 +2454,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         frames <= max ? null
         : typeId is not (TransitionRules.CrossDissolve or TransitionRules.Crossfade)
             ? max < TransitionRules.MinFrames ? NothingFits(typeId, noun) : string.Format(Messages.Transition_TooLongType, frames, max)
-        : max < TransitionRules.MinFrames ? NotEnoughMediaFor(noun)
+        : max < TransitionRules.MinFrames ? (typeId == TransitionRules.Crossfade ? NotEnoughMediaFor(noun) : Messages.TransitionRule_ClipTooShort)
         : string.Format(Tr(noun, Messages.Transition_TooLongDissolve, Messages.Transition_TooLongCrossfade), frames, max);
 
     /// <summary><see cref="NotEnoughMedia"/> for a dissolve, the same words for a crossfade.</summary>
@@ -2472,7 +2485,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
     private static string? EdgeTypeOf(Track track, Clip clip, ClipEdge? edge = null, bool handlesOnly = false) =>
         track.Transitions
             .Where(t => (edge != ClipEdge.Start && t.LeftClipId == clip.Id) || (edge != ClipEdge.End && t.RightClipId == clip.Id))
-            .Where(t => !handlesOnly || TransitionRules.RequiresHandles(t.TransitionTypeId))
+            .Where(t => !handlesOnly || TransitionRules.NeedsSourceHandles(t.TransitionTypeId))
             .Select(t => t.TransitionTypeId)
             .OrderBy(id => !IsNamed(id))
             .FirstOrDefault();
@@ -2581,6 +2594,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
     /// handles of every dissolve the edit creates or keeps (§4) — and the links.</summary>
     private string? Validate(EditPlan plan)
     {
+        if (ApplyMagnet(plan) is { } magnetError) return magnetError;               // D069 §6: no gaps on the main track
+        if (Sequence.MagneticMainTrack) plan.ResetCarried();   // D069 amendment 1: the templates follow where the clips end
         if (ReconcileOverlays(plan) is { } overlayError) return overlayError;   // D048: the overlays follow their clip
         if (PlanPartnerShifts(plan) is { } partnerError) return partnerError;
         plan.ReconcileTransitions();
@@ -2623,13 +2638,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         foreach (var (transition, state) in transitions)
         {
-            if (!plan.IsTouched(transition) || !TransitionRules.RequiresHandles(state.TypeId)) continue;
+            if (!plan.IsTouched(transition) || !TransitionRules.NeedsSourceHandles(state.TypeId)) continue;
             var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(state.Duration, plan.Rate));
             var left = clips[state.LeftClipId];
             var right = clips[state.RightClipId];
             if (afterCut > DissolveHandles.After(left.Clip, left.State, AssetOf(left.Clip), plan.Rate) ||
                 beforeCut > DissolveHandles.Before(right.Clip, right.State, AssetOf(right.Clip), plan.Rate))
-                return state.TypeId == TransitionRules.Push ? Messages.Transition_NotEnoughMediaType : NotEnoughMediaFor(TransitionNoun(track));
+                return NotEnoughMediaFor(TransitionNoun(track));   // the crossfade only (D069 amendment 2)
         }
         return null;
     }
@@ -2682,10 +2697,15 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     private static string? Join(string? a, string? b) => a is null ? b : b is null ? a : $"{a} {b}";
 
-    private void Commit(EditPlan plan, string description)
+    /// <summary>Executes the plan as one Undo step; false — nothing to do (D069 §6: every change the magnet undid again), no
+    /// step recorded.</summary>
+    private bool Commit(EditPlan plan, string description)
     {
+        plan.DropNoOpUpdates();
+        if (plan.IsEmpty) return false;
         var command = new NotifyingCommand(plan.BuildCommand(description), _projectService.NotifyTimelineChanged);
         ExecuteTracked(command);
+        return true;
     }
 
     private static Clip CreateClip(MediaAsset asset, ClipState state)
@@ -2728,7 +2748,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 // curve, so the picture does not change at the cut; each part shows and edits its own.
                 Keyframes = v.Keyframes,
                 // D034 §6 / D053: the routes go with the copy; they are immutable, so the two clips stay independent.
-                Routes = v.Routes
+                Routes = v.Routes,
+                Color = v.Color   // D069 §7 (immutable)
             },
             AudioClip a => new AudioClip
             {

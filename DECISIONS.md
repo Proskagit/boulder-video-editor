@@ -11074,6 +11074,148 @@ Fixed in this phase:
 3. **More transitions** (the library has five: dissolve, dip to black, flash, zoom, push) — the popular ones of CapCut.
 4. **The export window's cover frame** (item 13's rest).
 
+### 8. Acceptance (the product owner, 2026-11-18)
+
+The owner's manual check of the portable build of `feat/phase-49-ux` (steps 3–4 of `docs/PHASE49_MANUAL_TEST_PLAN.md`) passed —
+**Phase 49 accepted**; merged with PR #77. Its remarks (media removal of several files, the empty timeline's hints on a vertical
+canvas, Save As over a project, the fields' arrows, «Пульс» without heart rate) are Phase 50's part A (D069 §1).
+
 ### Out of scope
 
 New editing features; changing the file formats; the release 1.1's packaging (after the phase); Р2–Р4 (§6); §7's separate phases.
+
+## D069 — Phase 50: the 1.1 remarks, the magnetic main track, colour correction, more transitions *(set by the owner on 2026-11-18)*
+
+Date: 2026-11-18. **Status: the scope set by the product owner on 2026-11-18**; product questions answered the same day (§0).
+Branch `feat/phase-50-capcut-features` from `main` after PR #77. **Format change:** `project.json` v26 (§6, §7). Manual plan:
+`docs/PHASE50_MANUAL_TEST_PLAN.md`. Built in steps; this decision grows with them.
+
+### 0. The owner's answers (2026-11-18)
+
+- Save As (§3): **our own window** — the name and the folder (changed by the system's folder picker); a name of an existing
+  project asks «Заменить?» at once.
+- «Пульс» without heart rate (§5): **not created**, a message window with «ОК» says why.
+- The magnetic main track (§6): **snapping to edges is always on** (no switch any more); the timeline's «Привязка» button (and N)
+  becomes **the main track's magnet**; **on in new projects**, off in a project saved before v26. Clips of the other tracks
+  **move with** the main track's clip they start in (CapCut's linkage); sound on the audio tracks stays.
+  The critique given and accepted: snapping can no longer be switched off — a clip two frames from a cut is placed by zooming in
+  (the snap distance is in pixels).
+- Colour correction (§7): **eight sliders** −100…+100 — Экспозиция, Яркость, Контраст, Света, Тени, Насыщенность, Температура,
+  Оттенок; one value per clip (no keyframes); «Автоулучшение» **analyses frames of the clip** and sets the sliders (seen and
+  adjustable, one Undo step), no AI model.
+- Transitions (§8): **eight new** — Размытие, Вытеснение (a wipe with a direction), Круг, Шторки, Отдаление, Вращение,
+  Смахивание, Глитч; the menu shows a name and a small static diagram (no animated previews).
+
+### 1. Media removal of a selection (remark 1)
+
+The row's ✕ and the context menu's «Удалить» on a file that is in the selection remove **every selected file** — one question
+naming their number, one Undo step (`RemoveMediaMany`); on a file outside the selection only that file (as before). Delete in the
+Media Browser removes the selected files the same way (the timeline's Delete unchanged).
+
+### 2. The empty timeline's hints (remark 2)
+
+The Preview's «Таймлайн пуст» wraps to the canvas's width (a narrow vertical canvas keeps it inside the frame). The timeline's
+hint sits in the middle of the free area above the tracks, not on a track's line.
+
+### 3. Save As (remark 3)
+
+Our own window (the owner's choice): «Имя проекта», «Папка: …» with «Изменить…» (the system's folder picker, the last place
+remembered), «Сохранить» / «Отмена». The project goes into the folder `<folder>\<name>` as D067 §6; a name of an existing project
+there asks «Заменить?» before anything is written, a file of that name or an invalid name is refused in the window with the
+reason. D067 §6's system save dialog and D068 §7's «own name typed again» rule are replaced.
+
+### 4. The numeric fields' arrows (remark 4)
+
+The arrow glyphs of a field's spinner column are about 1.5 times smaller, so they fit their buttons.
+
+### 5. «Пульс» without heart rate (remark 5)
+
+Where the training has no heart rate on the clip's span the template is **not created** and a message window with «ОК» says:
+«В тренировке нет пульса для этого места видео — плашка «Пульс» не добавлена.»
+
+### 6. The magnetic main track (CapCut's main track magnet)
+
+The main track is the lowest video track (V1). While the magnet is on, V1's clips always lie from 0 without gaps: a clip
+dropped, inserted or pasted onto V1 goes between the clips at the drop point (the clips after it move right), a removal or a
+move closes its gap, a trim of a clip's end pulls the clips after it; turning the magnet on closes the existing gaps (one Undo
+step). Everything bound to a V1 clip moves with it: its linked sound, its anchored templates («Боулдер», «Пульс»), its holds,
+Follow parts, keyframes and FIT climbs (all in source time already), the transitions between its neighbours (a transition whose
+clips are no longer adjacent is removed); and the clips of the other video tracks that start inside it (the owner's answer).
+Audio tracks' own clips stay. The snapping is always on (`Sequence.SnappingEnabled` kept in the file for older versions, not a
+switch any more). `project.json` v26: `magneticMainTrack` (absent in an older file → off).
+
+### 7. Colour correction
+
+A video clip's «Цвет» section in the Inspector (group «Клип»): eight sliders −100…+100 (§0), a section reset and
+«Автоулучшение». The correction is one pure per-pixel function of Core (`ColorAdjust`), applied to the clip's decoded picture
+before it is composed — the Preview and the export draw the same pixels; a neutral correction is skipped. Each slider's change
+is one Undo step (a drag merges); «Автоулучшение» is one step. `project.json` v26: `color` on a video clip (absent → neutral).
+
+### 8. Transitions
+
+Eight new types of the library (§0), each with its default and range as D044 §5, listed in the menu with a static diagram;
+Вытеснение and Смахивание have a direction as Сдвиг. The Preview and the export draw them the same way.
+
+### 9. Refined in implementation (2026-11-18, after the phase review)
+
+- §1: Backspace in the Media Browser removes the selection as Delete does.
+- §3: the place the window offers for a project never saved is the last Save As place of the session (then Documents); a saved
+  project offers its own parent folder.
+- §6: the magnet is skipped while V1 is locked (an edit of V1 is refused there anyway; turning the magnet on then only sets the
+  switch). A clip of another video track that would collide on its track after being carried stays where it is (the edit is
+  never refused for it); a linked sound that cannot follow on its own audio track refuses the edit as any move does (D037 §3,
+  nothing changes). An edit the magnet takes back entirely (a nudge of the last V1 clip) is no edit — no Undo step, not dirty. A
+  paste onto V1 goes to the nearest cut as a drop does; a three-point Insert («,») keeps its rule of splitting the clip at the
+  playhead (SQ6, D031) — no gap remains either way. The edit that fixes the frame rate (the first video, D007) is closed up on
+  the new grid (its other tracks keep their re-gridded places). The magnet is about adding: a title or template dragged onto V1 by hand is
+  placed there as any clip.
+- §8: the blur of Размытие / Смахивание runs its lines in parallel on a pooled copy of the frame (a 4K zone frame).
+
+### 10. Amendment 1 — the owner's check of 2026-11-18
+
+- **Save As:** a project's own folder picked by «Изменить…» means that project (its parent the folder, its name the name), so
+  «Заменить?» is asked; the window says before «Сохранить» that a project of that name is there. Saving under the open
+  project's own name is a plain save (no question), as before.
+- **The fields' arrows:** Fluent's arrow is a PathIcon 16 × 8 (the button's content) whose Path is stretched to fill it — the §4
+  change resized the Path and changed nothing; the icon itself is now 16 / 1.5 × 8 / 1.5 (checked in Fluent's real template).
+- **The magnetic main track:** a drag onto V1 takes the pointer as the dragged clips' start (as CapCut) — the grabbed point of a
+  long clip no longer decides the cut. A move the magnet takes back left the anchored plates moved (the plates were carried
+  before the magnet put the clip back) — the carried templates are planned again from the clips' final places; the timeline is
+  laid out again after a drag that changed nothing. Only the templates the follow rule carried with a clip are planned again — a
+  template an edit lays out itself (a «Боулдер»'s layout, the FIT areas, an insert's split) keeps its timing (the review). Known and left: a «Боулдер» laid out on a V1 clip while V1 already has a gap (the magnet
+  was on while V1 was locked) gets the closing's shift instead of its layout — rare; laying it out again fixes it.
+
+### 11. Amendment 2 — the owner's check of 2026-11-19
+
+- **Save As:** the window asks «Заменить?» whenever a project is in the target folder — the open project's own folder too (the
+  case the owner met: a project saved over itself was replaced without a question).
+- **Plates of different clips never push each other:** a template anchored to a clip that an edit would place over a clip it
+  does not place goes to the lowest unlocked video track above its clip that is free there, or to a new track at the top in
+  the same Undo step (`EditPlan.NewTracks`, `Relocated`) — two clips on one canvas keep their own «Боулдер».
+- **Video transitions need no source handles (D025 §4, D044 §3 changed):** where a clip's source ends inside the zone, its
+  edge frame is held (`PictureSpan.HoldsFirstFrame / HoldsLastFrame`, the Preview's and the export's readers alike); a dissolve,
+  a push, a wipe, a circle, doors and a whip are added to whole files; trims, slips and relinks no longer keep handles for them;
+  the export no longer refuses a zone short of source. The audio crossfade keeps its handles (a sound cannot be held). The hold
+  is all-or-nothing per edge: when the source covers only part of the extension, the whole extension shows the edge frame.
+  A press within 6 px of any zone's edge starts the drag (and selects it); a lost pointer capture or Esc cancels it (no edit).
+  Over such an edge, and while it is dragged, the cursor is the horizontal resize one (the owner's re-check).
+- **At most 5 s** for every video transition (the clips' frames permitting); a zone's edge dragged on the timeline sets the
+  length (centred on the cut, one Undo step).
+- **One selected clip:** the transition goes on its cut nearest the playhead.
+- **Several clips:** the Inspector has the rail and collapsible sections as one clip's — «Трансформация» (background, framing,
+  opacity, fades), «ЦВЕТ», «ЗВУК», the holds' outline — in the groups Clip, Holds, Sound. A clip moved onto its own plates' track is refused (not reproduced as a
+  deletion; covered by the existing refusal «a template anchored to a clip stays inside that clip»).
+- **«ЦВЕТ»** in capitals as the other sections.
+- **The transition button** has its label «Переход»; with one clip selected it takes the clip's cut with the next clip (else the
+  previous one); with none — the cut under the playhead on the main track (two clips as before).
+- **The playhead** lands on a clip's start or end within the snap distance when the ruler is clicked or scrubbed.
+- **The Inspector's fields** narrower (60 px on a slider's line, 72 otherwise) and the label column 120 px, so
+  «Шумоподавление» stays on one line.
+- **Several clips selected** (the group's Inspector, D058 §3): also noise reduction and voice enhancement, the fades in / out
+  (whole frames, each at most its clip), and the colour — the eight values, «Сбросить цвет» and «Автоулучшение» (each video
+  clip by its own frames) — each change one Undo step over the group, «—» where the clips differ.
+
+### Out of scope
+
+The export window's cover frame (backlog, the owner); keyframed colour; LUTs and curves; animated transition previews; a
+switch for snapping.

@@ -50,6 +50,13 @@ public partial class MediaBrowserView : UserControl
                 vm.SelectAllCommand.Execute(null);
                 e.Handled = true;
             }
+            // D069 §1: Delete with the list focused removes the selected files (the window's Delete — the timeline's — never
+            // sees it).
+            else if (e.Key is Key.Delete or Key.Back && e.KeyModifiers == KeyModifiers.None && DataContext is MediaBrowserViewModel removeVm)
+            {
+                if (removeVm.RemoveCommand.CanExecute(null)) removeVm.RemoveCommand.Execute(null);
+                e.Handled = true;
+            }
         }, RoutingStrategies.Tunnel);
     }
 
@@ -88,6 +95,14 @@ public partial class MediaBrowserView : UserControl
             _marqueeMoved = false;
             e.Pointer.Capture(MediaList);
             e.Handled = true;
+            return;
+        }
+        // D069 §1: a press on a row's ✕ is the button's — it neither starts a drag nor selects the file alone on release (the
+        // selection it removes stays).
+        if (IsInButton(e.Source))
+        {
+            Reset();
+            _deferredSelect = false;
             return;
         }
         _pressedItem = ItemFrom(e.Source);
@@ -206,6 +221,13 @@ public partial class MediaBrowserView : UserControl
             if (element is ListBox) return true;
         }
         return true;
+    }
+
+    private static bool IsInButton(object? source)
+    {
+        for (var element = source as Visual; element is not null and not ListBoxItem; element = element.GetVisualParent())
+            if (element is Button) return true;
+        return false;
     }
 
     private void Reset()

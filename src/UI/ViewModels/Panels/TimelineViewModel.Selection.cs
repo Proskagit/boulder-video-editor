@@ -88,6 +88,7 @@ public sealed partial class TimelineViewModel
     {
         if (_marquee is not null) CancelMarquee();
         else if (IsFollowDragging) CancelFollowDrag();
+        else if (IsTransitionResizing) CancelTransitionResize();   // D069 amendment 2: the zone's edge drag
         else if (IsGestureActive) CancelGesture();
         else ClearSelection();
     }

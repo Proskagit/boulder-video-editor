@@ -1,0 +1,31 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:l="using:AiVideoEditor.UI.Localization"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AiVideoEditor.UI.ViewModels"
+             x:Class="AiVideoEditor.UI.Views.SaveAsView"
+             x:DataType="vm:SaveAsViewModel">
+
+  <!-- D069 §3: our own Save As — the project's name and its folder; the project goes into <folder>\<name>. -->
+  <StackPanel Margin="20" Spacing="8">
+    <TextBlock Text="{x:Static l:Strings.SaveAs_Name}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+    <TextBox x:Name="NameBox" Text="{Binding Name, Mode=TwoWay}" AutomationProperties.Name="{x:Static l:Strings.SaveAs_Name}"/>
+
+    <TextBlock Text="{x:Static l:Strings.SaveAs_Folder}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,0"/>
+    <Grid ColumnDefinitions="*,Auto">
+      <TextBox x:Name="FolderBox" Text="{Binding Folder, Mode=TwoWay}" AutomationProperties.Name="{x:Static l:Strings.SaveAs_Folder}"/>
+      <Button Grid.Column="1" Margin="8,0,0,0" Content="{x:Static l:Strings.SaveAs_Change}" Command="{Binding ChangeFolderCommand}"/>
+    </Grid>
+
+    <TextBlock Text="{Binding TargetFolder, StringFormat={x:Static l:Strings.SaveAs_Target}}" IsVisible="{Binding TargetFolder, Converter={x:Static ObjectConverters.IsNotNull}}"
+               FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap"/>
+    <TextBlock Text="{Binding ReplaceNote}" IsVisible="{Binding ReplaceNote, Converter={x:Static ObjectConverters.IsNotNull}}"
+               FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap"/>
+    <TextBlock Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}"
+               FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource DangerTextBrush}" TextWrapping="Wrap"/>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,8,0,0">
+      <Button x:Name="SaveButton" Classes="accent" Content="{x:Static l:Strings.Common_Save}" Command="{Binding SaveCommand}" IsDefault="True"/>
+      <Button Content="{x:Static l:Strings.Common_Cancel}" Command="{Binding CancelCommand}"/>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

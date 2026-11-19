@@ -1438,4 +1438,34 @@
   <data name="Preflight_SoloActive" xml:space="preserve">
     <value>Включено Solo ({0}): в экспорте будет слышно только дорожки Solo.</value>
   </data>
+  <data name="Magnet_GapsKept" xml:space="preserve">
+    <value>Магнит включён, но промежутки главной дорожки закрыть не удалось: {0}</value>
+  </data>
+  <data name="Color_OutOfRange" xml:space="preserve">
+    <value>Значение цвета должно быть от −100 до +100.</value>
+  </data>
+  <data name="TransitionName_Blur" xml:space="preserve">
+    <value>Размытие</value>
+  </data>
+  <data name="TransitionName_Wipe" xml:space="preserve">
+    <value>Вытеснение</value>
+  </data>
+  <data name="TransitionName_Circle" xml:space="preserve">
+    <value>Круг</value>
+  </data>
+  <data name="TransitionName_Doors" xml:space="preserve">
+    <value>Шторки</value>
+  </data>
+  <data name="TransitionName_ZoomOut" xml:space="preserve">
+    <value>Отдаление</value>
+  </data>
+  <data name="TransitionName_Spin" xml:space="preserve">
+    <value>Вращение</value>
+  </data>
+  <data name="TransitionName_Whip" xml:space="preserve">
+    <value>Смахивание</value>
+  </data>
+  <data name="TransitionName_Glitch" xml:space="preserve">
+    <value>Глитч</value>
+  </data>
 </root>

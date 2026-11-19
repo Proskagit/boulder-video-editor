@@ -656,8 +656,12 @@ Backlog: noise reduction / voice enhancement by keyframes (D067 §3).
 **Phase 49 (D068, 2026-11-18) — UX 1.1** on `feat/phase-49-ux` (worktree `C:\BoulderVideoEditor`): the name Boulder Video Editor
 (the exe, the per-user folder moved at startup), icon C, the in-app help (F1), the research of CapCut / DaVinci Resolve / Shotcut
 / GoPro Quik / Insta360 Studio and the audit (`docs/UX_CAPCUT_RESEARCH.md`, `docs/UX_AUDIT_1.1.md`), the theme and items 1–18
-and Р1, the owner's check (amendment 1). Next phases named by the owner (D068 §7): **the magnetic main track**, **colour
-correction** with an automatic improvement, **more transitions**, the export's cover frame.
+and Р1, the owner's check (amendment 1). **Accepted by the product owner on 2026-11-18** (merged, PR #77); its remarks → Phase 50.
+
+**Phase 50 (D069, 2026-11-18)** on `feat/phase-50-capcut-features`: the remarks of the Phase 49 check (media removal of a
+selection and Delete in the Media Browser, the empty timeline's hints, our own Save As window, the fields' arrows, «Пульс» without
+heart rate), **the magnetic main track**, **colour correction** with «Автоулучшение», **eight more transitions** (`project.json`
+v26). The export's cover frame → backlog.
 
 **Development after the release (D065 §5, 2026-11-17):** the route from its first hold (a research folding Phases 31 / 32:
 the user marks one hold, the editor proposes the holds of its colour); Phase 36's Steps 36.3 (`PassId`, the «Итоги» template)
