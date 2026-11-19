@@ -31,7 +31,7 @@ Mark each row PASS / FAIL / note.
 
 | # | Steps | Expected |
 |---|---|---|
-| B1 | With the editor running, run the setup again. | It asks to close Boulder Video Editor first (or closes it itself after asking). |
+| B1 | With the editor running, run the setup again. | It asks to close Boulder Video Editor first. |
 | B2 | Close the editor, run the setup again. | No folder page (the installed folder is used); quick (the models are already in place — not copied again); the desktop shortcut as before. One entry in «Приложения». |
 | B3 | Delete `%LOCALAPPDATA%\BoulderVideoEditor\models\audio-v1\silero_vad.onnx`, run the setup again. | The file is back; «Настройки…» → «ИИ-модели» shows every model in place. |
 | B4 | After B2 / B3. | The project of A12, the settings and «Недавние» are as before. |

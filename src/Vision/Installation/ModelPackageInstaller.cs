@@ -85,7 +85,14 @@ public sealed class ModelPackageInstaller : IModelInstaller
             }
         }
 
-        Directory.CreateDirectory(modelsRoot);
+        try
+        {
+            Directory.CreateDirectory(modelsRoot);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            throw new ModelInstallException(string.Format(Core.Localization.Messages.ModelInstall_WriteFailed, modelsRoot, ex.Message), ex);
+        }
         if (_freeSpace(modelsRoot) is { } free && free < toCopy + SpaceMargin)
             throw new ModelInstallException(string.Format(Core.Localization.Messages.ModelInstall_NoSpace,
                 Megabytes(toCopy + SpaceMargin), Megabytes(free), modelsRoot));
@@ -138,9 +145,19 @@ public sealed class ModelPackageInstaller : IModelInstaller
         try
         {
             string hash;
+            FileStream input;
             try
             {
-                await using (var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, useAsync: true))
+                input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, useAsync: true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // the package's file can't be read: the package, not the models folder, is at fault
+                throw new ModelInstallException(string.Format(Core.Localization.Messages.ModelInstall_PackageDamaged, name, packageRoot), ex);
+            }
+            try
+            {
+                await using (input)
                 await using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, BufferSize, useAsync: true))
                 {
                     using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
@@ -187,11 +204,25 @@ public sealed class ModelPackageInstaller : IModelInstaller
         }
     }
 
-    /// <summary>Temporary files of an installation that ended without cleaning up (a crash, a power cut).</summary>
+    /// <summary>A temporary file untouched this long belongs to no running installation.</summary>
+    internal static readonly TimeSpan LeftoverAge = TimeSpan.FromMinutes(10);
+
+    /// <summary>Temporary files of an installation that ended without cleaning up (a crash, a power cut) — only stale ones, so
+    /// another copy of the application installing at the same moment keeps its own.</summary>
     private static void RemoveLeftovers(string folder, string fileName)
     {
         foreach (var leftover in Directory.EnumerateFiles(folder, $"{fileName}.*{TemporarySuffix}"))
+        {
+            try
+            {
+                if (DateTime.UtcNow - File.GetLastWriteTimeUtc(leftover) < LeftoverAge) continue;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                continue;
+            }
             TryDelete(leftover);
+        }
     }
 
     private static async Task<string?> HashAsync(string path, Action<long> advanced, CancellationToken cancellationToken)

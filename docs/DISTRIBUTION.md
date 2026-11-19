@@ -106,7 +106,7 @@ in the published folder before the portable zip and the setup are made, and the 
   «Запустить Boulder Video Editor». No administrator rights.
 - **Update:** run the new version's setup: the same folder, the same entry, the shortcuts as chosen before; settings,
   projects and models kept; a model in place with its SHA-256 is not copied again, a damaged or missing one is. Installing an
-  older version over a newer one asks first. A running editor is asked to be closed first.
+  older version over a newer one asks first (`/SUPPRESSMSGBOXES` answers No). A running editor is asked to be closed first.
 - **Repair the models:** run the setup again (Setup) or «Настройки…» → «ИИ-модели» → «Установить из папки ai-models» (Portable).
 - **Uninstall:** «Параметры» → «Приложения» → Boulder Video Editor → «Удалить»: the first window offers «Также удалить
   ИИ-модели» (off by default), then the confirmation. The program's files and shortcuts go; the per-user folder stays (the

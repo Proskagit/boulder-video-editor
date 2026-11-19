@@ -251,8 +251,9 @@ public sealed class MainWindowViewModel : ViewModelBase
             cancelExport = true;
         }
 
-        // D070 §3: a running models installation is kept (the window stays) or cancelled and waited for.
-        if (ModelSetup is not null && !await ModelSetup.PrepareToCloseAsync()) return false;
+        // D070 §3: a running models installation is kept (the window stays) or, like the export, cancelled only after the
+        // unsaved-changes question agreed too — Cancel there leaves it running.
+        if (ModelSetup is not null && !await ModelSetup.AskToCloseAsync()) return false;
 
         if (!await _projectFiles.PrepareToCloseAsync()) return false;
 
@@ -261,6 +262,8 @@ public sealed class MainWindowViewModel : ViewModelBase
             Status.Report(Strings.Export_ClosingCancelling);
             await _export.CancelAndWaitAsync();
         }
+        if (ModelSetup is { IsInstalling: true })
+            await ModelSetup.CancelAndWaitAsync();
 
         _mediaAvailability?.Stop(); // no new media re-check while closing
         try

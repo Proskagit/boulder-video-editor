@@ -186,6 +186,25 @@ public sealed class ModelSetupServiceTests
         Assert.Equal(2, dialogs.Asked.Count);
     }
 
+    /// <summary>As the export (D060 §5): the question itself never stops the installation — the window cancels it only once
+    /// the unsaved-changes question agreed too, so a Cancel there leaves it running.</summary>
+    [Fact]
+    public async Task Agreeing_to_close_does_not_cancel_until_the_window_closes_for_good()
+    {
+        var installer = new FakeInstaller();
+        var setup = new ModelSetupService(installer, Models, Package, new StatusService(), new ScriptedDialogs(1));
+        setup.Start();
+        await Until(() => installer.Installs == 1);
+
+        Assert.True(await setup.AskToCloseAsync());
+        Assert.False(installer.LastToken.IsCancellationRequested);
+        Assert.True(setup.IsInstalling);
+
+        await setup.CancelAndWaitAsync();
+        Assert.True(installer.LastToken.IsCancellationRequested);
+        Assert.False(setup.IsInstalling);
+    }
+
     [Fact]
     public async Task The_settings_section_shows_the_state_and_the_install_button_only_with_the_package()
     {

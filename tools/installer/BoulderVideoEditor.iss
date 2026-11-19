@@ -68,7 +68,8 @@ DisableDirPage=auto
 UsePreviousAppDir=yes
 DirExistsWarning=auto
 AppMutex={#RunningMutex}
-CloseApplications=yes
+; Only AppMutex guards a running editor: the Restart Manager would close it without its unsaved-changes question.
+CloseApplications=no
 RestartApplications=no
 UninstallDisplayName={#AppName}
 UninstallDisplayIcon={app}\{#AppExe}

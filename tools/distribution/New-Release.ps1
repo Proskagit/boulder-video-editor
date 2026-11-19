@@ -69,7 +69,10 @@ $isccPath = if ($SkipSetup) { $null } else { Find-Iscc }
 if ($FfmpegSourcesTar -and -not (Test-Path $FfmpegSourcesTar)) { throw "-FfmpegSourcesTar: $FfmpegSourcesTar not found" }
 
 if (Test-Path $OutputRoot) {
-    # Only this version's own output folder is replaced (it holds nothing but what this script writes).
+    # Only an output folder this script wrote is replaced (its stage\ marks it); any other non-empty folder is refused.
+    $isOurs = Test-Path (Join-Path $OutputRoot 'stage')
+    $isEmpty = -not (Get-ChildItem -Force $OutputRoot | Select-Object -First 1)
+    if (-not $isOurs -and -not $isEmpty) { throw "-OutputRoot $OutputRoot is not empty and was not written by New-Release.ps1 - choose another folder." }
     Remove-Item -Recurse -Force $OutputRoot
 }
 New-Item -ItemType Directory -Force $stage | Out-Null

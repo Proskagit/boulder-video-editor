@@ -185,9 +185,10 @@ public sealed partial class ModelSetupService : ObservableObject
         }
     }
 
-    /// <summary>The main window is about to close: a running installation is kept (the window stays) or cancelled and waited
-    /// for (its temporary file removed). False keeps the window open.</summary>
-    public async Task<bool> PrepareToCloseAsync()
+    /// <summary>The main window is about to close: asks whether a running installation may be cancelled. True: nothing runs,
+    /// or the user chose «Прервать и закрыть»; false keeps the window open. Nothing is cancelled here — as for the export
+    /// (D060 §5), the window cancels it only once every question agreed to close (<see cref="CancelAndWaitAsync"/>).</summary>
+    public async Task<bool> AskToCloseAsync()
     {
         if (!IsInstalling) return true;
         if (_dialogs is null) return false;
@@ -197,9 +198,21 @@ public sealed partial class ModelSetupService : ObservableObject
             Message = string.Format(Strings.ModelSetup_CloseQuestion, Percent.ToString("0", CultureInfo.CurrentCulture)),
             Buttons = new[] { Strings.ModelSetup_KeepInstalling, Strings.ModelSetup_CancelAndClose }
         });
-        if (choice != 1) return false;
+        return choice == 1;
+    }
+
+    /// <summary>Cancels a running installation and waits until it ended (its temporary file removed); never throws.</summary>
+    public async Task CancelAndWaitAsync()
+    {
         Cancel();
         await _running;
+    }
+
+    /// <summary><see cref="AskToCloseAsync"/>, then <see cref="CancelAndWaitAsync"/> when agreed.</summary>
+    public async Task<bool> PrepareToCloseAsync()
+    {
+        if (!await AskToCloseAsync()) return false;
+        await CancelAndWaitAsync();
         return true;
     }
 

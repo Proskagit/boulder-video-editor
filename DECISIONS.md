@@ -11259,8 +11259,8 @@ The version is not in the sources: it is given to the build (the last portable w
   The [Files] lines are generated from `models.json` (`tools/installer/New-ModelsInclude.ps1`).
 - The Start menu shortcut; the desktop shortcut as a task (ticked); «Запустить Boulder Video Editor» at the end.
 - The uninstall entry in HKCU (name, version, icon, size) by the fixed **AppId** `{564FF1BA-2649-4C46-9BF9-C48DCCEA4DA9}` — the
-  same AppId is what makes 1.3.1 update 1.3.0 instead of adding a second copy. A downgrade asks first (a silent run refuses).
-- `AppMutex=BoulderVideoEditor.Running`: the application holds this mutex (`Program.RunningMutexName`), so the installer and
+  same AppId is what makes 1.3.1 update 1.3.0 instead of adding a second copy. A downgrade asks first (a run with /SUPPRESSMSGBOXES answers No and refuses).
+- `AppMutex=BoulderVideoEditor.Running` (and `CloseApplications=no`: the Restart Manager would close the editor without its unsaved-changes question): the application holds this mutex (`Program.RunningMutexName`), so the installer and
   the uninstaller ask to close it first instead of failing on files in use.
 - `WizardStyle=modern dark` (the application is dark), its icon, Russian and English (by the language of Windows), no welcome
   page, the models' place on the «Готово к установке» page.

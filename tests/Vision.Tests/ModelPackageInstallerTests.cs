@@ -175,11 +175,41 @@ public sealed class ModelPackageInstallerTests : IDisposable
         var folder = Directory.CreateDirectory(Path.Combine(_models, "hold")).FullName;
         var leftover = Path.Combine(folder, "encoder.onnx.0123456789abcdef.installing");
         File.WriteAllText(leftover, "half");
+        File.SetLastWriteTimeUtc(leftover, DateTime.UtcNow - ModelPackageInstaller.LeftoverAge - TimeSpan.FromMinutes(1));
+        var running = Path.Combine(folder, "encoder.onnx.fedcba9876543210.installing");   // another copy installing now
+        File.WriteAllText(running, "in progress");
 
         await Installer().InstallAsync(_package, _models, null, CancellationToken.None);
 
         Assert.False(File.Exists(leftover));
+        Assert.True(File.Exists(running));
+        File.Delete(running);
         AssertInstalled();
+    }
+
+    [Fact]
+    public async Task A_models_folder_that_cannot_be_written_is_reported_in_the_users_words()
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(_models)!);
+        File.WriteAllText(_models, "a file where the models folder should be");
+
+        var error = await Assert.ThrowsAsync<ModelInstallException>(() => Installer().InstallAsync(_package, _models, null, CancellationToken.None));
+
+        Assert.Contains(_models, error.Message);
+        Assert.Equal("a file where the models folder should be", File.ReadAllText(_models));
+    }
+
+    [Fact]
+    public async Task A_model_folder_blocked_by_a_file_is_reported_and_the_other_folders_are_left_as_they_were()
+    {
+        Directory.CreateDirectory(_models);
+        File.WriteAllText(Path.Combine(_models, "people"), "blocks the folder");
+
+        var error = await Assert.ThrowsAsync<ModelInstallException>(() => Installer().InstallAsync(_package, _models, null, CancellationToken.None));
+
+        Assert.Contains(Path.Combine(_models, "people"), error.Message);
+        Assert.Equal("blocks the folder", File.ReadAllText(Path.Combine(_models, "people")));
+        Assert.Empty(Leftovers());
     }
 
     [Fact]
