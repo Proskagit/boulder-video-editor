@@ -308,8 +308,10 @@ public static class RouteHoldSelector
 public static class RouteHoldGrouping
 {
     public const double LinkFactor = 2.5;
-    public const double MinLink = 0.07;
-    public const double MaxLink = 0.12;
+    // Amendment 3 (the owner, 2026-11-19): the link is 20 % of the frame's long side — on a 1500 px canvas a neighbour 200 px
+    // away joins, one 460 px away (≈ 30 %) does not; 7 … 12 % missed the route's own holds.
+    public const double MinLink = 0.20;
+    public const double MaxLink = 0.20;
     public const double TouchingGap = 0.005;
 
     public static List<RouteHoldCandidate> Keep(IReadOnlyList<RouteHoldCandidate> candidates, int maxHolds)

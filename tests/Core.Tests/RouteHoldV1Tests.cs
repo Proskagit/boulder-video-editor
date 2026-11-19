@@ -154,7 +154,7 @@ public class RouteHoldV1Tests
         Assert.True(kept[0].IsControl);
         Assert.Contains(far.Id, RouteHoldSelector.Select(all, RouteHoldColor.DefaultTolerance).Select(c => c.Id));   // no gates: kept
 
-        // The link: 2.5 × the median nearest gap, inside 0.07 … 0.12 of the long side.
+        // The link: 2.5 × the median nearest gap, inside 0.20 … 0.20 of the long side (amendment 3).
         var link = RouteHoldGrouping.Link(all);
         Assert.InRange(link, RouteHoldGrouping.MinLink, RouteHoldGrouping.MaxLink);
         Assert.True(RouteHoldGrouping.Gap(far, chain.Last()) > link);

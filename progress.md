@@ -2,6 +2,10 @@
 
 ## Current phase
 
+**Phase 53 amendment 3 (D072, the owner's check of 1.5.2, 2026-11-19):** the group's link raised to 20 % of the long side
+(was 7 … 12 %). The owner: «всё ок», push and open the PR without a new build or test run — none was made for this change (the
+PR's CI runs the suites). Then the phase closes on the owner's merge.
+
 **Phase 53 amendment 2 (D072, the owner's check of 1.5.1, 2026-11-19):** the strict colour works; «Допуск цвета» removed (it only
 re-selected among the found holds); «Готово» lays out from the markup's frame — `LayOutIntroAndFinalFrom`: the orange
 `[As, As + 5 s)`, `T` its end, the «Боулдер» from `As − 2 s`; the group's median ignores touching pairs (gap < 0.005), the link

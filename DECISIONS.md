@@ -11643,3 +11643,9 @@ The strict colour works («в целом нормально отрабатыва
 4. **«Предлагать трассу» off by default** (the owner: not stable enough to be the default — routes are marked by hand unless
    asked). Saved under a new key `suggestRoute`; the 1.5.0 / 1.5.1 builds' `routeProposalsEnabled` (written on by default) and
    1.3's `holdProposalsEnabled` are not read.
+
+### Amendment 3 — the owner's check of the 1.5.2 build (2026-11-19)
+
+Everything is fine except the group's reach: at 7 … 12 % of the long side the route's own holds 200 px apart on a 1500 px canvas
+were left out. **The link is 20 % of the frame's long side** (`RouteHoldGrouping.MinLink` = `MaxLink` = 0.20): 200 px joins, a
+hold 460 px (≈ 30 %) away does not. On the owner's word committed without a new build or test run (the PR's CI runs the suites).
