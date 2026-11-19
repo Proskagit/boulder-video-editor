@@ -15,6 +15,9 @@
        application offers to install the models from ai-models\ (D070 §3).
     4. Setup: tools/installer/BoulderVideoEditor.iss compiled by Inno Setup 6 (ISCC.exe) into
        BoulderVideoEditor-<version>-setup.exe: the application and the models.
+       4b. The web Setup BoulderVideoEditor-<version>-web-setup.exe (D070 §7): the application only; the missing models are
+       downloaded from -ModelsBaseUrl (default: the GitHub release models-<models.json version> of the repository) and checked
+       by their SHA-256. The assets of that release are written to models-<version>-assets\ (published once per models version).
     5. The FFmpeg sources tar (GPL: the corresponding source next to the binaries) copied when given; SHA256SUMS.
 
     The result: artifacts/release/<version>/ (the work folders under artifacts/release/<version>/stage).
@@ -25,6 +28,10 @@
     Builds the Portable archive only (no Inno Setup needed).
 .PARAMETER SkipPortableZip
     Leaves the Portable folder unpacked (a quicker local check).
+.PARAMETER ModelsBaseUrl
+    Where the web Setup downloads the models from (<url><file name>); default the models release on GitHub.
+.PARAMETER SkipWebSetup
+    No web Setup.
 #>
 [CmdletBinding()]
 param(
@@ -35,7 +42,9 @@ param(
     [string] $OutputRoot,
     [string] $Iscc,
     [switch] $SkipSetup,
-    [switch] $SkipPortableZip
+    [switch] $SkipPortableZip,
+    [string] $ModelsBaseUrl,
+    [switch] $SkipWebSetup
 )
 
 Set-StrictMode -Version Latest
@@ -147,6 +156,31 @@ if (-not $SkipSetup) {
         "/DOutputDir=$OutputRoot" "/DRepoRoot=$repo" (Join-Path $repo 'tools\installer\BoulderVideoEditor.iss')
     if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)" }
     Write-Host ("Setup: {0} ({1:N0} MiB)" -f $setup, ((Get-Item $setup).Length / 1MB))
+
+    # 4b. The web Setup (D070 §7): the same installer without the models packed — it downloads the missing ones from the
+    # models release (its assets: the pinned files, flat), each checked by its SHA-256.
+    if (-not $SkipWebSetup) {
+        if (-not $ModelsBaseUrl) { $ModelsBaseUrl = "https://github.com/Proskagit/boulder-video-editor/releases/download/models-$($manifest.version)/" }
+        $webInclude = Join-Path $stage 'models.web.generated.iss'
+        & (Join-Path $repo 'tools\installer\New-ModelsInclude.ps1') -ModelsDir $models -OutFile $webInclude -BaseUrl $ModelsBaseUrl
+        & $isccPath '/Qp' "/DAppVersion=$Version" "/DAppDir=$setupApp" "/DModelsDir=$models" "/DModelsInclude=$webInclude" `
+            '/DWebModels=1' "/DOutputDir=$OutputRoot" "/DRepoRoot=$repo" (Join-Path $repo 'tools\installer\BoulderVideoEditor.iss')
+        if ($LASTEXITCODE -ne 0) { throw "ISCC failed for the web Setup ($LASTEXITCODE)" }
+        $webSetup = Join-Path $OutputRoot "BoulderVideoEditor-$Version-web-setup.exe"
+        Write-Host ("Web Setup: {0} ({1:N0} MiB), the models from {2}" -f $webSetup, ((Get-Item $webSetup).Length / 1MB), $ModelsBaseUrl)
+
+        # The models release's assets, flat, with their checksums (published once per models version by the owner).
+        $assetsDir = Join-Path $OutputRoot "models-$($manifest.version)-assets"
+        New-Item -ItemType Directory -Force $assetsDir | Out-Null
+        $modelSums = foreach ($folder in $manifest.folders) {
+            foreach ($file in $folder.files) {
+                Copy-Item -LiteralPath (Join-Path $models "models\$($folder.folder)\$($file.name)") $assetsDir
+                "$($file.sha256) *$($file.name)"
+            }
+        }
+        Set-Content -Path (Join-Path $assetsDir 'SHA256SUMS') -Value $modelSums -Encoding ascii
+        Write-Host "Models release assets: $assetsDir (tag models-$($manifest.version))"
+    }
 }
 
 # --- 5. The FFmpeg sources and the checksums ----------------------------------------------------------------------

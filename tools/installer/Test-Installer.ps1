@@ -20,6 +20,9 @@
       T5  uninstall: the program, its shortcuts and its entry removed; the models, the settings and the projects kept.
       T6  install again, uninstall with /DELETEMODELS=1: the model folders removed (also people-v1), the models folder kept
           because another file is in it, the settings and projects kept.
+      W0–W3 the web Setup (D070 §7, unless -SkipWeb) against a local HTTP server on 127.0.0.1 (Python's http.server) standing
+          for the models release: light; a tampered model on the server refused and never in place; the right files
+          downloaded with their SHA-256; run again — nothing requested from the server.
     The test identity's folders are removed at the end (also after a failure); nothing of the real Boulder Video Editor is
     read or written by the installers.
 #>
@@ -28,7 +31,8 @@ param(
     [Parameter(Mandatory)] [string] $Stage,
     [Parameter(Mandatory)] [ValidatePattern('^\d+\.\d+\.\d+$')] [string] $Version,
     [string] $Iscc,
-    [switch] $SkipAppStart
+    [switch] $SkipAppStart,
+    [switch] $SkipWeb
 )
 
 Set-StrictMode -Version Latest
@@ -247,6 +251,67 @@ try {
     Check 'T6' "the model folders removed ($($folders -join ', '))" (@($folders | Where-Object { Test-Path (Join-Path $models $_) }).Count -eq 0)
     Check 'T6' 'the models folder kept for the file left in it' (Test-Path (Join-Path $models 'notes.txt'))
     Check 'T6' 'settings, recovery, cache and projects kept' (Test-Sentinels @((Join-Path $models 'people-v1\rfdetr_old.onnx')))
+
+    # --- W1–W3: the web Setup against a local HTTP server (127.0.0.1) standing for the models release ----------------
+    if (-not $SkipWeb) {
+        $web = Join-Path $work 'web'
+        New-Item -ItemType Directory -Force $web | Out-Null
+        $damagedName = 'silero_vad.onnx'
+        foreach ($folder in $manifest.folders) {
+            foreach ($file in $folder.files) {
+                $source = Join-Path $modelsDir "models\$($folder.folder)\$($file.name)"
+                if ($file.name -eq $damagedName) {
+                    $bytes = [IO.File]::ReadAllBytes($source); $bytes[100] = $bytes[100] -bxor 0xFF
+                    [IO.File]::WriteAllBytes((Join-Path $web $file.name), $bytes)       # a tampered asset of the right size
+                } else {
+                    New-Item -ItemType HardLink -Path (Join-Path $web $file.name) -Target $source | Out-Null
+                }
+            }
+        }
+        $port = 18765
+        $webInclude = Join-Path $work 'models.web.generated.iss'
+        & (Join-Path $PSScriptRoot 'New-ModelsInclude.ps1') -ModelsDir $modelsDir -OutFile $webInclude -BaseUrl "http://127.0.0.1:$port/"
+        $out = Join-Path $work 'setup-web'
+        New-Item -ItemType Directory -Force $out | Out-Null
+        & (Find-Iscc) '/Qp' "/DAppVersion=$next" "/DAppDir=$appDir" "/DModelsDir=$modelsDir" "/DModelsInclude=$webInclude" '/DWebModels=1' `
+            "/DOutputDir=$out" "/DRepoRoot=$repo" "/DAppName=$name" "/DAppIdGuid=$guid" "/DDataFolder=$dataFolderName" (Join-Path $PSScriptRoot 'BoulderVideoEditor.iss') | Out-Host
+        if ($LASTEXITCODE -ne 0) { throw 'ISCC failed for the web Setup' }
+        $webSetup = Join-Path $out "BoulderVideoEditor-$next-web-setup.exe"
+        Check 'W0' ("the web Setup is light ({0:N0} MiB)" -f ((Get-Item $webSetup).Length / 1MB)) ((Get-Item $webSetup).Length -lt 300MB)
+
+        $server = Start-Process -FilePath 'python' -ArgumentList @('-m', 'http.server', "$port", '--bind', '127.0.0.1', '--directory', "`"$web`"") `
+            -PassThru -WindowStyle Hidden -RedirectStandardError (Join-Path $work 'http.log') -RedirectStandardOutput (Join-Path $work 'http.out')
+        try {
+            Start-Sleep -Seconds 2
+            Write-Host "`nW1  web Setup with a tampered model on the server"
+            $code = Run-Setup $webSetup (Join-Path $work 'w1.log')
+            Check 'W1' "refused (exit code $code)" ($code -ne 0)
+            $bad = @(foreach ($folder in $manifest.folders) { foreach ($file in $folder.files) {
+                $path = Join-Path $models "$($folder.folder)\$($file.name)"
+                if ((Test-Path -LiteralPath $path) -and (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant() -ne $file.sha256) { $path }
+            } })
+            Check 'W1' 'no model file without its SHA-256 took a place' ($bad.Count -eq 0)
+
+            Write-Host "`nW2  web Setup with the right files"
+            Remove-Item (Join-Path $web $damagedName)
+            New-Item -ItemType HardLink -Path (Join-Path $web $damagedName) -Target (Join-Path $modelsDir "models\audio-v1\$damagedName") | Out-Null
+            $code = Run-Setup $webSetup (Join-Path $work 'w2.log') @('/TASKS=desktopicon')
+            Check 'W2' "setup exit code 0 (was $code)" ($code -eq 0)
+            Check 'W2' 'every model downloaded with its SHA-256' (Test-Models)
+            Check 'W2' 'the program installed (BoulderVideoEditor.exe)' ((Test-Path $uninstallKey) -and (Test-Path (Join-Path (Get-ItemProperty $uninstallKey).InstallLocation 'BoulderVideoEditor.exe')))
+            Check 'W2' 'settings and projects kept' (Test-Sentinels @((Join-Path $models 'people-v1\rfdetr_old.onnx')))
+
+            Write-Host "`nW3  web Setup again: nothing downloaded"
+            $before = (Get-Content -Raw (Join-Path $work 'http.log') | Select-String -AllMatches 'GET /').Matches.Count
+            $code = Run-Setup $webSetup (Join-Path $work 'w3.log')
+            Check 'W3' "setup exit code 0 (was $code)" ($code -eq 0)
+            $after = (Get-Content -Raw (Join-Path $work 'http.log') | Select-String -AllMatches 'GET /').Matches.Count
+            Check 'W3' "no request to the server ($($after - $before))" ($after -eq $before)
+            Check 'W3' 'every model in place' (Test-Models)
+        } finally {
+            if (-not $server.HasExited) { $server.Kill() }
+        }
+    }
 }
 finally {
     Write-Host "`nCleaning up the test identity…"

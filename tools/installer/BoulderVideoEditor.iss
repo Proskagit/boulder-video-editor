@@ -78,7 +78,12 @@ WizardStyle=modern dark
 WizardSmallImageFile={#RepoRoot}\src\UI\Assets\app-256.png
 DisableWelcomePage=yes
 OutputDir={#OutputDir}
+; /DWebModels=1 (D070 §7): the light web Setup — the models are downloaded (ModelsInclude made with -BaseUrl), not packed.
+#ifdef WebModels
+OutputBaseFilename=BoulderVideoEditor-{#AppVersion}-web-setup
+#else
 OutputBaseFilename=BoulderVideoEditor-{#AppVersion}-setup
+#endif
 ; The models (ONNX weights) do not compress: their files are stored (nocompression); the program is compressed.
 Compression=lzma2/max
 SolidCompression=no
@@ -96,6 +101,8 @@ english.ConfirmUninstall=Remove %1?%n%nProjects, videos, exports and settings ar
 [CustomMessages]
 russian.ModelsComponent=ИИ-модели (около 1,2 ГБ) устанавливаются в %LOCALAPPDATA%\{#DataFolder}\models.
 english.ModelsComponent=The AI models (about 1.2 GB) are installed into %LOCALAPPDATA%\{#DataFolder}\models.
+russian.ModelsDownload=Модели, которых ещё нет на компьютере, будут скачаны из релиза моделей на GitHub (нужен интернет); каждый файл проверяется по SHA-256. Без интернета используйте полный установщик.
+english.ModelsDownload=The models not yet on this computer are downloaded from the models release on GitHub (internet needed); each file is checked by its SHA-256. Without internet use the full installer.
 russian.UninstallTitle=Удаление {#AppName}
 english.UninstallTitle=Uninstall {#AppName}
 russian.UninstallText=Будут удалены файлы программы и её ярлыки.%n%nВаши проекты, видео, экспорты, настройки и список недавних проектов не удаляются.
@@ -205,6 +212,9 @@ function UpdateReadyMemo(Space, NewLine, MemoUserInfoInfo, MemoDirInfo, MemoType
   MemoGroupInfo, MemoTasksInfo: String): String;
 begin
   Result := MemoDirInfo + NewLine + NewLine + CustomMessage('ModelsComponent');
+#ifdef WebModels
+  Result := Result + NewLine + CustomMessage('ModelsDownload');
+#endif
   if MemoTasksInfo <> '' then
     Result := Result + NewLine + NewLine + MemoTasksInfo;
 end;
