@@ -87,6 +87,22 @@
       </Grid>
     </Border>
 
+    <!-- D072 §3: «Подождите, идёт анализ» — the route from its first hold is being searched; it covers the whole window (no
+         click reaches the editor meanwhile; ShortcutRouter lets only Esc through, which cancels). -->
+    <Border x:Name="RouteAnalysisWindow" Grid.RowSpan="5" Background="#99000000" IsVisible="{Binding HoldMarkup.IsRouteAnalyzing, FallbackValue=False}">
+      <Border Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" CornerRadius="6"
+              Padding="24,20" Width="380" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel Spacing="12">
+          <TextBlock Text="{x:Static l:Strings.Holds_RouteAnalyzingTitle}" FontSize="{DynamicResource FontSizeHeading}" FontWeight="SemiBold"
+                     Foreground="{DynamicResource TextPrimaryBrush}"/>
+          <TextBlock Text="{x:Static l:Strings.Holds_RouteAnalyzingText}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"/>
+          <ProgressBar Minimum="0" Maximum="1" Value="{Binding HoldMarkup.RouteProgress, FallbackValue=0}" Height="6"/>
+          <Button x:Name="RouteAnalysisCancel" Content="{x:Static l:Strings.Holds_RouteAnalyzingCancel}" HorizontalAlignment="Right"
+                  Command="{Binding HoldMarkup.CancelRouteAnalysisCommand}"/>
+        </StackPanel>
+      </Border>
+    </Border>
+
   </Grid>
 
 </Window>

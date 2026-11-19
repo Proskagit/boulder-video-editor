@@ -70,6 +70,9 @@ public static class ShortcutRouter
         // Phase 19 (D034 §1): while the hold markup is on, Enter confirms the candidate, Esc discards it, Delete removes
         // the selected hold (never a clip), Tab / Shift+Tab switch the candidate's outline. Every other key keeps its
         // meaning (a seek or Play leaves the mode).
+        // D072 §3: while the route is analysed (its window is shown) only Esc acts — it cancels the analysis.
+        if (vm.HoldMarkup is { IsRouteAnalyzing: true } analyzing)
+            return key == Key.Escape && none ? analyzing.CancelRouteAnalysisCommand : Swallowed;
         if (vm.HoldMarkup is { IsActive: true } markup && MarkupCommandFor(markup, key, none, shift, ctrl) is { } markupCommand)
             return markupCommand;
 
@@ -148,7 +151,7 @@ public static class ShortcutRouter
         Key.Delete or Key.Back when none => markup.RejectOrDeleteCommand,
         Key.Tab when none => markup.NextItemCommand,
         Key.Tab when shift => markup.PreviousItemCommand,
-        Key.A when ctrl => markup.AcceptAllProposalsCommand,
+        Key.A when ctrl => markup.AcceptRouteCommand,
         Key.D when ctrl => markup.RejectAllProposalsCommand,
         _ => null
     };

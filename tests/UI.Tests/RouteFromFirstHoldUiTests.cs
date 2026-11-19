@@ -4,7 +4,6 @@ using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Holds;
 using AiVideoEditor.Core.Interfaces;
-using AiVideoEditor.Core.Localization;
 using AiVideoEditor.Core.Playback;
 using AiVideoEditor.Project;
 using AiVideoEditor.Timeline;
@@ -14,25 +13,26 @@ using AiVideoEditor.UI.Common;
 using AiVideoEditor.UI.Services;
 using AiVideoEditor.UI.ViewModels;
 using AiVideoEditor.UI.ViewModels.Panels;
+using System.Windows.Input;
+using Avalonia.Input;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace AiVideoEditor.UI.Tests;
 
 /// <summary>
-/// D048 stage 1 (§2, acceptance 1) through the real shell wiring with a stand-in model and synthetic frames: "Auto markup" (formerly "Place holds")
-/// on <c>T</c> → the click on the control hold → the clean frame 5 s earlier in the Preview's overlay with the route's
-/// holds proposed → the review (a rejected proposal stays rejected, the tolerance re-selects without the model, a missed
-/// hold added by a click) → Accept = one <c>AddHolds</c> step, the holds at <c>t_C</c>, the playhead back to <c>T</c>;
-/// Undo / Redo restore the clip exactly, a second run adds no duplicate; an unreliable transfer, frames that can't be
-/// decoded and Cancel change nothing and return to <c>T</c>.
+/// D072 §3 (the route from its first hold) through the real shell wiring with a stand-in model and a synthetic wall: in
+/// «Разметить зацепки» with «Предлагать трассу» on, the first click on a hold of a route without holds opens the analysis
+/// (only Esc acts meanwhile) → the route's holds of that colour are proposed on the markup frame itself → the review (a
+/// rejected proposal stays rejected, the tolerance re-selects without the model, a missed hold added by a click + Enter) →
+/// «Принять» = one <c>AddHolds</c> step at the markup frame's source time, the markup goes on; «Готово» accepts what is shown;
+/// «Отменить», «Отмена» in the window, a click beside any hold and the check box off change nothing and leave the manual markup.
 /// </summary>
-public sealed class RouteSelectionUiTests : IAsyncLifetime
+public sealed class RouteFromFirstHoldUiTests : IAsyncLifetime
 {
     private static readonly FrameRate Rate = FrameRate.Fps25;
     private const int W = 480, H = 270;
     private static readonly MediaTime T = MediaTime.FromSeconds(6);
-    private static readonly MediaTime Clean = MediaTime.FromSeconds(1);
 
     private static readonly (byte R, byte G, byte B) Red = (200, 35, 40);
     private static readonly (byte R, byte G, byte B) Blue = (40, 70, 200);
@@ -46,12 +46,11 @@ public sealed class RouteSelectionUiTests : IAsyncLifetime
     private readonly PlaybackService _playback;
     private readonly StatusService _status = new();
     private readonly FloodSegmentation _model = new();
-    private readonly SceneFrames _frames = new();
+    private readonly InMemoryUserSettings _settings = new();
     private readonly MainWindowViewModel _vm;
-    private readonly List<MediaTime> _seeks = new();
     private int _history;
 
-    public RouteSelectionUiTests()
+    public RouteFromFirstHoldUiTests()
     {
         _projects = new ProjectService(_undo, NullLogger<ProjectService>.Instance);
         _edit = new TimelineEditService(_projects, _undo, NullLogger<TimelineEditService>.Instance);
@@ -68,10 +67,7 @@ public sealed class RouteSelectionUiTests : IAsyncLifetime
             new InspectorViewModel(_edit, _status),
             new TimelineViewModel(_projects, _edit, _status, NullLogger<TimelineViewModel>.Instance),
             _status, files, _projects, NullLogger<MainWindowViewModel>.Instance,
-            holdMarkup: new HoldMarkupViewModel(_edit, _projects, _status, _model, new HoldMarkupUiTests.FakeFrames(),
-                routeSelection: new RouteSelectionService(_frames)));
-        var seek = Markup.SeekTo;
-        Markup.SeekTo = t => { _seeks.Add(t); seek(t); };
+            holdMarkup: new HoldMarkupViewModel(_edit, _projects, _status, _model, new WallFrames(), settings: _settings));
         _undo.StateChanged += (_, _) => _history++;
     }
 
@@ -86,16 +82,13 @@ public sealed class RouteSelectionUiTests : IAsyncLifetime
     private HoldMarkupViewModel Markup => _vm.HoldMarkup!;
 
     [Fact]
-    public async Task The_route_is_proposed_on_the_clean_frame_and_accepted_in_one_step_back_at_T()
+    public async Task The_first_click_proposes_the_route_on_the_markup_frame_and_Accept_adds_it_in_one_step()
     {
         var clip = await ReviewOn(RedHolds[0]);
         Assert.Equal(_selected, _history);                                    // the review itself: no step
-        Assert.True(Markup.ShowsMarkupFrame);
-        Assert.Equal((W, H), (Markup.MarkupFrame!.Width, Markup.MarkupFrame.Height));
-        Assert.Equal(new[] { T, Clean, Clean }, _frames.Requests);           // T and t_C for the transfer, t_C for the model
-        Assert.Equal(RedHolds.Length, Markup.Proposals.Count);
+        Assert.Equal(RedHolds.Length, Markup.Proposals.Count);                // the four red holds, not the blue one
         Assert.Null(clip.HoldMarkup);                                         // nothing yet
-        Assert.False(Markup.AcceptAllProposalsCommand.CanExecute(null));       // D047's own accept: not in the route review
+        Assert.Equal(T, _vm.Timeline.Playhead);                               // no frame swap, no seek
 
         var steps = _history;
         await Markup.AcceptRouteCommand.ExecuteAsync(null);
@@ -103,35 +96,38 @@ public sealed class RouteSelectionUiTests : IAsyncLifetime
         Assert.Equal(steps + 1, _history);                                   // one AddHolds
         var holds = clip.HoldMarkup!.Holds;
         Assert.Equal(RedHolds.Length, holds.Length);
-        Assert.All(holds, h => Assert.Equal(Clean, h.SourceTime));          // marked at t_C
+        Assert.All(holds, h => Assert.Equal(T - clip.TimelineStart, h.SourceTime));   // at the markup frame
         Assert.All(RedHolds, r => Assert.Single(holds, h => Inside(h.Points, r)));
-        Assert.False(Markup.IsActive);
-        Assert.False(Markup.ShowsMarkupFrame);
-        Assert.Equal(new[] { T }, _seeks);
+        Assert.True(Markup.IsActive);                                         // the markup goes on
+        Assert.False(Markup.IsRouteSelection);
+        Assert.Empty(Markup.Proposals);
         Assert.Equal(T, _vm.Timeline.Playhead);
+
+        await Markup.OnClickAsync(At(BlueHold), false);                      // the next click: the manual markup
+        Assert.True(Markup.HasCandidate);
+        Assert.False(Markup.IsRouteSelection);
     }
 
     [Fact]
-    public async Task Undo_restores_the_clip_whole_redo_repeats_it_and_a_second_run_adds_no_duplicate()
+    public async Task Undo_restores_the_clip_whole_and_a_route_with_holds_is_never_analysed_again()
     {
         var clip = await ReviewOn(RedHolds[0]);
         await Markup.AcceptRouteCommand.ExecuteAsync(null);
         var added = clip.HoldMarkup!;
+        Markup.EscapeCommand.Execute(null);                                   // leaves the mode
+        Assert.False(Markup.IsActive);
 
         _undo.Undo();
         Assert.Null(clip.HoldMarkup);
         _undo.Redo();
         Assert.Equal(added.Holds.Select(h => h.Id), clip.HoldMarkup!.Holds.Select(h => h.Id));
 
-        var steps = _history;
-        await ReviewOn(RedHolds[1], select: false);
-        Assert.Empty(Markup.Proposals);
-        Assert.Equal(Messages.RouteSelectionNothingNew, _status.Message);
-        Assert.False(Markup.AcceptRouteCommand.CanExecute(null));
-        Markup.CancelRouteCommand.Execute(null);
-        Assert.Equal(steps, _history);
-        Assert.Equal(RedHolds.Length, clip.HoldMarkup.Holds.Length);
-        Assert.Equal(T, _vm.Timeline.Playhead);
+        await StartMarkup();                                                  // a new session on the route with holds
+        var calls = _model.Calls;
+        await Markup.OnClickAsync(At(BlueHold), false);
+        Assert.False(Markup.IsRouteSelection);
+        Assert.True(Markup.HasCandidate);
+        Assert.Equal(calls + 1, _model.Calls);                               // one prediction: no analysis
     }
 
     [Fact]
@@ -140,7 +136,7 @@ public sealed class RouteSelectionUiTests : IAsyncLifetime
         var clip = await ReviewOn(RedHolds[0]);
         Markup.SelectedProposalIndex = 1;
         var rejected = Markup.SelectedProposal!.Proposal.Id;
-        Markup.RejectSelectedProposalCommand.Execute(null);
+        Markup.RejectOrDeleteCommand.Execute(null);                           // Delete
         Assert.Equal(RedHolds.Length - 1, Markup.Proposals.Count);
         Markup.RouteTolerance = 0.2m;                                       // re-selects; the rejection stays
         Assert.DoesNotContain(Markup.Proposals, p => p.Proposal.Id == rejected);
@@ -150,7 +146,7 @@ public sealed class RouteSelectionUiTests : IAsyncLifetime
 
         await Markup.OnClickAsync(At(BlueHold), false);                      // a missed hold: a candidate, Enter adds it
         Assert.True(Markup.HasCandidate);
-        await Markup.ConfirmCommand.ExecuteAsync(null);
+        await Markup.ConfirmOrAcceptCommand.ExecuteAsync(null);
         Assert.Equal(RedHolds.Length, Markup.Proposals.Count);
         Assert.Null(clip.HoldMarkup);                                         // the clip unchanged until Accept
 
@@ -163,52 +159,198 @@ public sealed class RouteSelectionUiTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task An_unreliable_transfer_changes_nothing_and_returns_to_T()
-    {
-        _frames.Differ = true;                                                // the camera "moved" beyond recognition
-        await Failed(Messages.RouteSelectionTransferFailed);
-    }
-
-    [Fact]
-    public async Task Frames_that_cant_be_decoded_change_nothing_and_return_to_T()
-    {
-        _frames.Throws = true;
-        await Failed(string.Format(Messages.RouteSelectionFrameUnavailable, "no decoder"));
-    }
-
-    [Fact]
-    public async Task A_click_beside_any_hold_on_the_clean_frame_changes_nothing()
-    {
-        var clip = Select();
-        Markup.PlaceHoldsCommand.Execute(null);
-        await Markup.OnClickAsync(WallPoint(), false);                        // the wall
-        Assert.Equal(Messages.RouteSelectionNoControlHold, _status.Message);
-        Assert.False(Markup.IsActive);
-        Assert.Null(clip.HoldMarkup);
-        Assert.Equal(_selected, _history);
-        Assert.Equal(new[] { T }, _seeks);
-    }
-
-    [Fact]
-    public async Task Cancel_in_the_review_changes_nothing_and_returns_to_T()
+    public async Task Esc_keeps_the_review_and_Discard_drops_it_leaving_the_manual_markup()
     {
         var clip = await ReviewOn(RedHolds[0]);
-        Markup.EscapeCommand.Execute(null);                                   // Esc: nothing selected, no candidate → cancel
-        Assert.False(Markup.IsActive);
+        Markup.EscapeCommand.Execute(null);
+        Assert.True(Markup.IsRouteReview);                                   // the review stays as it is
+        Assert.Equal(RedHolds.Length, Markup.Proposals.Count);
+
+        Markup.CancelRouteCommand.Execute(null);                              // «Отменить»
+        Assert.False(Markup.IsRouteSelection);
+        Assert.Empty(Markup.Proposals);
+        Assert.True(Markup.IsActive);
         Assert.Null(clip.HoldMarkup);
         Assert.Equal(_selected, _history);
-        Assert.Equal(new[] { T }, _seeks);
-        Assert.Equal(T, _vm.Timeline.Playhead);
+
+        await Markup.OnClickAsync(At(RedHolds[1]), false);                   // once per session: now a manual candidate
+        Assert.True(Markup.HasCandidate);
+        Assert.False(Markup.IsRouteSelection);
     }
 
     [Fact]
-    public void The_button_needs_a_paused_playhead_on_the_selected_clip()
+    public async Task Done_accepts_the_proposals_shown_and_lays_out_the_route()
     {
-        Assert.False(Markup.PlaceHoldsCommand.CanExecute(null));             // no clip
-        Select();
-        Assert.True(Markup.PlaceHoldsCommand.CanExecute(null));
-        _vm.Timeline.SetPlayhead(MediaTime.FromSeconds(10));                  // T = Ve: no frame of the clip
-        Assert.False(Markup.PlaceHoldsCommand.CanExecute(null));
+        var clip = await ReviewOn(RedHolds[0]);
+        var steps = _history;
+        await Markup.DoneCommand.ExecuteAsync(null);
+        Assert.False(Markup.IsActive);
+        Assert.Equal(RedHolds.Length, clip.HoldMarkup!.Holds.Length);
+        Assert.Equal(steps + 2, _history);                                   // the holds, then the intro and final
+        Assert.NotNull(clip.HoldMarkup.Animation);
+    }
+
+    [Fact]
+    public async Task Cancel_in_the_analysis_window_changes_nothing_and_only_Esc_acts_meanwhile()
+    {
+        var clip = await StartMarkup();
+        _model.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var click = Markup.OnClickAsync(At(RedHolds[0]), false);
+        Assert.True(Markup.IsRouteAnalyzing);                                // the window is shown
+        Assert.Same(ShortcutRouter.Swallowed, ShortcutRouter.CommandFor(_vm, Key.Space, KeyModifiers.None));   // no Play
+        Assert.Same(ShortcutRouter.Swallowed, ShortcutRouter.CommandFor(_vm, Key.Z, KeyModifiers.Control));     // no Undo
+        Assert.Same(Markup.CancelRouteAnalysisCommand, ShortcutRouter.CommandFor(_vm, Key.Escape, KeyModifiers.None));
+        await Markup.OnClickAsync(At(RedHolds[1]), false);                   // a click meanwhile: nothing
+
+        Markup.CancelRouteAnalysisCommand.Execute(null);
+        Assert.False(Markup.IsRouteAnalyzing);
+        _model.Gate.SetResult();
+        _model.Gate = null;
+        await click;
+
+        Assert.False(Markup.IsRouteSelection);
+        Assert.Empty(Markup.Proposals);
+        Assert.True(Markup.IsActive);
+        Assert.Null(clip.HoldMarkup);
+        Assert.Equal(_selected, _history);
+        await Markup.OnClickAsync(At(RedHolds[1]), false);                   // the markup goes on by hand
+        Assert.True(Markup.HasCandidate);
+    }
+
+    [Fact]
+    public async Task The_reviews_keys_accept_reject_all_remove_and_step_through_the_proposals()
+    {
+        var clip = await ReviewOn(RedHolds[0]);
+        ICommand? Key(Key key, KeyModifiers modifiers = KeyModifiers.None) => ShortcutRouter.CommandFor(_vm, key, modifiers);
+
+        Assert.Same(Markup.NextItemCommand, Key(Avalonia.Input.Key.Tab));
+        var before = Markup.SelectedProposalIndex;
+        Key(Avalonia.Input.Key.Tab)!.Execute(null);                         // Tab: the next proposal
+        Assert.Equal((before + 1) % RedHolds.Length, Markup.SelectedProposalIndex);
+
+        var removed = Markup.SelectedProposal!.Proposal.Id;
+        Assert.Same(Markup.RejectOrDeleteCommand, Key(Avalonia.Input.Key.Delete));
+        Key(Avalonia.Input.Key.Delete)!.Execute(null);                      // Delete: that proposal out
+        Assert.Equal(RedHolds.Length - 1, Markup.Proposals.Count);
+        Assert.DoesNotContain(Markup.Proposals, p => p.Proposal.Id == removed);
+        Assert.Null(clip.HoldMarkup);
+
+        Assert.Same(Markup.AcceptRouteCommand, Key(Avalonia.Input.Key.A, KeyModifiers.Control));
+        var steps = _history;
+        await Markup.AcceptRouteCommand.ExecuteAsync(null);                  // Ctrl+A: «Принять»
+        Assert.Equal(steps + 1, _history);
+        Assert.Equal(RedHolds.Length - 1, clip.HoldMarkup!.Holds.Length);
+        Assert.DoesNotContain(clip.HoldMarkup.Holds, h => h.Id == removed);
+    }
+
+    [Fact]
+    public async Task Ctrl_D_removes_every_proposal_and_nothing_is_left_to_accept()
+    {
+        var clip = await ReviewOn(RedHolds[0]);
+        var command = ShortcutRouter.CommandFor(_vm, Key.D, KeyModifiers.Control);
+        Assert.Same(Markup.RejectAllProposalsCommand, command);
+        command!.Execute(null);
+        Assert.Empty(Markup.Proposals);
+        Markup.RouteTolerance = 0.2m;                                       // the removed never come back
+        Assert.Empty(Markup.Proposals);
+        Assert.False(Markup.AcceptRouteCommand.CanExecute(null));
+        Assert.Null(clip.HoldMarkup);
+        Assert.Equal(_selected, _history);
+    }
+
+    [Fact]
+    public async Task A_click_on_a_proposal_selects_it_without_a_candidate()
+    {
+        await ReviewOn(RedHolds[0]);
+        var calls = _model.Calls;
+        await Markup.OnClickAsync(At(RedHolds[2]), false);
+        Assert.False(Markup.HasCandidate);
+        Assert.Equal(calls, _model.Calls);                                   // no model call
+        Assert.True(Inside(Markup.SelectedProposal!.Contour, RedHolds[2]));
+    }
+
+    [Fact]
+    public async Task A_failed_analysis_turns_the_click_into_a_manual_candidate_at_that_point()
+    {
+        var clip = await StartMarkup();
+        _model.ThrowNext = true;                                             // the analysis' first prediction fails
+        await Markup.OnClickAsync(At(RedHolds[0]), false);
+
+        Assert.False(Markup.IsRouteSelection);
+        Assert.Contains("model failure", _status.Message);
+        Assert.True(Markup.HasCandidate);                                    // the click never lost
+        Assert.True(Inside(Markup.CandidateContour, RedHolds[0]));
+        Assert.Null(clip.HoldMarkup);
+        Assert.Equal(_selected, _history);
+    }
+
+    [Fact]
+    public async Task A_seek_during_the_review_leaves_the_mode_and_drops_the_proposals()
+    {
+        var clip = await ReviewOn(RedHolds[0]);
+        _vm.Timeline.SetPlayhead(T + MediaTime.FromSeconds(1));
+        Assert.False(Markup.IsActive);
+        Assert.False(Markup.IsRouteSelection);
+        Assert.Empty(Markup.Proposals);
+        Assert.Null(clip.HoldMarkup);
+        Assert.Equal(_selected, _history);
+    }
+
+    [Fact]
+    public async Task Leaving_the_mode_during_the_analysis_changes_nothing_and_throws_nothing()
+    {
+        var clip = await StartMarkup();
+        _model.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var click = Markup.OnClickAsync(At(RedHolds[0]), false);
+        Assert.True(Markup.IsRouteAnalyzing);
+        Markup.Exit();                                                        // Play, a seek, another clip
+        Assert.False(Markup.IsRouteAnalyzing);
+        _model.Gate.SetResult();                                              // the search goes on on a disposed frame
+        _model.Gate = null;
+        await click;                                                          // no exception reaches the view
+
+        Assert.False(Markup.IsActive);
+        Assert.False(Markup.IsRouteSelection);
+        Assert.Empty(Markup.Proposals);
+        Assert.Null(clip.HoldMarkup);
+        Assert.Equal(_selected, _history);
+    }
+
+    [Fact]
+    public async Task A_click_beside_any_hold_says_so_and_leaves_the_manual_markup()
+    {
+        var clip = await StartMarkup();
+        await Markup.OnClickAsync(WallPoint(), false);                        // the wall: no control hold
+        Assert.False(Markup.IsRouteSelection);
+        Assert.False(Markup.IsRouteAnalyzing);
+        Assert.True(Markup.IsActive);
+        Assert.Null(clip.HoldMarkup);
+        Assert.Equal(_selected, _history);
+        await Markup.OnClickAsync(At(RedHolds[0]), false);                   // tried once: now a manual candidate
+        Assert.True(Markup.HasCandidate);
+        Assert.False(Markup.IsRouteSelection);
+    }
+
+    [Fact]
+    public async Task With_the_check_box_off_the_first_click_is_a_manual_candidate()
+    {
+        Markup.IsRouteProposalEnabled = false;
+        Assert.False(_settings.Current.RouteProposalsEnabled);
+        await StartMarkup();
+        var calls = _model.Calls;
+        await Markup.OnClickAsync(At(RedHolds[0]), false);
+        Assert.True(Markup.HasCandidate);
+        Assert.False(Markup.IsRouteSelection);
+        Assert.Equal(calls + 1, _model.Calls);
+    }
+
+    [Fact]
+    public async Task A_shift_click_never_starts_the_analysis()
+    {
+        await StartMarkup();
+        await Markup.OnClickAsync(At(RedHolds[0]), true);
+        Assert.False(Markup.IsRouteSelection);
+        Assert.True(Markup.HasCandidate);
     }
 
     [Fact]
@@ -216,6 +358,7 @@ public sealed class RouteSelectionUiTests : IAsyncLifetime
     {
         var clip = await ReviewOn(RedHolds[0]);
         await Markup.AcceptRouteCommand.ExecuteAsync(null);
+        Markup.EscapeCommand.Execute(null);
         Assert.True(_edit.LayOutIntroAndFinal(clip.Id, T).Success);           // T = 150: orange [43, 150), green [0, 150)
         var template = _projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<TemplateClip>().Single();
         Assert.True(_edit.SetClipProperties(template.Id,
@@ -238,18 +381,35 @@ public sealed class RouteSelectionUiTests : IAsyncLifetime
 
     // --- helpers -----------------------------------------------------------------------------------------------------
 
-    private async Task Failed(string message)
+    /// <summary>The markup started on <c>T</c> of the clip (the frame ready).</summary>
+    private async Task<VideoClip> StartMarkup()
     {
         var clip = Select();
-        Markup.PlaceHoldsCommand.Execute(null);
-        await Markup.OnClickAsync(At(RedHolds[0]), false);
-        Assert.Equal(message, _status.Message);
-        Assert.False(Markup.IsActive);
-        Assert.False(Markup.ShowsMarkupFrame);
-        Assert.Null(clip.HoldMarkup);
-        Assert.Equal(_selected, _history);
-        Assert.Equal(new[] { T }, _seeks);
-        Assert.Equal(T, _vm.Timeline.Playhead);
+        Assert.True(Markup.StartCommand.CanExecute(null));
+        await Markup.StartCommand.ExecuteAsync(null);
+        Assert.True(Markup.IsActive);
+        Assert.False(Markup.IsPreparing);
+        Assert.NotNull(Markup.Geometry);
+        return clip;
+    }
+
+    /// <summary>The markup started and its first click on <paramref name="control"/>: the analysis ran, the review is shown.</summary>
+    private async Task<VideoClip> ReviewOn((int X, int Y, int R) control)
+    {
+        var clip = await StartMarkup();
+        await Markup.OnClickAsync(At(control), false);
+        Assert.True(Markup.IsRouteReview, _status.Message);
+        Assert.True(Markup.IsRouteSelection);
+        Assert.False(Markup.IsRouteAnalyzing);
+        Assert.True(Markup.IsActive);
+        return clip;
+    }
+
+    /// <summary>The markup frame: the wall with the route at the playhead's source time.</summary>
+    private sealed class WallFrames : IHoldMarkupFrameSource
+    {
+        public Task<HoldMarkupFrame> GetAsync(VideoClip clip, MediaAsset asset, MediaTime playhead, FrameRate rate, CancellationToken cancellationToken) =>
+            Task.FromResult(new HoldMarkupFrame(Wall, playhead - clip.TimelineStart));
     }
 
     /// <summary>The history count once the clip is on the timeline (adding it is a step of its own).</summary>
@@ -289,21 +449,6 @@ public sealed class RouteSelectionUiTests : IAsyncLifetime
         return _projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<VideoClip>().Single();
     }
 
-    private async Task<VideoClip> ReviewOn((int X, int Y, int R) control, bool select = true)
-    {
-        var clip = Select();
-        Assert.True(Markup.PlaceHoldsCommand.CanExecute(null));
-        Markup.PlaceHoldsCommand.Execute(null);
-        Assert.True(Markup.IsActive);
-        Assert.True(Markup.IsRouteSelection);
-        Assert.False(Markup.IsRouteReview);
-        Assert.NotNull(Markup.Geometry);                                     // the click at T can be mapped
-        await Markup.OnClickAsync(At(control), false);
-        Assert.True(Markup.IsRouteReview, _status.Message);
-        Assert.False(Markup.IsPreparing);
-        return clip;
-    }
-
     private static NormalizedPoint At((int X, int Y, int R) disc) => new((disc.X + 0.5) / W, (disc.Y + 0.5) / H);
 
     private static bool Inside((int X, int Y, int R) disc, int x, int y) =>
@@ -313,8 +458,8 @@ public sealed class RouteSelectionUiTests : IAsyncLifetime
         contour.Average(p => p.X) * W is var cx && contour.Average(p => p.Y) * H is var cy &&
         Math.Abs(cx - disc.X) <= disc.R && Math.Abs(cy - disc.Y) <= disc.R;
 
-    /// <summary>A textured grey wall (the tracking needs texture) with the route's red holds and one blue hold; another
-    /// seed for a frame the camera "moved" from beyond recognition.</summary>
+    /// <summary>A textured grey wall (the tracking needs texture) with the route's red holds and one blue hold; the wall
+    /// alone for another seed.</summary>
     private static DecodedFrame Scene(int seed)
     {
         var random = new Random(seed);
@@ -346,29 +491,19 @@ public sealed class RouteSelectionUiTests : IAsyncLifetime
     }
 
     private static readonly DecodedFrame Wall = Scene(1);
-    private static readonly DecodedFrame Elsewhere = Scene(2);
-
-    /// <summary>The frames by source time: the same wall at <c>T</c> and on the clean frame (a still camera), unless
-    /// <see cref="Differ"/>; <see cref="Throws"/>: a decoder failure.</summary>
-    private sealed class SceneFrames : IRouteSelectionFrameSource
-    {
-        public bool Differ { get; set; }
-        public bool Throws { get; set; }
-        public List<MediaTime> Requests { get; } = new();
-
-        public Task<RouteSelectionFrame> DecodeAsync(MediaAsset asset, MediaTime sourceTime, int maxWidth, int maxHeight, CancellationToken cancellationToken)
-        {
-            if (Throws) throw new VideoDecodeException(VideoDecodeError.DecoderUnavailable, "no decoder");
-            Requests.Add(sourceTime);
-            return Task.FromResult(new RouteSelectionFrame(Differ && sourceTime == T ? Elsewhere : Wall, sourceTime));
-        }
-    }
 
     /// <summary>The model's stand-in: the mask of a prompt is the 4-connected region of its exact colour (the textured wall
     /// gives specks below the D034 contour's minimum, so a click there finds nothing).</summary>
     private sealed class FloodSegmentation : IHoldSegmentationService
     {
         public int Calls { get; private set; }
+
+        /// <summary>The next prediction throws (a model failure during the analysis).</summary>
+        public bool ThrowNext { get; set; }
+
+        /// <summary>When set, every prediction waits for it (an analysis held open).</summary>
+        public TaskCompletionSource? Gate { get; set; }
+
         public InferenceDevice Device => InferenceDevice.Gpu;
         public event EventHandler? DeviceChanged { add { } remove { } }
 
@@ -380,12 +515,21 @@ public sealed class RouteSelectionUiTests : IAsyncLifetime
 
         private sealed class Frame(FloodSegmentation owner, DecodedFrame frame) : IHoldFrame
         {
+            private bool _disposed;
+
             public int Width => frame.Width;
             public int Height => frame.Height;
 
-            public Task<HoldMaskSet> PredictAsync(IReadOnlyList<PointD> points, CancellationToken cancellationToken = default)
+            public async Task<HoldMaskSet> PredictAsync(IReadOnlyList<PointD> points, CancellationToken cancellationToken = default)
             {
                 owner.Calls++;
+                if (owner.Gate is { } gate) await gate.Task;
+                if (owner.ThrowNext)
+                {
+                    owner.ThrowNext = false;
+                    throw new InvalidOperationException("model failure");
+                }
+                ObjectDisposedException.ThrowIf(_disposed, this);              // as the real session once the mode is left
                 int w = frame.Width, h = frame.Height;
                 int sx = Math.Clamp((int)points[0].X, 0, w - 1), sy = Math.Clamp((int)points[0].Y, 0, h - 1);
                 var px = frame.Pixels.ToArray();
@@ -408,10 +552,10 @@ public sealed class RouteSelectionUiTests : IAsyncLifetime
                 var m = mask.Count(b => b != 0) < 20
                     ? new HoldMask(w, h, Enumerable.Repeat((byte)1, w * h).ToArray(), 0.9)   // a speck: the model sees the wall
                     : new HoldMask(w, h, mask, 0.9);
-                return Task.FromResult(new HoldMaskSet(ImmutableArray.Create(m, m, m)));
+                return new HoldMaskSet(ImmutableArray.Create(m, m, m));
             }
 
-            public void Dispose() { }
+            public void Dispose() => _disposed = true;
         }
     }
 }

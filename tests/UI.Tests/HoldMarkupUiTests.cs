@@ -66,7 +66,8 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
             new InspectorViewModel(_edit, _status),
             new TimelineViewModel(_projects, _edit, _status, NullLogger<TimelineViewModel>.Instance),
             _status, files, _projects, NullLogger<MainWindowViewModel>.Instance,
-            holdMarkup: new HoldMarkupViewModel(_edit, _projects, _status, _model, _frames, _lock),
+            holdMarkup: new HoldMarkupViewModel(_edit, _projects, _status, _model, _frames, _lock,
+                settings: new InMemoryUserSettings(new UserSettings { RouteProposalsEnabled = false })),   // the manual markup (D034); the route: RouteFromFirstHoldUiTests
             previewTransform: new PreviewTransformViewModel(_edit, _projects, _status, _lock, _ => (10, 10)));
         _undo.StateChanged += (_, _) => _history++;
     }

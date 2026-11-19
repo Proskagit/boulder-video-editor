@@ -27,8 +27,8 @@ public sealed class PreviewDecodingTests
     }
 
     [Fact]
-    public void Medium_is_the_default_quality() =>
-        Assert.Equal(PreviewQuality.Medium, new UserSettings().PreviewQuality);
+    public void Original_is_the_default_quality() =>
+        Assert.Equal(PreviewQuality.Original, new UserSettings().PreviewQuality);
 
     [Fact]
     public void A_quality_out_of_range_in_the_settings_file_is_the_default() =>

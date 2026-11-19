@@ -11504,3 +11504,97 @@ A linked partner of the other kind selected with the clip moves in time on its o
 *(The proxy items below are moot since amendment 3 withdrew the proxies.)* Proxies of light videos (1080p H.264), of images and of audio; proxies for the export, the thumbnails or the analyses; a
 choice of the proxy's codec or folder; swapping to the source on pause; showing a proxy's state per file in the Media
 Browser.
+
+### Acceptance (2026-11-19)
+
+The owner checked the 1.4.2 build and **accepted Phase 52** (verbally, 2026-11-19); he merges PR #82. Recorded in Step 0 of
+Phase 53 (D072 §0).
+
+## D072 — Phase 53: the route from its first hold *(set by the owner on 2026-11-19)*
+
+Date: 2026-11-19. **Status: the scope set by the product owner on 2026-11-19** (the second of the owner's queue after 1.3.0) and
+the owner's answers below. Branch `feat/phase-53-route-from-hold` (cut from `feat/phase-52-proxy` at `4b7daf4`, PR #82 not merged
+yet). **No `project.json` format change** (v26); the user's settings file: `holdProposalsEnabled` replaced by
+`routeProposalsEnabled` (see §3). Manual plan: `docs/PHASE53_MANUAL_TEST_PLAN.md`.
+
+### 0. Step 0 — Phase 52 accepted; the Preview's quality «Оригинал» by default
+
+Phase 52 (D071) accepted by the owner (above). The owner's word for this phase: the Preview's quality is **«Оригинал» by
+default** (`PreviewDecoding.DefaultQuality`; D071 §2's «Среднее» replaced). A saved choice stays; the settings files of 1.3 hold
+no quality, so they get «Оригинал».
+
+### 1. What existed
+
+- **D047 (Phase 31) «Предлагать зацепки автоматически»:** a check box (Inspector and settings, off by default); when on, entering
+  the markup on a clip without holds ran a 15 × 15 grid of SAM prompts over the frame (`HoldProposalGenerator`) and proposed every
+  hold-like mask, of every colour; each accepted proposal was refined on the full frame (`HoldProposalRefiner`).
+- **D048 stage 1 «Авторазметка» (formerly «Разместить зацепки»):** hidden since 2026-10-28
+  (`docs/HOLD_AUTO_DETECTION_RESEARCH.md` §9) but whole: a button → a click on the control hold at `T` → the click carried to the
+  clean frame `T − 5 s` (`RouteSelectionService`) → `RouteHoldFinder`: the control hold's mask (D034 rule), its colour
+  (`HoldColorSampler`), prompts from the colour map (`ColorPromptPlanner`) plus the D047 grid, one mask per prompt, selection by
+  the colour distance τ 0.08 (`RouteHoldSelector`) → the review (remove, add by a click + Enter, the tolerance) → «Принять» =
+  one `AddHolds` step.
+- **The research (D048, paused 2026-10-28):** production found 0.52 of the route's holds at precision 0.25; the frozen research
+  variant **«split + chroma 0.3»** (a colour-map region larger than 4× the control hold split again at distance 0.06, no grid;
+  a candidate's chroma ≥ 0.3 × the control's) with **V1** (hue |Δh| ≤ 30°) found 0.60 at precision 0.50 on the independent pilot
+  I1–I7 (−22 % false against the variant alone, no hold lost), 2.3–13.4 s per frame.
+
+### 2. The owner's answers (2026-11-19)
+
+1. **Start:** the check box becomes «Предлагать трассу»: when it is on, **the first click on a hold** in «Разметить зацепки»
+   starts the analysis of the route. The old behaviour of the check box (D047's proposals of every hold) is removed.
+2. **Frame:** the frame the user clicked (the markup frame, as in the manual markup) — no clean frame `T − 5 s`, no transfer.
+3. **Result:** a window «Подождите, идёт анализ» while the route is analysed; then the found holds are **proposals** (dashed):
+   the user removes the extra ones, adds the missing ones by a click, may change the colour tolerance; **«Принять»** adds them all
+   in **one Undo step**.
+4. **Quality:** the measured research variant goes into production: the split colour map and the chroma gate 0.3 without the
+   grid, and the hue gate V1 30°.
+
+### 3. The scenario
+
+- **«Предлагать трассу»** (`UserSettings.RouteProposalsEnabled`, **on by default** — the phase's main scenario; the check box in
+  the Inspector's «Зацепки» while the route has no holds on the clip, and in the settings window). The old
+  `holdProposalsEnabled` is no longer read (its meaning changed).
+- In the markup mode (frame ready, as today), with the check box on and the current route (D053) **without holds on this clip**,
+  the **first plain click** of the session (not Shift, not on an existing contour) is the route's first hold: the window
+  «Подождите, идёт анализ» (the route analysis, a progress bar, «Отмена») covers the main window; the editor's shortcuts except Esc
+  (= «Отмена») are ignored meanwhile (F1 still opens the help).
+- The analysis is `RouteHoldFinder` on the encoded markup frame at the click (§4). Done → the window closes, the route's holds
+  are proposals on the frame (the control hold first), the review of D048 §2 (now on the markup frame: no frame swap, no seek):
+  a click on a proposal selects it, Delete removes it (it never comes back at any tolerance), a click elsewhere + Enter adds a
+  missed hold to the proposals, the tolerance re-selects without the model. **«Принять»** = one `AddHolds` (the holds at the
+  markup frame's source time, their outlines smoothed by D065) and the markup **goes on** (manual clicks, «Готово»). **«Отменить»**
+  drops the proposals; the markup goes on. **«Готово»** with proposals still shown accepts them first (what is on the screen is
+  kept), then finishes as before (the intro and final laid out — its own step). **Esc** during the review discards a candidate or
+  a selection, otherwise keeps the review as it is (as D047 §2 did); Play, a seek, another clip leave the mode and drop the
+  proposals, the project unchanged (as every other unconfirmed thing of the mode). Ctrl+A = «Принять», Ctrl+D removes them all.
+- The analysis runs **once per session**: after it (accepted, cancelled, failed) clicks are manual. Failure (no mask at the
+  click, an error): the status says so and the click becomes an ordinary manual candidate at that point (never lost). «Отмена»
+  in the window: nothing changed, the markup goes on manually.
+- **Removed:** D047's generation on entering the markup (`IHoldProposalGenerator` / `IHoldProposalRefiner` no longer used by the
+  application — their Core classes stay for the research suite), the «Показать N» list and the per-proposal «Принять» /
+  «Принять все»; the hidden «Авторазметка» button and its clean-frame path in the markup (`RouteSelectionService` stays in Core
+  for the research suite). The six harnesses of `tests/Vision.ModelTests` that drove those flows (Phase 31's surrogate and
+  acceptance, D048's control clicks, held-out run, project persistence, the real-clip route selection) are excluded from its
+  compile (`Compile Remove`, the sources kept unchanged as the record): those reproductions no longer run; the frozen
+  `ReferenceSplitExperimentTests` and the rest of the suite still build.
+
+### 4. The search (D048 research variant V1 in production)
+
+- **Prompts:** the colour map of `ColorPromptPlanner` (blocks ≈ 1/480 of the width, distance < 0.10, one prompt per 4-connected
+  region at its innermost block); a region larger than **4×** the control hold's area (in blocks) is split again at distance
+  **0.06**, one prompt per part; **no grid**; largest first, at most 300. (A port of the frozen `ResearchFindAsync`'s
+  `SplitPrompts`; the innermost block of a part is found on the part's own mask, as the planner does for a region.)
+- **Selection** (`RouteHoldSelector`): as before (the control hold always; score ≥ 0.5; distance < τ, default 0.08; fragments)
+  plus **chroma** ≥ 0.3 × the control's chroma, and **hue** |Δh| ≤ 30° whenever both the control's and the candidate's chroma are
+  ≥ 0.025 (below it the hue is noise and τ alone decides).
+- Everything else as D048 §2 (the control mask by D034's rule, its colour, the masks' IoU merge, the current route's holds
+  already on the clip left out — another route's holds of the same colour may be proposed again, as before).
+- **Expectation, not a promise:** on the research's independent frames about 60 % of a route's holds found with about 5 false
+  per frame; the review is part of the scenario.
+
+### Out of scope
+
+The choice of the control hold's mask among SAM's alternatives (research hypothesis B), the colour refined by the confirmed holds
+(A3), ranking by neighbourhood, YOLO prompts; proposals on other frames than the clicked one; any change of the research's frozen
+code.

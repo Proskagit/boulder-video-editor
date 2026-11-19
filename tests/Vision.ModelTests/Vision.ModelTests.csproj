@@ -15,6 +15,13 @@
 
   <!-- One test class at a time: the classes share the GPU, and run in parallel they distort each other's timings
        (found at Step 19.8: a "slowest click" of 2.4 s). -->
+  <!-- D072 §3: these harnesses drove the markup's D047 proposals and D048's hidden «Авторазметка» (the clean frame), both
+       removed from the application in Phase 53; kept as the record of those experiments (their results: artifacts/,
+       progress.md, docs/HOLD_AUTO_DETECTION_RESEARCH.md), no longer compiled. -->
+  <ItemGroup>
+    <Compile Remove="Phase31ManualSurrogateTests.cs;Phase31RealModelAcceptanceTests.cs;ReferenceControlClicksTests.cs;ReferenceHeldoutTests.cs;ReferenceProjectPersistenceTests.cs;RouteSelectionRealClipTests.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

@@ -8,7 +8,7 @@ A bouldering video in ten steps.
 - **2. Clips.** Add videos to «Media» («+ Import», Ctrl+I or by dragging) and move them onto the timeline; several selected files go in their recording order.
 - **3. Training.** «Import FIT Training…» on the toolbar: the climbs from your watch (COROS, Garmin and others) are bound to the clips by themselves — «Boulder» routes with their grade and status, the heart rate in the frame. A miss is easy to fix by hand.
 - **4. Edit.** Trim and split off what you don't need (S) — the magnetic main track closes the gaps. Between clips — the «Transition» button (up to 5 s).
-- **5. Holds.** Select a clip, pause and press «Mark holds»: a click on a hold gives its outline. Accept the proposals or pick a route by its colour; the outlines follow the camera.
+- **5. Holds.** Select a clip, pause and press «Mark holds»: a click on a hold gives its outline. The first click on a route proposes all its holds of that colour — review them and press «Accept»; the outlines follow the camera.
 - **6. Colour.** The «COLOUR» section → «Auto enhance», then adjust the sliders if you like.
 - **7. Follow.** When the climber is well visible and the frame has room (a vertical video from a horizontal one, a zoom), switch on «Follow the climber»: the frame follows the climber and the hold outlines hide behind people («Hide outlines behind people»).
 - **8. Sound.** Music on a sound track; ducking under speech, «Noise reduction» and «Voice enhancement» when people talk.
@@ -62,7 +62,7 @@ Marking holds, following people and cleaning sound need local AI models (about 1
 
 ## Preview quality
 
-- The button right of the time under the Preview (an eye and «1080p»): **«Original»**, **«High (1440p)»**, **«Medium (1080p)»** (the default), **«Minimum (720p)»** — how large the Preview shows the videos. It changes at once; lower is lighter for the computer. The export is always made from the originals at full quality.
+- The button right of the time under the Preview (an eye and the quality): **«Original»** (the default), **«High (1440p)»**, **«Medium (1080p)»**, **«Minimum (720p)»** — how large the Preview shows the videos. It changes at once; lower is lighter for the computer. The export is always made from the originals at full quality.
 
 # Marking holds
 
@@ -75,10 +75,12 @@ A local neural network draws a hold's outline from one click.
 - **Shift+click** refines an outline that took too much. A selected hold's points can be dragged; **Alt+click** adds a point, **Delete** removes the hold.
 - **«Done»** leaves the markup. The marked holds stay.
 
-## Proposals and automatic marking
+## The route from its first hold
 
-- **«Suggest holds automatically»** — entering the markup, the editor looks for holds by itself. Accept or reject each, or all at once: «Accept all» (Ctrl+A), «Reject all» (Ctrl+D).
-- **Automatic route marking by colour** — in development.
+- **«Suggest the route»** (on by default) — in «Mark holds», click one hold of a route that has no holds yet. The window «Please wait, analysing» appears (a few seconds; «Cancel» or Esc — the markup goes on by hand).
+- Then every hold of the same colour found is shown dashed as a proposal. Select a wrong one by a click and press Delete (or «Reject» in the list); click a missed one and press Enter; «Colour tolerance» widens or narrows the choice.
+- **«Accept»** (Ctrl+A) adds all the proposals in one step (Ctrl+Z undoes it); then you can go on marking by hand. «Discard» removes the proposals. «Done» keeps what is shown and finishes the markup.
+- The analysis runs once per markup session and only on the frame you clicked. It does not find every hold and sometimes finds wrong ones — check the result. Turn the check box off to make the first click mark one hold, as before.
 
 ## Look and animation
 
@@ -156,7 +158,7 @@ The Inspector's **«Follow and people»** section.
 ## Marking holds
 
 - **Enter** — confirm, **Esc** — discard, **Tab / Shift+Tab** — another outline variant
-- **Delete** — delete the hold, **Ctrl+A / Ctrl+D** — accept / reject all proposals
+- **Delete** — delete the hold, **Ctrl+A / Ctrl+D** — accept / reject all the route's proposals
 
 # Where the data lives
 

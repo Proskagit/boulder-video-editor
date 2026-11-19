@@ -2,6 +2,34 @@
 
 ## Current phase
 
+**Phase 53 — the route from its first hold (D072, 2026-11-19) — on `feat/phase-53-route-from-hold`** (cut from
+`feat/phase-52-proxy` at `4b7daf4`; PR #82 not merged yet). The second of the owner's queue after 1.3.0. **Step 0:** Phase 52
+accepted by the owner (D071 «Acceptance»); the Preview's quality «Оригинал» by default (the owner's word). The owner's answers
+(D072 §2): the check box becomes «Предлагать трассу» and the first click on a hold starts the analysis (D047's proposals removed),
+the clicked frame, proposals + «Принять», the research variant V1 in production. The owner's concept of the «Итоги» template
+recorded for its phase: `docs/SUMMARY_TEMPLATE_CONCEPT.md`.
+**Done:** `ColorPromptPlanner` splits a region larger than 4× the control at 0.06; `RouteHoldGates` (chroma ≥ 0.3 × the control's,
+hue ≤ 30° above chroma 0.025) in `RouteHoldSelector`; `RouteHoldSearchOptions.Production` (split + gates, no grid; the record's
+defaults stay D048's for the research suite); `HoldMarkupViewModel.Route.cs` rewritten: the first plain click of a session on a
+route without holds → `IsRouteAnalyzing` (the window «Подождите, идёт анализ» over the main window, «Отмена»; `ShortcutRouter`
+lets only Esc through) → the review on the markup frame → «Принять» (one `AddHolds`, the markup goes on) / «Отменить» / «Готово»
+accepts first; once per session; a failure → an ordinary candidate; leaving the mode meanwhile throws nothing.
+`UserSettings.RouteProposalsEnabled` (on) replaces `HoldProposalsEnabled`. Removed: D047's generation / refinement in the markup,
+«Показать N», per-proposal «Принять», «Принять все», the hidden «Авторазметка» with its clean frame (Core classes kept for the
+research suite; its six harnesses of the removed flows excluded from `Vision.ModelTests`' compile), unused strings. Help (ru /
+en), the manual plan `docs/PHASE53_MANUAL_TEST_PLAN.md`.
+**Tests:** `RouteFromFirstHoldUiTests` (11, replacing `RouteSelectionUiTests`), `RouteProposalDefaultTests`, `RouteHoldV1Tests`
+(6), the settings file of 1.3 with the old key; `HoldMarkupProposalUiTests` (D047) removed with the feature; the manual markup
+tests run with the check box off.
+**Review (phase-reviewer): FAIL** — `MarkupScenarioTests` (Vision.ModelTests) would run into the route with the check box on by
+default, and the review's rules lacked tests (keys, a click on a proposal, the manual fallback, a seek). Fixed (the scenario with
+the box off; +5 tests, the fallback mutation-checked); notes taken (D072 §3 / §4 wording, dead `DrawFrame`, a test name, no status
+on `NoChange`). **Re-review: PASS WITH NOTES.**
+**Gates (2026-11-19, the final code):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `Vision.ModelTests` builds;
+`git diff --check` clean; Release + `AIVE_HEAVY_TESTS=1` with `--blame-hang`: Vision 37, Project 759, Core 1 973, Export 142,
+Rendering 264, UI 1 319, Timeline 1 253, Video 418 (+1 environment-gated skip), ExportEndToEnd 189 — all green (6 354).
+**Not done:** push / PR (awaiting the owner's word; PR #82 not merged yet), the owner's manual check.
+
 **Phase 52 — proxies for 4K / HEVC and the Preview's quality (D071, 2026-11-19) — on `feat/phase-52-proxy`.** The first of the
 owner's queue after 1.3.0 (ROADMAP «The owner's queue after 1.3.0»). The owner's answers (D071 §1): proxies made automatically
 (a switch in the settings), the Preview's quality on its bar instead of a «Прокси / Оригинал» toggle — «Оригинал», «Высокое»

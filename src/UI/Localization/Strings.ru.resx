@@ -610,52 +610,25 @@
     <value>Пиксели при высоте кадра 1080 (линия масштабируется вместе с изображением)</value>
   </data>
   <data name="Holds_ProposeAutomatically" xml:space="preserve">
-    <value>Предлагать зацепки автоматически</value>
+    <value>Предлагать трассу</value>
   </data>
   <data name="Holds_ProposeAutomaticallyTip" xml:space="preserve">
-    <value>Искать варианты зацепок при входе в режим разметки клипа без зацепок</value>
+    <value>Первый щелчок по зацепке трассы без зацепок находит на этом кадре остальные зацепки того же цвета и предлагает их для проверки</value>
   </data>
   <data name="Holds_ProposalsHeading" xml:space="preserve">
     <value>Предложения</value>
   </data>
-  <data name="Holds_ShowTop" xml:space="preserve">
-    <value>Показывать</value>
-  </data>
-  <data name="Holds_Accept" xml:space="preserve">
-    <value>Принять</value>
-  </data>
   <data name="Holds_Reject" xml:space="preserve">
     <value>Отклонить</value>
   </data>
-  <data name="Holds_AcceptAll" xml:space="preserve">
-    <value>Принять все</value>
-  </data>
   <data name="Holds_RejectAll" xml:space="preserve">
     <value>Отклонить все</value>
-  </data>
-  <data name="Holds_GeneratingProposals" xml:space="preserve">
-    <value>Поиск зацепок…</value>
-  </data>
-  <data name="Holds_NoProposals" xml:space="preserve">
-    <value>Зацепки не найдены — разметьте вручную.</value>
-  </data>
-  <data name="Holds_ProposalsError" xml:space="preserve">
-    <value>Не удалось найти зацепки: {0}</value>
-  </data>
-  <data name="Holds_RefiningProposals" xml:space="preserve">
-    <value>Уточнение зацепок…</value>
-  </data>
-  <data name="Holds_ReviewProposals" xml:space="preserve">
-    <value>Выберите предложения: примите, отклоните или разметьте вручную.</value>
   </data>
   <data name="Holds_ProposalRank" xml:space="preserve">
     <value>{0}. уверенность {1:0.00}</value>
   </data>
   <data name="Holds_AcceptedAll" xml:space="preserve">
     <value>Добавлено зацепок: {0}.</value>
-  </data>
-  <data name="Holds_RefinementFailedFor" xml:space="preserve">
-    <value>Не удалось уточнить зацепку: {0}</value>
   </data>
   <data name="Import_DidntFinish" xml:space="preserve">
     <value>Импорт не завершён.</value>
@@ -2104,7 +2077,7 @@
     <value>ТАЙМЛАЙН И РАЗМЕТКА</value>
   </data>
   <data name="AppSettings_ProposalsNote" xml:space="preserve">
-    <value>По умолчанию выключено: предложения занимают время при каждом входе в разметку.</value>
+    <value>По умолчанию включено: первый щелчок в «Разметить зацепки» по трассе без зацепок запускает анализ (несколько секунд), найденные зацепки того же цвета предлагаются для проверки.</value>
   </data>
   <data name="AppSettings_CorosFit" xml:space="preserve">
     <value>FIT-ТРЕНИРОВКИ</value>
@@ -2331,26 +2304,11 @@
   <data name="Swatch_Violet" xml:space="preserve">
     <value>Фиолетовый</value>
   </data>
-  <data name="Holds_PlaceHolds" xml:space="preserve">
-    <value>Авторазметка</value>
-  </data>
-  <data name="Holds_PlaceHoldsTip" xml:space="preserve">
-    <value>Остановитесь на моменте перед началом пролаза (T), нажмите кнопку и щёлкните по одной зацепке трассы: зацепки её цвета будут найдены на чистом кадре за 5 с до этого и предложены для проверки.</value>
-  </data>
-  <data name="Holds_RoutePickControl" xml:space="preserve">
-    <value>Щёлкните по одной зацепке трассы на этом кадре. Esc — отмена.</value>
-  </data>
-  <data name="Holds_RouteFindingCleanFrame" xml:space="preserve">
-    <value>Поиск контрольной зацепки на чистом кадре…</value>
-  </data>
   <data name="Holds_RouteFindingHolds" xml:space="preserve">
-    <value>Поиск зацепок трассы…</value>
+    <value>Анализ трассы…</value>
   </data>
   <data name="Holds_RouteReview" xml:space="preserve">
-    <value>Чистый кадр: удалите лишние зацепки, щёлкните по пропущенной и нажмите Enter, затем «Принять».</value>
-  </data>
-  <data name="Holds_RouteCleanAtFileStart" xml:space="preserve">
-    <value>Файл клипа начинается меньше чем за 5 с до этого момента: чистым кадром взят его первый кадр.</value>
+    <value>Проверьте трассу: удалите лишние зацепки (Delete), щёлкните по пропущенной и нажмите Enter, затем «Принять».</value>
   </data>
   <data name="Holds_RouteTolerance" xml:space="preserve">
     <value>Допуск цвета</value>
@@ -2362,7 +2320,7 @@
     <value>Принять</value>
   </data>
   <data name="Holds_RouteCancel" xml:space="preserve">
-    <value>Отмена</value>
+    <value>Отменить</value>
   </data>
   <data name="FitMark_Proposed" xml:space="preserve">
     <value>предложена</value>
@@ -4077,5 +4035,17 @@
   </data>
   <data name="Timeline_NewTrackDrop" xml:space="preserve">
     <value>+ Новая дорожка</value>
+  </data>
+  <data name="Holds_RouteFound" xml:space="preserve">
+    <value>Предложено зацепок трассы: {0}. Проверьте и нажмите «Принять».</value>
+  </data>
+  <data name="Holds_RouteAnalyzingTitle" xml:space="preserve">
+    <value>Подождите, идёт анализ</value>
+  </data>
+  <data name="Holds_RouteAnalyzingText" xml:space="preserve">
+    <value>Ищем зацепки того же цвета на этом кадре. Обычно это занимает несколько секунд.</value>
+  </data>
+  <data name="Holds_RouteAnalyzingCancel" xml:space="preserve">
+    <value>Отмена</value>
   </data>
 </root>

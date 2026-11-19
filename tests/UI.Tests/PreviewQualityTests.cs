@@ -66,7 +66,10 @@ public sealed class PreviewQualityTests : IAsyncLifetime
     public void The_quality_bounds_every_video_on_the_fly()
     {
         var preview = Preview();
-        Assert.Equal((int)PreviewQuality.Medium, preview.QualityIndex);
+        Assert.Equal((int)PreviewQuality.Original, preview.QualityIndex);    // D072 §0: «Оригинал» by default
+        Assert.Equal(new(3840, 2160), Decoding(_uhd).DecodeBound);
+
+        preview.QualityIndex = (int)PreviewQuality.Medium;
         Assert.Equal(new(1920, 1080), Decoding(_uhd).DecodeBound);
         Assert.Equal(new(1080, 1920), Decoding(_portrait).DecodeBound);    // the box upright for a portrait video
 

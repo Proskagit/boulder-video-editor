@@ -30,7 +30,7 @@ public sealed class UserSettingsStoreTests : IDisposable
     {
         var settings = Settings();
         Assert.Equal(MediaTime.FromSeconds(-70), settings.Current.HeartRateDisplayOffset);
-        Assert.False(settings.Current.HoldProposalsEnabled);
+        Assert.True(settings.Current.RouteProposalsEnabled);                  // D072 §3: on by default
         Assert.Null(settings.Current.Language);
         Assert.False(Directory.Exists(_folder));
     }
@@ -41,13 +41,13 @@ public sealed class UserSettingsStoreTests : IDisposable
         var settings = Settings();
         var changes = 0;
         settings.Changed += (_, _) => changes++;
-        settings.Update(s => s with { HeartRateDisplayOffsetTicks = MediaTime.FromSeconds(-45).Ticks, HoldProposalsEnabled = true, Language = " en " });
+        settings.Update(s => s with { HeartRateDisplayOffsetTicks = MediaTime.FromSeconds(-45).Ticks, RouteProposalsEnabled = false, Language = " en " });
         settings.Update(s => s);                                         // equal: nothing raised
         Assert.Equal(1, changes);
 
         var next = Settings();
         Assert.Equal(MediaTime.FromSeconds(-45), next.Current.HeartRateDisplayOffset);
-        Assert.True(next.Current.HoldProposalsEnabled);
+        Assert.False(next.Current.RouteProposalsEnabled);
         Assert.Equal("en", next.Current.Language);
         Assert.Equal(UserFileState.Usable, next.FileState);
     }
@@ -72,7 +72,7 @@ public sealed class UserSettingsStoreTests : IDisposable
     public void A_file_of_the_test_builds_with_make_proxies_still_loads_with_its_values()
     {
         // D071 amendment 3: the 1.4.0 / 1.4.1 builds wrote «makeProxies»; the setting is gone, the file must still be read.
-        Settings().Update(s => s with { PreviewQuality = Core.Playback.PreviewQuality.Low, HoldProposalsEnabled = true });
+        Settings().Update(s => s with { PreviewQuality = Core.Playback.PreviewQuality.Low, RouteProposalsEnabled = false });
         var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(SettingsPath))!;
         var holder = Holder(json, "previewQuality") ?? throw new InvalidOperationException("previewQuality not saved");
         holder["makeProxies"] = false;
@@ -81,7 +81,7 @@ public sealed class UserSettingsStoreTests : IDisposable
         var reread = Settings();
         Assert.Equal(UserFileState.Usable, reread.FileState);
         Assert.Equal(Core.Playback.PreviewQuality.Low, reread.Current.PreviewQuality);
-        Assert.True(reread.Current.HoldProposalsEnabled);
+        Assert.False(reread.Current.RouteProposalsEnabled);
 
         static System.Text.Json.Nodes.JsonObject? Holder(System.Text.Json.Nodes.JsonNode node, string key) => node switch
         {
@@ -89,6 +89,24 @@ public sealed class UserSettingsStoreTests : IDisposable
             System.Text.Json.Nodes.JsonObject o => o.Select(p => p.Value is null ? null : Holder(p.Value, key)).FirstOrDefault(h => h is not null),
             _ => null
         };
+    }
+
+    [Fact]
+    public void A_file_of_1_3_with_the_old_proposals_key_loads_and_proposes_the_route()
+    {
+        // D072 §3: «holdProposalsEnabled» (D047's proposals of every hold) is no longer read — its meaning changed; a file of
+        // 1.3 still loads and gets «Предлагать трассу» on.
+        Settings().Update(s => s with { CanvasSnapPixels = 5 });
+        var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(SettingsPath))!;
+        Assert.Equal(1, RemoveKeys(json, "routeProposalsEnabled"));
+        var holder = json["value"]!.AsObject();
+        holder["holdProposalsEnabled"] = false;
+        File.WriteAllText(SettingsPath, json.ToJsonString());
+
+        var reread = Settings();
+        Assert.Equal(UserFileState.Usable, reread.FileState);
+        Assert.Equal(5, reread.Current.CanvasSnapPixels);
+        Assert.True(reread.Current.RouteProposalsEnabled);
     }
 
     /// <summary>Removes the properties named <paramref name="names"/> (any case) wherever they are; how many were removed.</summary>
@@ -128,8 +146,8 @@ public sealed class UserSettingsStoreTests : IDisposable
         Assert.Equal(new UserSettings(), settings.Current);
         Assert.True(File.Exists(SettingsPath + ".damaged"));
 
-        settings.Update(s => s with { HoldProposalsEnabled = true });
-        Assert.True(Settings().Current.HoldProposalsEnabled);
+        settings.Update(s => s with { RouteProposalsEnabled = false });
+        Assert.False(Settings().Current.RouteProposalsEnabled);
     }
 
     [Fact]
@@ -140,8 +158,8 @@ public sealed class UserSettingsStoreTests : IDisposable
         File.WriteAllText(SettingsPath, newer);
         var settings = Settings();
         Assert.Equal(UserFileState.Newer, settings.FileState);
-        settings.Update(s => s with { HoldProposalsEnabled = true });
-        Assert.True(settings.Current.HoldProposalsEnabled);              // for this run
+        settings.Update(s => s with { RouteProposalsEnabled = false });
+        Assert.False(settings.Current.RouteProposalsEnabled);           // for this run
         Assert.Equal(newer, File.ReadAllText(SettingsPath));
     }
 

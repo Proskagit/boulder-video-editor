@@ -146,13 +146,8 @@ public static class ServiceCollectionExtensions
             sp.GetService<Microsoft.Extensions.Logging.ILogger<AiVideoEditor.Media.Audio.AudioCleanupProcessor>>()));
         services.AddSingleton<Core.Audio.IAudioAnalysisCache>(sp => new AudioAnalysisCacheStore(AppPaths.AudioCacheFolder,
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<AudioAnalysisCacheStore>>()));
-        // Phase 31 (D047): automatic hold proposals at 1920×1080 and full-resolution refinement of accepted proposals.
-        services.AddSingleton<IHoldProposalService, HoldProposalService>();
-        services.AddSingleton<IHoldProposalGenerator, HoldProposalGenerator>();
-        services.AddSingleton<IHoldProposalRefiner, HoldProposalRefiner>();
-        // D048 §2: the route selection at T — the frames by source time, the transfer to the clean frame.
-        services.AddSingleton<IRouteSelectionFrameSource, RouteSelectionFrameSource>();
-        services.AddSingleton<RouteSelectionService>();
+        // D072 §1: D047's proposals and D048's clean-frame selection are no longer used by the application (their Core
+        // classes stay for the research suite); the route is searched on the markup frame (HoldMarkupViewModel).
         services.AddSingleton<StatusService>();
         // D070 §3: the Portable package's models (the folder ai-models next to the exe), installed into the models folder on the user's consent.
         services.AddSingleton<IModelInstaller, AiVideoEditor.Vision.Installation.ModelPackageInstaller>();

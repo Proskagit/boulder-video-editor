@@ -10,13 +10,13 @@ namespace AiVideoEditor.Core.Playback;
 /// </summary>
 public enum PreviewQuality
 {
-    /// <summary>The source file at its own size — no bound.</summary>
+    /// <summary>The source file at its own size — no bound; the default (D072 §0, the owner: «Оригинал» by default).</summary>
     Original,
 
     /// <summary>1440p: 2560 × 1440 (its long side × its short side).</summary>
     High,
 
-    /// <summary>1080p: 1920 × 1080 — the default.</summary>
+    /// <summary>1080p: 1920 × 1080 (the default of D071, until D072 §0).</summary>
     Medium,
 
     /// <summary>720p: 1280 × 720 — the Preview of 1.3 and earlier (then for portrait pictures too, 405 × 720).</summary>
@@ -26,7 +26,7 @@ public enum PreviewQuality
 /// <summary>D071 §2: how large the Preview decodes a source at a <see cref="PreviewQuality"/>.</summary>
 public static class PreviewDecoding
 {
-    public const PreviewQuality DefaultQuality = PreviewQuality.Medium;
+    public const PreviewQuality DefaultQuality = PreviewQuality.Original;
 
     /// <summary>The bound of a quality as (long side, short side); null for <see cref="PreviewQuality.Original"/>.</summary>
     public static (int Long, int Short)? Box(PreviewQuality quality) => quality switch

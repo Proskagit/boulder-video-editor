@@ -679,12 +679,19 @@ Phase 51, D070; the clips' thumbnails — Phase 49, D068 item 10; more transitio
 
 **The owner's queue after 1.3.0 (2026-11-19), each a phase of its own in this order:** 1) proxies for 4K / HEVC and the
 Preview's quality — **Phase 52, D071**; 2) the route from its first hold («Разметить зацепки» → a click on one hold → «подождите,
-анализ» → every proposed hold of the route marked, the user confirms, adds or removes); 3) the «Итоги» template (36.3 / 36.4);
+анализ» → every proposed hold of the route marked, the user confirms, adds or removes); 3) the «Итоги» template (36.3 / 36.4; the owner's concept of 2026-11-19 — an animated header, rows per route, the route's time from
+the orange area's end to the purple area's start, scrolling past ~10 rows — in `docs/SUMMARY_TEMPLATE_CONCEPT.md`);
 4) codecs and presets (FU-EX.1, HEVC / AV1); 5) text styles (D058 §7: italic, shadow, line spacing, wrapping, saved styles);
 6) technical debt (the split of `TimelineEditService` / `TimelineViewModel`); 7) the repository's page (its «Status» rewritten,
 the page restructured). Other ideas (Shorts per route, comparing attempts, beta notes …) wait until then.
 
-**Phase 52 (D071, 2026-11-19) — the Preview's quality** on `feat/phase-52-proxy`: the quality on the Preview's bar (Оригинал /
+**Phase 53 (D072, 2026-11-19) — the route from its first hold** on `feat/phase-53-route-from-hold`: «Предлагать трассу» (on by
+default) — the markup's first click on a route without holds → «Подождите, идёт анализ» → the route's holds of that colour proposed
+on the markup frame → remove / add / tolerance → «Принять» in one Undo step; the D048 research variant (split colour map, chroma
+and hue gates, no grid) in production; D047's proposals of every hold and the hidden «Авторазметка» removed; Step 0: the Preview's
+quality «Оригинал» by default. Manual plan: `docs/PHASE53_MANUAL_TEST_PLAN.md`.
+
+**Phase 52 (D071, 2026-11-19) — the Preview's quality — accepted by the owner 2026-11-19 (PR #82)** on `feat/phase-52-proxy`: the quality on the Preview's bar (Оригинал /
 Высокое 1440p / Среднее 1080p by default / Минимум 720p) applied on the fly; proxies for 4K / HEVC were made and withdrawn by the
 owner (amendment 3: making them took about as long as the clips); amendments 2–3: transitions 1 s with edge snap, plates never
 pushed and kept compact, a new track by dragging above the top track; amendment 1 — a sound dropped onto an empty track lands where

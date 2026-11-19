@@ -293,9 +293,6 @@ public sealed class HoldMarkupOverlay : Control, ICustomHitTest
         if (_markup is not { IsActive: true, Geometry: { } geometry } markup || !markup.Canvas.IsValid) return;
         var view = Bounds.Size;
 
-        // D048 §2: the route review is on the clean frame, not the frame under the playhead — drawn here over the picture.
-        if (markup.ShowsMarkupFrame && markup.MarkupFrame is { } clean) DrawFrame(context, geometry, markup.Canvas, view, clean);
-
         // Phase 31 (D047): ranked automatic proposals, translucent and dashed; the selected one highlighted.
         for (var i = 0; i < markup.ProposalContours.Length; i++)
         {
@@ -351,18 +348,6 @@ public sealed class HoldMarkupOverlay : Control, ICustomHitTest
             context.FillRectangle(i == active ? HoveredFill : HandleFill, rect);
             context.DrawRectangle(null, HandleBorder, rect);
         }
-    }
-
-    /// <summary>The frame itself where the clip's picture lies (its crop, scale, rotation and position — D018).</summary>
-    private void DrawFrame(DrawingContext context, LayerGeometry geometry, FrameSize canvas, Size view, DecodedFrame frame)
-    {
-        if (EnsureBitmap(frame) is not { } bitmap) return;
-        var toView = CompositionDrawPlan.Viewport(canvas, view.Width, view.Height).Compose(geometry.Transform);
-        double sx = geometry.Source.Width / (double)frame.Width, sy = geometry.Source.Height / (double)frame.Height;
-        var crop = geometry.SourceRect;
-        var source = new Rect(crop.X / sx, crop.Y / sy, crop.Width / sx, crop.Height / sy);
-        using (context.PushTransform(new Matrix(toView.A, toView.C, toView.B, toView.D, toView.Tx, toView.Ty)))
-            context.DrawImage(bitmap, source, new Rect(0, 0, crop.Width, crop.Height));
     }
 
     private WriteableBitmap? EnsureBitmap(DecodedFrame frame)
