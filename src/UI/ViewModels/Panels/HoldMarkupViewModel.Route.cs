@@ -52,6 +52,16 @@ public sealed partial class HoldMarkupViewModel
     /// <summary>The route's holds are proposed: the tolerance, «Принять» and «Отменить» are shown.</summary>
     [ObservableProperty] private bool _isRouteReview;
 
+    /// <summary>D072 amendment 1: the colour the route's proposals are drawn in — the one its holds will get (the route's manual
+    /// colour, or the Auto colour of the proposals as holds), so they read on the wall as the result will.</summary>
+    [ObservableProperty] private string _proposalColorHex = RouteColor.Palette[0].Hex;
+
+    /// <summary>Whether the proposals get the keyline (as the route's holds would).</summary>
+    [ObservableProperty] private bool _proposalKeyline;
+
+    /// <summary>How many holds are proposed now (the review's count; the list itself is gone — amendment 1).</summary>
+    public int ProposalCount => _proposalSource.Count;
+
     /// <summary>The colour tolerance (OKLab distance, L weighted ½); a change re-selects without the model.</summary>
     [ObservableProperty] private decimal? _routeTolerance = (decimal)RouteHoldColor.DefaultTolerance;
 
@@ -79,10 +89,19 @@ public sealed partial class HoldMarkupViewModel
         try
         {
             var existing = ExistingContours(clip);
+            var style = MarkupOf(clip) ?? new HoldMarkup();
+            var tolerance = CurrentTolerance;
+            var sourceTime = _sourceTime;
             // Made here, on the UI thread: its reports come back here.
             var progress = new Progress<double>(p => { if (_routeCts == cts) RouteProgress = p; });
-            var found = await Task.Run(() => RouteHoldFinder.FindAsync(encoded, frame, click, existing,
-                RouteHoldSearchOptions.Production, progress, cts.Token));
+            var (found, color) = await Task.Run(async () =>
+            {
+                var result = await RouteHoldFinder.FindAsync(encoded, frame, click, existing, RouteHoldSearchOptions.Production, progress, cts.Token);
+                if (result.Search is not { } s) return (result, default((string, bool)));
+                // Amendment 1: the colour the holds would get — the proposals drawn in it.
+                var holds = RouteHoldFinder.ToHolds(frame, s.Select(tolerance), existing, sourceTime);
+                return (result, RouteColor.Resolve(style with { Holds = style.Holds.AddRange(holds) }));
+            });
             if (_routeCts != cts) return;
             if (found.Search is not { } search)
             {
@@ -93,6 +112,7 @@ public sealed partial class HoldMarkupViewModel
             }
 
             _routeSearch = search;
+            (ProposalColorHex, ProposalKeyline) = color;
             _routePhase = RoutePhase.Reviewing;
             IsRouteAnalyzing = false;
             IsRouteReview = true;
@@ -150,13 +170,15 @@ public sealed partial class HoldMarkupViewModel
         if (IsRouteReview) RefreshRoute();
     }
 
+    private double CurrentTolerance =>
+        (double)Math.Clamp(RouteTolerance ?? (decimal)RouteHoldColor.DefaultTolerance, MinRouteTolerance, MaxRouteTolerance);
+
     /// <summary>The proposals now: the control hold, the user's added holds, then the selection at the tolerance —
     /// without the rejected ones. The review list and the overlay show them all.</summary>
     private void RefreshRoute()
     {
         if (_routeSearch is null) return;
-        var tolerance = (double)Math.Clamp(RouteTolerance ?? (decimal)RouteHoldColor.DefaultTolerance, MinRouteTolerance, MaxRouteTolerance);
-        var selected = _routeSearch.Select(tolerance, _routeRejected);
+        var selected = _routeSearch.Select(CurrentTolerance, _routeRejected);
         var shown = selected.Where(c => c.IsControl).Concat(_routeManual).Concat(selected.Where(c => !c.IsControl)).ToList();
         var selectedId = SelectedProposal?.Proposal.Id;
         _routeShown.Clear();
@@ -167,6 +189,7 @@ public sealed partial class HoldMarkupViewModel
             _proposalSource.Add(new HoldProposal(c.Id, c.Contour, c.Centroid, c.Score, c.AreaFraction));
         }
         RefreshProposals();
+        OnPropertyChanged(nameof(ProposalCount));
         var index = selectedId is { } id ? Proposals.ToList().FindIndex(p => p.Proposal.Id == id) : -1;
         if (index >= 0) SelectedProposalIndex = index;
     }
@@ -276,6 +299,7 @@ public sealed partial class HoldMarkupViewModel
         IsRouteAnalyzing = false;
         IsRouteReview = false;
         ClearProposals();
+        OnPropertyChanged(nameof(ProposalCount));
         if (IsActive && !IsPreparing) ModeText = ReadyText;
     }
 

@@ -689,7 +689,9 @@ the page restructured). Other ideas (Shorts per route, comparing attempts, beta 
 default) — the markup's first click on a route without holds → «Подождите, идёт анализ» → the route's holds of that colour proposed
 on the markup frame → remove / add / tolerance → «Принять» in one Undo step; the D048 research variant (split colour map, chroma
 and hue gates, no grid) in production; D047's proposals of every hold and the hidden «Авторазметка» removed; Step 0: the Preview's
-quality «Оригинал» by default. Manual plan: `docs/PHASE53_MANUAL_TEST_PLAN.md`.
+quality «Оригинал» by default. Amendment 1 (the owner's check of 1.5.0): the route is the group around the clicked hold (the same
+colour far away is another route), at most 15, stricter colour (hue 20°, no white / grey / black on a coloured route), the
+proposals drawn in the route's colour, no list. Manual plan: `docs/PHASE53_MANUAL_TEST_PLAN.md`.
 
 **Phase 52 (D071, 2026-11-19) — the Preview's quality — accepted by the owner 2026-11-19 (PR #82)** on `feat/phase-52-proxy`: the quality on the Preview's bar (Оригинал /
 Высокое 1440p / Среднее 1080p by default / Минимум 720p) applied on the fly; proxies for 4K / HEVC were made and withdrawn by the

@@ -1174,19 +1174,11 @@
                   <CheckBox Content="{x:Static l:Strings.Holds_ProposeAutomatically}" IsChecked="{Binding IsRouteProposalEnabled, Mode=TwoWay}"
                             IsVisible="{Binding CanShowProposalToggle}" ToolTip.Tip="{x:Static l:Strings.Holds_ProposeAutomaticallyTip}"/>
 
-                  <StackPanel Spacing="6" IsVisible="{Binding HasProposals}">
-                    <TextBlock Text="{x:Static l:Strings.Holds_ProposalsHeading}" FontSize="{DynamicResource FontSizeCaption}" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}"/>
-                    <ListBox x:Name="ProposalsListBox" ItemsSource="{Binding Proposals}" SelectedIndex="{Binding SelectedProposalIndex, Mode=TwoWay}" Height="160">
-                      <ListBox.ItemTemplate>
-                        <DataTemplate>
-                          <Grid ColumnDefinitions="*,Auto">
-                            <TextBlock Text="{Binding Label}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <Button Grid.Column="1" Content="{x:Static l:Strings.Holds_Reject}"
-                                    Command="{Binding #ProposalsListBox.DataContext.RejectSelectedProposalCommand}"/>
-                          </Grid>
-                        </DataTemplate>
-                      </ListBox.ItemTemplate>
-                    </ListBox>
+                  <!-- D072 amendment 1: no list — the proposals are reviewed on the Preview (a click selects, Delete removes); here their
+                       count and «Отклонить все». -->
+                  <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsRouteReview}">
+                    <TextBlock Text="{Binding ProposalCount, StringFormat={x:Static l:Strings.Holds_RouteProposalCount}}" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <Button Content="{x:Static l:Strings.Holds_RejectAll}" Command="{Binding RejectAllProposalsCommand}"/>
                   </StackPanel>
 

@@ -1514,7 +1514,6 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         public HoldProposal Proposal { get; }
         public double Score => Proposal.Score;
         public ImmutableArray<NormalizedPoint> Contour => Proposal.Contour;
-        public string Label => string.Format(Strings.Holds_ProposalRank, Rank, Score);
     }
 
     private void RefreshCommands()

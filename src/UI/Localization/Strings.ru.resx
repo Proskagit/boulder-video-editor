@@ -615,17 +615,8 @@
   <data name="Holds_ProposeAutomaticallyTip" xml:space="preserve">
     <value>Первый щелчок по зацепке трассы без зацепок находит на этом кадре остальные зацепки того же цвета и предлагает их для проверки</value>
   </data>
-  <data name="Holds_ProposalsHeading" xml:space="preserve">
-    <value>Предложения</value>
-  </data>
-  <data name="Holds_Reject" xml:space="preserve">
-    <value>Отклонить</value>
-  </data>
   <data name="Holds_RejectAll" xml:space="preserve">
     <value>Отклонить все</value>
-  </data>
-  <data name="Holds_ProposalRank" xml:space="preserve">
-    <value>{0}. уверенность {1:0.00}</value>
   </data>
   <data name="Holds_AcceptedAll" xml:space="preserve">
     <value>Добавлено зацепок: {0}.</value>
@@ -4047,5 +4038,8 @@
   </data>
   <data name="Holds_RouteAnalyzingCancel" xml:space="preserve">
     <value>Отмена</value>
+  </data>
+  <data name="Holds_RouteProposalCount" xml:space="preserve">
+    <value>Предложено: {0}</value>
   </data>
 </root>

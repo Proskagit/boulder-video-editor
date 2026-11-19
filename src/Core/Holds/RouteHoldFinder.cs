@@ -27,13 +27,14 @@ public sealed record RouteHoldSearchOptions
     /// <summary>D072 §4: the chroma and hue gates of the selection (null: the tolerance alone).</summary>
     public RouteHoldGates? Gates { get; init; }
 
-    /// <summary>D072 §4, the application's search: the D048 research variant «split 0.06 + chroma 0.3» with the hue gate V1 30°,
-    /// without the grid. (The record's own defaults stay D048 §2's — the frozen research suite reproduces with them.)</summary>
+    /// <summary>D072 §4, the application's search: the D048 research variant's split 0.06 without the grid, and the strict gates
+    /// of amendment 1 (chroma 0.5, hue 20°, the route's group, at most 15). (The record's own defaults stay D048 §2's — the
+    /// frozen research suite reproduces with them.)</summary>
     public static RouteHoldSearchOptions Production { get; } = new()
     {
         UseGrid = false,
         SplitDistance = 0.06,
-        Gates = RouteHoldGates.V1
+        Gates = RouteHoldGates.Strict
     };
 }
 

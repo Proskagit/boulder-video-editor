@@ -2,6 +2,23 @@
 
 ## Current phase
 
+**Phase 53 amendment 1 (D072, the owner's check of 1.5.0, 2026-11-19):** too many / too far proposals (a green route got
+turquoise, a turquoise click blue / white / black, 21 for a route of 10, two at the frame's far edge), dashed proposals invisible,
+the list useless. Done: `RouteHoldGrouping` (the route's group grown from the control hold, link 2.5 × the median nearest gap in
+0.04 … 0.10 of the long side; rejections kept as links), at most 15, `RouteHoldGates.Strict` (chroma 0.5, no white / grey / black
+on a coloured route, hue 20°) in `RouteHoldSearchOptions.Production`; the proposals drawn solid in the colour the route will get
+(`ProposalColorHex` / `ProposalKeyline`); the Inspector's list replaced by «Предложено: N». Tests: `RouteHoldV1Tests` (10: strict
+gates, the group and the far hold, 15 at most, a removed middle hold), `RouteFromFirstHoldUiTests` on a clustered route with a far
+red hold (the far one never proposed, the proposals' colour = the route's after «Принять»).
+**Review: PASS WITH NOTES** (taken: the 15 − k rule and the colour worked out once recorded in D072, `V1`'s comment, the manual
+plan's A3 / A4, ROADMAP / DEVELOPMENT_PLAN, the leftover `ProposalItem.Label` / `Holds_ProposalRank` removed).
+**Gates (2026-11-19, amendment 1):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `Vision.ModelTests` builds;
+`git diff --check` clean; Release + `AIVE_HEAVY_TESTS=1` with `--blame-hang`: Vision 37, Project 759, Core 1 976, Export 142,
+Rendering 264, UI 1 319, Timeline 1 253, Video 418 (+1 environment-gated skip), ExportEndToEnd 189 — all green (6 357); after the
+leftover's removal UI 1 319 and Core 1 976 again, both builds 0 / 0.
+
+**Phase 53 (D072), the first build 1.5.0:**
+
 **Phase 53 — the route from its first hold (D072, 2026-11-19) — on `feat/phase-53-route-from-hold`** (cut from
 `feat/phase-52-proxy` at `4b7daf4`; PR #82 not merged yet). The second of the owner's queue after 1.3.0. **Step 0:** Phase 52
 accepted by the owner (D071 «Acceptance»); the Preview's quality «Оригинал» by default (the owner's word). The owner's answers

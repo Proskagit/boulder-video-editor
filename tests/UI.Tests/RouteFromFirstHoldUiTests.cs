@@ -36,7 +36,10 @@ public sealed class RouteFromFirstHoldUiTests : IAsyncLifetime
 
     private static readonly (byte R, byte G, byte B) Red = (200, 35, 40);
     private static readonly (byte R, byte G, byte B) Blue = (40, 70, 200);
-    private static readonly (int X, int Y, int R)[] RedHolds = { (60, 60, 12), (160, 200, 10), (300, 80, 14), (420, 200, 8) };
+    /// <summary>The route: four red holds close together (amendment 1: a route is a group); one red hold of another route at
+    /// the far corner, never proposed.</summary>
+    private static readonly (int X, int Y, int R)[] RedHolds = { (200, 60, 12), (215, 105, 10), (250, 145, 14), (225, 195, 8) };
+    private static readonly (int X, int Y, int R) FarRed = (440, 240, 10);
     private static readonly (int X, int Y, int R) BlueHold = (380, 40, 10);
 
     private readonly string _root = Path.Combine(Path.GetTempPath(), "AiVideoEditorTests", Guid.NewGuid().ToString("N"));
@@ -87,7 +90,10 @@ public sealed class RouteFromFirstHoldUiTests : IAsyncLifetime
         var clip = await ReviewOn(RedHolds[0]);
         Assert.Equal(_selected, _history);                                    // the review itself: no step
         Assert.Equal(RedHolds.Length, Markup.Proposals.Count);                // the four red holds, not the blue one
+        Assert.DoesNotContain(Markup.ProposalContours, c => Inside(c, FarRed));   // the same red far away: another route
+        Assert.Equal(RedHolds.Length, Markup.ProposalCount);
         Assert.Null(clip.HoldMarkup);                                         // nothing yet
+        var drawnIn = Markup.ProposalColorHex;
         Assert.Equal(T, _vm.Timeline.Playhead);                               // no frame swap, no seek
 
         var steps = _history;
@@ -98,6 +104,7 @@ public sealed class RouteFromFirstHoldUiTests : IAsyncLifetime
         Assert.Equal(RedHolds.Length, holds.Length);
         Assert.All(holds, h => Assert.Equal(T - clip.TimelineStart, h.SourceTime));   // at the markup frame
         Assert.All(RedHolds, r => Assert.Single(holds, h => Inside(h.Points, r)));
+        Assert.Equal(clip.HoldMarkup.ColorHex, drawnIn, ignoreCase: true);    // the proposals were drawn in the route's colour
         Assert.True(Markup.IsActive);                                         // the markup goes on
         Assert.False(Markup.IsRouteSelection);
         Assert.Empty(Markup.Proposals);
@@ -481,7 +488,7 @@ public sealed class RouteFromFirstHoldUiTests : IAsyncLifetime
             (byte R, byte G, byte B) c = (v, v, v);
             if (seed == 1)
             {
-                foreach (var h in RedHolds) if (Inside(h, x, y)) c = Red;
+                foreach (var h in RedHolds.Append(FarRed)) if (Inside(h, x, y)) c = Red;
                 if (Inside(BlueHold, x, y)) c = Blue;
             }
             var i = (y * W + x) * 4;

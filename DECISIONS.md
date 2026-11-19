@@ -11598,3 +11598,30 @@ no quality, so they get «Оригинал».
 The choice of the control hold's mask among SAM's alternatives (research hypothesis B), the colour refined by the confirmed holds
 (A3), ranking by neighbourhood, YOLO prompts; proposals on other frames than the clicked one; any change of the research's frozen
 code.
+
+### Amendment 1 — the owner's check of the 1.5.0 build (2026-11-19)
+
+The scenario is right («в остальном всё ок»); the proposals were too many and too far: a green route got a turquoise hold,
+a turquoise click got blue, white and black ones, 21 proposals for a route of 10, two of them at the frame's far edge; the
+dashed proposals could not be seen on a busy wall; the list of proposals in the Inspector is useless. «Лучше отметить меньше
+зацепок, чем больше.»
+
+1. **The route is a group** (`RouteHoldGrouping`): the selected candidates are grown into one group from the control hold —
+   at each step the candidate whose edge is nearest to the group joins while that gap is within the link (2.5 × the median gap
+   of each candidate to its nearest neighbour, bounded to 0.04 … 0.10 of the frame's long side). The same colour far from the
+   group is another route and is not proposed. The group is found with the user's rejections in place, so removing a wrong
+   hold in the middle never cuts the holds beyond it.
+2. **At most 15 proposals** (a route has about 6–12 holds), the nearest to the group first; a rejected one is not replaced by
+   the 16th (15 − k remain — fewer rather than more).
+3. **Stricter colour** (`RouteHoldGates.Strict`, replacing V1 in production): chroma ≥ 0.5 × the control's; on a coloured route
+   (the control's chroma ≥ 0.025) a candidate below that chroma — a white, grey or black hold — is never taken (1.5.0 skipped the
+   hue for it; the rule now holds for every gate set, `V1` included); hue within **20°** (V1: 30°). A dull route (black, white, grey) keeps τ alone.
+4. **The proposals drawn in the route's colour** — the colour its holds will get (the route's manual colour, or the Auto
+   colour of the proposals as holds, with its keyline), solid; the selected one has the yellow dashes over it. The colour is
+   worked out once, from the first selection, when the analysis ends (not again on each removal or tolerance change).
+5. **No list** of proposals in the Inspector: the review is on the Preview (a click selects, Delete removes, Enter adds); the
+   Inspector shows «Предложено: N», the tolerance, «Отклонить все», «Принять», «Отменить».
+
+Not measured on the research's frames (the owner's rule: fewer rather than more; the research measured V1 only). The
+research's error B (a click on a hold bolted onto a volume takes the volume's mask and colour) is not addressed — the owner's
+turquoise example may be it.

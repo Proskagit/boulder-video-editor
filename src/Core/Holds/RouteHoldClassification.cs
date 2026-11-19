@@ -272,6 +272,11 @@ public static class RouteHoldSelector
     public static IReadOnlyList<RouteHoldCandidate> Select(IReadOnlyList<RouteHoldCandidate> candidates, double tolerance,
         IReadOnlySet<Guid>? rejected, RouteHoldGates? gates, OkLabColor reference)
     {
+        // Amendment 1: the route's group is found with the user's rejections still in place — removing a wrong hold in the
+        // middle never cuts the route's holds beyond it — and the rejected ones leave afterwards.
+        if (gates is { Grouped: true } && rejected is { Count: > 0 })
+            return Select(candidates, tolerance, null, gates, reference).Where(c => !rejected.Contains(c.Id)).ToList();
+
         var chosen = candidates
             .Where(c => rejected is null || !rejected.Contains(c.Id))
             .Where(c => c.IsControl || (c.Score >= RouteHoldColor.MinScore && c.Distance < tolerance &&
@@ -283,26 +288,88 @@ public static class RouteHoldSelector
             if (!kept.Any(k => c.Mask.Intersection(k.Mask) >= FragmentOverlap * Math.Min(c.Mask.Area, k.Mask.Area)))
                 kept.Add(c);
 
+        if (gates is { Grouped: true }) kept = RouteHoldGrouping.Keep(kept, gates.MaxHolds);
+        else if (gates is not null && kept.Count > gates.MaxHolds) kept = kept.Take(gates.MaxHolds).ToList();
+
         return kept.OrderByDescending(c => c.IsControl).ThenBy(c => c.Distance).ThenBy(c => c.Centroid.Y).ThenBy(c => c.Centroid.X).ToList();
     }
 }
 
 /// <summary>
-/// D072 §4, the D048 research gates on top of the tolerance (the «split + chroma 0.3» variant with V1): a candidate's chroma at
-/// least <see cref="ChromaRatio"/> of the reference's (a washed-out wall or a grey hold is not the route's colour), and — when
-/// both chromas reach <see cref="MinHueChroma"/> (below it the hue is noise) — its hue within <see cref="HueToleranceDegrees"/>
-/// of the reference's. The Euclidean τ alone admits a hue turn that grows as the chroma falls (≈ 57° at C 0.084).
+/// D072 amendment 1 (the owner: a route is a group of holds; the same colour elsewhere in the frame is another route): the
+/// selected candidates grown into one group from the control hold — at each step the candidate whose edge is nearest to the
+/// group joins it, while that gap stays within the link (<see cref="LinkFactor"/> × the median gap of each candidate to its
+/// nearest neighbour, bounded by <see cref="MinLink"/> … <see cref="MaxLink"/> of the frame's long side) — and at most
+/// <c>maxHolds</c> of them. A hold far from the route's group is not proposed: fewer proposals rather than more.
 /// </summary>
-public sealed record RouteHoldGates(double ChromaRatio, double HueToleranceDegrees, double MinHueChroma)
+public static class RouteHoldGrouping
 {
-    /// <summary>The measured variant (D048 independent pilot I1–I7: −22 % false, no hold lost).</summary>
+    public const double LinkFactor = 2.5;
+    public const double MinLink = 0.04;
+    public const double MaxLink = 0.10;
+
+    public static List<RouteHoldCandidate> Keep(IReadOnlyList<RouteHoldCandidate> candidates, int maxHolds)
+    {
+        var control = candidates.FirstOrDefault(c => c.IsControl);
+        if (control is null || candidates.Count <= 1) return candidates.Take(Math.Max(1, maxHolds)).ToList();
+        var link = Link(candidates);
+        var group = new List<RouteHoldCandidate> { control };
+        var rest = candidates.Where(c => !ReferenceEquals(c, control)).ToList();
+        while (rest.Count > 0 && group.Count < maxHolds)
+        {
+            var (next, gap) = rest.Select(c => (c, group.Min(g => Gap(c, g)))).MinBy(x => x.Item2);
+            if (gap > link) break;
+            group.Add(next);
+            rest.Remove(next);
+        }
+        return group;
+    }
+
+    /// <summary>The link of <paramref name="candidates"/>, as a fraction of the frame's long side.</summary>
+    public static double Link(IReadOnlyList<RouteHoldCandidate> candidates)
+    {
+        var nearest = candidates.Select(c => candidates.Where(o => !ReferenceEquals(o, c)).Min(o => Gap(c, o))).OrderBy(g => g).ToList();
+        var median = nearest.Count % 2 == 1 ? nearest[nearest.Count / 2] : (nearest[nearest.Count / 2 - 1] + nearest[nearest.Count / 2]) / 2;
+        return Math.Clamp(LinkFactor * median, MinLink, MaxLink);
+    }
+
+    /// <summary>The gap between two holds' edges (their centres' distance less their radii, at least 0), as a fraction of the
+    /// frame's long side.</summary>
+    public static double Gap(RouteHoldCandidate a, RouteHoldCandidate b)
+    {
+        var mask = a.Mask;
+        double side = Math.Max(mask.FrameWidth, mask.FrameHeight);
+        double dx = (a.Centroid.X - b.Centroid.X) * mask.FrameWidth, dy = (a.Centroid.Y - b.Centroid.Y) * mask.FrameHeight;
+        double ra = Math.Sqrt(a.Mask.Area / Math.PI), rb = Math.Sqrt(b.Mask.Area / Math.PI);
+        return Math.Max(0, Math.Sqrt(dx * dx + dy * dy) - ra - rb) / side;
+    }
+}
+
+/// <summary>
+/// D072 §4, the gates on top of the tolerance: a candidate's chroma at least <see cref="ChromaRatio"/> of the reference's (a
+/// washed-out wall or a grey hold is not the route's colour) and, for a coloured route (the reference's chroma at least
+/// <see cref="MinHueChroma"/>), at least <see cref="MinHueChroma"/> itself — a white, grey or black hold never joins a coloured
+/// route — and its hue within <see cref="HueToleranceDegrees"/> of the reference's. For a dull route (black, white, grey) the
+/// hue is noise and τ alone decides. The Euclidean τ alone admits a hue turn that grows as the chroma falls (≈ 57° at C 0.084).
+/// <see cref="Grouped"/> / <see cref="MaxHolds"/>: <see cref="RouteHoldGrouping"/> (amendment 1).
+/// </summary>
+public sealed record RouteHoldGates(double ChromaRatio, double HueToleranceDegrees, double MinHueChroma, bool Grouped = false,
+    int MaxHolds = int.MaxValue)
+{
+    /// <summary>The D048 research variant's thresholds (independent pilot I1–I7: −22 % false, no hold lost), D072 §4 as first
+    /// shipped — since amendment 1 with its rule that a colourless candidate never joins a coloured route.</summary>
     public static readonly RouteHoldGates V1 = new(0.3, 30, 0.025);
+
+    /// <summary>D072 amendment 1 (the owner's check of 1.5.0: «лучше отметить меньше, чем больше»): chroma 0.5, hue 20°, the
+    /// route's group from the control hold, at most 15 proposals (a route has about 6–12 holds).</summary>
+    public static readonly RouteHoldGates Strict = new(0.5, 20, 0.025, Grouped: true, MaxHolds: 15);
 
     public bool Admits(OkLabColor candidate, OkLabColor reference)
     {
         double cc = Chroma(candidate), cr = Chroma(reference);
         if (cc < ChromaRatio * cr) return false;
-        if (cc < MinHueChroma || cr < MinHueChroma) return true;
+        if (cr < MinHueChroma) return true;
+        if (cc < MinHueChroma) return false;
         var dh = Math.Abs(Math.Atan2(candidate.B, candidate.A) - Math.Atan2(reference.B, reference.A)) * 180 / Math.PI;
         if (dh > 180) dh = 360 - dh;
         return dh <= HueToleranceDegrees;

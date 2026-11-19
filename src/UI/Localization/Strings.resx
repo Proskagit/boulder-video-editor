@@ -615,17 +615,8 @@ The file is replaced only when the export succeeds.</value>
   <data name="Holds_ProposeAutomaticallyTip" xml:space="preserve">
     <value>The first click on a hold of a route without holds finds the other holds of its colour on this frame and suggests them for review</value>
   </data>
-  <data name="Holds_ProposalsHeading" xml:space="preserve">
-    <value>Proposals</value>
-  </data>
-  <data name="Holds_Reject" xml:space="preserve">
-    <value>Reject</value>
-  </data>
   <data name="Holds_RejectAll" xml:space="preserve">
     <value>Reject all</value>
-  </data>
-  <data name="Holds_ProposalRank" xml:space="preserve">
-    <value>{0}. score {1:0.00}</value>
   </data>
   <data name="Holds_AcceptedAll" xml:space="preserve">
     <value>{0} holds added.</value>
@@ -4043,5 +4034,8 @@ Everything else works without the models. They can also be installed later: «Se
   </data>
   <data name="Holds_RouteAnalyzingCancel" xml:space="preserve">
     <value>Cancel</value>
+  </data>
+  <data name="Holds_RouteProposalCount" xml:space="preserve">
+    <value>Proposed: {0}</value>
   </data>
 </root>
