@@ -1,3 +1,20 @@
+# Quick start
+
+A bouldering video in ten steps.
+
+## Steps
+
+- **1. Project.** On the start screen press «Create project».
+- **2. Clips.** Add videos to «Media» («+ Import», Ctrl+I or by dragging) and move them onto the timeline; several selected files go in their recording order.
+- **3. Training.** «Import FIT Training…» on the toolbar: the climbs from your watch (COROS, Garmin and others) are bound to the clips by themselves — «Boulder» routes with their grade and status, the heart rate in the frame. A miss is easy to fix by hand.
+- **4. Edit.** Trim and split off what you don't need (S) — the magnetic main track closes the gaps. Between clips — the «Transition» button (up to 5 s).
+- **5. Holds.** Select a clip, pause and press «Mark holds»: a click on a hold gives its outline. Accept the proposals or pick a route by its colour; the outlines follow the camera.
+- **6. Colour.** The «COLOUR» section → «Auto enhance», then adjust the sliders if you like.
+- **7. Follow.** When the climber is well visible and the frame has room (a vertical video from a horizontal one, a zoom), switch on «Follow the climber»: the frame follows the climber and the hold outlines hide behind people («Hide outlines behind people»).
+- **8. Sound.** Music on a sound track; ducking under speech, «Noise reduction» and «Voice enhancement» when people talk.
+- **9. Design.** Text, templates («Boulder», «Heart rate», «Highlight», REC, VHS).
+- **10. Export.** «Export» (Ctrl+E): the resolution and the folder; with an NVIDIA card it is fast through NVENC, in the background — you can keep working. The YouTube timestamps are there too.
+
 # Getting started
 
 Boulder Video Editor is an editor for bouldering videos. Its core is working with holds: one click on a hold gives its exact outline, the route is highlighted, the outlines follow the camera and hide behind people. A training file from your watch (FIT) lays the climbs out on the clips by itself.
