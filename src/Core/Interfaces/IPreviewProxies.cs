@@ -44,18 +44,18 @@ public sealed class ProxyBuildException : Exception
 
 /// <summary>
 /// D071 §3: the proxies of every project in one folder of the application's cache
-/// (<c>%LOCALAPPDATA%\BoulderVideoEditor\cache\proxies</c>), keyed by the source's content and the quality — the same
+/// (<c>%LOCALAPPDATA%\BoulderVideoEditor\cache\proxies</c>), one per file (1080p, D071 amendment 2), keyed by the source's content — the same
 /// file in two projects has one proxy; an edited or replaced file has another key.
 /// </summary>
 public interface IProxyStore
 {
     string Folder { get; }
 
-    /// <summary>The ready proxy of <paramref name="asset"/> at <paramref name="quality"/>, or null.</summary>
-    string? TryGet(MediaAsset asset, PreviewQuality quality);
+    /// <summary>The ready proxy of <paramref name="asset"/>, or null.</summary>
+    string? TryGet(MediaAsset asset);
 
     /// <summary>Makes the proxy unless it is there; returns its path, or null when the source can't be read.</summary>
-    Task<string?> GetOrCreateAsync(MediaAsset asset, PreviewQuality quality, IProgress<double>? progress, CancellationToken ct);
+    Task<string?> GetOrCreateAsync(MediaAsset asset, IProgress<double>? progress, CancellationToken ct);
 
     /// <summary>The bytes the proxies take now.</summary>
     long SizeBytes();

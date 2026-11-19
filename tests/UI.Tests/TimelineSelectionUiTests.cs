@@ -344,6 +344,37 @@ public sealed class TimelineSelectionUiTests
     }
 
     [Fact]
+    public void A_clip_dragged_to_another_track_shows_its_future_place_there_red_when_refused()
+    {
+        // D071 amendment 2 (the owner): the ghost is on the target track, not only the clip in its own row.
+        var v2 = AddVideoTrack();
+        var blocker = Text(v2, 40, 60);
+        var b = Text(V1, 20, 30);
+        var timeline = Timeline();
+        timeline.SnappingEnabled = false;
+        var lane2 = timeline.Tracks[Lane(timeline, v2)];
+        timeline.OnClipPressed(Vm(timeline, b), toggle: false);
+        timeline.BeginMove(X(timeline, 25));
+
+        timeline.UpdateGesture(X(timeline, 25), lane2);                                    // onto V2 at 20: free
+        Assert.True(lane2.HasDropGhost);
+        Assert.False(lane2.DropGhostInvalid);
+        Assert.Equal(X(timeline, 20), lane2.DropGhostLeft, 6);
+        Assert.Equal(X(timeline, 10), lane2.DropGhostWidth, 6);
+        Assert.False(timeline.Tracks[Lane(timeline, V1)].HasDropGhost);
+
+        v2.IsLocked = true;                                                                 // now refused
+        timeline.UpdateGesture(X(timeline, 26), lane2);
+        Assert.True(lane2.HasDropGhost);
+        Assert.True(lane2.DropGhostInvalid);
+
+        timeline.EndGesture();
+        Assert.False(lane2.HasDropGhost);
+        Assert.Equal(20, Start(b));
+        _ = blocker;
+    }
+
+    [Fact]
     public void A_snap_that_would_push_a_clip_is_skipped()
     {
         // A group's outer edges snap (D037 §2): its end to the marker at 134 would put X into N — skipped; X lands where

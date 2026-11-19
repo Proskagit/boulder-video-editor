@@ -36,25 +36,20 @@ public sealed class ProxyStoreTests : IDisposable
         new(Path.Combine(_dir, "proxies"), builder, NullLogger<ProxyStore>.Instance, maxBytes);
 
     [Fact]
-    public async Task A_proxy_is_made_once_per_content_and_quality()
+    public async Task One_1080p_proxy_is_made_once_per_content()
     {
         var builder = new FakeBuilder();
         var store = Store(builder);
         var asset = Source("a.mp4");
 
-        Assert.Null(store.TryGet(asset, PreviewQuality.Medium));
-        var path = await store.GetOrCreateAsync(asset, PreviewQuality.Medium, null, default);
+        Assert.Null(store.TryGet(asset));
+        var path = await store.GetOrCreateAsync(asset, null, default);
         Assert.NotNull(path);
         Assert.True(File.Exists(path));
-        Assert.Equal(path, store.TryGet(asset, PreviewQuality.Medium));
-        Assert.Equal(path, await store.GetOrCreateAsync(asset, PreviewQuality.Medium, null, default));
+        Assert.Equal(path, store.TryGet(asset));
+        Assert.Equal(path, await store.GetOrCreateAsync(asset, null, default));
         Assert.Single(builder.Requests);
         Assert.Equal((1920, 1080), (builder.Requests[0].Size.Width, builder.Requests[0].Size.Height));
-
-        var low = await store.GetOrCreateAsync(asset, PreviewQuality.Low, null, default);
-        Assert.NotEqual(path, low);
-        Assert.Equal(2, builder.Requests.Count);
-        Assert.Null(store.TryGet(asset, PreviewQuality.Original));
     }
 
     [Fact]
@@ -65,11 +60,11 @@ public sealed class ProxyStoreTests : IDisposable
         var asset = Source("a.mp4");
         var other = new MediaAsset { FilePath = asset.FilePath, Kind = asset.Kind, AnalysisStatus = asset.AnalysisStatus, Metadata = asset.Metadata };
 
-        var path = await store.GetOrCreateAsync(asset, PreviewQuality.Medium, null, default);
-        Assert.Equal(path, store.TryGet(other, PreviewQuality.Medium));
+        var path = await store.GetOrCreateAsync(asset, null, default);
+        Assert.Equal(path, store.TryGet(other));
 
         File.WriteAllBytes(asset.FilePath, new byte[5000]);   // the file edited
-        Assert.Null(store.TryGet(asset, PreviewQuality.Medium));
+        Assert.Null(store.TryGet(asset));
     }
 
     [Fact]
@@ -78,7 +73,7 @@ public sealed class ProxyStoreTests : IDisposable
         var builder = new FakeBuilder();
         var store = Store(builder);
         var asset = Source("a.mp4", codec: "hevc");
-        var sdr = await store.GetOrCreateAsync(asset, PreviewQuality.Medium, null, default);
+        var sdr = await store.GetOrCreateAsync(asset, null, default);
         Assert.Null(builder.Requests[0].Hdr);
 
         // D033 T3: the probe finds HLG — another picture, another proxy, made with the conversion.
@@ -87,8 +82,8 @@ public sealed class ProxyStoreTests : IDisposable
         asset.Metadata.ColorTransfer = "arib-std-b67";
         asset.Metadata.ColorPrimaries = "bt2020";
         asset.Metadata.ColorMatrix = "bt2020nc";
-        Assert.Null(store.TryGet(asset, PreviewQuality.Medium));
-        var hdr = await store.GetOrCreateAsync(asset, PreviewQuality.Medium, null, default);
+        Assert.Null(store.TryGet(asset));
+        var hdr = await store.GetOrCreateAsync(asset, null, default);
         Assert.NotEqual(sdr, hdr);
         Assert.NotNull(builder.Requests[1].Hdr);
     }
@@ -104,7 +99,7 @@ public sealed class ProxyStoreTests : IDisposable
         File.WriteAllBytes(recent, new byte[10]);
         File.SetLastWriteTimeUtc(stale, DateTime.UtcNow - ProxyStore.StaleTemporaryAge - TimeSpan.FromMinutes(1));
 
-        await store.GetOrCreateAsync(Source("a.mp4"), PreviewQuality.Medium, null, default);
+        await store.GetOrCreateAsync(Source("a.mp4"), null, default);
         Assert.False(File.Exists(stale));
         Assert.True(File.Exists(recent));
     }
@@ -114,13 +109,13 @@ public sealed class ProxyStoreTests : IDisposable
     {
         var builder = new FakeBuilder();
         var store = Store(builder);
-        Assert.Null(await store.GetOrCreateAsync(Source("hd.mp4", width: 1920, height: 1080), PreviewQuality.Medium, null, default));
+        Assert.Null(await store.GetOrCreateAsync(Source("hd.mp4", width: 1920, height: 1080), null, default));
         Assert.Empty(builder.Requests);
 
         builder.Fail = true;
         var asset = Source("a.mp4");
-        await Assert.ThrowsAsync<ProxyBuildException>(() => store.GetOrCreateAsync(asset, PreviewQuality.Medium, null, default));
-        Assert.Null(store.TryGet(asset, PreviewQuality.Medium));
+        await Assert.ThrowsAsync<ProxyBuildException>(() => store.GetOrCreateAsync(asset, null, default));
+        Assert.Null(store.TryGet(asset));
         Assert.DoesNotContain(Directory.GetFiles(store.Folder), f => !f.Contains(".tmp."));
     }
 
@@ -133,24 +128,24 @@ public sealed class ProxyStoreTests : IDisposable
         var b = Source("b.mp4");
         var c = Source("c.mp4");
 
-        await store.GetOrCreateAsync(a, PreviewQuality.Medium, null, default);
-        await store.GetOrCreateAsync(b, PreviewQuality.Medium, null, default);
-        File.SetLastWriteTimeUtc(store.TryGet(b, PreviewQuality.Medium)!, DateTime.UtcNow.AddHours(-2));
-        File.SetLastWriteTimeUtc(store.TryGet(a, PreviewQuality.Medium)!, DateTime.UtcNow.AddHours(-1));   // a used after b
-        await store.GetOrCreateAsync(c, PreviewQuality.Medium, null, default);
+        await store.GetOrCreateAsync(a, null, default);
+        await store.GetOrCreateAsync(b, null, default);
+        File.SetLastWriteTimeUtc(store.TryGet(b)!, DateTime.UtcNow.AddHours(-2));
+        File.SetLastWriteTimeUtc(store.TryGet(a)!, DateTime.UtcNow.AddHours(-1));   // a used after b
+        await store.GetOrCreateAsync(c, null, default);
 
-        Assert.NotNull(store.TryGet(a, PreviewQuality.Medium));
-        Assert.Null(store.TryGet(b, PreviewQuality.Medium));
-        Assert.NotNull(store.TryGet(c, PreviewQuality.Medium));
+        Assert.NotNull(store.TryGet(a));
+        Assert.Null(store.TryGet(b));
+        Assert.NotNull(store.TryGet(c));
     }
 
     [Fact]
     public async Task Clearing_removes_every_proxy_and_reports_the_bytes()
     {
         var store = Store(new FakeBuilder { Bytes = 1500 });
-        await store.GetOrCreateAsync(Source("a.mp4"), PreviewQuality.Medium, null, default);
-        await store.GetOrCreateAsync(Source("b.mp4", codec: "hevc", width: 1920, height: 1080), PreviewQuality.Low, null, default);
-        Assert.Equal(3000, store.SizeBytes());
+        await store.GetOrCreateAsync(Source("a.mp4"), null, default);
+        await store.GetOrCreateAsync(Source("b.mp4", codec: "hevc", width: 1920, height: 1080), null, default);
+        Assert.Equal(3000, store.SizeBytes());   // a.mp4 4K and b.mp4 1080p HEVC
 
         Assert.Equal(3000, store.Clear());
         Assert.Equal(0, store.SizeBytes());

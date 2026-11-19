@@ -38,18 +38,29 @@ public sealed class PreviewDecodingTests
         Assert.Equal(PreviewQuality.Medium, new UserSettings().PreviewQuality);
 
     [Fact]
-    public void A_proxy_is_made_for_4K_or_HEVC_below_the_original()
+    public void A_proxy_is_made_for_4K_or_HEVC_whatever_the_quality()
     {
-        Assert.True(PreviewDecoding.NeedsProxy(Video(3840, 2160), PreviewQuality.Medium));
-        Assert.True(PreviewDecoding.NeedsProxy(Video(2160, 3840), PreviewQuality.Low));
-        Assert.True(PreviewDecoding.NeedsProxy(Video(1920, 1080, "hevc"), PreviewQuality.High));
-        Assert.True(PreviewDecoding.NeedsProxy(Video(2704, 1520), PreviewQuality.High));     // 2.7K is above 1920 too
+        Assert.True(PreviewDecoding.NeedsProxy(Video(3840, 2160)));
+        Assert.True(PreviewDecoding.NeedsProxy(Video(2160, 3840)));
+        Assert.True(PreviewDecoding.NeedsProxy(Video(1920, 1080, "hevc")));
+        Assert.True(PreviewDecoding.NeedsProxy(Video(2704, 1520)));     // 2.7K is above 1920 too
 
-        Assert.False(PreviewDecoding.NeedsProxy(Video(1920, 1080), PreviewQuality.Low));      // a light 1080p H.264
-        Assert.False(PreviewDecoding.NeedsProxy(Video(3840, 2160), PreviewQuality.Original));
-        Assert.False(PreviewDecoding.NeedsProxy(Video(3840, 2160, missing: true), PreviewQuality.Medium));
-        Assert.False(PreviewDecoding.NeedsProxy(Video(3840, 2160, kind: MediaKind.Image), PreviewQuality.Medium));
-        Assert.False(PreviewDecoding.NeedsProxy(Video(3840, 2160, status: MediaAnalysisStatus.Pending), PreviewQuality.Medium));
+        Assert.False(PreviewDecoding.NeedsProxy(Video(1920, 1080)));      // a light 1080p H.264
+        Assert.False(PreviewDecoding.NeedsProxy(Video(3840, 2160, missing: true)));
+        Assert.False(PreviewDecoding.NeedsProxy(Video(3840, 2160, kind: MediaKind.Image)));
+        Assert.False(PreviewDecoding.NeedsProxy(Video(3840, 2160, status: MediaAnalysisStatus.Pending)));
+    }
+
+    [Fact]
+    public void The_one_1080p_proxy_serves_medium_and_minimum_only()
+    {
+        Assert.Equal(PreviewQuality.Medium, PreviewDecoding.ProxyQuality);
+        Assert.True(PreviewDecoding.UsesProxy(PreviewQuality.Medium));
+        Assert.True(PreviewDecoding.UsesProxy(PreviewQuality.Low));
+        Assert.False(PreviewDecoding.UsesProxy(PreviewQuality.High));
+        Assert.False(PreviewDecoding.UsesProxy(PreviewQuality.Original));
+        Assert.Equal(new FrameSize(1920, 1080), PreviewDecoding.ProxySize(3840, 2160));
+        Assert.Equal(new FrameSize(1080, 1920), PreviewDecoding.ProxySize(2160, 3840));
     }
 
     [Fact]
@@ -59,11 +70,11 @@ public sealed class PreviewDecodingTests
         var unknown = Video(3840, 2160);
         unknown.Metadata!.PixelFormat = null;
         Assert.True(unknown.Metadata.NeedsColorProbe);
-        Assert.False(PreviewDecoding.NeedsProxy(unknown, PreviewQuality.Medium));
+        Assert.False(PreviewDecoding.NeedsProxy(unknown));
 
         var refreshing = Video(3840, 2160);
         refreshing.IsMetadataRefreshing = true;   // transient; the refresh may end without an event
-        Assert.True(PreviewDecoding.NeedsProxy(refreshing, PreviewQuality.Medium));
+        Assert.True(PreviewDecoding.NeedsProxy(refreshing));
     }
 
     [Theory]

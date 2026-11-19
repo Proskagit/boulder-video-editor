@@ -1340,6 +1340,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
                 t.DropGhostLeft = TimelineCoordinateMapper.TimeToX(p.Start, PixelsPerSecond);
                 t.DropGhostWidth = Math.Max(2, TimelineCoordinateMapper.TimeToX(p.End - p.Start, PixelsPerSecond));
                 t.DropGhostMovesOthers = p.MovesOthers;
+                t.DropGhostInvalid = false;
                 t.HasDropGhost = true;
             }
             else t.HasDropGhost = false;
@@ -1789,6 +1790,12 @@ public sealed partial class TimelineViewModel : ViewModelBase
             else vm.Layout(PixelsPerSecond);
         }
         foreach (var clip in g.Clips) clip.IsInvalid = preview is null;
+        ShowMoveGhost(g, planned, preview is null, preview is { } shown && shown.Clips.Keys.Except(ids).Any(id => !IsPartnerOfDragged(id)));
+
+        // What follows the dragged clips by their own rules — a link partner, a plate anchored to them — is not "moving others".
+        bool IsPartnerOfDragged(Guid id) =>
+            g.Clips.Any(c => PartnerViewModel(c) is { } partner && partner.Id == id) ||
+            _clipViewModels.TryGetValue(id, out var follower) && follower.Clip is TemplateClip { AnchorClipId: { } anchor } && ids.Contains(anchor);
 
         // Dissolves follow the preview (D025 §5): a zone whose two clips move by the same frames moves along; a zone whose
         // cut the move would open is hidden (the release removes it — never one of clips that only make room, D037 Q9).
@@ -1803,6 +1810,31 @@ public sealed partial class TimelineViewModel : ViewModelBase
             planned.TryGetValue(id, out var at) && _clipViewModels.TryGetValue(id, out var vm)
                 ? at.Start.ToNearestFrame(FrameRate) - vm.Clip.TimelineStart.ToNearestFrame(FrameRate)
                 : 0;
+    }
+
+    /// <summary>
+    /// D071 amendment 2 (the owner): a clip dragged to another track shows its future place on that track — the span of the dragged
+    /// clips where the release puts them; marked when it moves other clips, red when the move is refused. Within one track the
+    /// dragged clips themselves show it, as before.
+    /// </summary>
+    private void ShowMoveGhost(Gesture g, IReadOnlyDictionary<Guid, (MediaTime Start, MediaTime End)> planned, bool refused, bool movesOthers)
+    {
+        var target = g.TargetTrack;
+        var spans = g.Clips.Where(c => planned.ContainsKey(c.Id)).Select(c => planned[c.Id]).ToList();
+        foreach (var t in Tracks)
+        {
+            if (t == target && spans.Count > 0)
+            {
+                var start = spans.Min(s => s.Start);
+                var end = spans.Max(s => s.End);
+                t.DropGhostLeft = TimelineCoordinateMapper.TimeToX(start, PixelsPerSecond);
+                t.DropGhostWidth = Math.Max(2, TimelineCoordinateMapper.TimeToX(end - start, PixelsPerSecond));
+                t.DropGhostMovesOthers = movesOthers && !refused;
+                t.DropGhostInvalid = refused;
+                t.HasDropGhost = true;
+            }
+            else t.HasDropGhost = false;
+        }
     }
 
     /// <summary>Whether moving <paramref name="ids"/> by <paramref name="frames"/> would push a clip that is not moved with

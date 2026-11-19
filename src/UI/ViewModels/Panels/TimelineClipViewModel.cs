@@ -250,6 +250,9 @@ public sealed partial class TimelineTrackViewModel : ViewModelBase
     [ObservableProperty] private double _dropGhostWidth;
     [ObservableProperty] private bool _dropGhostMovesOthers;
 
+    /// <summary>D071 amendment 2: a clip dragged from another track can't be put here (the ghost red).</summary>
+    [ObservableProperty] private bool _dropGhostInvalid;
+
     public void SyncState()
     {
         IsMuted = Track.IsMuted;

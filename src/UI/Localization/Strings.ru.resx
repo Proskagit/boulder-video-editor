@@ -4084,4 +4084,16 @@
   <data name="AppSettings_ProxiesNote" xml:space="preserve">
     <value>Прокси — облегчённая копия тяжёлого видео в качестве Preview; создаётся в фоне один раз для файла и качества и служит всем проектам. Экспорт, миниатюры и ИИ всегда работают с оригиналом.</value>
   </data>
+  <data name="PreviewQuality_ShortOriginal" xml:space="preserve">
+    <value>Ориг.</value>
+  </data>
+  <data name="PreviewQuality_ShortHigh" xml:space="preserve">
+    <value>1440p</value>
+  </data>
+  <data name="PreviewQuality_ShortMedium" xml:space="preserve">
+    <value>1080p</value>
+  </data>
+  <data name="PreviewQuality_ShortLow" xml:space="preserve">
+    <value>720p</value>
+  </data>
 </root>

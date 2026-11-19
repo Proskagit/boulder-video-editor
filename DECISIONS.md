@@ -11442,6 +11442,42 @@ export, the thumbnails, the filmstrips, the hold markup and every analysis never
   was checked with every kind of clip selected in turn (`InspectorLayoutTests`) — a hidden section takes no height; the cause is
   not found yet. Open: what the owner did just before it appears and whether it goes away by scrolling.
 
+### Amendment 2 — the owner's check of the 1.4.0 build (2026-11-19)
+
+*§1's per-quality proxies, §3's «another quality drops the results» and §5's «a new quality cancels» are superseded by this
+amendment (one proxy per file).* §5 applies to every edit that makes room (a move, a drop, a paste, a duplicate, a text or a
+template added onto a track where another clip's plate stands): refused, as the owner chose for the drag.
+
+**What the owner found:** switching the quality made every clip's proxy again (slow); the proxies gave almost no gain (the same
+buffering); the quality list too large; transitions: a default shorter than 1 s, no snapping of a dragged edge, an edge dragged
+over the cut turned the zone inside out; a clip dragged onto a track pushed another clip's «Боулдер»; no ghost on the target
+track when a clip is dragged to another track; a plate left high above its clip after a move (and the emptied tracks).
+
+**Measured** (a 4K60 HEVC test file, the release's FFmpeg): a seek to the first frames — the original 330–410 ms with
+`-hwaccel auto` (the Preview's setting), 180–230 ms in software; a 720p proxy 220–240 ms with `-hwaccel auto`, **~50 ms in
+software**: the hardware decoder's start (~180 ms per open, every seek opens one) ate the proxy's gain.
+
+**The owner's answers and the changes:**
+1. **The quality on the fly, one proxy per file** (replaces §1's per-quality proxies and part of §3): the quality only sets the
+   Preview's bound — instant, nothing made again. Each 4K / HEVC video gets **one 1080p proxy**, made once whatever quality is
+   chosen; the Preview takes it at «Среднее» and «Минимум» (720p is the 1080p proxy scaled on the fly); «Высокое» and «Оригинал»
+   decode the source. The cache key: content, colour, size, rules' version 2 (the proxies of 1.4.0's first build are not used).
+2. **A proxy is decoded in software** (`SpanReader`): no hardware start per seek; the source keeps the playback's choice.
+3. **The quality button** on the Preview's bar is compact: an eye and «1080p»; its menu has the four qualities.
+4. **Transitions** (D044 §5's defaults and D069 amendment 2's drag replaced): every type starts at **1 s** (the clips' frames
+   permitting; the minimums unchanged); a dragged edge **snaps** (the playhead, markers, other clips' edges); each edge stays on its
+   side of the cut — dragged past it, the zone stops at its minimum, never turned inside out. (The right edge's cursor: the owner
+   saw it work once the proxies stopped loading the machine — no change.)
+5. **Another clip's plate stays** (D037 §3's push and D069 amendment 2 changed): an edit that would push a «Боулдер» anchored to
+   a clip it does not move is refused (`MakeRoom_OtherClipsPlate`; the ghost red) — the plate never moves for someone else's clip.
+6. **Compact plates and tracks after a move to another track:** the moved video's plates go to the lowest unlocked video track
+   above it free over their span (a plate on a locked track stays — D008); the video tracks the move leaves without a clip (they
+   had clips) are removed in the same step (Undo puts them back) — never the main track, a locked one, an empty track the user
+   made, or a track another track's ducking listens to (D064 §4: no reference to a removed track; the ducking stays as set).
+   A clip copied from a track removed so is pasted as the clipboard's rule says for a track that is gone.
+7. **The ghost on the target track:** a clip dragged to another track shows its future place there (the span the release gives
+   it), yellow when it moves other clips, red when the move is refused.
+
 ### Out of scope
 
 Proxies of light videos (1080p H.264), of images and of audio; proxies for the export, the thumbnails or the analyses; a

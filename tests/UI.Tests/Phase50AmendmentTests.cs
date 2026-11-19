@@ -145,9 +145,47 @@ public sealed class Phase50AmendmentTests : IDisposable
         Assert.Equal(F(25), transition.Duration);
 
         Assert.True(_t.BeginTransitionResize(zone, zone.Left));
-        _t.UpdateTransitionResize(X(200 + 1000));                                                   // far: at most 5 s
+        _t.UpdateTransitionResize(X(200 - 1000));                                                   // far left: at most 5 s
         _t.EndTransitionResize();
         Assert.Equal(F(125), transition.Duration);
+    }
+
+    [Fact]
+    public void An_edge_dragged_past_the_cut_stops_at_the_minimum_and_never_turns_the_zone_inside_out()
+    {
+        // D071 amendment 2 (the owner): the left edge pulled right over the cut (or the right one left) no longer grows the zone
+        // on the other side.
+        var c = MainTrack(200, 200);
+        Assert.True(_edit.AddTransition(c[0].Id, c[1].Id, TransitionRules.CrossDissolve).Success);
+        var zone = _t.Tracks.SelectMany(t => t.Transitions).Single();
+        var min = F(TransitionRules.MinFramesOf(TransitionRules.CrossDissolve, _projects.Current.Settings.FrameRate));
+
+        Assert.True(_t.BeginTransitionResize(zone, zone.Left));
+        _t.UpdateTransitionResize(X(200 + 60));                                                     // the left edge 60 frames past the cut
+        _t.EndTransitionResize();
+        Assert.Equal(min, zone.Transition.Duration);
+
+        Assert.True(_t.BeginTransitionResize(zone, zone.Left + zone.Width));
+        _t.UpdateTransitionResize(X(200 - 60));                                                     // the right edge past it the other way
+        _t.EndTransitionResize();
+        Assert.Equal(min, zone.Transition.Duration);
+    }
+
+    [Fact]
+    public void A_dragged_transition_edge_snaps_to_the_playhead()
+    {
+        // D071 amendment 2: the edge snaps as clips do (the playhead, markers, other clips' edges).
+        var c = MainTrack(200, 200);
+        Assert.True(_edit.AddTransition(c[0].Id, c[1].Id, TransitionRules.CrossDissolve).Success);
+        var zone = _t.Tracks.SelectMany(t => t.Transitions).Single();
+        _t.SetPlayhead(F(230));
+
+        Assert.True(_t.BeginTransitionResize(zone, zone.Left + zone.Width));
+        _t.UpdateTransitionResize(X(230) + 3);                                                      // 3 px off the playhead
+        Assert.True(_t.IsSnapIndicatorVisible);
+        _t.EndTransitionResize();
+        Assert.Equal(F(60), zone.Transition.Duration);                                               // its edge on 230: 2 × 30
+        Assert.False(_t.IsSnapIndicatorVisible);
     }
 
     [Fact]

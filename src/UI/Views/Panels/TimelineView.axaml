@@ -220,6 +220,11 @@
       <Setter Property="Background" Value="#33FFB300"/>
       <Setter Property="BorderBrush" Value="#CCFFB300"/>
     </Style>
+    <!-- D071 amendment 2: a clip dragged from another track can't go there. -->
+    <Style Selector="Border.dropGhost.invalid">
+      <Setter Property="Background" Value="#33EF5350"/>
+      <Setter Property="BorderBrush" Value="#CCEF5350"/>
+    </Style>
     <Style Selector="Border.clip">
       <Setter Property="BorderBrush" Value="#000000"/>
       <Setter Property="BorderThickness" Value="1"/>
@@ -736,7 +741,8 @@
                          amber when the drop would move other clips. Information only, never hit-tested. -->
                     <Canvas IsHitTestVisible="False" IsVisible="{Binding HasDropGhost}">
                       <Border Canvas.Left="{Binding DropGhostLeft}" Width="{Binding DropGhostWidth}" Height="36" Margin="0,4,0,0"
-                              CornerRadius="3" BorderThickness="1" Classes="dropGhost" Classes.movesOthers="{Binding DropGhostMovesOthers}"/>
+                              CornerRadius="3" BorderThickness="1" Classes="dropGhost" Classes.movesOthers="{Binding DropGhostMovesOthers}"
+                              Classes.invalid="{Binding DropGhostInvalid}"/>
                     </Canvas>
                     <ItemsControl Classes="canvasItems" ItemsSource="{Binding Transitions}">
                       <ItemsControl.ItemsPanel>

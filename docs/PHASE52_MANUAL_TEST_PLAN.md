@@ -42,3 +42,17 @@ Mark each row PASS / FAIL / note.
 | C2 | The same onto an audio track that has clips. | Under the pointer, snapped to the clips' edges as before. |
 | C3 | Drag a video onto V1 with the magnet on, and onto an empty V2. | V1 closes up as before (D069); on V2 it lands where it is dropped. |
 | C4 | The Inspector: select different clips (video, text, template, a clip with people), scroll, open / close sections. | No empty space between sections. If it appears: note what was done just before and whether scrolling or opening a section removes it. |
+
+## D. Amendment 2 (the owner's check of 1.4.0) — the build 1.4.1
+
+| # | Steps | Expected |
+|---|---|---|
+| D1 | The Preview's bar, right of the time. | A small button: an eye and «1080p»; a click opens the four qualities. |
+| D2 | With proxies ready, switch «Минимум» → «Высокое» → «Оригинал» → «Среднее». | Each change at once; the status bar makes **no** proxy again. |
+| D3 | New project with 4K / HEVC clips. | One proxy per clip («Прокси: …»), once; at «Среднее» / «Минимум» scrubbing and seeking clearly faster than at «Оригинал». |
+| D4 | Add each kind of transition. | 1 s by default (shorter only where the clips are shorter). |
+| D5 | Drag a transition's edge near the playhead / a marker / another clip's edge. | It snaps (the snap line shows). |
+| D6 | Drag a transition's left edge to the right over the cut (and the right edge to the left). | It stops at the shortest length; never turns over to the other clip. |
+| D7 | Drag a video clip onto a track where another clip's «Боулдер» stands. | The place is red; on release nothing moves; the plate stays. |
+| D8 | Drag a clip from one track to another (free place). | A ghost of its future place on the target track (yellow if it would push clips, red if refused). |
+| D9 | Move a clip with its «Боулдер» from a high track down (as in the owner's screenshot). | Its plate goes down to the lowest free track above it (beside the other plates); the tracks left empty by this move disappear; Ctrl+Z puts everything back. |

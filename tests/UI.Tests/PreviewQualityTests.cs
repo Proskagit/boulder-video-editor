@@ -13,10 +13,10 @@ using Xunit;
 namespace AiVideoEditor.UI.Tests;
 
 /// <summary>
-/// D071 §2–§4 through the view models: the Preview's quality on its bar (saved in the settings, «Среднее» by default) bounds
-/// every video's decoding; a 4K / HEVC video's proxy is made in the background and replaces the source in the Preview's
-/// snapshot once ready; another quality drops the proxies and asks for its own; «Оригинал» decodes the source unbounded; with
-/// «Создавать прокси» off nothing is made, a proxy already there is still used.
+/// D071 §2–§4 and amendment 2 through the view models: the Preview's quality (saved in the settings, «Среднее» by default) changes
+/// the decoding on the fly; each 4K / HEVC video gets one 1080p proxy in the background, used at «Среднее» and «Минимум» once
+/// ready, never made again for another quality; «Высокое» and «Оригинал» decode the source; with «Создавать прокси» off nothing is
+/// made, a proxy already there is still used.
 /// </summary>
 public sealed class PreviewQualityTests : IAsyncLifetime
 {
@@ -82,49 +82,52 @@ public sealed class PreviewQualityTests : IAsyncLifetime
         Assert.Equal(new(1920, 1080), Decoding(_hd).DecodeBound);
         Assert.Null(Decoding(_uhd).DecodePath);                           // the source until the proxy is ready
 
-        _store.Release(_uhd, PreviewQuality.Medium);
+        _store.Release(_uhd);
         await _proxies!.IdleAsync();
 
-        Assert.Equal(FakeStore.PathOf(_uhd, PreviewQuality.Medium), Decoding(_uhd).DecodePath);
+        Assert.Equal(FakeStore.PathOf(_uhd), Decoding(_uhd).DecodePath);
         Assert.Null(Decoding(_hd).DecodePath);                            // a light 1080p H.264: no proxy
-        Assert.DoesNotContain(_store.Made, m => m.Asset == _hd.Id);
+        Assert.DoesNotContain(_hd.Id, _store.Made);
     }
 
     [Fact]
-    public async Task Another_quality_asks_for_its_own_proxy_and_the_original_decodes_the_source_unbounded()
+    public async Task The_quality_changes_on_the_fly_and_never_asks_for_another_proxy()
     {
+        // D071 amendment 2: one 1080p proxy per file; a quality only sets the Preview's bound and whether it takes the proxy.
         var preview = Preview();
-        _store.Release(_uhd, PreviewQuality.Medium);
+        _store.Release(_uhd);
         await _proxies!.IdleAsync();
+        var made = _store.Made.Count;
 
-        preview.QualityIndex = (int)PreviewQuality.Low;
+        Assert.Equal("1080p", preview.QualityShort);                        // the compact button
+        preview.SetQualityCommand.Execute("3");                             // its menu: «Минимум (720p)»
+        Assert.Equal("720p", preview.QualityShort);
         Assert.Equal(PreviewQuality.Low, _settings.Current.PreviewQuality);
-        Assert.Equal(new(1280, 720), Decoding(_uhd).DecodeBound);
-        Assert.Null(Decoding(_uhd).DecodePath);                           // the Medium proxy is never shown at Low
-        _store.Release(_uhd, PreviewQuality.Low);
-        await _proxies.IdleAsync();
-        Assert.Equal(FakeStore.PathOf(_uhd, PreviewQuality.Low), Decoding(_uhd).DecodePath);
+        Assert.Equal(new(1280, 720), Decoding(_uhd).DecodeBound);           // the 1080p proxy scaled down on the fly
+        Assert.Equal(FakeStore.PathOf(_uhd), Decoding(_uhd).DecodePath);
+
+        preview.QualityIndex = (int)PreviewQuality.High;
+        Assert.Equal(new(2560, 1440), Decoding(_uhd).DecodeBound);
+        Assert.Null(Decoding(_uhd).DecodePath);                             // above the proxy: the source
 
         preview.QualityIndex = (int)PreviewQuality.Original;
-        await _proxies.IdleAsync();
         Assert.Equal(new(3840, 2160), Decoding(_uhd).DecodeBound);
         Assert.Null(Decoding(_uhd).DecodePath);
-        Assert.DoesNotContain(_store.Made, m => m.Quality == PreviewQuality.Original);
+
+        preview.QualityIndex = (int)PreviewQuality.Medium;
+        Assert.Equal(FakeStore.PathOf(_uhd), Decoding(_uhd).DecodePath);
+        await _proxies.IdleAsync();
+        Assert.Equal(made, _store.Made.Count);                              // nothing made again
     }
 
     [Fact]
     public async Task Without_making_proxies_none_is_made_but_one_already_there_is_used()
     {
         _settings.Update(s => s with { MakeProxies = false });
-        _store.Existing.Add((_uhd.Id, PreviewQuality.Low));
-        var preview = Preview();
+        _store.Existing.Add(_uhd.Id);
+        Preview();
         await _proxies!.IdleAsync();
-        Assert.Null(Decoding(_uhd).DecodePath);
-        Assert.Empty(_store.Made);
-
-        preview.QualityIndex = (int)PreviewQuality.Low;
-        await _proxies.IdleAsync();
-        Assert.Equal(FakeStore.PathOf(_uhd, PreviewQuality.Low), Decoding(_uhd).DecodePath);
+        Assert.Equal(FakeStore.PathOf(_uhd), Decoding(_uhd).DecodePath);
         Assert.Empty(_store.Made);
     }
 
@@ -134,24 +137,24 @@ public sealed class PreviewQualityTests : IAsyncLifetime
         _uhd.Metadata!.PixelFormat = null;                                 // D033 T3: colour not probed yet
         Preview();
         await _proxies!.IdleAsync();
-        Assert.DoesNotContain(_store.Made, m => m.Asset == _uhd.Id);
+        Assert.DoesNotContain(_uhd.Id, _store.Made);
 
         _uhd.Metadata.PixelFormat = "yuv420p";                             // the probe: SDR
         _projects.NotifyMediaAssetsChanged();
-        await WaitAsync(() => _store.Made.Any(m => m.Asset == _uhd.Id));
-        _store.Release(_uhd, PreviewQuality.Medium);
+        await WaitAsync(() => _store.Made.Contains(_uhd.Id));
+        _store.Release(_uhd);
         await _proxies.IdleAsync();
         Assert.NotNull(Decoding(_uhd).DecodePath);
 
-        var before = _store.Made.Count(m => m.Asset == _uhd.Id);
+        var before = _store.Made.Count(m => m == _uhd.Id);
         _uhd.Metadata.PixelFormat = "yuv420p10le";                         // later found HLG (a relink / refresh)
         _uhd.Metadata.BitDepth = 10;
         _uhd.Metadata.ColorTransfer = "arib-std-b67";
         _uhd.Metadata.ColorPrimaries = "bt2020";
         _uhd.Metadata.ColorMatrix = "bt2020nc";
-        _store.Forget(_uhd, PreviewQuality.Medium);                        // the store's key has the colour: no file for HLG
+        _store.Forget(_uhd);                        // the store's key has the colour: no file for HLG
         _projects.NotifyMediaAssetsChanged();
-        await WaitAsync(() => _store.Made.Count(m => m.Asset == _uhd.Id) > before);
+        await WaitAsync(() => _store.Made.Count(m => m == _uhd.Id) > before);
     }
 
     [Fact]
@@ -162,7 +165,7 @@ public sealed class PreviewQualityTests : IAsyncLifetime
         _uhd.Metadata!.PixelFormat = null;
         Preview();
         await _proxies!.IdleAsync();
-        Assert.DoesNotContain(_store.Made, m => m.Asset == _uhd.Id);
+        Assert.DoesNotContain(_uhd.Id, _store.Made);
 
         _uhd.IsMetadataRefreshing = true;
         _uhd.Metadata = new MediaMetadata
@@ -173,8 +176,8 @@ public sealed class PreviewQualityTests : IAsyncLifetime
         _projects.NotifyMediaAssetsChanged();
         _uhd.IsMetadataRefreshing = false;
 
-        await WaitAsync(() => _store.Made.Any(m => m.Asset == _uhd.Id));
-        _store.Release(_uhd, PreviewQuality.Medium);
+        await WaitAsync(() => _store.Made.Contains(_uhd.Id));
+        _store.Release(_uhd);
         await _proxies.IdleAsync();
         Assert.NotNull(Decoding(_uhd).DecodePath);
     }
@@ -189,7 +192,7 @@ public sealed class PreviewQualityTests : IAsyncLifetime
 
         progress.CancelCommand.Execute(null);
         await _proxies.IdleAsync();
-        Assert.False(progress.IsBuilding);
+        await WaitAsync(() => !progress.IsBuilding);                       // the indicator's end is posted to the UI context
         Assert.Null(Decoding(_uhd).DecodePath);
     }
 
@@ -206,35 +209,35 @@ public sealed class PreviewQualityTests : IAsyncLifetime
     /// <summary>A store whose proxies are made when the test releases them.</summary>
     private sealed class FakeStore : IProxyStore
     {
-        private readonly ConcurrentDictionary<(Guid, PreviewQuality), TaskCompletionSource> _gates = new();
+        private readonly ConcurrentDictionary<Guid, TaskCompletionSource> _gates = new();
 
-        public ConcurrentBag<(Guid Asset, PreviewQuality Quality)> Made { get; } = new();
-        public HashSet<(Guid, PreviewQuality)> Existing { get; } = new();
+        public ConcurrentBag<Guid> Made { get; } = new();
+        public HashSet<Guid> Existing { get; } = new();
 
-        public static string PathOf(MediaAsset asset, PreviewQuality quality) => $@"C:\proxies\{asset.Id:N}-{quality}.mp4";
+        public static string PathOf(MediaAsset asset) => $@"C:\proxies\{asset.Id:N}-1080p.mp4";
 
         public string Folder => @"C:\proxies";
 
-        public string? TryGet(MediaAsset asset, PreviewQuality quality)
+        public string? TryGet(MediaAsset asset)
         {
-            lock (Existing) return Existing.Contains((asset.Id, quality)) ? PathOf(asset, quality) : null;
+            lock (Existing) return Existing.Contains(asset.Id) ? PathOf(asset) : null;
         }
 
-        public async Task<string?> GetOrCreateAsync(MediaAsset asset, PreviewQuality quality, IProgress<double>? progress, CancellationToken ct)
+        public async Task<string?> GetOrCreateAsync(MediaAsset asset, IProgress<double>? progress, CancellationToken ct)
         {
-            Made.Add((asset.Id, quality));
+            Made.Add(asset.Id);
             progress?.Report(0.3);
-            await Gate(asset.Id, quality).Task.WaitAsync(ct);
-            lock (Existing) Existing.Add((asset.Id, quality));
-            return PathOf(asset, quality);
+            await Gate(asset.Id).Task.WaitAsync(ct);
+            lock (Existing) Existing.Add(asset.Id);
+            return PathOf(asset);
         }
 
-        public void Release(MediaAsset asset, PreviewQuality quality) => Gate(asset.Id, quality).TrySetResult();
+        public void Release(MediaAsset asset) => Gate(asset.Id).TrySetResult();
 
-        public void Forget(MediaAsset asset, PreviewQuality quality)
+        public void Forget(MediaAsset asset)
         {
-            lock (Existing) Existing.Remove((asset.Id, quality));
-            _gates.TryRemove((asset.Id, quality), out _);
+            lock (Existing) Existing.Remove(asset.Id);
+            _gates.TryRemove(asset.Id, out _);
         }
 
         public void ReleaseAll()
@@ -242,8 +245,8 @@ public sealed class PreviewQualityTests : IAsyncLifetime
             foreach (var gate in _gates.Values) gate.TrySetResult();
         }
 
-        private TaskCompletionSource Gate(Guid id, PreviewQuality quality) =>
-            _gates.GetOrAdd((id, quality), _ => new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
+        private TaskCompletionSource Gate(Guid id) =>
+            _gates.GetOrAdd(id, _ => new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
 
         public long SizeBytes() => 0;
         public long Clear() => 0;

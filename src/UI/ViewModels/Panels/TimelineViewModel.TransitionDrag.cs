@@ -8,13 +8,15 @@ namespace AiVideoEditor.UI.ViewModels.Panels;
 // --- D069 amendment 2: a transition's length dragged on the timeline ----------------------------------------------------------
 // A press on an edge of a transition's zone (it gets selected), then a drag: the zone grows or shrinks around its cut (both edges, the
 // zone stays centred — D025 §3), whole frames, from the type's minimum to its maximum and what the clips hold; the release is
-// one Undo step (SetTransitionDuration), Esc / a refusal puts the zone back.
+// one Undo step (SetTransitionDuration), Esc / a refusal puts the zone back. D071 amendment 2: each edge stays on its side of the
+// cut (dragged past it, the zone stops at its minimum — never turned inside out), and the dragged edge snaps (the playhead, the
+// markers, the clips' edges — the timeline's magnet).
 public sealed partial class TimelineViewModel
 {
     /// <summary>How near a zone's edge a press grabs it, in pixels.</summary>
     public const double TransitionEdgePixels = 6;
 
-    private (TimelineTransitionViewModel Zone, long Cut, long Frames, long Min, long Max)? _zoneDrag;
+    private (TimelineTransitionViewModel Zone, long Cut, long Frames, long Min, long Max, bool LeftEdge)? _zoneDrag;
 
     /// <summary>True while a zone's edge is dragged.</summary>
     public bool IsTransitionResizing => _zoneDrag is not null;
@@ -35,8 +37,9 @@ public sealed partial class TimelineViewModel
         var type = zone.Transition.TransitionTypeId;
         var max = _edit.MaxTransitionFrames(zone.Transition.LeftClipId, zone.Transition.RightClipId, type) ?? TransitionRules.Frames(zone.Transition.Duration, FrameRate);
         max = Math.Min(max, TransitionRules.MaxFramesOf(type, FrameRate));
+        var leftEdge = Math.Abs(contentX - zone.Left) <= Math.Abs(contentX - (zone.Left + zone.Width));
         _zoneDrag = (zone, right.TimelineStart.ToFrameFloor(FrameRate), TransitionRules.Frames(zone.Transition.Duration, FrameRate),
-            TransitionRules.MinFramesOf(type, FrameRate), Math.Max(TransitionRules.MinFramesOf(type, FrameRate), max));
+            TransitionRules.MinFramesOf(type, FrameRate), Math.Max(TransitionRules.MinFramesOf(type, FrameRate), max), leftEdge);
         return true;
     }
 
@@ -45,8 +48,14 @@ public sealed partial class TimelineViewModel
     public void UpdateTransitionResize(double contentX)
     {
         if (_zoneDrag is not { } drag) return;
-        var at = TimelineCoordinateMapper.XToTime(Math.Max(0, contentX), PixelsPerSecond).ToNearestFrame(FrameRate);
-        var frames = Math.Clamp(2 * Math.Abs(at - drag.Cut), drag.Min, drag.Max);
+        var raw = TimelineCoordinateMapper.XToTime(Math.Max(0, contentX), PixelsPerSecond);
+        // The dragged edge snaps; the transition's own clips are left out (their cut is the zone's centre).
+        var own = Tracks.SelectMany(t => t.Clips).Where(c => c.Id == drag.Zone.Transition.LeftClipId || c.Id == drag.Zone.Transition.RightClipId);
+        var snapped = raw + ApplySnap(new[] { raw }, own, MediaTime.Zero);
+        var at = snapped.ToNearestFrame(FrameRate);
+        // Each edge on its own side of the cut: past it the distance is 0 and the zone stops at its minimum.
+        var distance = Math.Max(0, drag.LeftEdge ? drag.Cut - at : at - drag.Cut);
+        var frames = Math.Clamp(2 * distance, drag.Min, drag.Max);
         _zoneDrag = drag with { Frames = frames };
         drag.Zone.LayoutWithFrames(PixelsPerSecond, FrameRate, frames);
         _status.Report(string.Format(Strings.Transition_Dragging, TransitionNames.Duration(frames, FrameRate)));
@@ -57,6 +66,7 @@ public sealed partial class TimelineViewModel
     {
         if (_zoneDrag is not { } drag) return;
         _zoneDrag = null;
+        IsSnapIndicatorVisible = false;
         if (!CanEdit())
         {
             drag.Zone.Layout(PixelsPerSecond, FrameRate);   // an export started meanwhile: nothing changes
@@ -72,6 +82,7 @@ public sealed partial class TimelineViewModel
     {
         if (_zoneDrag is not { } drag) return;
         _zoneDrag = null;
+        IsSnapIndicatorVisible = false;
         drag.Zone.Layout(PixelsPerSecond, FrameRate);
     }
 }

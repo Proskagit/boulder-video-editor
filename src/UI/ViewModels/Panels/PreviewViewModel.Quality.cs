@@ -18,6 +18,22 @@ public sealed partial class PreviewViewModel
         Strings.PreviewQuality_Original, Strings.PreviewQuality_High, Strings.PreviewQuality_Medium, Strings.PreviewQuality_Low
     };
 
+    /// <summary>Amendment 2: the bar's compact button shows the chosen quality short («1080p»).</summary>
+    public string QualityShort => Quality switch
+    {
+        PreviewQuality.Original => Strings.PreviewQuality_ShortOriginal,
+        PreviewQuality.High => Strings.PreviewQuality_ShortHigh,
+        PreviewQuality.Low => Strings.PreviewQuality_ShortLow,
+        _ => Strings.PreviewQuality_ShortMedium
+    };
+
+    /// <summary>The button's menu: a quality by its index in <see cref="QualityNames"/>.</summary>
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void SetQuality(string index)
+    {
+        if (int.TryParse(index, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var i)) QualityIndex = i;
+    }
+
     /// <summary>The chosen quality's index in <see cref="QualityNames"/>; saved in the user's settings at once.</summary>
     public int QualityIndex
     {
@@ -30,11 +46,13 @@ public sealed partial class PreviewViewModel
             {
                 _sessionQuality = quality;   // without the settings (tests): this session only
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(QualityShort));
                 if (!IsSourceMode && !_released) RebuildSnapshot();
                 return;
             }
             _settings.Update(s => s with { PreviewQuality = quality });   // Changed rebuilds the snapshot
             OnPropertyChanged();
+            OnPropertyChanged(nameof(QualityShort));
         }
     }
 
@@ -64,7 +82,8 @@ public sealed partial class PreviewViewModel
             var m = media?.Metadata;
             var (w, h) = (m?.DisplayWidth ?? m?.Width, m?.DisplayHeight ?? m?.Height);
             var bound = PreviewDecoding.Bound(quality, w, h) ?? (w is > 0 && h is > 0 ? new FrameSize(w.Value, h.Value) : (FrameSize?)null);
-            var proxy = media is not null && PreviewDecoding.NeedsProxy(media, quality) ? _proxies?.ProxyFor(asset.Id, quality) : null;
+            // Amendment 2: the one 1080p proxy serves «Среднее» and «Минимум» (scaled on the fly); the others decode the source.
+            var proxy = media is not null && PreviewDecoding.UsesProxy(quality) && PreviewDecoding.NeedsProxy(media) ? _proxies?.ProxyFor(asset.Id) : null;
             return asset with { DecodeBound = bound, DecodePath = proxy };
         });
     }

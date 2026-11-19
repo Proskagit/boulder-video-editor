@@ -46,36 +46,54 @@ public class TransitionLibraryEditTests
         return (f, f.V1.Clips[0], f.V1.Clips[1]);
     }
 
+    /// <summary>A transition of <paramref name="type"/> at the length these rule tests were written for — the types' defaults
+    /// before D071 amendment 2 (which starts every type at 1 s), set in a step of its own.</summary>
     private static Transition Add(TimelineFixture f, Clip a, Clip b, string type)
+    {
+        var t = AddAtDefault(f, a, b, type);
+        var frames = TransitionRules.Frames(MediaTime.FromSeconds(FormerDefaultSeconds[type]), f.Rate);
+        if (TransitionRules.Frames(t.Duration, f.Rate) > frames) Ok(f.Service.SetTransitionDuration(t.Id, MediaTime.FromFrame(frames, f.Rate)));
+        return t;
+    }
+
+    private static Transition AddAtDefault(TimelineFixture f, Clip a, Clip b, string type)
     {
         var result = f.Service.AddTransition(a.Id, b.Id, type);
         Ok(result);
         return f.V1.Transitions.Single(t => t.Id == result.TransitionId);
     }
 
+    private static readonly Dictionary<string, double> FormerDefaultSeconds = new()
+    {
+        [TransitionRules.CrossDissolve] = 1.0, [TransitionRules.DipToBlack] = 0.6, [TransitionRules.Flash] = 0.2,
+        [TransitionRules.Zoom] = 0.3, [TransitionRules.Push] = 0.3, [TransitionRules.Blur] = 0.5, [TransitionRules.Wipe] = 0.5,
+        [TransitionRules.Circle] = 0.6, [TransitionRules.Doors] = 0.6, [TransitionRules.ZoomOut] = 0.4, [TransitionRules.Spin] = 0.5,
+        [TransitionRules.Whip] = 0.3, [TransitionRules.Glitch] = 0.4
+    };
+
     // --- add ------------------------------------------------------------------------------------------------------------
 
+    // D071 amendment 2 (the owner): every type starts at 1 s — 30 frames at 30 fps.
     [Theory]
     [InlineData("crossDissolve", 30, null)]
-    [InlineData("dipToBlack", 18, null)]
-    [InlineData("flash", 6, null)]
-    [InlineData("zoom", 9, null)]
-    [InlineData("push", 9, TransitionDirection.FromRight)]
-    // D069 §8 at 30 fps: 0.5 s, 0.6 s, 0.4 s, 0.3 s.
-    [InlineData("blur", 15, null)]
-    [InlineData("wipe", 15, TransitionDirection.FromRight)]
-    [InlineData("circle", 18, null)]
-    [InlineData("doors", 18, null)]
-    [InlineData("zoomOut", 12, null)]
-    [InlineData("spin", 15, null)]
-    [InlineData("whip", 9, TransitionDirection.FromRight)]
-    [InlineData("glitch", 12, null)]
+    [InlineData("dipToBlack", 30, null)]
+    [InlineData("flash", 30, null)]
+    [InlineData("zoom", 30, null)]
+    [InlineData("push", 30, TransitionDirection.FromRight)]
+    [InlineData("blur", 30, null)]
+    [InlineData("wipe", 30, TransitionDirection.FromRight)]
+    [InlineData("circle", 30, null)]
+    [InlineData("doors", 30, null)]
+    [InlineData("zoomOut", 30, null)]
+    [InlineData("spin", 30, null)]
+    [InlineData("whip", 30, TransitionDirection.FromRight)]
+    [InlineData("glitch", 30, null)]
     public void Each_type_is_added_with_its_default_in_one_undo_step(string type, long frames, TransitionDirection? direction)
     {
         var (f, clips) = Images(100, 100);
         var before = f.Snapshot();
 
-        var transition = Add(f, clips[0], clips[1], type);
+        var transition = AddAtDefault(f, clips[0], clips[1], type);
 
         Assert.Equal((type, F(f, frames), direction), (transition.TransitionTypeId, transition.Duration, transition.Direction));
         Assert.Equal(type == TransitionRules.CrossDissolve ? "Add Dissolve" : "Add Transition", Top(f));
@@ -97,7 +115,7 @@ public class TransitionLibraryEditTests
         Assert.True(f.Service.MaxTransitionFrames(a.Id, b.Id) > 0);                       // D069 amendment 2: a dissolve fits too
         Assert.True(f.Service.MaxTransitionFrames(a.Id, b.Id, type) >= TransitionRules.DefaultFramesOf(type, f.Rate));
 
-        var transition = Add(f, a, b, type);
+        var transition = AddAtDefault(f, a, b, type);
         Assert.Equal(F(f, TransitionRules.DefaultFramesOf(type, f.Rate)), transition.Duration);
         f.AssertValid();
     }
@@ -116,7 +134,7 @@ public class TransitionLibraryEditTests
         var (f, a, b) = NoHandles();
         Assert.True(f.Service.MaxTransitionFrames(a.Id, b.Id, type) >= TransitionRules.DefaultFramesOf(type, f.Rate));
 
-        var transition = Add(f, a, b, type);
+        var transition = AddAtDefault(f, a, b, type);
 
         Assert.Equal(F(f, TransitionRules.DefaultFramesOf(type, f.Rate)), transition.Duration);
         var spans = Core.Playback.PlaybackSnapshotBuilder.Build(f.Project, 1).VideoLayers.SelectMany(l => l.Spans).ToList();

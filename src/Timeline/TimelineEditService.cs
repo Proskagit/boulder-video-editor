@@ -451,10 +451,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
         // D048 §3.5: the anchored templates move with their clip and are placed with it (they make room as moved clips).
         if (ReconcileOverlays(plan) is { } overlayError)
             return (null, clips, string.Format(Messages.Edit_CantMove, overlayError));
+        // D071 amendment 2: a clip moved to another track takes its plates to the lowest free track above it.
+        if (target is not null) CompactAnchoredPlates(plan, clips);
         if (MakeRoom(plan, PlacedByUpdates(plan), Messages.Verb_Move) is { } roomError)
             return (null, clips, roomError);
         if (Validate(plan) is { } error)
             return (null, clips, string.Format(Messages.Edit_CantMove, error));
+        if (target is not null) RemoveEmptiedVideoTracks(plan);
 
         return (plan, clips, null);
     }

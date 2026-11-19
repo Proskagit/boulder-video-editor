@@ -12,11 +12,11 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace AiVideoEditor.Media.Caching;
 
 /// <summary>
-/// D071 §3: the Preview's proxies, one MP4 per source content and quality in one folder of the application's cache
+/// D071 §3: the Preview's proxies, one MP4 per source content (1080p, amendment 2) in one folder of the application's cache
 /// (<c>%LOCALAPPDATA%\BoulderVideoEditor\cache\proxies</c>):
 /// <list type="bullet">
 /// <item>The name is a hash of the source's content (<see cref="CameraMotionCacheStore.Fingerprint"/>: size, last write
-/// time, its first and last megabyte), the quality and <see cref="ProxyVersion"/> — an edited, replaced or relinked file is
+/// time, its first and last megabyte), its colour and size and <see cref="ProxyVersion"/> — an edited, replaced or relinked file is
 /// another key; one file in two projects has one proxy.</item>
 /// <item>Made into a temporary file and moved into place only when the builder checked it; one making per key at a time.</item>
 /// <item>Above <see cref="DefaultMaxBytes"/> (or the given limit) the least recently used proxies are removed.</item>
@@ -25,7 +25,7 @@ namespace AiVideoEditor.Media.Caching;
 public sealed class ProxyStore : IProxyStore
 {
     /// <summary>The proxies' rules (D071 §3); a change makes every proxy another key.</summary>
-    public const int ProxyVersion = 1;
+    public const int ProxyVersion = 2;   // 2: one 1080p proxy per file (D071 amendment 2)
     public const string Extension = ".mp4";
     public const long DefaultMaxBytes = 50L * 1024 * 1024 * 1024;
     private const string TempMarker = ".tmp";
@@ -48,17 +48,17 @@ public sealed class ProxyStore : IProxyStore
 
     public string Folder => _folder;
 
-    public string? TryGet(MediaAsset asset, PreviewQuality quality)
+    public string? TryGet(MediaAsset asset)
     {
-        if (PathOf(asset, quality) is not { } path || !File.Exists(path)) return null;
+        if (PathOf(asset) is not { } path || !File.Exists(path)) return null;
         Touch(path);
         return path;
     }
 
-    public async Task<string?> GetOrCreateAsync(MediaAsset asset, PreviewQuality quality, IProgress<double>? progress, CancellationToken ct)
+    public async Task<string?> GetOrCreateAsync(MediaAsset asset, IProgress<double>? progress, CancellationToken ct)
     {
-        if (!PreviewDecoding.NeedsProxy(asset, quality) || asset.Metadata is not { } m) return null;
-        if (PathOf(asset, quality) is not { } path) return null;
+        if (!PreviewDecoding.NeedsProxy(asset) || asset.Metadata is not { } m) return null;
+        if (PathOf(asset) is not { } path) return null;
         var gate = _making.GetOrAdd(path, _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync(ct);
         try
@@ -77,7 +77,7 @@ public sealed class ProxyStore : IProxyStore
             {
                 SourcePath = asset.FilePath,
                 OutputPath = temp,
-                Size = PreviewDecoding.ProxySize(quality, width, height),
+                Size = PreviewDecoding.ProxySize(width, height),
                 Duration = asset.Metadata.Duration,
                 Hdr = HdrColor.Classify(asset.Kind, asset.Metadata).Conversion
             }, progress, ct);
@@ -91,7 +91,7 @@ public sealed class ProxyStore : IProxyStore
                 _logger.LogWarning(ex, "The proxy of '{Path}' could not be stored.", asset.FilePath);
                 return null;
             }
-            _logger.LogInformation("Proxy {Quality} of '{Path}' ready: {Proxy}.", quality, asset.FilePath, Path.GetFileName(path));
+            _logger.LogInformation("Proxy of '{Path}' ready: {Proxy}.", asset.FilePath, Path.GetFileName(path));
             Trim(path);
             return path;
         }
@@ -115,7 +115,7 @@ public sealed class ProxyStore : IProxyStore
     }
 
     /// <summary>The proxy's file name for <paramref name="asset"/>'s content now, or null when the file can't be read.</summary>
-    internal string? PathOf(MediaAsset asset, PreviewQuality quality)
+    internal string? PathOf(MediaAsset asset)
     {
         if (asset.IsMissing || _fingerprints.Fingerprint(asset.FilePath) is not { } fingerprint) return null;
         // The picture's conversion is part of the key (D033): a proxy made as SDR is never taken for the file found HDR later.
@@ -125,10 +125,10 @@ public sealed class ProxyStore : IProxyStore
         // So is the picture's size: metadata without a display size (before Phase 7) refreshed later gives another proxy.
         var m = asset.Metadata;
         var (w, h) = (m?.DisplayWidth ?? m?.Width ?? 0, m?.DisplayHeight ?? m?.Height ?? 0);
-        var size = w > 0 && h > 0 ? PreviewDecoding.ProxySize(quality, w, h) : default;
-        var key = string.Create(CultureInfo.InvariantCulture, $"{fingerprint}|{quality}|{colour}|{size.Width}x{size.Height}|v{ProxyVersion}");
+        var size = w > 0 && h > 0 ? PreviewDecoding.ProxySize(w, h) : default;
+        var key = string.Create(CultureInfo.InvariantCulture, $"{fingerprint}|{colour}|{size.Width}x{size.Height}|v{ProxyVersion}");
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key)))[..32].ToLowerInvariant();
-        return Path.Combine(_folder, $"{hash}-{quality.ToString().ToLowerInvariant()}{Extension}");
+        return Path.Combine(_folder, $"{hash}-{size.Height}p{Extension}");
     }
 
     /// <summary>A temporary file older than <see cref="StaleTemporaryAge"/> is a making that never ended (the app was killed,

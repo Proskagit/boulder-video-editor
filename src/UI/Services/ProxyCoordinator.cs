@@ -11,10 +11,10 @@ using Microsoft.Extensions.Logging;
 namespace AiVideoEditor.UI.Services;
 
 /// <summary>
-/// D071 §3–§4: the proxies of the current project's 4K / HEVC videos at the Preview's quality — found in the cache, or made in
-/// the background one at a time (<see cref="UserSettings.MakeProxies"/>), the rules of <see cref="MediaCacheCoordinator{T}"/>
-/// (generations per project, once per asset). A change of the quality drops the results and asks again. The Preview takes
-/// the ready proxies (<see cref="ProxyFor"/>, <see cref="ProxyReady"/>); the status bar shows the one being made.
+/// D071 §3–§4, amendment 2: the one proxy (1080p) of each of the current project's 4K / HEVC videos — found in the cache, or
+/// made in the background one at a time (<see cref="UserSettings.MakeProxies"/>), the rules of <see cref="MediaCacheCoordinator{T}"/>
+/// (generations per project, once per asset). The Preview's quality never asks for another proxy: it only decides whether the
+/// Preview takes it (<see cref="ProxyFor"/>, <see cref="ProxyReady"/>); the status bar shows the one being made.
 /// </summary>
 public sealed class ProxyCoordinator : MediaCacheCoordinator<string>
 {
@@ -22,7 +22,6 @@ public sealed class ProxyCoordinator : MediaCacheCoordinator<string>
     private readonly IUserSettingsService _settings;
     private readonly IProjectService _projects;
     private readonly SynchronizationContext? _context;
-    private PreviewQuality _quality;
     private bool _make;
     private readonly Dictionary<Guid, HdrConversion?> _colour = new();
     private readonly object _buildLock = new();
@@ -35,7 +34,6 @@ public sealed class ProxyCoordinator : MediaCacheCoordinator<string>
         _settings = settings;
         _projects = projects;
         _context = SynchronizationContext.Current;
-        _quality = settings.Current.PreviewQuality;
         _make = settings.Current.MakeProxies;
         settings.Changed += (_, _) => OnSettingsChanged();
         Progress = new ProxyProgress(Cancel);
@@ -56,10 +54,8 @@ public sealed class ProxyCoordinator : MediaCacheCoordinator<string>
         remove => Ready -= value;
     }
 
-    /// <summary>The ready proxy of an asset of the current project at <paramref name="quality"/>, or null (also while the
-    /// results are still those of another quality).</summary>
-    public string? ProxyFor(Guid assetId, PreviewQuality quality) =>
-        quality == PreviewQuality.Original || quality != _quality ? null : Get(assetId);
+    /// <summary>The ready proxy of an asset of the current project, or null.</summary>
+    public string? ProxyFor(Guid assetId) => Get(assetId);
 
     /// <summary>The settings' «Удалить прокси»: every proxy not being read is removed and the project's are asked again.</summary>
     public long ClearAll()
@@ -74,13 +70,11 @@ public sealed class ProxyCoordinator : MediaCacheCoordinator<string>
 
     private void OnSettingsChanged()
     {
-        var current = _settings.Current;
-        if (current.PreviewQuality == _quality && current.MakeProxies == _make) return;
-        var qualityChanged = current.PreviewQuality != _quality;
-        _quality = current.PreviewQuality;
-        _make = current.MakeProxies;
-        if (qualityChanged || !_make) Cancel();
-        RestartAll(dropResults: qualityChanged);
+        var make = _settings.Current.MakeProxies;
+        if (make == _make) return;   // the quality alone changes nothing here (amendment 2)
+        _make = make;
+        if (!_make) Cancel();
+        else RestartAll(dropResults: false);   // asks again the files that got none while it was off
     }
 
     private void RestartWhereColourChanged()
@@ -98,7 +92,7 @@ public sealed class ProxyCoordinator : MediaCacheCoordinator<string>
     private void RestartAll(bool dropResults = true) =>
         Restart(_projects.Current.MediaAssets.Select(a => a.Id).ToList(), dropResults);
 
-    /// <summary>The proxy being made is given up (the quality changed, the user cancelled, the cache is cleared); the assets
+    /// <summary>The proxy being made is given up (the user cancelled, the switch turned off, the cache is cleared); the assets
     /// are asked again only by a restart.</summary>
     private void Cancel()
     {
@@ -111,29 +105,28 @@ public sealed class ProxyCoordinator : MediaCacheCoordinator<string>
 
     protected override IEnumerable<MediaAsset> Candidates(Project project) => project.MediaAssets;
 
-    protected override bool MayHave(MediaAsset asset) => PreviewDecoding.NeedsProxy(asset, _quality);
+    protected override bool MayHave(MediaAsset asset) => PreviewDecoding.NeedsProxy(asset);
 
     protected override string CurrentFolder => _store.Folder;
 
-    protected override string? TryGetCached(MediaAsset asset, string folder) => _store.TryGet(asset, _quality);
+    protected override string? TryGetCached(MediaAsset asset, string folder) => _store.TryGet(asset);
 
     protected override async Task<string?> GetOrCreateAsync(MediaAsset asset, string folder, CancellationToken ct)
     {
-        var quality = _quality;
-        if (!_make || !PreviewDecoding.NeedsProxy(asset, quality)) return null;
+        if (!_make || !PreviewDecoding.NeedsProxy(asset)) return null;
         using var own = CancellationTokenSource.CreateLinkedTokenSource(ct);
         lock (_buildLock) _build = own;
-        // A quality or the switch changed while this one waited for its turn: given up before it starts (no stale proxy).
-        if (quality != _quality || !_make) own.Cancel();
+        // The switch turned off while this one waited for its turn: given up before it starts.
+        if (!_make) own.Cancel();
         var name = Path.GetFileName(asset.FilePath);
         Post(() => Progress.Begin(name, own));
         try
         {
-            return await _store.GetOrCreateAsync(asset, quality, new Reporter(this), own.Token);
+            return await _store.GetOrCreateAsync(asset, new Reporter(this), own.Token);
         }
         catch (OperationCanceledException) when (own.IsCancellationRequested && !ct.IsCancellationRequested)
         {
-            return null;   // given up by the user or by a new quality: not asked again until a restart
+            return null;   // given up by the user or the switch: not asked again until a restart
         }
         catch (ProxyBuildException)
         {

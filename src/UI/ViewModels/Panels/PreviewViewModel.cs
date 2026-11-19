@@ -115,6 +115,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
         {
             ShowPeopleMasks = _settings.Current.ShowPeopleMasks;   // D061 amendment 1: a diagnostic setting
             OnPropertyChanged(nameof(QualityIndex));                // D071 §2
+            OnPropertyChanged(nameof(QualityShort));
             if (!IsSourceMode && !_released) RebuildSnapshot();
         };
         ShowPeopleMasks = _settings?.Current.ShowPeopleMasks ?? false;

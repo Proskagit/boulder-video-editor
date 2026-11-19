@@ -95,21 +95,25 @@ public static class TransitionRules
     /// one-second default, at least <see cref="MinFrames"/> frames, no maximum).</summary>
     public static TransitionLimits LimitsOf(string typeId) => typeId switch
     {
-        DipToBlack => new(Seconds(0.6), Seconds(0.1), MaxSeconds),
-        Flash => new(Seconds(0.2), Seconds(0.1), MaxSeconds),
-        Zoom => new(Seconds(0.3), Seconds(0.2), MaxSeconds),
-        Push => new(Seconds(0.3), Seconds(0.2), MaxSeconds),
-        Blur => new(Seconds(0.5), Seconds(0.2), MaxSeconds),     // D069 §8
-        Wipe => new(Seconds(0.5), Seconds(0.2), MaxSeconds),
-        Circle => new(Seconds(0.6), Seconds(0.2), MaxSeconds),
-        Doors => new(Seconds(0.6), Seconds(0.2), MaxSeconds),
-        ZoomOut => new(Seconds(0.4), Seconds(0.2), MaxSeconds),
-        Spin => new(Seconds(0.5), Seconds(0.3), MaxSeconds),
-        Whip => new(Seconds(0.3), Seconds(0.2), MaxSeconds),
-        Glitch => new(Seconds(0.4), Seconds(0.2), MaxSeconds),
-        Crossfade => new(Seconds(1.0), null, null),
-        _ => new(Seconds(1.0), Seconds(0.1), MaxSeconds)          // the dissolve
+        // D071 amendment 2 (the owner): every transition starts at 1 s (the clips' frames permitting); the minimums stay.
+        DipToBlack => new(DefaultLength, Seconds(0.1), MaxSeconds),
+        Flash => new(DefaultLength, Seconds(0.1), MaxSeconds),
+        Zoom => new(DefaultLength, Seconds(0.2), MaxSeconds),
+        Push => new(DefaultLength, Seconds(0.2), MaxSeconds),
+        Blur => new(DefaultLength, Seconds(0.2), MaxSeconds),     // D069 §8
+        Wipe => new(DefaultLength, Seconds(0.2), MaxSeconds),
+        Circle => new(DefaultLength, Seconds(0.2), MaxSeconds),
+        Doors => new(DefaultLength, Seconds(0.2), MaxSeconds),
+        ZoomOut => new(DefaultLength, Seconds(0.2), MaxSeconds),
+        Spin => new(DefaultLength, Seconds(0.3), MaxSeconds),
+        Whip => new(DefaultLength, Seconds(0.2), MaxSeconds),
+        Glitch => new(DefaultLength, Seconds(0.2), MaxSeconds),
+        Crossfade => new(DefaultLength, null, null),
+        _ => new(DefaultLength, Seconds(0.1), MaxSeconds)          // the dissolve
     };
+
+    /// <summary>D071 amendment 2: the default length of every transition.</summary>
+    public static readonly MediaTime DefaultLength = MediaTime.FromSeconds(1);
 
     private static MediaTime Seconds(double seconds) => MediaTime.FromSeconds(seconds);
 

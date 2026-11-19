@@ -192,12 +192,24 @@
         <TextBlock Text="/" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
         <TextBlock Text="{Binding DurationDisplay}" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
       </StackPanel>
-      <!-- D071 §2: the Preview's picture quality (the proxies of 4K / HEVC below «Оригинал»); the export never uses it. Not focusable:
-           the editor's ↑ / ↓ never change it after a choice. -->
-      <ComboBox x:Name="PreviewQualityBox" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0,0,0"
-                ItemsSource="{Binding QualityNames}" SelectedIndex="{Binding QualityIndex, Mode=TwoWay}" MinWidth="0" Focusable="False"
-                FontSize="{DynamicResource FontSizeCaption}" ToolTip.Tip="{x:Static l:Strings.PreviewQuality_Tip}"
-                AutomationProperties.Name="{x:Static l:Strings.PreviewQuality_Tip}"/>
+      <!-- D071 §2, amendment 2: the Preview's picture quality — a compact button («👁 1080p») with the four choices in its menu;
+           applied on the fly, the export never uses it. Not focusable: the editor's keys never change it. -->
+      <Button x:Name="PreviewQualityButton" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0,0,0"
+              Padding="6,3" MinHeight="0" Focusable="False" FontSize="{DynamicResource FontSizeCaption}"
+              ToolTip.Tip="{x:Static l:Strings.PreviewQuality_Tip}" AutomationProperties.Name="{x:Static l:Strings.PreviewQuality_Tip}">
+        <StackPanel Orientation="Horizontal" Spacing="4">
+          <controls:IconPath Glyph="{x:Static controls:Icons.Eye}" Width="14" Height="14" VerticalAlignment="Center"/>
+          <TextBlock x:Name="PreviewQualityText" Text="{Binding QualityShort}" VerticalAlignment="Center"/>
+        </StackPanel>
+        <Button.Flyout>
+          <MenuFlyout Placement="TopEdgeAlignedRight">
+            <MenuItem Header="{x:Static l:Strings.PreviewQuality_Original}" Command="{Binding SetQualityCommand}" CommandParameter="0"/>
+            <MenuItem Header="{x:Static l:Strings.PreviewQuality_High}" Command="{Binding SetQualityCommand}" CommandParameter="1"/>
+            <MenuItem Header="{x:Static l:Strings.PreviewQuality_Medium}" Command="{Binding SetQualityCommand}" CommandParameter="2"/>
+            <MenuItem Header="{x:Static l:Strings.PreviewQuality_Low}" Command="{Binding SetQualityCommand}" CommandParameter="3"/>
+          </MenuFlyout>
+        </Button.Flyout>
+      </Button>
       </Grid>
     </Border>
 

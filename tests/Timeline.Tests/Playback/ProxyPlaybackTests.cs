@@ -71,6 +71,7 @@ public sealed class ProxyPlaybackTests : IAsyncLifetime
         var request = _decoder.Requests.Last();
         Assert.Equal(proxy, request.FilePath);
         Assert.Null(request.Hdr);                        // the proxy is SDR already
+        Assert.Equal(HardwareDecoding.Disabled, request.Hardware);   // amendment 2: a proxy decodes in software
         Assert.Equal((1920, 1080), (request.MaxWidth, request.MaxHeight));
         Assert.Equal(DecodeTransport.Standard, request.Transport);
         Assert.Equal(0, _decoder.OpenCount(asset.FilePath));

@@ -184,6 +184,9 @@ public sealed class EditPlan
     /// <summary>D069 amendment 2: video tracks the step adds (above the others), in order; added before the plan's clip changes.</summary>
     public List<Track> NewTracks { get; } = new();
 
+    /// <summary>D071 amendment 2: video tracks the step leaves empty and removes (after every clip change; Undo puts them back).</summary>
+    public List<Track> RemovedTracks { get; } = new();
+
     /// <summary>D069 amendment 2: the templates the step moved to another track so as not to push a clip — the track every later
     /// rule of the step keeps them on.</summary>
     public Dictionary<Clip, Track> Relocated { get; } = new();
@@ -500,6 +503,7 @@ public sealed class EditPlan
         commands.AddRange(BuildTransitionCommands());
         commands.AddRange(BuildLinkCommands(description));
         commands.AddRange(BuildOverlayCommands());
+        foreach (var track in RemovedTracks) commands.Add(new RemoveTrackCommand(_sequence, track));   // D071 amendment 2
 
         if (commands.Count == 0)
             throw new InvalidOperationException("Cannot build a command from an empty plan.");

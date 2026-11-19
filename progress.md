@@ -31,6 +31,21 @@ alone five times and 1 342 / 1 342 alone twice; Export 142 / 142 three times alo
 once under load). Not done: the owner's manual check (`docs/PHASE52_MANUAL_TEST_PLAN.md`),
 commit / push / PR.
 
+**Phase 52 amendment 2 (D071, the owner's check of 1.4.0):** the quality on the fly with one 1080p proxy per file (used at
+«Среднее» / «Минимум»), decoded in software (measured: the hardware decoder's start cost ~180 ms per seek and ate the proxies'
+gain); a compact quality button; transitions 1 s by default, a dragged edge snaps and never turns the zone inside out; another
+clip's plate is never pushed (refused); a clip moved to another track takes its plates to the lowest free track above it and the
+video tracks the move empties are removed; the ghost on the target track. Tests updated where they pinned the old defaults or the
+inside-out drag (rule tests keep their former lengths explicitly) + new tests (plates ×3, ghost, edge ×2, quality on the fly).
+**Review of amendment 2: FAIL** — an emptied track a ducking listened to could be removed (a saved project would not reopen) and
+a plate could leave a locked track; fixed (such tracks kept, locked plates stay; a proxy failing mid-stream falls back to the
+source) with tests that fail without the guards (checked by removing them); + tests of the main / the user's empty track kept and
+of a Media Browser drop onto a plate refused. **Re-review: PASS WITH NOTES.** **Gates (2026-11-19, the final code of amendment 2):**
+Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check` clean; Release + `AIVE_HEAVY_TESTS=1` with
+`--blame-hang`: Vision 37, Project 757, Core 1 975, Rendering 264, UI 1 345, Timeline 1 252, Video 444 (+1 environment-gated
+skip), ExportEndToEnd 189 — green; Export 141 / 142 under the full load (the known rasterizer flake, `ExportServiceTests`, Export
+untouched), 142 / 142 three times alone.
+
 **Before Phase 52 — the project was complete (2026-11-19).** Phase 51 (D070) accepted by the product owner: PR #79 merged (`097ec18`, CI green), the
 releases `v1.3.0` (Latest) and `models-1.0` published, the full Setup and the web Setup re-checked by the owner (D070 §8). Fifty-one
 phases since 2026-09-06. No phase is open; new work starts as a new phase on the owner's request. Left to the owner: the unpublished

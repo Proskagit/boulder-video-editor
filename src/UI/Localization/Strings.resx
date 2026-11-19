@@ -4080,4 +4080,16 @@ Everything else works without the models. They can also be installed later: «Se
   <data name="AppSettings_ProxiesNote" xml:space="preserve">
     <value>A proxy is a light copy of a heavy video at the Preview's quality, made in the background once per file and quality and kept for every project. The export, the thumbnails and the AI always use the original.</value>
   </data>
+  <data name="PreviewQuality_ShortOriginal" xml:space="preserve">
+    <value>Orig.</value>
+  </data>
+  <data name="PreviewQuality_ShortHigh" xml:space="preserve">
+    <value>1440p</value>
+  </data>
+  <data name="PreviewQuality_ShortMedium" xml:space="preserve">
+    <value>1080p</value>
+  </data>
+  <data name="PreviewQuality_ShortLow" xml:space="preserve">
+    <value>720p</value>
+  </data>
 </root>

@@ -62,8 +62,8 @@ Marking holds, following people and cleaning sound need local AI models (about 1
 
 ## Preview quality and proxies
 
-- The list right of the time under the Preview: **«Original»**, **«High (1440p)»**, **«Medium (1080p)»** (the default), **«Minimum (720p)»** — the quality the Preview shows videos in. The export is always made from the originals at full quality.
-- For 4K and HEVC videos the editor makes a **proxy** in the background — a light copy at the chosen quality that plays and scrubs smoothly. The status bar shows it («Proxy: file — N %», ✕ stops it). A proxy has the same frames as the original; until it is ready the Preview shows the original.
+- The button right of the time under the Preview (an eye and «1080p»): **«Original»**, **«High (1440p)»**, **«Medium (1080p)»** (the default), **«Minimum (720p)»** — the quality the Preview shows videos in. It changes at once; nothing is made again. The export is always made from the originals at full quality.
+- For 4K and HEVC videos the editor makes, once, in the background, a **proxy** — a light 1080p copy: at «Medium» and «Minimum» the Preview takes it and seeks much faster. The status bar shows it («Proxy: file — N %», ✕ stops it). A proxy has the same frames as the original; until it is ready, and at «High» and «Original», the Preview shows the original.
 - Proxies live in %LOCALAPPDATA%\BoulderVideoEditor\cache\proxies and serve every project. «Settings…» → «Timeline and markup» turns making them off; «Delete proxies» frees the space.
 
 ## The timeline
