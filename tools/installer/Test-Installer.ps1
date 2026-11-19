@@ -313,8 +313,8 @@ try {
             if (-not $server.HasExited) { $server.Kill() }
         }
 
-        Write-Host "`nW4  web update $next -> $third with the server down and a model missing"
         $third = "$($parts[0]).$($parts[1]).$([int]$parts[2] + 2)"
+        Write-Host "`nW4  web update $next -> $third with the server down and a model missing"
         & (Find-Iscc) '/Qp' "/DAppVersion=$third" "/DAppDir=$appDir" "/DModelsDir=$modelsDir" "/DModelsInclude=$webInclude" '/DWebModels=1' `
             "/DOutputDir=$out" "/DRepoRoot=$repo" "/DAppName=$name" "/DAppIdGuid=$guid" "/DDataFolder=$dataFolderName" (Join-Path $PSScriptRoot 'BoulderVideoEditor.iss') | Out-Host
         if ($LASTEXITCODE -ne 0) { throw 'ISCC failed for the second web Setup' }
