@@ -2,6 +2,36 @@
 
 ## Current phase
 
+**Phase 51 — the installer and the distribution, the final phase (D070, 2026-11-19) — on `feat/phase-51-installer`.** Step 0:
+Phase 50's acceptance recorded (D069 §12, DEVELOPMENT_PLAN, ROADMAP; PR #78 merged by the owner). The owner's answers (D070 §1):
+Inno Setup 6 (installed by winget, 6.7.3), per user, version 1.3.0, no signing. **Done:** the start screen's recent rows keep their
+background while one opens (`Button.recentRow:disabled`, D070 §5); **Setup** `tools/installer/BoulderVideoEditor.iss` (per user into
+`%LOCALAPPDATA%\Programs\Boulder Video Editor`, the models into `%LOCALAPPDATA%\BoulderVideoEditor\models` only when the file in place
+lacks its SHA-256, Start menu + desktop task, launch at the end, HKCU entry by a fixed AppId, update in place, the downgrade question,
+AppMutex with `CloseApplications=no`, the uninstall window with «Также удалить ИИ-модели» unticked, `/DELETEMODELS=1` silently);
+**Portable** one archive with `ai-models\`, installed by the application on consent in the background (`ModelPackageInstaller` in
+Vision, `IModelInstaller` in Core, `ModelSetupService` in UI: the start's offer after recovery, the status bar's bar and ✕, the close
+question, «Настройки…» → «ИИ-модели»); the models' messages name that section; `tools/distribution/New-Release.ps1` (both
+distributions + SHA256SUMS), `tools/installer/New-ModelsInclude.ps1`, `tools/installer/Test-Installer.ps1` (a test identity),
+`Pack-Models.ps1 -NoZip`; docs `docs/DISTRIBUTION.md`, `docs/PHASE51_MANUAL_TEST_PLAN.md`, AI_MODEL, help, README. **Review
+(phase-reviewer): FAIL** — only the gates and progress.md were not recorded; no code or data-loss defect. Its notes taken: the models
+installation is cancelled only after every close question (as the export, D060 §5), `CloseApplications=no`, the read / write error
+mapping (+2 tests), a running copy's fresh temporary file kept (stale ones only removed), `-OutputRoot` guarded, the downgrade wording
+(`/SUPPRESSMSGBOXES`). **Gates (2026-11-19, `9e16f98`):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check`
+clean; Release + `AIVE_HEAVY_TESTS=1` with `--blame-hang`: Vision 37, Project 757, Core 1 959, Rendering 264, UI 1 334, Timeline 1 241,
+Video 418 (+1 skipped), ExportEndToEnd 189 — green; Export 141 / 142 under the full load (the known rasterizer flake of
+`ExportServiceTests`, this time `A_rasterizer_failure_propagates_and_abandons_the_encoding`; Export untouched by the phase), 142 / 142
+three times alone. **Release 1.3.0** built from `9e16f98` (`artifacts/release/1.3.0`): `BoulderVideoEditor-1.3.0-setup.exe` 1 234 MiB
+(SHA-256 0b0ba283…), `BoulderVideoEditor-1.3.0-win-x64-portable.zip` 1 250 MiB (71d986c0…). **`Test-Installer.ps1`: 36 / 36 PASS**
+(install, the installed app starts, update 1.3.0 → 1.3.1 repairing one damaged model and keeping 12, downgrade refused, refused while
+the app runs, uninstall keeping the models, uninstall with them; settings, recovery, cache, projects and other files kept every time).
+The real models package installed by the application's installer into a temporary folder (`Vision.ModelTests`,
+`AIVE_MODELS_PACKAGE`): 13 copied, then 13 kept. **Not done:** a clean Windows (no .NET / FFmpeg / models) — not available here
+(Windows Sandbox broken, D066 §7) → the owner's plan `docs/PHASE51_MANUAL_TEST_PLAN.md`; the new windows not seen on screen by me (the
+computer-use tool reaches only Start-menu apps); the FFmpeg sources tar is not on this PC — attach the v1.0.0 release's
+`aive-ffmpeg-minimal-9.0.2-sources.tar` (FFmpeg unchanged). Open question to the owner: an additional light web Setup downloading the
+models from our GitHub Release (changes the «no download» rule).
+
 **Phase 50 — the 1.1 remarks, the magnetic main track, colour correction, more transitions (D069, 2026-11-18) — on
 `feat/phase-50-capcut-features`.** Step 0: Phase 49's acceptance recorded (D068 §8, DEVELOPMENT_PLAN, ROADMAP). The owner's answers
 (D069 §0): our own Save As window; «Пульс» without heart rate not created + a message; snapping always on, «Привязка» becomes the
