@@ -40,7 +40,7 @@ The real models package installed by the application's installer into a temporar
 `AIVE_MODELS_PACKAGE`): 13 copied, then 13 kept. **Not done:** a clean Windows (no .NET / FFmpeg / models) — not available here
 (Windows Sandbox broken, D066 §7) → the owner's plan `docs/PHASE51_MANUAL_TEST_PLAN.md`; the new windows not seen on screen by me (the
 computer-use tool reaches only Start-menu apps); the FFmpeg sources tar is not on this PC — attach the v1.0.0 release's
-`aive-ffmpeg-minimal-9.0.2-sources.tar` (FFmpeg unchanged). The owner asked to create and publish the releases `models-1.0` and `v1.3.0` (notes `docs/RELEASE_NOTES_1.3.md`).
+`aive-ffmpeg-minimal-9.0.2-sources.tar` (FFmpeg unchanged). **Published (2026-11-19, the owner's request):** the GitHub release `models-1.0` (21 assets: 13 models, SHA256SUMS, notices, licences; an anonymous download's SHA-256 checked) and **`v1.3.0`, Latest** (the setup, the web setup, the portable zip, the FFmpeg sources tar, SHA256SUMS; notes `docs/RELEASE_NOTES_1.3.md`), both tagged at `a88b958` (this PR's branch, not yet merged). The web Setup against the real GitHub release (test identity): installed in 72 s, 13 / 13 models with their SHA-256, removed afterwards. The old draft `v1.0.0` left as it is.
 
 **Phase 50 — the 1.1 remarks, the magnetic main track, colour correction, more transitions (D069, 2026-11-18) — on
 `feat/phase-50-capcut-features`.** Step 0: Phase 49's acceptance recorded (D068 §8, DEVELOPMENT_PLAN, ROADMAP). The owner's answers
