@@ -121,7 +121,7 @@ public sealed partial class PreviewViewModel
         var asset = _source!.Asset!;
         var grid = _source.Grid!;
         Layers = ImmutableArray<LayerPicture>.Empty;
-        var snapshot = PlaybackSnapshotBuilder.BuildSource(asset, grid.Rate, grid.Frames, ProjectCanvas(), ++_snapshotVersion);
+        var snapshot = WithPreviewDecoding(PlaybackSnapshotBuilder.BuildSource(asset, grid.Rate, grid.Frames, ProjectCanvas(), ++_snapshotVersion));
         Canvas = snapshot.Canvas;
         _sourceAssetState = (asset.FilePath, asset.IsMissing, asset.Metadata);
         _playback.UpdateSnapshot(snapshot);

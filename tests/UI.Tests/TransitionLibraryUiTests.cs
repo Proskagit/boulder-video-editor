@@ -154,11 +154,12 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
     }
 
     [Theory]
+    // D071 amendment 2 (the owner): every type starts at 1 s — 25 frames at 25 fps.
     [InlineData(TransitionRules.CrossDissolve, 25, "Dissolve")]
-    [InlineData(TransitionRules.DipToBlack, 15, "Dip to black")]
-    [InlineData(TransitionRules.Flash, 5, "Flash")]
-    [InlineData(TransitionRules.Zoom, 8, "Zoom")]
-    [InlineData(TransitionRules.Push, 8, "Push")]
+    [InlineData(TransitionRules.DipToBlack, 25, "Dip to black")]
+    [InlineData(TransitionRules.Flash, 25, "Flash")]
+    [InlineData(TransitionRules.Zoom, 25, "Zoom")]
+    [InlineData(TransitionRules.Push, 25, "Push")]
     public void Each_type_is_added_with_its_default_selected_and_shown(string type, long frames, string name)
     {
         var (a, b) = SplitVideo();
@@ -253,7 +254,8 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
     {
         _projects.Current.Settings.FrameRate = FrameRate.Fps24;
         var (a, b) = SplitVideo(rate: FrameRate.Fps24);
-        var t = AddSelected(a, b, TransitionRules.Zoom);                                 // 0.3 s → 7 frames at 24 fps
+        var t = AddSelected(a, b, TransitionRules.Zoom);
+        Assert.True(_edit.SetTransitionDuration(t.Id, MediaTime.FromFrame(7, FrameRate.Fps24)).Success);   // 0.29 s
         Assert.Equal(F(7), t.Duration);
         Assert.Equal(0.29m, Inspector.TransitionSeconds);
         Assert.Equal($"{N(0.29m)} s · 7 frames", Inspector.TransitionDurationDisplay);    // no promise of 0.3 s
@@ -269,13 +271,13 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
         Inspector.TransitionSeconds = 0.75m;                                              // typed: the nearest frame (18)
         Assert.Equal(F(18), t.Duration);
         Assert.Equal("Change Dissolve Duration", (_undo.CurrentPosition as IUndoableCommand)?.Description);
-        _undo.Undo();                                                                     // the duration changes merged
-        Assert.Equal(F(7), t.Duration);
+        _undo.Undo();                                                                     // the duration changes merged (with the setup's)
+        Assert.Equal(F(24), t.Duration);                                                  // back to the 1 s default (D071 amendment 2)
 
         Inspector.TransitionSeconds = 5.5m;                                               // above every type's 5 s (D069 am. 2)
         Assert.Equal(string.Format(Messages.Transition_DurationRange, 5, 120), _status.Message);
-        Assert.Equal(F(7), t.Duration);
-        Assert.Equal(0.29m, Inspector.TransitionSeconds);                                 // the field shows the model again
+        Assert.Equal(F(24), t.Duration);
+        Assert.Equal(1m, Inspector.TransitionSeconds);                                    // the field shows the model again
     }
 
     [Fact]
@@ -440,7 +442,8 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
     public void The_seconds_fields_spinner_steps_through_the_command()
     {
         var (a, b) = SplitVideo();
-        var t = AddSelected(a, b, TransitionRules.Zoom);                                 // 8 frames at 25 = 0.32 s
+        var t = AddSelected(a, b, TransitionRules.Zoom);
+        Assert.True(_edit.SetTransitionDuration(t.Id, F(8)).Success);                     // 8 frames at 25 = 0.32 s
         var view = new InspectorView { DataContext = Inspector };
         var field = view.GetLogicalDescendants().OfType<CommitNumericUpDown>().Single(n => n.Name == "TransitionSecondsField");
         Assert.Same(Inspector.StepTransitionSecondsCommand, field.StepCommand);
@@ -547,7 +550,8 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
         var (a, b) = SplitVideo();
         Assert.True(_edit.Split(F(110), new[] { b.Id }).Success);
         var (b1, b2) = (V1.Clips[1], V1.Clips[2]);
-        AddSelected(a, b1, TransitionRules.Flash);
+        var flash = AddSelected(a, b1, TransitionRules.Flash);
+        Assert.True(_edit.SetTransitionDuration(flash.Id, F(5)).Success);                // 0.2 s: room for the zoom on b1
         SelectBoth(b1, b2);
         Timeline.AddTransitionCommand.Execute(TransitionRules.Zoom);
         Assert.True(Option(TransitionRules.Zoom).IsSelected);

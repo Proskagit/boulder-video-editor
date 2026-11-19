@@ -326,11 +326,17 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 | 49 — UX 1.1 | D068 | implemented 2026-11-18 (no format change): the name Boulder Video Editor and the per-user folder moved, icon C, the in-app help, the UX research and audit, the theme and items 1–18 with R1, the owner's check (amendment 1, §7); separate phases named in §7; the owner's manual check passed, **accepted by the product owner on 2026-11-18** (its remarks → Phase 50) | PR #77 |
 | 50 — the 1.1 remarks, the magnetic main track, colour correction, more transitions | D069 | implemented 2026-11-18 on `feat/phase-50-capcut-features` (`project.json` v26): the 1.1 remarks, the magnetic main track, colour correction with «Автоулучшение», eight transitions; review FAIL → fixed → PASS WITH NOTES; amendments 1–2 (the owner's checks, §10–§11); **accepted by the product owner on 2026-11-19** | PR #78 |
 | 51 — the installer and the distribution (final phase) | D070 | implemented 2026-11-19 on `feat/phase-51-installer` (no format change; release 1.3.0): Setup (Inno Setup 6, per user, the models included, update / uninstall keeping the user's data, the models removed only on request), one Portable archive with `ai-models\` installed by the application on consent, `New-Release.ps1`, `Test-Installer.ps1`, `docs/DISTRIBUTION.md`; the start screen's rows fixed; + the web Setup (D070 §7); releases `v1.3.0` and `models-1.0` published; the owner re-checked the Setup and the web Setup — **accepted by the product owner on 2026-11-19; the final phase, the project's planned development closed** | PR #79 |
+| 52 — the Preview's quality (proxies tried and withdrawn) | D071 | implemented 2026-11-19 on `feat/phase-52-proxy` (no format change): the Preview's quality on its bar (Оригинал / 1440p / 1080p default / 720p, portrait boxes upright), on the fly; proxies made and then withdrawn by the owner (amendment 3: too slow to make); amendment 2: transitions 1 s, edge snap, plates never pushed, plates compacted and emptied tracks removed, the ghost on the target track; amendment 3: a new track by dragging above the top track; amendment 1: a drop onto an empty track lands under the pointer (D037 Q8 replaced); the Inspector's gaps investigated, not reproduced — the owner's manual check open (`docs/PHASE52_MANUAL_TEST_PLAN.md`) | — |
 | H — Final UX Pass | D042 §7, D057 | its goal covered by Phase 38 (D057); the former scope not restored | — |
 
 **Phase 50 (2026-11-18):** D069 on `feat/phase-50-capcut-features`, the highest phase number now **50**; Phase 49 accepted (PR #77).
 
 **Phase 49 (2026-11-18):** UX 1.1 (D068) implemented on `feat/phase-49-ux`, the highest phase number now **49**; Phase 48 accepted.
+
+**State on 2026-11-19 (after 1.3.0):** Phases 48–51 accepted (release 1.3.0, PR #79); the highest phase number in use is
+**52** — Phase 52 (D071, proxies and the Preview's quality) implemented on `feat/phase-52-proxy`, the owner's manual check open.
+**Next:** the owner's queue (ROADMAP, «The owner's queue after 1.3.0»): the route from its first hold, «Итоги», codecs and
+presets, text styles, technical debt, the repository's page.
 
 **State on 2026-11-18 (after the acceptance of Phases 46 and 47; before Phase 49):** **the MVP is closed** — S1, the release 1.0, accepted by
 the product owner. The highest phase number in use is **47**; the **complete phases** (merged and accepted) are **1–31, 33–35

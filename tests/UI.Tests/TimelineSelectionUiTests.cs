@@ -344,6 +344,62 @@ public sealed class TimelineSelectionUiTests
     }
 
     [Fact]
+    public void A_clip_dragged_to_another_track_shows_its_future_place_there_red_when_refused()
+    {
+        // D071 amendment 2 (the owner): the ghost is on the target track, not only the clip in its own row.
+        var v2 = AddVideoTrack();
+        var blocker = Text(v2, 40, 60);
+        var b = Text(V1, 20, 30);
+        var timeline = Timeline();
+        timeline.SnappingEnabled = false;
+        var lane2 = timeline.Tracks[Lane(timeline, v2)];
+        timeline.OnClipPressed(Vm(timeline, b), toggle: false);
+        timeline.BeginMove(X(timeline, 25));
+
+        timeline.UpdateGesture(X(timeline, 25), lane2);                                    // onto V2 at 20: free
+        Assert.True(lane2.HasDropGhost);
+        Assert.False(lane2.DropGhostInvalid);
+        Assert.Equal(X(timeline, 20), lane2.DropGhostLeft, 6);
+        Assert.Equal(X(timeline, 10), lane2.DropGhostWidth, 6);
+        Assert.False(timeline.Tracks[Lane(timeline, V1)].HasDropGhost);
+
+        v2.IsLocked = true;                                                                 // now refused
+        timeline.UpdateGesture(X(timeline, 26), lane2);
+        Assert.True(lane2.HasDropGhost);
+        Assert.True(lane2.DropGhostInvalid);
+
+        timeline.EndGesture();
+        Assert.False(lane2.HasDropGhost);
+        Assert.Equal(20, Start(b));
+        _ = blocker;
+    }
+
+    [Fact]
+    public void A_clip_dragged_above_the_top_track_goes_onto_a_new_track()
+    {
+        // D071 amendment 3 (the owner): dragging above the tracks shows «+ Новая дорожка» and the release adds the track.
+        var b = Text(V1, 20, 30);
+        var timeline = Timeline();
+        timeline.SnappingEnabled = false;
+        var tracks = Sequence.VideoTracks.Count;
+        timeline.OnClipPressed(Vm(timeline, b), toggle: false);
+        timeline.BeginMove(X(timeline, 25));
+
+        timeline.UpdateGesture(X(timeline, 25), null, aboveTracks: true);
+        Assert.True(timeline.IsNewTrackDropTarget);
+        Assert.False(timeline.IsNewTrackDropInvalid);
+
+        timeline.EndGesture();
+        Assert.False(timeline.IsNewTrackDropTarget);
+        Assert.Equal(tracks + 1, Sequence.VideoTracks.Count);
+        Assert.Contains(b, Sequence.VideoTracks[^1].Clips);
+        Assert.Equal(20, Start(b));
+        _undo.Undo();
+        Assert.Equal(tracks, Sequence.VideoTracks.Count);
+        Assert.Contains(b, V1.Clips);
+    }
+
+    [Fact]
     public void A_snap_that_would_push_a_clip_is_skipped()
     {
         // A group's outer edges snap (D037 §2): its end to the marker at 134 would put X into N — skipped; X lands where
@@ -391,19 +447,42 @@ public sealed class TimelineSelectionUiTests
     // --- The drop --------------------------------------------------------------------------------------------------------
 
     [Fact]
-    public void A_drop_onto_an_empty_track_lands_at_0_with_snap_and_under_the_pointer_without()
+    public void A_drop_onto_an_empty_track_lands_under_the_pointer_with_snap_and_without()
     {
+        // D071 amendment 1 (owner, 2026-11-19): no longer at 0 (D037 Q8 replaced).
         var timeline = Timeline();
         var image = Image();
         var lane = timeline.Tracks[Lane(timeline, V1)];
 
         timeline.DropMedia(image.Id, lane, X(timeline, 50));
-        Assert.Equal(0, Start(V1.Clips.Single()));
+        Assert.Equal(50, Start(V1.Clips.Single()));
         _undo.Undo();
 
         timeline.SnappingEnabled = false;
         timeline.DropMedia(image.Id, lane, X(timeline, 50));
         Assert.Equal(50, Start(V1.Clips.Single()));
+    }
+
+    [Fact]
+    public void Music_dropped_onto_an_empty_audio_track_lands_where_it_is_dropped()
+    {
+        // D071 amendment 1 (owner, 2026-11-19): a sound file goes where the mouse drops it, as a video does.
+        var music = new MediaAsset
+        {
+            FilePath = Path.Combine(Path.GetTempPath(), "aive-select-ui", Guid.NewGuid().ToString("N"), "music.mp3"),
+            Kind = MediaKind.Audio, AnalysisStatus = MediaAnalysisStatus.Completed,
+            Metadata = new MediaMetadata { Duration = MediaTime.FromSeconds(30), AudioCodec = "mp3", AudioChannels = 2, AudioSampleRate = 48000 }
+        };
+        _projects.AddMediaAssets(new[] { music });
+        Assert.True(_edit.SetMagneticMainTrack(true).Success);   // the magnet holds only V1 (D069 §6): audio stays where dropped
+        var timeline = Timeline();
+        var a1 = Sequence.AudioTracks[0];
+        var lane = timeline.Tracks[Lane(timeline, a1)];
+
+        timeline.ShowDropPreview(new[] { music.Id }, lane, X(timeline, 240));
+        timeline.DropMedia(music.Id, lane, X(timeline, 240));
+
+        Assert.Equal(240, Start(a1.Clips.Single()));
     }
 
     [Fact]

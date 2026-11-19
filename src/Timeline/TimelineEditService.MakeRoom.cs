@@ -56,6 +56,10 @@ public sealed partial class TimelineEditService
                 }
                 previousEnd = start + length;
                 if (start == other.Start) continue;
+                // D071 amendment 2 (the owner): another clip's plate is never pushed by an edit of something else — its place is
+                // taken (the ghost red), it stays where it is.
+                if (other.Clip is TemplateClip { AnchorClipId: { } anchor } && !placed.Any(p => p.Clip.Id == anchor))
+                    return string.Format(Messages.MakeRoom_OtherClipsPlate, verb);
 
                 var (after, error) = ShiftedState(other.Clip, other.State, start - other.Start, rate);
                 if (error is not null) return $"Can't {verb}: {error}";
@@ -156,5 +160,69 @@ public sealed partial class TimelineEditService
         for (var i = 1; i < spans.Count; i++)
             if (spans[i].Start < spans[i - 1].End) return true;
         return false;
+    }
+
+    /// <summary>
+    /// D071 amendment 2 (the owner): the plates anchored to a video the step moves to another track go to the lowest unlocked
+    /// video track above it that is free over their span — the timeline stays compact (a plate left high above its clip moves
+    /// down to where the other plates are). A plate the user moves too, or with no free track, keeps its track.
+    /// </summary>
+    private void CompactAnchoredPlates(EditPlan plan, IReadOnlyCollection<Clip> moved)
+    {
+        var rate = plan.Rate;
+        var movedSet = moved.ToHashSet();
+        foreach (var (video, to, _) in plan.Updates.Where(u => u.Clip is VideoClip && u.To != plan.TrackOf(u.Clip)).ToList())
+        {
+            foreach (var template in AnchoredTemplates(plan, (VideoClip)video).Where(t => !movedSet.Contains(t) && !plan.Removes(t)))
+            {
+                var state = plan.PlannedState(template) ?? ClipState.Capture(template);
+                long start = state.Start.ToNearestFrame(rate), end = state.End.ToNearestFrame(rate);
+                bool Free(Track t) => !plan.EffectiveClips(t).Any(c => c.Clip != template &&
+                    c.State.Start.ToNearestFrame(rate) < end && start < c.State.End.ToNearestFrame(rate));
+                var current = plan.TrackFor(template);
+                if (current.IsLocked) continue;   // a locked track is never changed (D008): its plate stays
+                var target = Sequence.VideoTracks.Concat(plan.NewTracks).Where(t => !t.IsLocked && t.Order > to.Order).OrderBy(t => t.Order)
+                    .FirstOrDefault(Free);
+                // Amendment 3 (the owner): no free track above the clip — a new one on top in the same step (the clip moved into the
+                // free part of its plates' track no longer lands on its own plate).
+                if (target is null && (current.Order <= to.Order || !Free(current))) target = TopNewVideoTrack(plan);
+                if (target is null || target == current) continue;
+                plan.Update(template, target, state);
+                plan.Relocated[template] = target;
+            }
+        }
+    }
+
+    /// <summary>
+    /// D071 amendment 2 (the owner): the video tracks a move leaves without a clip — they had clips, the step takes them all
+    /// away — are removed in the same step (Undo puts them back). Never the main track (the lowest), a locked track, an
+    /// empty track the user made, one the step adds, or one another track's ducking listens to (D064 §4: the ducking stays as the
+    /// user set it — never a reference to a removed track).
+    /// </summary>
+    private void RemoveEmptiedVideoTracks(EditPlan plan)
+    {
+        var main = Sequence.VideoTracks.OrderBy(t => t.Order).FirstOrDefault();
+        foreach (var track in Sequence.VideoTracks)
+        {
+            if (track == main || track.IsLocked || track.Clips.Count == 0 || plan.NewTracks.Contains(track)) continue;
+            if (Sequence.VideoTracks.Concat(Sequence.AudioTracks).Any(t => t.Ducking?.SpeechTrackId == track.Id)) continue;
+            if (!plan.EffectiveClips(track).Any()) plan.RemovedTracks.Add(track);   // its transitions went with its clips (D025 §5)
+        }
+    }
+
+    /// <summary>A new video track above every track of the sequence and of the step (added to <paramref name="plan"/>).</summary>
+    private Track TopNewVideoTrack(EditPlan plan)
+    {
+        var track = NewTrack(TrackType.Video);
+        if (plan.NewTracks.Count > 0)
+        {
+            var top = plan.NewTracks.Max(t => t.Order);
+            var number = Sequence.VideoTracks.Count + plan.NewTracks.Count + 1;
+            // A name no track of the sequence or of the step has (a track deleted earlier may have left a gap).
+            while (Sequence.VideoTracks.Concat(plan.NewTracks).Any(t => t.Name == $"V{number}")) number++;
+            track = new Track { Type = TrackType.Video, Name = $"V{number}", Order = top + 1 };
+        }
+        plan.NewTracks.Add(track);
+        return track;
     }
 }

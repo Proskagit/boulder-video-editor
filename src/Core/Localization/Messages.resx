@@ -1477,4 +1477,7 @@
   <data name="ModelInstall_WriteFailed" xml:space="preserve">
     <value>The AI models could not be written to {0}: {1}</value>
   </data>
+  <data name="MakeRoom_OtherClipsPlate" xml:space="preserve">
+    <value>Can't {0}: a Boulder plate of another clip is there — it stays where it is.</value>
+  </data>
 </root>

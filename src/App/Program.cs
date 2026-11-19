@@ -45,6 +45,24 @@ internal static class Program
                 Log.Information("Moved the old per-user folder {Old} into {New}: moved {Moved}, kept {Kept}, removed {Removed}, failures {Failures}.",
                     AppPaths.LegacyAppDataRoot, AppPaths.AppDataRoot, migration.Moved, migration.Kept, migration.OldFolderRemoved, migration.Failures);
 
+            // D071 amendment 3: the proxies of the test builds 1.4.0 / 1.4.1 are no longer used — their folder is removed in the
+            // background (best effort; a file in use stays until the next start).
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    if (Directory.Exists(AppPaths.RetiredProxyCacheFolder))
+                    {
+                        Directory.Delete(AppPaths.RetiredProxyCacheFolder, recursive: true);
+                        Log.Information("Removed the retired proxy cache {Folder}.", AppPaths.RetiredProxyCacheFolder);
+                    }
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    Log.Warning(ex, "The retired proxy cache {Folder} could not be removed.", AppPaths.RetiredProxyCacheFolder);
+                }
+            });
+
             using var host = CreateHost(args);
             App.Services = host.Services;
 

@@ -52,6 +52,10 @@ public sealed record UserSettings
     /// of the hold markup.</summary>
     public int HoldContourSmoothing { get; init; } = Holds.ContourSmoothing.DefaultStrength;
 
+    /// <summary>D071 §2: the Preview's picture quality, chosen on the Preview's bar («Среднее», 1080p, by default) — the largest
+    /// picture the Preview decodes (amendment 3: no proxies).</summary>
+    public Playback.PreviewQuality PreviewQuality { get; init; } = Playback.PreviewDecoding.DefaultQuality;
+
     /// <summary>D057 §3.8: the interface language («ru» / «en»), or null for the application's configuration
     /// (<c>App:Language</c>). Applied at the next start.</summary>
     public string? Language { get; init; }
@@ -87,6 +91,7 @@ public sealed record UserSettings
             ? Math.Clamp(CanvasSnapPixels, Composition.CanvasSnap.MinThresholdPixels, Composition.CanvasSnap.MaxThresholdPixels)
             : Composition.CanvasSnap.DefaultThresholdPixels,
         HoldContourSmoothing = Math.Clamp(HoldContourSmoothing, Holds.ContourSmoothing.MinStrength, Holds.ContourSmoothing.MaxStrength),
+        PreviewQuality = Enum.IsDefined(PreviewQuality) ? PreviewQuality : Playback.PreviewDecoding.DefaultQuality,
         Language = string.IsNullOrWhiteSpace(Language) ? null : Language.Trim(),
         FfmpegPath = string.IsNullOrWhiteSpace(FfmpegPath) ? null : FfmpegPath.Trim(),
         FfprobePath = string.IsNullOrWhiteSpace(FfprobePath) ? null : FfprobePath.Trim()

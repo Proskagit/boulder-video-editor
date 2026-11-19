@@ -163,7 +163,8 @@
 
     <!-- Transport controls -->
     <Border Grid.Row="3" Background="{DynamicResource Surface1Brush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0" Padding="8">
-      <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+      <Grid ColumnDefinitions="*,Auto,*">
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
         <!-- D039 §7: the transport as icons (Play / Pause one button of one width); names and shortcuts in the tooltips. -->
         <Button Command="{Binding PreviousFrameCommand}" ToolTip.Tip="{x:Static l:Strings.Transport_PrevTip}" Padding="10,6">
           <controls:IconPath Glyph="{x:Static controls:Icons.PreviousFrame}" Filled="True"/>
@@ -191,6 +192,25 @@
         <TextBlock Text="/" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
         <TextBlock Text="{Binding DurationDisplay}" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
       </StackPanel>
+      <!-- D071 §2, amendment 2: the Preview's picture quality — a compact button («👁 1080p») with the four choices in its menu;
+           applied on the fly, the export never uses it. Not focusable: the editor's keys never change it. -->
+      <Button x:Name="PreviewQualityButton" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0,0,0"
+              Padding="6,3" MinHeight="0" Focusable="False" FontSize="{DynamicResource FontSizeCaption}"
+              ToolTip.Tip="{x:Static l:Strings.PreviewQuality_Tip}" AutomationProperties.Name="{x:Static l:Strings.PreviewQuality_Tip}">
+        <StackPanel Orientation="Horizontal" Spacing="4">
+          <controls:IconPath Glyph="{x:Static controls:Icons.Eye}" Width="14" Height="14" VerticalAlignment="Center"/>
+          <TextBlock x:Name="PreviewQualityText" Text="{Binding QualityShort}" VerticalAlignment="Center"/>
+        </StackPanel>
+        <Button.Flyout>
+          <MenuFlyout Placement="TopEdgeAlignedRight">
+            <MenuItem Header="{x:Static l:Strings.PreviewQuality_Original}" Command="{Binding SetQualityCommand}" CommandParameter="0"/>
+            <MenuItem Header="{x:Static l:Strings.PreviewQuality_High}" Command="{Binding SetQualityCommand}" CommandParameter="1"/>
+            <MenuItem Header="{x:Static l:Strings.PreviewQuality_Medium}" Command="{Binding SetQualityCommand}" CommandParameter="2"/>
+            <MenuItem Header="{x:Static l:Strings.PreviewQuality_Low}" Command="{Binding SetQualityCommand}" CommandParameter="3"/>
+          </MenuFlyout>
+        </Button.Flyout>
+      </Button>
+      </Grid>
     </Border>
 
   </Grid>

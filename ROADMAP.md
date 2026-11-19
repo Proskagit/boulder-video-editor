@@ -674,8 +674,21 @@ on 2026-11-19 (PR #79) — the final phase: the project's planned development is
 
 **Development after the release (D065 §5, 2026-11-17):** the route from its first hold (a research folding Phases 31 / 32:
 the user marks one hold, the editor proposes the holds of its colour); Phase 36's Steps 36.3 (`PassId`, the «Итоги» template)
-and 36.4 (the heart rate in the summary); FU-EX.1; Motion Tracking Camera (R4); more transitions; the clips' thumbnails
-(D058 §7); the plate's X / Y offsets. (The installer: Phase 51, D070.)
+and 36.4 (the heart rate in the summary); FU-EX.1; Motion Tracking Camera (R4); the plate's X / Y offsets. (The installer:
+Phase 51, D070; the clips' thumbnails — Phase 49, D068 item 10; more transitions — Phase 50, D069.)
+
+**The owner's queue after 1.3.0 (2026-11-19), each a phase of its own in this order:** 1) proxies for 4K / HEVC and the
+Preview's quality — **Phase 52, D071**; 2) the route from its first hold («Разметить зацепки» → a click on one hold → «подождите,
+анализ» → every proposed hold of the route marked, the user confirms, adds or removes); 3) the «Итоги» template (36.3 / 36.4);
+4) codecs and presets (FU-EX.1, HEVC / AV1); 5) text styles (D058 §7: italic, shadow, line spacing, wrapping, saved styles);
+6) technical debt (the split of `TimelineEditService` / `TimelineViewModel`); 7) the repository's page (its «Status» rewritten,
+the page restructured). Other ideas (Shorts per route, comparing attempts, beta notes …) wait until then.
+
+**Phase 52 (D071, 2026-11-19) — the Preview's quality** on `feat/phase-52-proxy`: the quality on the Preview's bar (Оригинал /
+Высокое 1440p / Среднее 1080p by default / Минимум 720p) applied on the fly; proxies for 4K / HEVC were made and withdrawn by the
+owner (amendment 3: making them took about as long as the clips); amendments 2–3: transitions 1 s with edge snap, plates never
+pushed and kept compact, a new track by dragging above the top track; amendment 1 — a sound dropped onto an empty track lands where
+it is dropped (D037 Q8 replaced). Manual plan: `docs/PHASE52_MANUAL_TEST_PLAN.md`.
 
 **After D057 (2026-11-09).** Checked on Phase 38's target build, decided separately (D057 §4.1): the duplicated «Импорт» /
 «Готово» (2026-11-10: the tool bar's «Импорт медиа» removed, D057 §7.13; «Готово» once — D058 §6), the timeline following the playhead (D058 §1), thumbnails on the clips (deferred, D058 §7), editing several clips (D058 §3), further text improvements (deferred, D058 §7).

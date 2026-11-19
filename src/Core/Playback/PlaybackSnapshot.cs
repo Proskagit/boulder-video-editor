@@ -29,6 +29,10 @@ public sealed record PlaybackAsset(Guid Id, string FilePath, MediaKind Kind, Med
     /// <summary>How the picture is converted from HDR (D033 §3); null = the SDR path. Part of decoding: a change (the
     /// background colour probe, T3) reopens the asset's decoders.</summary>
     public Color.HdrConversion? Hdr { get; init; }
+
+    /// <summary>D071 §2: the largest picture the Preview decodes for this asset (<see cref="PreviewDecoding.Bound"/>); null:
+    /// the playback's own bound.</summary>
+    public Composition.FrameSize? DecodeBound { get; init; }
 }
 
 /// <summary>
@@ -353,6 +357,12 @@ public sealed class PlaybackSnapshot
     public ImmutableArray<AudioSpan> AudioSpans { get; }
 
     public ImmutableDictionary<Guid, PlaybackAsset> Assets { get; }
+
+    /// <summary>D071 §4: this snapshot with every asset passed through <paramref name="map"/> — the Preview's decoding (its
+    /// bound); everything else unchanged.</summary>
+    public PlaybackSnapshot WithAssets(Func<PlaybackAsset, PlaybackAsset> map) =>
+        new(SnapshotVersion, FrameRate, Duration, VideoLayers, AudioSpans,
+            Assets.ToImmutableDictionary(pair => pair.Key, pair => map(pair.Value)), Canvas);
 
     /// <summary>
     /// The visible layers at <paramref name="time"/>, bottom to top (D018). Per visible track the clip

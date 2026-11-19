@@ -4044,4 +4044,34 @@ Everything else works without the models. They can also be installed later: «Se
   <data name="AppSettings_ModelsNoPackage" xml:space="preserve">
     <value>There is no models package (ai-models) next to the application. In the installed version the installer places the models: to restore them, run the Boulder Video Editor installer again. By hand — the models archive and Install-Models.cmd (docs/AI_MODEL.md).</value>
   </data>
+  <data name="PreviewQuality_Tip" xml:space="preserve">
+    <value>Preview quality: how large the Preview shows the videos (lower is lighter). The export is always made from the originals at full quality</value>
+  </data>
+  <data name="PreviewQuality_Original" xml:space="preserve">
+    <value>Original</value>
+  </data>
+  <data name="PreviewQuality_High" xml:space="preserve">
+    <value>High (1440p)</value>
+  </data>
+  <data name="PreviewQuality_Medium" xml:space="preserve">
+    <value>Medium (1080p)</value>
+  </data>
+  <data name="PreviewQuality_Low" xml:space="preserve">
+    <value>Minimum (720p)</value>
+  </data>
+  <data name="PreviewQuality_ShortOriginal" xml:space="preserve">
+    <value>Orig.</value>
+  </data>
+  <data name="PreviewQuality_ShortHigh" xml:space="preserve">
+    <value>1440p</value>
+  </data>
+  <data name="PreviewQuality_ShortMedium" xml:space="preserve">
+    <value>1080p</value>
+  </data>
+  <data name="PreviewQuality_ShortLow" xml:space="preserve">
+    <value>720p</value>
+  </data>
+  <data name="Timeline_NewTrackDrop" xml:space="preserve">
+    <value>+ New track</value>
+  </data>
 </root>

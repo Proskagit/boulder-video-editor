@@ -1477,4 +1477,7 @@
   <data name="ModelInstall_WriteFailed" xml:space="preserve">
     <value>Не удалось записать ИИ-модели в {0}: {1}</value>
   </data>
+  <data name="MakeRoom_OtherClipsPlate" xml:space="preserve">
+    <value>Нельзя {0}: там стоит плашка «Боулдер» другого клипа — она остаётся на месте.</value>
+  </data>
 </root>

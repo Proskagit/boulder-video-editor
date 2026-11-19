@@ -69,11 +69,13 @@ public class TransitionLibraryRulesTests
         long min01, long min02, long max05, long max10)
     {
         var rate = Rate(fps);
+        // D071 amendment 2 (the owner): every transition starts at 1 s — the dissolve's column for every type (D044 §5's
+        // shorter defaults of the dip, the flash, the zoom and the push retired).
+        _ = (dip, zoomOrPush, flash);
         Assert.Equal(dissolve, TransitionRules.DefaultFramesOf(TransitionRules.CrossDissolve, rate));
-        Assert.Equal(dip, TransitionRules.DefaultFramesOf(TransitionRules.DipToBlack, rate));
-        Assert.Equal(flash, TransitionRules.DefaultFramesOf(TransitionRules.Flash, rate));
-        Assert.Equal(zoomOrPush, TransitionRules.DefaultFramesOf(TransitionRules.Zoom, rate));
-        Assert.Equal(zoomOrPush, TransitionRules.DefaultFramesOf(TransitionRules.Push, rate));
+        foreach (var type in TransitionRules.VideoTypes)
+            Assert.Equal(dissolve, TransitionRules.DefaultFramesOf(type, rate));
+        Assert.Equal(dissolve, TransitionRules.DefaultFramesOf(TransitionRules.Crossfade, rate));
 
         foreach (var type in new[] { TransitionRules.CrossDissolve, TransitionRules.DipToBlack, TransitionRules.Flash })
             Assert.Equal(min01, TransitionRules.MinFramesOf(type, rate));

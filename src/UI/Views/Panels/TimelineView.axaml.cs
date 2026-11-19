@@ -412,7 +412,8 @@ public partial class TimelineView : UserControl
             UpdateZoneHover(e);
             return;
         }
-        _viewModel.UpdateGesture(e.GetPosition(ContentRoot).X, TrackAt(e.GetPosition(TrackRows).Y));
+        var lanesY = e.GetPosition(TrackRows).Y;
+        _viewModel.UpdateGesture(e.GetPosition(ContentRoot).X, TrackAt(lanesY), aboveTracks: lanesY < 0);   // D071 amendment 3
     }
 
     /// <summary>
@@ -580,7 +581,7 @@ public partial class TimelineView : UserControl
         ContentScroll.Offset = new Vector(offset, ContentScroll.Offset.Y);
         var contentX = _pointerViewportX + offset;
         if (_marqueeStarted) _viewModel.UpdateMarquee(contentX, _pointerLanesY);
-        else _viewModel.UpdateGesture(contentX, TrackAt(_pointerLanesY));
+        else _viewModel.UpdateGesture(contentX, TrackAt(_pointerLanesY), aboveTracks: _pointerLanesY < 0);
     }
 
     private void CancelMarquee()

@@ -60,6 +60,9 @@ internal sealed class SpanReader : IAsyncDisposable
 
     private bool IsStill => Span.Status == SpanStatus.StillImage;
 
+    /// <summary>D071 §2: a bound above 1920 × 1080 pixels decodes over the high-throughput transport.</summary>
+    internal const long LargePicturePixels = 1920L * 1080;
+
     public SourceSamplePoint SamplePoint(long timelineFrame) =>
         SourceFrameSelector.SamplePoint(Span.TimelineStart, Span.SourceIn, Span.Speed, Span.SourceFrameOf(timelineFrame, _rate), _rate,
             _asset.NominalFrameRate);   // D069 amendment 2: a held edge frame where the source ends
@@ -127,6 +130,8 @@ internal sealed class SpanReader : IAsyncDisposable
         var ct = _cts.Token;
         var hardware = _settings.Hardware;
         var from = firstFrame;
+        var bound = _asset.DecodeBound;
+        var (maxWidth, maxHeight) = bound is { } b ? (b.Width, b.Height) : (_settings.MaxWidth, _settings.MaxHeight);
         while (true)
         {
             var delivered = 0;
@@ -138,10 +143,12 @@ internal sealed class SpanReader : IAsyncDisposable
                     StartTime = _asset.StartTime,
                     FirstSamplePoint = IsStill ? SourceFrameSelector.StillImage : SamplePoint(from),
                     NominalFrameRate = _asset.NominalFrameRate,
-                    MaxWidth = _settings.MaxWidth,
-                    MaxHeight = _settings.MaxHeight,
+                    MaxWidth = maxWidth,
+                    MaxHeight = maxHeight,
                     Hardware = hardware,
-                    Hdr = _asset.Hdr   // D033: the same conversion as the thumbnail and the export
+                    Hdr = _asset.Hdr,   // D033: the same conversion as the thumbnail and the export
+                    // D071 §2: a picture above 1080p (the «Оригинал» of a 4K source) needs the export's transport (D059 E1).
+                    Transport = (long)maxWidth * maxHeight > LargePicturePixels ? DecodeTransport.HighThroughput : DecodeTransport.Standard
                 };
 
                 // A reader retired before its task ran (e.g. superseded by the next seek at once)

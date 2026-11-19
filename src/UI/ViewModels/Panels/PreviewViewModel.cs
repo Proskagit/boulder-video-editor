@@ -113,6 +113,8 @@ public sealed partial class PreviewViewModel : ViewModelBase
         if (_settings is not null) _settings.Changed += (_, _) =>
         {
             ShowPeopleMasks = _settings.Current.ShowPeopleMasks;   // D061 amendment 1: a diagnostic setting
+            OnPropertyChanged(nameof(QualityIndex));                // D071 §2
+            OnPropertyChanged(nameof(QualityShort));
             if (!IsSourceMode && !_released) RebuildSnapshot();
         };
         ShowPeopleMasks = _settings?.Current.ShowPeopleMasks ?? false;
@@ -350,9 +352,9 @@ public sealed partial class PreviewViewModel : ViewModelBase
     private void RebuildSnapshot()
     {
         _assetStates = PlaybackSnapshotBuilder.CaptureAssetStates(_projectService.Current);
-        _playback.UpdateSnapshot(PlaybackSnapshotBuilder.Build(_projectService.Current, ++_snapshotVersion, _cameraMotion?.Tracks,
+        _playback.UpdateSnapshot(WithPreviewDecoding(PlaybackSnapshotBuilder.Build(_projectService.Current, ++_snapshotVersion, _cameraMotion?.Tracks,
             _settings?.Current.HeartRateDisplayOffsetFor(_projectService.Current.Training?.Activity.Manufacturer) ?? MediaTime.Zero,
-            _people?.Analyses, _audio?.Analyses));
+            _people?.Analyses, _audio?.Analyses)));
         _needsTick = true;
     }
 

@@ -58,25 +58,11 @@ Marking holds, following people and cleaning sound need local AI models (about 1
 - «+ Import» adds videos, sounds and pictures. Select files with a rubber band (Ctrl adds to the selection) and drag them onto the timeline as a group.
 - Several selected files can be removed from the project at once; if clips use them, the editor asks once and removes the clips with them. The files on disk stay.
 - A double click opens a file in the source: in Preview pick the part you need (I — in, O — out) and put it on the timeline («,» — insert, «.» — overwrite).
+- A file dropped on a track lands where it is dropped (on an empty track too); on V1 with the magnet on — at the nearest cut.
 
-## The timeline
+## Preview quality
 
-- Drag a clip with the mouse; its edges trim it. Clips always snap to their neighbours and the playhead (to place a clip a couple of frames from another, zoom in).
-- **The main track magnet** (the magnet button, N; on in new projects): the clips of V1 always lie one after another from zero — a removal closes its gap, a clip dropped onto V1 goes to the cut nearest the mouse pointer and moves the others aside, a trim moves the clips after it. Its linked sound, plates, holds, Follow, FIT climbs and the clips of the upper tracks that start over it go with a clip; music on the sound tracks stays. A new title or template is never added to V1: with only one video track a V2 is added for it.
-- **S** — split at the playhead, **Delete** — delete, **Ctrl+D** — duplicate, **Ctrl+C / Ctrl+V** — copy and paste.
-- **Q / W** — trim the selected clip's start / end to the playhead; with Shift the following clips move too.
-- Above the tracks — icons with tooltips: tracks, «Text», «Template», «Keyframe», «Mixer», split, delete, ripple delete, duplicate, transition, magnet, zoom.
-- A right click on a clip opens its menu with every clip command: copy, paste, duplicate, trim to the playhead, link or unlink the sound, close the gap, mark holds, delete.
-- Zoom: Ctrl+wheel, Ctrl+= / Ctrl+−, «\» — the whole timeline.
-- Undo and redo: Ctrl+Z / Ctrl+Y — for every edit.
-
-## The frame and motion
-
-- In Preview the selected clip can be moved, scaled and cropped (the buttons above the frame). It snaps to the frame's edges and centre.
-- **Keyframes** (the diamond button) make motion: the position and scale at different moments.
-- Speed, rotation and fades are in the Inspector's sections.
-- With several clips selected the Inspector changes them all: background, frame, opacity, volume, noise reduction, voice enhancement, fades, colour with «Auto enhance»; «—» means the clips differ.
-- **Colour** (the Inspector's section of a video clip): exposure, brightness, contrast, highlights, shadows, saturation, temperature and tint from −100 to +100; «Auto enhance» sets the sliders from the clip's frames — adjust them afterwards. The export has the same colours as the Preview.
+- The button right of the time under the Preview (an eye and «1080p»): **«Original»**, **«High (1440p)»**, **«Medium (1080p)»** (the default), **«Minimum (720p)»** — how large the Preview shows the videos. It changes at once; lower is lighter for the computer. The export is always made from the originals at full quality.
 
 # Marking holds
 
