@@ -154,7 +154,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IRouteSelectionFrameSource, RouteSelectionFrameSource>();
         services.AddSingleton<RouteSelectionService>();
         services.AddSingleton<StatusService>();
-        // D070 §3: the Portable package's models (<app>i-models), installed into the models folder on the user's consent.
+        // D070 §3: the Portable package's models (the folder ai-models next to the exe), installed into the models folder on the user's consent.
         services.AddSingleton<IModelInstaller, AiVideoEditor.Vision.Installation.ModelPackageInstaller>();
         services.AddSingleton(sp => new ModelSetupService(sp.GetRequiredService<IModelInstaller>(), AppPaths.ModelsFolder,
             AiVideoEditor.Vision.Installation.ModelPackageInstaller.FindPackage(AppContext.BaseDirectory),

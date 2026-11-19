@@ -23,7 +23,7 @@ Boulder Video Editor is an editor for bouldering videos. Its core is working wit
 
 ## What the AI features need
 
-Marking holds, following people and cleaning sound need local models. They come as a separate models archive (Install-Models.cmd). Without them the editor works, and these features say the model is missing. Nothing is sent to the internet.
+Marking holds, following people and cleaning sound need local AI models (about 1.2 GB). The installer places them with the program. The portable version offers to install them from its ai-models folder at startup; later this is in «Settings…» → «AI models» (which also shows whether every model is in place and repairs damaged ones). Without them the editor works, and these features say the model is missing. Nothing is downloaded from or sent to the internet.
 
 # The project and its files
 
@@ -158,5 +158,6 @@ The Inspector's **«Follow and people»** section.
 # Where the data lives
 
 - **Projects** — in the folders you chose when saving.
-- **Settings, models, recovery and caches** — in %LOCALAPPDATA%\BoulderVideoEditor.
+- **Settings, models, recovery and caches** — in %LOCALAPPDATA%\BoulderVideoEditor. It is shared by the installed and the portable versions; uninstalling leaves it alone (the models only if their removal is ticked).
+- **The program** — in its installation folder (by default %LOCALAPPDATA%\Programs\Boulder Video Editor) or the portable folder; the editor writes nothing there.
 - **Logs** — in %LOCALAPPDATA%\BoulderVideoEditor\logs. If something goes wrong, attach the app-*.log, errors-*.log and ffmpeg-*.log files from there to your description.

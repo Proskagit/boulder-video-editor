@@ -30,16 +30,25 @@
   #define RepoRoot "..\.."
 #endif
 
-#define AppName "Boulder Video Editor"
 #define AppExe "BoulderVideoEditor.exe"
+; AppName, AppIdGuid and DataFolder are overridden only by tools/installer/Test-Installer.ps1, whose test build must never
+; touch the real installation or the real models folder.
+#ifndef AppName
+  #define AppName "Boulder Video Editor"
+#endif
+; Never change the AppId: it is what makes a new version's installer update the installed one instead of adding a second copy.
+#ifndef AppIdGuid
+  #define AppIdGuid "564FF1BA-2649-4C46-9BF9-C48DCCEA4DA9"
+#endif
 ; The per-user folder of the application (src/Infrastructure/Configuration/AppPaths.cs: AppFolderName).
-#define DataFolder "BoulderVideoEditor"
+#ifndef DataFolder
+  #define DataFolder "BoulderVideoEditor"
+#endif
 ; Held by the running application (src/App/Program.cs: RunningMutexName).
 #define RunningMutex "BoulderVideoEditor.Running"
 
 [Setup]
-; Never change the AppId: it is what makes a new version's installer update the installed one instead of adding a second copy.
-AppId={{564FF1BA-2649-4C46-9BF9-C48DCCEA4DA9}
+AppId={{{#AppIdGuid}}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
@@ -120,7 +129,7 @@ Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Worki
 
 [Code]
 var
-  ModelChecks: TStringList;
+  ModelKeys, ModelAnswers: TStringList;
   DeleteModels: Boolean;
 
 function ModelsRoot(): String;
@@ -136,10 +145,10 @@ var
   Index: Integer;
 begin
   Key := Relative;
-  Index := ModelChecks.IndexOfName(Key);
+  Index := ModelKeys.IndexOf(Key);
   if Index >= 0 then
   begin
-    Result := ModelChecks.ValueFromIndex[Index] = '1';
+    Result := ModelAnswers[Index] = '1';
     Exit;
   end;
   Path := ModelsRoot() + '\' + Relative;
@@ -150,10 +159,11 @@ begin
   except
     Result := True;
   end;
+  ModelKeys.Add(Key);
   if Result then
-    ModelChecks.Add(Key + '=1')
+    ModelAnswers.Add('1')
   else
-    ModelChecks.Add(Key + '=0');
+    ModelAnswers.Add('0');
   if Result then
     Log('Model file to install: ' + Relative)
   else
@@ -165,7 +175,7 @@ var
   Key: String;
 begin
   Result := '';
-  Key := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{#SetupSetting("AppId")}_is1';
+  Key := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{' + '{#AppIdGuid}' + '}_is1';
   if not RegQueryStringValue(HKCU, Key, 'DisplayVersion', Result) then
     Result := '';
 end;
@@ -175,7 +185,8 @@ var
   Installed: String;
   InstalledPacked, ThisPacked: Int64;
 begin
-  ModelChecks := TStringList.Create;
+  ModelKeys := TStringList.Create;
+  ModelAnswers := TStringList.Create;
   Result := True;
   Installed := InstalledVersion();
   if (Installed <> '') and StrToVersion(Installed, InstalledPacked) and StrToVersion('{#AppVersion}', ThisPacked) then
@@ -185,7 +196,8 @@ end;
 
 procedure DeinitializeSetup();
 begin
-  ModelChecks.Free;
+  ModelKeys.Free;
+  ModelAnswers.Free;
 end;
 
 function UpdateReadyMemo(Space, NewLine, MemoUserInfoInfo, MemoDirInfo, MemoTypeInfo, MemoComponentsInfo,

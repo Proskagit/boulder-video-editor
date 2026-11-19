@@ -56,8 +56,16 @@ scenes run only with `AIVE_HEAVY_TESTS=1`. CI (`.github/workflows/ci.yml`, GitHu
 suite on every pull request to `main` and push to `main` with FFmpeg 9.0.1 essentials (gyan.dev) and fails on any
 skipped test other than those two 4K scenes.
 
-The SDK is pinned by `global.json` (8.0.424, latest patch). The portable Windows folder (S1, DECISIONS.md D046) is built
-from a clean checkout by:
+The SDK is pinned by `global.json` (8.0.424, latest patch). **The release** — the Setup installer and the single Portable
+archive with the AI models (DECISIONS.md D070) — is built by one command (Inno Setup 6 needed:
+`winget install JRSoftware.InnoSetup`); the whole process, the layout and where the user's data lives: `docs/DISTRIBUTION.md`.
+
+```bash
+pwsh -File tools/distribution/New-Release.ps1 -Version 1.3.0 -FfmpegPackage <minimal FFmpeg package> -FfmpegSourcesTar <sources.tar>
+pwsh -File tools/installer/Test-Installer.ps1 -Stage artifacts/release/1.3.0/stage -Version 1.3.0
+```
+
+The portable Windows folder alone (S1, DECISIONS.md D046) is built from a clean checkout by:
 
 ```bash
 pwsh -File tools/portable/Publish-Portable.ps1 -Zip

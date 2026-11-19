@@ -296,7 +296,7 @@ The labels of the plan had mixed three things — phases, the steps inside them 
   PR #42); **v15** — D053 (PR #47); **v16** — D055 / Step 35.6a (PR #50); **v17 / v18** — D056 (PRs #52, #53). `main` is at
   v18. A later phase (Phase 36, …) takes the next free version in its own format decision.
 
-### Official phases (updated 2026-11-17)
+### Official phases (updated 2026-11-19)
 
 The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 
@@ -324,7 +324,8 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 | 47 — S1, the release 1.0 | D066 | implemented 2026-11-17 / 18: the minimal FFmpeg with NVENC and the noise reduction, the models archive (people-v2), the portable 1.0.0 with FFmpeg, the Phase 45 leftovers, the local test baseline; the clean-machine check passed on 2026-11-18 in a new Windows account of the owner's PC (Windows Sandbox could not start there: system PnP buses disabled) — A1–A5, A7–A10 and B1–B3 PASS, A6 not confirmed (a GPU present, Occlusion worked instead of its CPU message); the notices accepted as they are; **accepted by the product owner on 2026-11-18**; the GitHub Release `v1.0.0` drafted, published by the owner | PR #74, `d287c16` |
 | 48 — the owner's fixes before publishing 1.0 | D067 | implemented 2026-11-18 (no format change): rubber-band selection, the export's timestamp name, Space = Play / Pause, Save As with a name, the icon; §2 not reproduced, §3 to the backlog; **accepted by the product owner on 2026-11-18** | PR #76 |
 | 49 — UX 1.1 | D068 | implemented 2026-11-18 (no format change): the name Boulder Video Editor and the per-user folder moved, icon C, the in-app help, the UX research and audit, the theme and items 1–18 with R1, the owner's check (amendment 1, §7); separate phases named in §7; the owner's manual check passed, **accepted by the product owner on 2026-11-18** (its remarks → Phase 50) | PR #77 |
-| 50 — the 1.1 remarks, the magnetic main track, colour correction, more transitions | D069 | implemented 2026-11-18 on `feat/phase-50-capcut-features` (`project.json` v26): the 1.1 remarks, the magnetic main track, colour correction with «Автоулучшение», eight transitions; review FAIL → fixed → PASS WITH NOTES; the owner's manual check open | — |
+| 50 — the 1.1 remarks, the magnetic main track, colour correction, more transitions | D069 | implemented 2026-11-18 on `feat/phase-50-capcut-features` (`project.json` v26): the 1.1 remarks, the magnetic main track, colour correction with «Автоулучшение», eight transitions; review FAIL → fixed → PASS WITH NOTES; amendments 1–2 (the owner's checks, §10–§11); **accepted by the product owner on 2026-11-19** | PR #78 |
+| 51 — the installer and the distribution (final phase) | D070 | implemented 2026-11-19 on `feat/phase-51-installer` (no format change; release 1.3.0): Setup (Inno Setup 6, per user, the models included, update / uninstall keeping the user's data, the models removed only on request), one Portable archive with `ai-models\` installed by the application on consent, `New-Release.ps1`, `Test-Installer.ps1`, `docs/DISTRIBUTION.md`; the start screen's rows fixed; the owner's clean-machine check open (`docs/PHASE51_MANUAL_TEST_PLAN.md`) | — |
 | H — Final UX Pass | D042 §7, D057 | its goal covered by Phase 38 (D057); the former scope not restored | — |
 
 **Phase 50 (2026-11-18):** D069 on `feat/phase-50-capcut-features`, the highest phase number now **50**; Phase 49 accepted (PR #77).

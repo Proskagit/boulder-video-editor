@@ -8,7 +8,8 @@
     size or SHA-256 differs, and writes artifacts/release/BoulderVideoEditor-<version>-models.zip:
       models\<folder>\<files>, models.json, Install-Models.cmd / .ps1, README.txt, THIRD-PARTY-NOTICES.txt, licenses\.
     The archive is stored without compression (ONNX weights do not compress) and its SHA-256 is printed.
-    With -NoZip only the folder is written (D070: tools/distribution/New-Release.ps1 puts it into the Portable folder as ai-models    and into the installer).
+    With -NoZip only the folder is written (D070: tools/distribution/New-Release.ps1 puts it into the Portable folder as
+    ai-models and into the installer).
 #>
 [CmdletBinding()]
 param(
