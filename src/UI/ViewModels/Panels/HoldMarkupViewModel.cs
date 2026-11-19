@@ -880,7 +880,8 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         var layOut = clip is not null && route is not null && Markup is { Holds.Length: > 0, Animation: null } && !_lock.IsLocked;
         Exit();
         if (!layOut) return;
-        var result = _edit.LayOutIntroAndFinal(clip!.Id, at, route);
+        // D072 amendment 2: the route's animation (the orange) starts on the markup's frame, where its holds were marked.
+        var result = _edit.LayOutIntroAndFinalFrom(clip!.Id, at, route);
         if (!result.Success) _status.ReportWarning(result.Message ?? Strings.Holds_AnimationNotChanged);
         LoadStyle();
         RefreshCommands();

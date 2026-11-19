@@ -2,6 +2,22 @@
 
 ## Current phase
 
+**Phase 53 amendment 2 (D072, the owner's check of 1.5.1, 2026-11-19):** the strict colour works; «Допуск цвета» removed (it only
+re-selected among the found holds); «Готово» lays out from the markup's frame — `LayOutIntroAndFinalFrom`: the orange
+`[As, As + 5 s)`, `T` its end, the «Боулдер» from `As − 2 s`; the group's median ignores touching pairs (gap < 0.005), the link
+0.07 … 0.12; «Предлагать трассу» off by default, saved as `suggestRoute` (1.5.x's `routeProposalsEnabled` not read). Tests:
+`RouteTimingEditTests` +2 (the layout from the markup's frame, at the clip's ends), `RouteHoldV1Tests` +1 (a touching pair),
+the UI «Готово» test checks the orange's start, settings tests for off by default and the old keys. After it the owner closes
+the phase.
+**Review: PASS WITH NOTES** (taken: the plate always 2 s before the orange, also when the animation is shortened at the clip's
+end (+ a check); the manual plan's tolerance lines; DEVELOPMENT_PLAN's row 53 — `suggestRoute`, off by default). The first gate
+run caught an xUnit2000 analyzer error in the new test and the Inspector's field count (57 now); both fixed.
+**Gates (2026-11-19, amendment 2, the final code):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `Vision.ModelTests`
+builds; `git diff --check` clean; Release + `AIVE_HEAVY_TESTS=1` with `--blame-hang`: Vision 37, Project 759, Core 1 977, Export
+142, Rendering 264, UI 1 319, Timeline 1 255, Video 418 (+1 environment-gated skip), ExportEndToEnd 189 — all green (6 360).
+
+**Phase 53, amendment 1 (1.5.1):**
+
 **Phase 53 amendment 1 (D072, the owner's check of 1.5.0, 2026-11-19):** too many / too far proposals (a green route got
 turquoise, a turquoise click blue / white / black, 21 for a route of 10, two at the frame's far edge), dashed proposals invisible,
 the list useless. Done: `RouteHoldGrouping` (the route's group grown from the control hold, link 2.5 × the median nearest gap in

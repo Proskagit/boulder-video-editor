@@ -45,7 +45,7 @@ public sealed class InspectorFieldStyleTests
     {
         var fields = Inspector().Descendants().Where(e => e.Name.LocalName == "CommitNumericUpDown").ToList();
 
-        Assert.Equal(58, fields.Count);                         // Phase 27: + outline thickness, background opacity, two durations; Phase 28: + a transition's seconds; D048: + the hold animation's duration, the route's colour tolerance; D058: + the group's opacity, volume and outline width; D061 amendment 1: + the climber's place in the frame (X, Y); D064: + the sound fades in / out, the noise reduction, the voice enhancement; D065: + the hold contour's smoothing; D069 §7: + the eight colour values; D069 amendment 1: + the group's clean-up (2), fades (2) and colour (8)
+        Assert.Equal(57, fields.Count);                         // Phase 27: + outline thickness, background opacity, two durations; Phase 28: + a transition's seconds; D048: + the hold animation's duration (the route's colour tolerance removed by D072 amendment 2); D058: + the group's opacity, volume and outline width; D061 amendment 1: + the climber's place in the frame (X, Y); D064: + the sound fades in / out, the noise reduction, the voice enhancement; D065: + the hold contour's smoothing; D069 §7: + the eight colour values; D069 amendment 1: + the group's clean-up (2), fades (2) and colour (8)
         // D068 amendment 1: compact fields with their arrows in one column (as CapCut); D069 amendment 1: narrower — 60 px on a
         // slider's line, 72 otherwise (the label column 120, «Шумоподавление» on one line).
         static bool OnSliderLine(System.Xml.Linq.XElement f) =>

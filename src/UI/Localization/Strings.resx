@@ -2064,7 +2064,7 @@ If you don't save, your changes will be lost.</value>
     <value>TIMELINE AND MARKUP</value>
   </data>
   <data name="AppSettings_ProposalsNote" xml:space="preserve">
-    <value>On by default: the first click in «Mark holds» on a route without holds starts the analysis (a few seconds); the holds of the same colour found are suggested for review.</value>
+    <value>Off by default (not quite stable yet): when on, the first click in «Mark holds» on a route without holds starts the analysis (a few seconds); the holds of the same colour found near it are suggested for review.</value>
   </data>
   <data name="AppSettings_CorosFit" xml:space="preserve">
     <value>FIT TRAININGS</value>
@@ -2296,12 +2296,6 @@ If you don't save, your changes will be lost.</value>
   </data>
   <data name="Holds_RouteReview" xml:space="preserve">
     <value>Review the route: remove the wrong holds (Delete), click a missed one and press Enter, then Accept.</value>
-  </data>
-  <data name="Holds_RouteTolerance" xml:space="preserve">
-    <value>Colour tolerance</value>
-  </data>
-  <data name="Holds_RouteToleranceTip" xml:space="preserve">
-    <value>How far a hold&apos;s colour may be from the control hold&apos;s (OKLab). Larger — more holds, also of similar colours.</value>
   </data>
   <data name="Holds_RouteAccept" xml:space="preserve">
     <value>Accept</value>

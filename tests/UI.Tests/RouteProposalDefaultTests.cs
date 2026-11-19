@@ -9,7 +9,7 @@ using Xunit;
 
 namespace AiVideoEditor.UI.Tests;
 
-/// <summary>D072 §3: «Предлагать трассу» is on by default; the user's choice is kept in the settings.</summary>
+/// <summary>D072 amendment 2: «Предлагать трассу» is off by default; the user's choice is kept in the settings.</summary>
 public class RouteProposalDefaultTests
 {
     private static HoldMarkupViewModel Markup(IUserSettingsService settings)
@@ -21,21 +21,21 @@ public class RouteProposalDefaultTests
     }
 
     [Fact]
-    public void A_fresh_user_has_the_route_proposals_on()
+    public void A_fresh_user_has_the_route_proposals_off()
     {
-        Assert.True(Markup(new InMemoryUserSettings()).IsRouteProposalEnabled);
-        Assert.True(new UserSettings().RouteProposalsEnabled);
+        Assert.False(Markup(new InMemoryUserSettings()).IsRouteProposalEnabled);
+        Assert.False(new UserSettings().RouteProposalsEnabled);
     }
 
     [Fact]
-    public void Turning_them_off_is_kept_for_the_next_start()
+    public void Turning_them_on_is_kept_for_the_next_start()
     {
         var settings = new InMemoryUserSettings();
-        Markup(settings).IsRouteProposalEnabled = false;
-        Assert.False(settings.Current.RouteProposalsEnabled);
-        Assert.False(Markup(new InMemoryUserSettings(settings.Current)).IsRouteProposalEnabled);
-
         Markup(settings).IsRouteProposalEnabled = true;
+        Assert.True(settings.Current.RouteProposalsEnabled);
         Assert.True(Markup(new InMemoryUserSettings(settings.Current)).IsRouteProposalEnabled);
+
+        Markup(settings).IsRouteProposalEnabled = false;
+        Assert.False(Markup(new InMemoryUserSettings(settings.Current)).IsRouteProposalEnabled);
     }
 }

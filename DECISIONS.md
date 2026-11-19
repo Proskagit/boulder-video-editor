@@ -11625,3 +11625,21 @@ dashed proposals could not be seen on a busy wall; the list of proposals in the 
 Not measured on the research's frames (the owner's rule: fewer rather than more; the research measured V1 only). The
 research's error B (a click on a hold bolted onto a volume takes the volume's mask and colour) is not addressed — the owner's
 turquoise example may be it.
+
+### Amendment 2 — the owner's check of the 1.5.1 build (2026-11-19)
+
+The strict colour works («в целом нормально отрабатывает»); four remarks, after which the phase can be closed.
+
+1. **«Допуск цвета» removed.** It only re-selected among the holds already found (no new search), so with the strict gates and
+   the group it changed nothing visible. The tolerance is D048's 0.08, not the user's.
+2. **The route's animation starts on the markup's frame.** «Готово» lays out the intro and final from the frame the holds were
+   marked on (`LayOutIntroAndFinalFrom`): the orange on `[As, As + 5 s)` (shortened at the clip's end), `T` = its end (the
+   route's start, D056 §4), the «Боулдер» from `As − 2 s` (a full intro's 7 s before `T`; also when the animation is shortened; not before the clip). Before, the
+   orange ended there (D048's `T` was the climb's start on a clean frame 5 s later). The Inspector's «Разложить вступление и
+   финал» keeps D048 §3.4 (from the playhead as `T`).
+3. **The group no longer stops at a touching pair.** Two holds side by side (the clicked one and its neighbour) made the median
+   gap 0 and the link its floor, so the route was cut after them. Gaps under 0.005 of the long side are left out of the median
+   (none left → the ceiling); the link's bounds are now 0.07 … 0.12.
+4. **«Предлагать трассу» off by default** (the owner: not stable enough to be the default — routes are marked by hand unless
+   asked). Saved under a new key `suggestRoute`; the 1.5.0 / 1.5.1 builds' `routeProposalsEnabled` (written on by default) and
+   1.3's `holdProposalsEnabled` are not read.

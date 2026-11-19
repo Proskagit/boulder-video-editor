@@ -62,11 +62,6 @@ public sealed partial class HoldMarkupViewModel
     /// <summary>How many holds are proposed now (the review's count; the list itself is gone — amendment 1).</summary>
     public int ProposalCount => _proposalSource.Count;
 
-    /// <summary>The colour tolerance (OKLab distance, L weighted ½); a change re-selects without the model.</summary>
-    [ObservableProperty] private decimal? _routeTolerance = (decimal)RouteHoldColor.DefaultTolerance;
-
-    public decimal MinRouteTolerance => (decimal)RouteHoldColor.MinTolerance;
-    public decimal MaxRouteTolerance => (decimal)RouteHoldColor.MaxTolerance;
 
     /// <summary>Whether a plain click at <paramref name="point"/> starts the route's analysis (D072 §3).</summary>
     private bool StartsRoute(NormalizedPoint point) =>
@@ -90,7 +85,7 @@ public sealed partial class HoldMarkupViewModel
         {
             var existing = ExistingContours(clip);
             var style = MarkupOf(clip) ?? new HoldMarkup();
-            var tolerance = CurrentTolerance;
+            var tolerance = RouteHoldColor.DefaultTolerance;
             var sourceTime = _sourceTime;
             // Made here, on the UI thread: its reports come back here.
             var progress = new Progress<double>(p => { if (_routeCts == cts) RouteProgress = p; });
@@ -165,20 +160,14 @@ public sealed partial class HoldMarkupViewModel
         RefreshCommands();
     }
 
-    partial void OnRouteToleranceChanged(decimal? value)
-    {
-        if (IsRouteReview) RefreshRoute();
-    }
-
-    private double CurrentTolerance =>
-        (double)Math.Clamp(RouteTolerance ?? (decimal)RouteHoldColor.DefaultTolerance, MinRouteTolerance, MaxRouteTolerance);
-
     /// <summary>The proposals now: the control hold, the user's added holds, then the selection at the tolerance —
     /// without the rejected ones. The review list and the overlay show them all.</summary>
     private void RefreshRoute()
     {
         if (_routeSearch is null) return;
-        var selected = _routeSearch.Select(CurrentTolerance, _routeRejected);
+        // Amendment 2: the tolerance is no longer the user's (its control re-selected among the holds already found and did
+        // not help) — D048's 0.08 with the strict gates.
+        var selected = _routeSearch.Select(RouteHoldColor.DefaultTolerance, _routeRejected);
         var shown = selected.Where(c => c.IsControl).Concat(_routeManual).Concat(selected.Where(c => !c.IsControl)).ToList();
         var selectedId = SelectedProposal?.Proposal.Id;
         _routeShown.Clear();

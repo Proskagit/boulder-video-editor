@@ -117,14 +117,14 @@ public sealed class SettingsWindowTests
         vm.ResetHeartRateOffsetCommand.Execute(null);
         Assert.Equal(UserSettings.DefaultHeartRateDisplayOffset, settings.Current.HeartRateDisplayOffset);
 
-        vm.RouteProposalsEnabled = false;
+        vm.RouteProposalsEnabled = true;
         Assert.True(vm.TimelineFollowsPlayhead);                                              // D058 §1: on by default
         vm.TimelineFollowsPlayhead = false;
         Assert.False(settings.Current.TimelineFollowsPlayhead);
         vm.LanguageIndex = 0;                                                                  // D068 item 16: «Русский» …
         vm.LanguageIndex = 1;                                                                  // … then «English»
         vm.FfmpegPath = @"D:\ffmpeg\ffmpeg.exe";
-        Assert.False(settings.Current.RouteProposalsEnabled);
+        Assert.True(settings.Current.RouteProposalsEnabled);
         Assert.Equal("en", settings.Current.Language);
         Assert.Equal(@"D:\ffmpeg\ffmpeg.exe", settings.Current.FfmpegPath);
         vm.FfmpegPath = "";

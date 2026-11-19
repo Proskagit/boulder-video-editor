@@ -154,10 +154,26 @@ public class RouteHoldV1Tests
         Assert.True(kept[0].IsControl);
         Assert.Contains(far.Id, RouteHoldSelector.Select(all, RouteHoldColor.DefaultTolerance).Select(c => c.Id));   // no gates: kept
 
-        // The link: 2.5 × the median nearest gap, inside 0.04 … 0.10 of the long side.
+        // The link: 2.5 × the median nearest gap, inside 0.07 … 0.12 of the long side.
         var link = RouteHoldGrouping.Link(all);
         Assert.InRange(link, RouteHoldGrouping.MinLink, RouteHoldGrouping.MaxLink);
         Assert.True(RouteHoldGrouping.Gap(far, chain.Last()) > link);
+    }
+
+    [Fact]
+    public void Two_holds_side_by_side_at_the_start_never_cut_the_route_after_them()
+    {
+        // Amendment 2 (the owner's check of 1.5.1): the clicked hold and one touching it, the next hold of the route at an
+        // ordinary distance — the touching pair said «spacing 0» and the route was cut after the two.
+        var red = Lab(Red);
+        var control = Make(100, 100, red, red, control: true);
+        var touching = Make(116, 100, red, red);                               // edge to edge
+        var next = Make(100, 145, red, red);                                   // ≈ 0.06 of the long side away
+        Assert.True(RouteHoldGrouping.Gap(control, touching) < RouteHoldGrouping.TouchingGap);
+        Assert.InRange(RouteHoldGrouping.Gap(control, next), 0.05, 0.07);
+
+        var kept = RouteHoldSelector.Select(new[] { control, touching, next }, RouteHoldColor.DefaultTolerance, null, RouteHoldGates.Strict, red);
+        Assert.Equal(3, kept.Count);
     }
 
     [Fact]

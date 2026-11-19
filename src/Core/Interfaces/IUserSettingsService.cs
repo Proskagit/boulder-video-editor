@@ -34,9 +34,11 @@ public sealed record UserSettings
     /// <summary>D062 amendment 1: the display offset of a training from any other watch.</summary>
     public long OtherHeartRateDisplayOffsetTicks { get; init; } = DefaultOtherHeartRateDisplayOffset.Ticks;
 
-    /// <summary>D072 §3: «Предлагать трассу» — the markup's first click on a hold proposes the whole route; on by default.
-    /// (Replaces D057 §3.15's <c>holdProposalsEnabled</c>, no longer read: its meaning changed.)</summary>
-    public bool RouteProposalsEnabled { get; init; } = true;
+    /// <summary>D072 §3: «Предлагать трассу» — the markup's first click on a hold proposes the whole route. Off by default
+    /// (amendment 2, the owner: not yet stable enough to be the default). Saved as <c>suggestRoute</c>: the test builds 1.5.0 /
+    /// 1.5.1 wrote <c>routeProposalsEnabled</c> on by default, no longer read; nor is D057 §3.15's <c>holdProposalsEnabled</c>.</summary>
+    [System.Text.Json.Serialization.JsonPropertyName("suggestRoute")]
+    public bool RouteProposalsEnabled { get; init; }
 
     /// <summary>D061 amendment 1: the people's masks drawn over the Preview — a diagnostic of the segmentation, off by default;
     /// never exported.</summary>

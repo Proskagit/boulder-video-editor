@@ -77,9 +77,9 @@ A local neural network draws a hold's outline from one click.
 
 ## The route from its first hold
 
-- **«Suggest the route»** (on by default) — in «Mark holds», click one hold of a route that has no holds yet. The window «Please wait, analysing» appears (a few seconds; «Cancel» or Esc — the markup goes on by hand).
-- Then the holds of the same colour found near it (a route is a compact group; the same colour at the other end of the frame is another route) are shown in the colour the route will get, at most 15. Select a wrong one by a click and press Delete; click a missed one and press Enter; «Colour tolerance» widens or narrows the choice.
-- **«Accept»** (Ctrl+A) adds all the proposals in one step (Ctrl+Z undoes it); then you can go on marking by hand. «Discard» removes the proposals. «Done» keeps what is shown and finishes the markup.
+- **«Suggest the route»** (off by default — tick it in «Holds» or in «Settings…») — in «Mark holds», click one hold of a route that has no holds yet. The window «Please wait, analysing» appears (a few seconds; «Cancel» or Esc — the markup goes on by hand).
+- Then the holds of the same colour found near it (a route is a compact group; the same colour at the other end of the frame is another route) are shown in the colour the route will get, at most 15. Select a wrong one by a click and press Delete; click a missed one and press Enter.
+- **«Accept»** (Ctrl+A) adds all the proposals in one step (Ctrl+Z undoes it); then you can go on marking by hand. «Discard» removes the proposals. «Done» keeps what is shown and finishes the markup; the route's animation (the orange area) starts on the frame you marked on.
 - The analysis runs once per markup session and only on the frame you clicked. The rule is strict: better a missed hold than a wrong one — add the missing ones by a click. Turn the check box off to make the first click mark one hold, as before.
 
 ## Look and animation

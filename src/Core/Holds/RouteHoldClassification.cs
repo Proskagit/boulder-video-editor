@@ -301,12 +301,16 @@ public static class RouteHoldSelector
 /// group joins it, while that gap stays within the link (<see cref="LinkFactor"/> × the median gap of each candidate to its
 /// nearest neighbour, bounded by <see cref="MinLink"/> … <see cref="MaxLink"/> of the frame's long side) — and at most
 /// <c>maxHolds</c> of them. A hold far from the route's group is not proposed: fewer proposals rather than more.
+/// Amendment 2: holds touching their neighbour (a gap under <see cref="TouchingGap"/>) say nothing of the route's spacing and
+/// are left out of the median — two holds side by side no longer shrank the link to its floor and cut the route after them;
+/// the floor raised to 0.07, the ceiling to 0.12.
 /// </summary>
 public static class RouteHoldGrouping
 {
     public const double LinkFactor = 2.5;
-    public const double MinLink = 0.04;
-    public const double MaxLink = 0.10;
+    public const double MinLink = 0.07;
+    public const double MaxLink = 0.12;
+    public const double TouchingGap = 0.005;
 
     public static List<RouteHoldCandidate> Keep(IReadOnlyList<RouteHoldCandidate> candidates, int maxHolds)
     {
@@ -328,7 +332,9 @@ public static class RouteHoldGrouping
     /// <summary>The link of <paramref name="candidates"/>, as a fraction of the frame's long side.</summary>
     public static double Link(IReadOnlyList<RouteHoldCandidate> candidates)
     {
-        var nearest = candidates.Select(c => candidates.Where(o => !ReferenceEquals(o, c)).Min(o => Gap(c, o))).OrderBy(g => g).ToList();
+        var nearest = candidates.Select(c => candidates.Where(o => !ReferenceEquals(o, c)).Min(o => Gap(c, o)))
+            .Where(g => g >= TouchingGap).OrderBy(g => g).ToList();
+        if (nearest.Count == 0) return MaxLink;
         var median = nearest.Count % 2 == 1 ? nearest[nearest.Count / 2] : (nearest[nearest.Count / 2 - 1] + nearest[nearest.Count / 2]) / 2;
         return Math.Clamp(LinkFactor * median, MinLink, MaxLink);
     }

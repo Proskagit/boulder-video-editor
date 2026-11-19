@@ -24,7 +24,7 @@ namespace AiVideoEditor.UI.Tests;
 /// D072 §3 (the route from its first hold) through the real shell wiring with a stand-in model and a synthetic wall: in
 /// «Разметить зацепки» with «Предлагать трассу» on, the first click on a hold of a route without holds opens the analysis
 /// (only Esc acts meanwhile) → the route's holds of that colour are proposed on the markup frame itself → the review (a
-/// rejected proposal stays rejected, the tolerance re-selects without the model, a missed hold added by a click + Enter) →
+/// rejected proposal stays rejected, a missed hold added by a click + Enter) →
 /// «Принять» = one <c>AddHolds</c> step at the markup frame's source time, the markup goes on; «Готово» accepts what is shown;
 /// «Отменить», «Отмена» in the window, a click beside any hold and the check box off change nothing and leave the manual markup.
 /// </summary>
@@ -49,7 +49,7 @@ public sealed class RouteFromFirstHoldUiTests : IAsyncLifetime
     private readonly PlaybackService _playback;
     private readonly StatusService _status = new();
     private readonly FloodSegmentation _model = new();
-    private readonly InMemoryUserSettings _settings = new();
+    private readonly InMemoryUserSettings _settings = new(new UserSettings { RouteProposalsEnabled = true });   // off by default (amendment 2)
     private readonly MainWindowViewModel _vm;
     private int _history;
 
@@ -138,18 +138,14 @@ public sealed class RouteFromFirstHoldUiTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task The_review_rejects_widens_and_adds_by_click_before_the_one_step()
+    public async Task The_review_rejects_and_adds_by_click_before_the_one_step()
     {
         var clip = await ReviewOn(RedHolds[0]);
         Markup.SelectedProposalIndex = 1;
         var rejected = Markup.SelectedProposal!.Proposal.Id;
         Markup.RejectOrDeleteCommand.Execute(null);                           // Delete
         Assert.Equal(RedHolds.Length - 1, Markup.Proposals.Count);
-        Markup.RouteTolerance = 0.2m;                                       // re-selects; the rejection stays
         Assert.DoesNotContain(Markup.Proposals, p => p.Proposal.Id == rejected);
-        var calls = _model.Calls;
-        Markup.RouteTolerance = 0.05m;
-        Assert.Equal(calls, _model.Calls);                                   // no model call
 
         await Markup.OnClickAsync(At(BlueHold), false);                      // a missed hold: a candidate, Enter adds it
         Assert.True(Markup.HasCandidate);
@@ -195,6 +191,7 @@ public sealed class RouteFromFirstHoldUiTests : IAsyncLifetime
         Assert.Equal(RedHolds.Length, clip.HoldMarkup!.Holds.Length);
         Assert.Equal(steps + 2, _history);                                   // the holds, then the intro and final
         Assert.NotNull(clip.HoldMarkup.Animation);
+        Assert.Equal(T - clip.TimelineStart, clip.HoldMarkup.Animation!.StartSourceTime);   // amendment 2: the orange starts here
     }
 
     [Fact]
@@ -257,8 +254,6 @@ public sealed class RouteFromFirstHoldUiTests : IAsyncLifetime
         var command = ShortcutRouter.CommandFor(_vm, Key.D, KeyModifiers.Control);
         Assert.Same(Markup.RejectAllProposalsCommand, command);
         command!.Execute(null);
-        Assert.Empty(Markup.Proposals);
-        Markup.RouteTolerance = 0.2m;                                       // the removed never come back
         Assert.Empty(Markup.Proposals);
         Assert.False(Markup.AcceptRouteCommand.CanExecute(null));
         Assert.Null(clip.HoldMarkup);

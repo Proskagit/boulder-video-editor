@@ -2068,7 +2068,7 @@
     <value>ТАЙМЛАЙН И РАЗМЕТКА</value>
   </data>
   <data name="AppSettings_ProposalsNote" xml:space="preserve">
-    <value>По умолчанию включено: первый щелчок в «Разметить зацепки» по трассе без зацепок запускает анализ (несколько секунд), найденные зацепки того же цвета предлагаются для проверки.</value>
+    <value>По умолчанию выключено (функция ещё не совсем стабильна): когда включено, первый щелчок в «Разметить зацепки» по трассе без зацепок запускает анализ (несколько секунд), найденные рядом зацепки того же цвета предлагаются для проверки.</value>
   </data>
   <data name="AppSettings_CorosFit" xml:space="preserve">
     <value>FIT-ТРЕНИРОВКИ</value>
@@ -2300,12 +2300,6 @@
   </data>
   <data name="Holds_RouteReview" xml:space="preserve">
     <value>Проверьте трассу: удалите лишние зацепки (Delete), щёлкните по пропущенной и нажмите Enter, затем «Принять».</value>
-  </data>
-  <data name="Holds_RouteTolerance" xml:space="preserve">
-    <value>Допуск цвета</value>
-  </data>
-  <data name="Holds_RouteToleranceTip" xml:space="preserve">
-    <value>Насколько цвет зацепки может отличаться от цвета контрольной (OKLab). Больше — больше зацепок, в том числе похожих цветов.</value>
   </data>
   <data name="Holds_RouteAccept" xml:space="preserve">
     <value>Принять</value>

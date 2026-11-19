@@ -229,6 +229,7 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult AddTemplateClip(TemplateKind kind, MediaTime start) => No;
         public TimelineEditResult SetClipSpeed(Guid clipId, ClipSpeed speed) => No;
         public TimelineEditResult LayOutIntroAndFinal(Guid videoClipId, MediaTime t, Guid? routeId = null) => No;
+        public TimelineEditResult LayOutIntroAndFinalFrom(Guid videoClipId, MediaTime animationStart, Guid? routeId = null) => No;
         public OverlayStripState? OverlayStripOf(Guid videoClipId, Guid? routeId = null) => null;
         public TimelineEditResult EditOverlayStrip(Guid videoClipId, OverlayStripHandle handle, long frameDelta, Guid? routeId = null) => No;
         public OverlayStripPreview? PreviewOverlayStrip(Guid videoClipId, OverlayStripHandle handle, long frameDelta, Guid? routeId = null) => null;

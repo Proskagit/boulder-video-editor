@@ -1157,13 +1157,8 @@
                     <TextBlock Text="{Binding RouteChoiceHint}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" IsVisible="{Binding RouteChoiceHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                   </StackPanel>
 
-                  <!-- D072 §3: the route proposed from its first hold — the review: the tolerance, «Принять», «Отменить». -->
+                  <!-- D072 §3: the route proposed from its first hold — the review: «Принять», «Отменить» (amendment 2: no tolerance). -->
                   <StackPanel Spacing="6" IsVisible="{Binding IsRouteReview}">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                      <TextBlock Text="{x:Static l:Strings.Holds_RouteTolerance}" Classes="label" ToolTip.Tip="{x:Static l:Strings.Holds_RouteToleranceTip}"/>
-                      <controls:CommitNumericUpDown Value="{Binding RouteTolerance, Mode=TwoWay}" Increment="0.01" Minimum="{Binding MinRouteTolerance}"
-                                     Maximum="{Binding MaxRouteTolerance}" FormatString="0.00" Width="72" ToolTip.Tip="{x:Static l:Strings.Holds_RouteToleranceTip}"/>
-                    </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8">
                       <Button Content="{x:Static l:Strings.Holds_RouteAccept}" Command="{Binding AcceptRouteCommand}"/>
                       <Button Content="{x:Static l:Strings.Holds_RouteCancel}" Command="{Binding CancelRouteCommand}"/>

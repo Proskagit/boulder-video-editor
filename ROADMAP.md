@@ -691,7 +691,8 @@ on the markup frame → remove / add / tolerance → «Принять» in one U
 and hue gates, no grid) in production; D047's proposals of every hold and the hidden «Авторазметка» removed; Step 0: the Preview's
 quality «Оригинал» by default. Amendment 1 (the owner's check of 1.5.0): the route is the group around the clicked hold (the same
 colour far away is another route), at most 15, stricter colour (hue 20°, no white / grey / black on a coloured route), the
-proposals drawn in the route's colour, no list. Manual plan: `docs/PHASE53_MANUAL_TEST_PLAN.md`.
+proposals drawn in the route's colour, no list. Amendment 2 (1.5.1): no «Допуск цвета», the orange starts on the markup's frame,
+the group no longer stops at a touching pair, «Предлагать трассу» off by default. Manual plan: `docs/PHASE53_MANUAL_TEST_PLAN.md`.
 
 **Phase 52 (D071, 2026-11-19) — the Preview's quality — accepted by the owner 2026-11-19 (PR #82)** on `feat/phase-52-proxy`: the quality on the Preview's bar (Оригинал /
 Высокое 1440p / Среднее 1080p by default / Минимум 720p) applied on the fly; proxies for 4K / HEVC were made and withdrawn by the
