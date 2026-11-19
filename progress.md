@@ -3,8 +3,9 @@
 ## Current phase
 
 **Phase 53 amendment 3 (D072, the owner's check of 1.5.2, 2026-11-19):** the group's link raised to 20 % of the long side
-(was 7 … 12 %). The owner: «всё ок», push and open the PR without a new build or test run — none was made for this change (the
-PR's CI runs the suites). Then the phase closes on the owner's merge.
+(was 7 … 12 %), then simplified to one constant `RouteHoldGrouping.Link` (the spacing-based link removed — the owner: one threshold
+is enough). Release `-warnaserror` 0 / 0, the route's tests green (Core 21, UI 16); the full suites by the PR's CI. PR #83;
+portable 1.5.3. The phase closes on the owner's merge.
 
 **Phase 53 amendment 2 (D072, the owner's check of 1.5.1, 2026-11-19):** the strict colour works; «Допуск цвета» removed (it only
 re-selected among the found holds); «Готово» lays out from the markup's frame — `LayOutIntroAndFinalFrom`: the orange

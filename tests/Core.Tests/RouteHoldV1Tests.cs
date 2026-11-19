@@ -154,10 +154,8 @@ public class RouteHoldV1Tests
         Assert.True(kept[0].IsControl);
         Assert.Contains(far.Id, RouteHoldSelector.Select(all, RouteHoldColor.DefaultTolerance).Select(c => c.Id));   // no gates: kept
 
-        // The link: 2.5 × the median nearest gap, inside 0.20 … 0.20 of the long side (amendment 3).
-        var link = RouteHoldGrouping.Link(all);
-        Assert.InRange(link, RouteHoldGrouping.MinLink, RouteHoldGrouping.MaxLink);
-        Assert.True(RouteHoldGrouping.Gap(far, chain.Last()) > link);
+        // The link: one fixed 20 % of the long side (amendment 3).
+        Assert.True(RouteHoldGrouping.Gap(far, chain.Last()) > RouteHoldGrouping.Link);
     }
 
     [Fact]
@@ -169,7 +167,7 @@ public class RouteHoldV1Tests
         var control = Make(100, 100, red, red, control: true);
         var touching = Make(116, 100, red, red);                               // edge to edge
         var next = Make(100, 145, red, red);                                   // ≈ 0.06 of the long side away
-        Assert.True(RouteHoldGrouping.Gap(control, touching) < RouteHoldGrouping.TouchingGap);
+        Assert.Equal(0, RouteHoldGrouping.Gap(control, touching));
         Assert.InRange(RouteHoldGrouping.Gap(control, next), 0.05, 0.07);
 
         var kept = RouteHoldSelector.Select(new[] { control, touching, next }, RouteHoldColor.DefaultTolerance, null, RouteHoldGates.Strict, red);

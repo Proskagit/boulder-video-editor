@@ -11647,5 +11647,6 @@ The strict colour works («в целом нормально отрабатыва
 ### Amendment 3 — the owner's check of the 1.5.2 build (2026-11-19)
 
 Everything is fine except the group's reach: at 7 … 12 % of the long side the route's own holds 200 px apart on a 1500 px canvas
-were left out. **The link is 20 % of the frame's long side** (`RouteHoldGrouping.MinLink` = `MaxLink` = 0.20): 200 px joins, a
+were left out. **The link is one fixed 20 % of the frame's long side** (`RouteHoldGrouping.Link` = 0.20; the spacing-based link of
+amendments 1–2 — the median gap × 2.5 within bounds — removed as pointless with one threshold): 200 px joins, a
 hold 460 px (≈ 30 %) away does not. On the owner's word committed without a new build or test run (the PR's CI runs the suites).

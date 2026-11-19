@@ -298,47 +298,29 @@ public static class RouteHoldSelector
 /// <summary>
 /// D072 amendment 1 (the owner: a route is a group of holds; the same colour elsewhere in the frame is another route): the
 /// selected candidates grown into one group from the control hold — at each step the candidate whose edge is nearest to the
-/// group joins it, while that gap stays within the link (<see cref="LinkFactor"/> × the median gap of each candidate to its
-/// nearest neighbour, bounded by <see cref="MinLink"/> … <see cref="MaxLink"/> of the frame's long side) — and at most
-/// <c>maxHolds</c> of them. A hold far from the route's group is not proposed: fewer proposals rather than more.
-/// Amendment 2: holds touching their neighbour (a gap under <see cref="TouchingGap"/>) say nothing of the route's spacing and
-/// are left out of the median — two holds side by side no longer shrank the link to its floor and cut the route after them;
-/// the floor raised to 0.07, the ceiling to 0.12.
+/// group joins it while that gap is at most <see cref="Link"/> — and at most <c>maxHolds</c> of them. A hold far from the
+/// route's group is not proposed. Amendment 3: one fixed link, 20 % of the frame's long side (on a 1500 px canvas a neighbour
+/// 200 px away joins, one 460 px away does not); the spacing-based link of amendments 1–2 (7 … 12 %) cut the route's own holds.
 /// </summary>
 public static class RouteHoldGrouping
 {
-    public const double LinkFactor = 2.5;
-    // Amendment 3 (the owner, 2026-11-19): the link is 20 % of the frame's long side — on a 1500 px canvas a neighbour 200 px
-    // away joins, one 460 px away (≈ 30 %) does not; 7 … 12 % missed the route's own holds.
-    public const double MinLink = 0.20;
-    public const double MaxLink = 0.20;
-    public const double TouchingGap = 0.005;
+    /// <summary>The largest gap between a hold and the route's group, as a fraction of the frame's long side.</summary>
+    public const double Link = 0.20;
 
     public static List<RouteHoldCandidate> Keep(IReadOnlyList<RouteHoldCandidate> candidates, int maxHolds)
     {
         var control = candidates.FirstOrDefault(c => c.IsControl);
         if (control is null || candidates.Count <= 1) return candidates.Take(Math.Max(1, maxHolds)).ToList();
-        var link = Link(candidates);
         var group = new List<RouteHoldCandidate> { control };
         var rest = candidates.Where(c => !ReferenceEquals(c, control)).ToList();
         while (rest.Count > 0 && group.Count < maxHolds)
         {
             var (next, gap) = rest.Select(c => (c, group.Min(g => Gap(c, g)))).MinBy(x => x.Item2);
-            if (gap > link) break;
+            if (gap > Link) break;
             group.Add(next);
             rest.Remove(next);
         }
         return group;
-    }
-
-    /// <summary>The link of <paramref name="candidates"/>, as a fraction of the frame's long side.</summary>
-    public static double Link(IReadOnlyList<RouteHoldCandidate> candidates)
-    {
-        var nearest = candidates.Select(c => candidates.Where(o => !ReferenceEquals(o, c)).Min(o => Gap(c, o)))
-            .Where(g => g >= TouchingGap).OrderBy(g => g).ToList();
-        if (nearest.Count == 0) return MaxLink;
-        var median = nearest.Count % 2 == 1 ? nearest[nearest.Count / 2] : (nearest[nearest.Count / 2 - 1] + nearest[nearest.Count / 2]) / 2;
-        return Math.Clamp(LinkFactor * median, MinLink, MaxLink);
     }
 
     /// <summary>The gap between two holds' edges (their centres' distance less their radii, at least 0), as a fraction of the
