@@ -668,7 +668,9 @@ v26). The export's cover frame → backlog. **Accepted by the product owner on 2
 models; update over the installed version, uninstall keeping the user's data and — unless ticked — the models) and **one
 Portable archive** (the program with the models in `ai-models\`, installed by the application in the background on the
 user's consent). `tools/distribution/New-Release.ps1` builds both; `tools/installer/Test-Installer.ps1` checks the
-installer; `docs/DISTRIBUTION.md`. Also: the start screen's recent projects no longer all look selected while one opens.
+installer; `docs/DISTRIBUTION.md`. Also: the start screen's recent projects no longer all look selected while one opens. Plus the light
+**web Setup** (D070 §7: the models from the GitHub release `models-1.0`). **Released as `v1.3.0` and accepted by the product owner
+on 2026-11-19 (PR #79) — the final phase: the project's planned development is closed.**
 
 **Development after the release (D065 §5, 2026-11-17):** the route from its first hold (a research folding Phases 31 / 32:
 the user marks one hold, the editor proposes the holds of its colour); Phase 36's Steps 36.3 (`PassId`, the «Итоги» template)

@@ -2,6 +2,11 @@
 
 ## Current phase
 
+**The project is complete (2026-11-19).** Phase 51 (D070) accepted by the product owner: PR #79 merged (`097ec18`, CI green), the
+releases `v1.3.0` (Latest) and `models-1.0` published, the full Setup and the web Setup re-checked by the owner (D070 §8). Fifty-one
+phases since 2026-09-06. No phase is open; new work starts as a new phase on the owner's request. Left to the owner: the unpublished
+draft `v1.0.0` (no tag; superseded by 1.3.0) may be deleted; `models-1.0` must stay (web setups download from it).
+
 **Phase 51 — the installer and the distribution, the final phase (D070, 2026-11-19) — on `feat/phase-51-installer`.** Step 0:
 Phase 50's acceptance recorded (D069 §12, DEVELOPMENT_PLAN, ROADMAP; PR #78 merged by the owner). The owner's answers (D070 §1):
 Inno Setup 6 (installed by winget, 6.7.3), per user, version 1.3.0, no signing. **Done:** the start screen's recent rows keep their

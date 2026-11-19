@@ -11342,6 +11342,13 @@ application itself, the full Setup and the Portable archive still never download
   downloaded with their SHA-256; run again — nothing requested; an update with the server down refused before any file is
   touched. The real GitHub download (its redirect, 1.2 GB) only by the manual rows W1–W4.
 
+### 8. Acceptance (the product owner, 2026-11-19)
+
+PR #79 merged by the owner (`097ec18`; CI green). The releases **`v1.3.0`** (Latest: the full Setup, the web Setup, the Portable
+archive, the FFmpeg sources tar, SHA256SUMS) and **`models-1.0`** (the models for the web Setup) were published at the owner's
+request, tagged at `a88b958`. The owner re-checked the full Setup and the web Setup — «всё окей»: **Phase 51 accepted. The
+project's planned development is closed** with this, the final phase; further work is new phases on the owner's request.
+
 ### Out of scope
 
 Automatic updates and any network check of the application; downloads by the application or the Portable archive; code signing; an all-users installation; file associations; MSI / MSIX / winget
