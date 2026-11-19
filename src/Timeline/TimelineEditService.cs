@@ -418,7 +418,18 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (CheckEditable(plan, clips) is { } editError) return (null, clips, editError);
 
         Track? target = null;
-        if (targetTrackId is { } tid)
+        if (targetTrackId == MoveTargets.NewVideoTrack)
+        {
+            // D071 amendment 3: dragged above the top track — a new video track on top, in the same step. As onto an existing track
+            // (AQ7): a linked partner of the other kind selected with them moves in time on its own track.
+            var others = clips.Where(c => !TimelineValidator.IsCompatible(c, TrackType.Video)).ToList();
+            if (others.Count > 0 && others.Count < clips.Count && others.All(o => clips.Contains(PartnerOf(plan, o)!)))
+                clips = clips.Except(others).ToList();
+            if (clips.Any(c => !TimelineValidator.IsCompatible(c, TrackType.Video)) || clips.Select(plan.TrackOf).Distinct().Count() != 1)
+                return (null, clips, Messages.Edit_SeveralTracksInTime);
+            target = TopNewVideoTrack(plan);
+        }
+        else if (targetTrackId is { } tid)
         {
             target = FindTrack(tid);
             if (target is null) return (null, clips, Messages.Edit_TrackGone);

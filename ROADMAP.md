@@ -684,9 +684,10 @@ Preview's quality — **Phase 52, D071**; 2) the route from its first hold («Р
 6) technical debt (the split of `TimelineEditService` / `TimelineViewModel`); 7) the repository's page (its «Status» rewritten,
 the page restructured). Other ideas (Shorts per route, comparing attempts, beta notes …) wait until then.
 
-**Phase 52 (D071, 2026-11-19) — proxies for 4K / HEVC and the Preview's quality** on `feat/phase-52-proxy`: the quality on the
-Preview's bar (Оригинал / Высокое 1440p / Среднее 1080p by default / Минимум 720p), proxies made in the background for 4K / HEVC
-videos with the source's exact frames, one cache for every project; amendment 1 — a sound dropped onto an empty track lands where
+**Phase 52 (D071, 2026-11-19) — the Preview's quality** on `feat/phase-52-proxy`: the quality on the Preview's bar (Оригинал /
+Высокое 1440p / Среднее 1080p by default / Минимум 720p) applied on the fly; proxies for 4K / HEVC were made and withdrawn by the
+owner (amendment 3: making them took about as long as the clips); amendments 2–3: transitions 1 s with edge snap, plates never
+pushed and kept compact, a new track by dragging above the top track; amendment 1 — a sound dropped onto an empty track lands where
 it is dropped (D037 Q8 replaced). Manual plan: `docs/PHASE52_MANUAL_TEST_PLAN.md`.
 
 **After D057 (2026-11-09).** Checked on Phase 38's target build, decided separately (D057 §4.1): the duplicated «Импорт» /

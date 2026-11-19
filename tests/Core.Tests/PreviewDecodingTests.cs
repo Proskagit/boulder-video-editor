@@ -7,16 +7,9 @@ using Xunit;
 
 namespace AiVideoEditor.Core.Tests;
 
-/// <summary>D071 §2–§3: the Preview's qualities, which videos get a proxy and the proxy's size.</summary>
+/// <summary>D071 §2: the Preview's qualities and the bound each gives a picture (amendment 3: no proxies).</summary>
 public sealed class PreviewDecodingTests
 {
-    private static MediaAsset Video(int width, int height, string codec = "h264", bool missing = false, MediaKind kind = MediaKind.Video,
-        MediaAnalysisStatus status = MediaAnalysisStatus.Completed) => new()
-    {
-        FilePath = "C:/v.mp4", Kind = kind, IsMissing = missing, AnalysisStatus = status,
-        Metadata = new MediaMetadata { Width = width, Height = height, DisplayWidth = width, DisplayHeight = height, VideoCodec = codec, PixelFormat = "yuv420p", Duration = MediaTime.FromSeconds(10) }
-    };
-
     [Theory]
     [InlineData(PreviewQuality.High, 3840, 2160, 2560, 1440)]
     [InlineData(PreviewQuality.Medium, 3840, 2160, 1920, 1080)]
@@ -36,60 +29,6 @@ public sealed class PreviewDecodingTests
     [Fact]
     public void Medium_is_the_default_quality() =>
         Assert.Equal(PreviewQuality.Medium, new UserSettings().PreviewQuality);
-
-    [Fact]
-    public void A_proxy_is_made_for_4K_or_HEVC_whatever_the_quality()
-    {
-        Assert.True(PreviewDecoding.NeedsProxy(Video(3840, 2160)));
-        Assert.True(PreviewDecoding.NeedsProxy(Video(2160, 3840)));
-        Assert.True(PreviewDecoding.NeedsProxy(Video(1920, 1080, "hevc")));
-        Assert.True(PreviewDecoding.NeedsProxy(Video(2704, 1520)));     // 2.7K is above 1920 too
-
-        Assert.False(PreviewDecoding.NeedsProxy(Video(1920, 1080)));      // a light 1080p H.264
-        Assert.False(PreviewDecoding.NeedsProxy(Video(3840, 2160, missing: true)));
-        Assert.False(PreviewDecoding.NeedsProxy(Video(3840, 2160, kind: MediaKind.Image)));
-        Assert.False(PreviewDecoding.NeedsProxy(Video(3840, 2160, status: MediaAnalysisStatus.Pending)));
-    }
-
-    [Fact]
-    public void The_one_1080p_proxy_serves_medium_and_minimum_only()
-    {
-        Assert.Equal(PreviewQuality.Medium, PreviewDecoding.ProxyQuality);
-        Assert.True(PreviewDecoding.UsesProxy(PreviewQuality.Medium));
-        Assert.True(PreviewDecoding.UsesProxy(PreviewQuality.Low));
-        Assert.False(PreviewDecoding.UsesProxy(PreviewQuality.High));
-        Assert.False(PreviewDecoding.UsesProxy(PreviewQuality.Original));
-        Assert.Equal(new FrameSize(1920, 1080), PreviewDecoding.ProxySize(3840, 2160));
-        Assert.Equal(new FrameSize(1080, 1920), PreviewDecoding.ProxySize(2160, 3840));
-    }
-
-    [Fact]
-    public void No_proxy_while_the_colour_is_unknown_but_a_refresh_alone_does_not_stop_it()
-    {
-        // D033 T3: metadata saved before the colour probe (no pixel format) may still turn out HDR.
-        var unknown = Video(3840, 2160);
-        unknown.Metadata!.PixelFormat = null;
-        Assert.True(unknown.Metadata.NeedsColorProbe);
-        Assert.False(PreviewDecoding.NeedsProxy(unknown));
-
-        var refreshing = Video(3840, 2160);
-        refreshing.IsMetadataRefreshing = true;   // transient; the refresh may end without an event
-        Assert.True(PreviewDecoding.NeedsProxy(refreshing));
-    }
-
-    [Theory]
-    [InlineData(PreviewQuality.Low, 3840, 2160, 1280, 720)]
-    [InlineData(PreviewQuality.Medium, 2160, 3840, 1080, 1920)]
-    [InlineData(PreviewQuality.High, 1920, 1080, 1920, 1080)]     // never enlarged
-    [InlineData(PreviewQuality.Low, 4096, 2160, 1280, 676)]       // DCI 4K: even sides
-    [InlineData(PreviewQuality.Medium, 2704, 1520, 1920, 1080)]
-    public void The_proxy_fits_the_bound_with_even_sides(PreviewQuality quality, int w, int h, int pw, int ph)
-    {
-        var size = PreviewDecoding.ProxySize(quality, w, h);
-        Assert.Equal(new FrameSize(pw, ph), size);
-        Assert.Equal(0, size.Width % 2);
-        Assert.Equal(0, size.Height % 2);
-    }
 
     [Fact]
     public void A_quality_out_of_range_in_the_settings_file_is_the_default() =>

@@ -11478,8 +11478,29 @@ software**: the hardware decoder's start (~180 ms per open, every seek opens one
 7. **The ghost on the target track:** a clip dragged to another track shows its future place there (the span the release gives
    it), yellow when it moves other clips, red when the move is refused.
 
+### Amendment 3 — the owner's check of the 1.4.1 build (2026-11-19)
+
+**Proxies removed.** Making them took about as long as the clips themselves (a 5-minute project of 6 clips: about 5 minutes), and
+waiting after every new clip is not acceptable (the owner). Everything of §3, §4's `DecodePath`, §5's proxy notes and amendment 2
+§1–§2 is withdrawn: `FfmpegProxyBuilder`, `ProxyStore`, `ProxyCoordinator`, the status bar's indicator, the settings' «Создавать
+прокси» and «Удалить прокси», `UserSettings.MakeProxies`. **Kept:** the Preview's quality (§2, the compact button of amendment 2
+§3) — the bound of every video's decoding, applied on the fly. The proxies the test builds 1.4.0 / 1.4.1 left in
+`%LOCALAPPDATA%\BoulderVideoEditor\cache\proxies` are removed at startup (best effort). (Measured for later: the hardware
+decoder's start, ~180 ms per Preview seek — a possible scrubbing improvement, not taken now.)
+
+**A clip into the free part of its plates' track.** With V1 the clips and V2 the plates, a clip dragged into V2's free part was
+refused: its own plate followed it in time onto V2 and overlapped it (amendment 2 §6 found no free track above and left the
+plate). Now, with no free unlocked track above the clip, the plate goes to **a new track on top** in the same step.
+
+**A new track by dragging.** A video clip (or a group from one track) dragged above the top track (over the ruler) goes onto **a
+new video track on top** (`MoveTargets.NewVideoTrack`); a bar «+ Новая дорожка» shows it while dragging (red when refused); its
+plates go to a new track above it. One Undo step removes the new tracks.
+
+A linked partner of the other kind selected with the clip moves in time on its own track, as for a move onto an existing track
+(D032 AQ7).
+
 ### Out of scope
 
-Proxies of light videos (1080p H.264), of images and of audio; proxies for the export, the thumbnails or the analyses; a
+*(The proxy items below are moot since amendment 3 withdrew the proxies.)* Proxies of light videos (1080p H.264), of images and of audio; proxies for the export, the thumbnails or the analyses; a
 choice of the proxy's codec or folder; swapping to the source on pause; showing a proxy's state per file in the Media
 Browser.

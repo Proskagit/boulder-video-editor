@@ -2,16 +2,13 @@ using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Playback;
 using AiVideoEditor.UI.Localization;
-using AiVideoEditor.UI.Services;
 
 namespace AiVideoEditor.UI.ViewModels.Panels;
 
-/// <summary>D071 §2, §4: the Preview's picture quality on its bar and the decoding it gives the snapshot — the bound of every
-/// source and, for a 4K / HEVC video with a ready proxy, the proxy instead of the source. The export never takes it.</summary>
+/// <summary>D071 §2, §4: the Preview's picture quality on its bar and the bound it gives every video of the snapshot, on the
+/// fly (amendment 3: no proxies). The export never takes it.</summary>
 public sealed partial class PreviewViewModel
 {
-    private ProxyCoordinator? _proxies;
-
     /// <summary>The bar's choices, in the order of <see cref="PreviewQuality"/>.</summary>
     public IReadOnlyList<string> QualityNames { get; } = new[]
     {
@@ -60,15 +57,6 @@ public sealed partial class PreviewViewModel
 
     private PreviewQuality Quality => (PreviewQuality)QualityIndex;
 
-    private void InitQuality(ProxyCoordinator? proxies)
-    {
-        _proxies = proxies;
-        if (_proxies is not null) _proxies.ProxyReady += (_, _) =>
-        {
-            if (!IsSourceMode && !_released) RebuildSnapshot();   // the proxy replaces the source at once
-        };
-    }
-
     /// <summary>The snapshot's assets decoded at the chosen quality (D071 §4).</summary>
     private PlaybackSnapshot WithPreviewDecoding(PlaybackSnapshot snapshot)
     {
@@ -82,9 +70,7 @@ public sealed partial class PreviewViewModel
             var m = media?.Metadata;
             var (w, h) = (m?.DisplayWidth ?? m?.Width, m?.DisplayHeight ?? m?.Height);
             var bound = PreviewDecoding.Bound(quality, w, h) ?? (w is > 0 && h is > 0 ? new FrameSize(w.Value, h.Value) : (FrameSize?)null);
-            // Amendment 2: the one 1080p proxy serves «Среднее» and «Минимум» (scaled on the fly); the others decode the source.
-            var proxy = media is not null && PreviewDecoding.UsesProxy(quality) && PreviewDecoding.NeedsProxy(media) ? _proxies?.ProxyFor(asset.Id) : null;
-            return asset with { DecodeBound = bound, DecodePath = proxy };
+            return asset with { DecodeBound = bound };
         });
     }
 }

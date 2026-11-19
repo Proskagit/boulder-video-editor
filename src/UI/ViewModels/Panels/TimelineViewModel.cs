@@ -1657,6 +1657,10 @@ public sealed partial class TimelineViewModel : ViewModelBase
         public bool Active { get; set; }
         public long FrameDelta { get; set; }
         public TimelineTrackViewModel? TargetTrack { get; set; }
+
+        /// <summary>D071 amendment 3: the pointer is above the top track — the clips go onto a new video track on top.</summary>
+        public bool ToNewTrack { get; set; }
+
         public MediaTime TrimTime { get; set; }
 
         /// <summary>A ripple trim (D030 §6): Shift was held when the edge was pressed; fixed for the whole gesture.</summary>
@@ -1728,10 +1732,13 @@ public sealed partial class TimelineViewModel : ViewModelBase
         return true;
     }
 
-    public void UpdateGesture(double contentX, TimelineTrackViewModel? trackUnderPointer)
+    public void UpdateGesture(double contentX, TimelineTrackViewModel? trackUnderPointer, bool aboveTracks = false)
     {
         SuspendFollowing();   // D058 §1: a drag while playing
         if (_gesture is not { } g) return;
+        // D071 amendment 3: above the top track (the ruler) a move of video clips from one track goes onto a new track on top.
+        g.ToNewTrack = aboveTracks && trackUnderPointer is null && g.Edge is null && !g.Slip && g.StripHandle is null &&
+                       g.SourceTrack is { Track.Type: TrackType.Video };
         if (!g.Active && Math.Abs(contentX - g.StartX) < DragThresholdPixels && trackUnderPointer == g.SourceTrack)
             return;
         g.Active = true;
@@ -1766,11 +1773,12 @@ public sealed partial class TimelineViewModel : ViewModelBase
             ? trackUnderPointer
             : null;
         ShowDropTarget(g.TargetTrack);
+        IsNewTrackDropTarget = g.ToNewTrack;
 
         // D037 §2: a snap never makes an overlap — a target that would push a clip (or refuse the move) where the pointer's
         // own place would not is skipped.
         var ids = g.Clips.Select(c => c.Id).ToList();
-        var target = g.TargetTrack?.Track.Id;
+        var target = MoveTarget(g);
         var rawOverlaps = MoveOverlaps(ids, FramesOf(rawDelta), target);
         var snapped = ApplySnap(new[] { groupStart + rawDelta, groupEnd + rawDelta }, g.Clips, rawDelta,
             accept: rawOverlaps ? null : s => !MoveOverlaps(ids, FramesOf(rawDelta + s.Offset), target));
@@ -1790,6 +1798,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
             else vm.Layout(PixelsPerSecond);
         }
         foreach (var clip in g.Clips) clip.IsInvalid = preview is null;
+        IsNewTrackDropInvalid = g.ToNewTrack && preview is null;
         ShowMoveGhost(g, planned, preview is null, preview is { } shown && shown.Clips.Keys.Except(ids).Any(id => !IsPartnerOfDragged(id)));
 
         // What follows the dragged clips by their own rules — a link partner, a plate anchored to them — is not "moving others".
@@ -1811,6 +1820,14 @@ public sealed partial class TimelineViewModel : ViewModelBase
                 ? at.Start.ToNearestFrame(FrameRate) - vm.Clip.TimelineStart.ToNearestFrame(FrameRate)
                 : 0;
     }
+
+    /// <summary>D071 amendment 3: the move's target track — a new one on top while the pointer is above the tracks.</summary>
+    private static Guid? MoveTarget(Gesture g) => g.ToNewTrack ? MoveTargets.NewVideoTrack : g.TargetTrack?.Track.Id;
+
+    /// <summary>D071 amendment 3: the bar above the tracks says a release puts the dragged clips onto a new track on top
+    /// (red when that is refused).</summary>
+    [ObservableProperty] private bool _isNewTrackDropTarget;
+    [ObservableProperty] private bool _isNewTrackDropInvalid;
 
     /// <summary>
     /// D071 amendment 2 (the owner): a clip dragged to another track shows its future place on that track — the span of the dragged
@@ -1969,7 +1986,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
             ? g.Ripple
                 ? _edit.RippleTrimClip(g.Clips[0].Id, edge, g.TrimTime)
                 : _edit.TrimClip(g.Clips[0].Id, edge, g.TrimTime, g.Alone)
-            : _edit.MoveClips(g.Clips.Select(c => c.Id).ToList(), g.FrameDelta, g.TargetTrack?.Track.Id, insertOnDrop: true);
+            : _edit.MoveClips(g.Clips.Select(c => c.Id).ToList(), g.FrameDelta, MoveTarget(g), insertOnDrop: true);
         Report(result);
         // Restore the pre-drag positions — also when nothing changed (D069 amendment 1: a drag the magnet took back left the
         // carried plates where the preview had them).
@@ -1989,6 +2006,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void ResetGestureVisuals(Gesture g)
     {
         IsSnapIndicatorVisible = false;
+        IsNewTrackDropTarget = false;
+        IsNewTrackDropInvalid = false;
         ClearDropTargets();
         foreach (var clip in g.Clips)
         {

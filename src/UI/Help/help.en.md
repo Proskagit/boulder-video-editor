@@ -60,30 +60,9 @@ Marking holds, following people and cleaning sound need local AI models (about 1
 - A double click opens a file in the source: in Preview pick the part you need (I — in, O — out) and put it on the timeline («,» — insert, «.» — overwrite).
 - A file dropped on a track lands where it is dropped (on an empty track too); on V1 with the magnet on — at the nearest cut.
 
-## Preview quality and proxies
+## Preview quality
 
-- The button right of the time under the Preview (an eye and «1080p»): **«Original»**, **«High (1440p)»**, **«Medium (1080p)»** (the default), **«Minimum (720p)»** — the quality the Preview shows videos in. It changes at once; nothing is made again. The export is always made from the originals at full quality.
-- For 4K and HEVC videos the editor makes, once, in the background, a **proxy** — a light 1080p copy: at «Medium» and «Minimum» the Preview takes it and seeks much faster. The status bar shows it («Proxy: file — N %», ✕ stops it). A proxy has the same frames as the original; until it is ready, and at «High» and «Original», the Preview shows the original.
-- Proxies live in %LOCALAPPDATA%\BoulderVideoEditor\cache\proxies and serve every project. «Settings…» → «Timeline and markup» turns making them off; «Delete proxies» frees the space.
-
-## The timeline
-
-- Drag a clip with the mouse; its edges trim it. Clips always snap to their neighbours and the playhead (to place a clip a couple of frames from another, zoom in).
-- **The main track magnet** (the magnet button, N; on in new projects): the clips of V1 always lie one after another from zero — a removal closes its gap, a clip dropped onto V1 goes to the cut nearest the mouse pointer and moves the others aside, a trim moves the clips after it. Its linked sound, plates, holds, Follow, FIT climbs and the clips of the upper tracks that start over it go with a clip; music on the sound tracks stays. A new title or template is never added to V1: with only one video track a V2 is added for it.
-- **S** — split at the playhead, **Delete** — delete, **Ctrl+D** — duplicate, **Ctrl+C / Ctrl+V** — copy and paste.
-- **Q / W** — trim the selected clip's start / end to the playhead; with Shift the following clips move too.
-- Above the tracks — icons with tooltips: tracks, «Text», «Template», «Keyframe», «Mixer», split, delete, ripple delete, duplicate, transition, magnet, zoom.
-- A right click on a clip opens its menu with every clip command: copy, paste, duplicate, trim to the playhead, link or unlink the sound, close the gap, mark holds, delete.
-- Zoom: Ctrl+wheel, Ctrl+= / Ctrl+−, «\» — the whole timeline.
-- Undo and redo: Ctrl+Z / Ctrl+Y — for every edit.
-
-## The frame and motion
-
-- In Preview the selected clip can be moved, scaled and cropped (the buttons above the frame). It snaps to the frame's edges and centre.
-- **Keyframes** (the diamond button) make motion: the position and scale at different moments.
-- Speed, rotation and fades are in the Inspector's sections.
-- With several clips selected the Inspector changes them all: background, frame, opacity, volume, noise reduction, voice enhancement, fades, colour with «Auto enhance»; «—» means the clips differ.
-- **Colour** (the Inspector's section of a video clip): exposure, brightness, contrast, highlights, shadows, saturation, temperature and tint from −100 to +100; «Auto enhance» sets the sliders from the clip's frames — adjust them afterwards. The export has the same colours as the Preview.
+- The button right of the time under the Preview (an eye and «1080p»): **«Original»**, **«High (1440p)»**, **«Medium (1080p)»** (the default), **«Minimum (720p)»** — how large the Preview shows the videos. It changes at once; lower is lighter for the computer. The export is always made from the originals at full quality.
 
 # Marking holds
 

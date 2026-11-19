@@ -46,6 +46,16 @@ Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check` clea
 skip), ExportEndToEnd 189 — green; Export 141 / 142 under the full load (the known rasterizer flake, `ExportServiceTests`, Export
 untouched), 142 / 142 three times alone.
 
+**Phase 52 amendment 3 (D071, the owner's check of 1.4.1):** proxies removed (too slow to make — about the project's own length;
+the quality on the fly stays; the old proxy cache removed at startup); a clip dragged into the free part of its plates' track no
+longer refused (its plate gets a new track on top when none is free); a clip dragged above the top track goes onto a new track
+(«+ Новая дорожка»). Tests: the proxy tests removed with the code, the quality / bound tests kept; +3 (free part of the plates'
+track ×2, new track by dragging in the service and in the timeline) + an old settings.json with «makeProxies» still loads.
+**Review: PASS WITH NOTES** (taken: a unique name for a second new track, a linked partner follows AQ7 on a new-track move, the
+settings test, the docs). **Gates (2026-11-19, the final code of amendment 3):** Debug and Release `--no-incremental -warnaserror`
+0 / 0; `git diff --check` clean; Release + `AIVE_HEAVY_TESTS=1` with `--blame-hang`: Vision 37, Project 758, Core 1 967, Export 142,
+Rendering 264, UI 1 342, Timeline 1 253, Video 418 (+1 environment-gated skip), ExportEndToEnd 189 — all green (6 370).
+
 **Before Phase 52 — the project was complete (2026-11-19).** Phase 51 (D070) accepted by the product owner: PR #79 merged (`097ec18`, CI green), the
 releases `v1.3.0` (Latest) and `models-1.0` published, the full Setup and the web Setup re-checked by the owner (D070 §8). Fifty-one
 phases since 2026-09-06. No phase is open; new work starts as a new phase on the owner's request. Left to the owner: the unpublished

@@ -101,10 +101,9 @@ public sealed partial class PreviewViewModel : ViewModelBase
     public PreviewViewModel(StatusService status, IPlaybackService playback, IProjectService projectService,
         ILogger<PreviewViewModel> logger, InOutRangeService? inOut = null, SourceViewerService? source = null,
         CameraMotionCoordinator? cameraMotion = null, TrainingSessionService? training = null, IUserSettingsService? settings = null,
-        PeopleAnalysisCoordinator? people = null, AudioProcessingCoordinator? audio = null, ProxyCoordinator? proxies = null)
+        PeopleAnalysisCoordinator? people = null, AudioProcessingCoordinator? audio = null)
     {
         InitPeople(people);
-        InitQuality(proxies);   // D071: the Preview's quality and proxies
         // D064 §5: a cleaned sound or a speech analysis that appears (or the comparison with the original sound) rebuilds the mix.
         _audio = audio;
         if (_audio is not null) _audio.AnalysesChanged += OnAudioAnalysesChanged;

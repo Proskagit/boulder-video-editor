@@ -68,6 +68,29 @@ public sealed class UserSettingsStoreTests : IDisposable
         Assert.Equal(MediaTime.FromSeconds(-20), old.HeartRateDisplayOffsetFor(Core.Telemetry.FitVendor.Other));
     }
 
+    [Fact]
+    public void A_file_of_the_test_builds_with_make_proxies_still_loads_with_its_values()
+    {
+        // D071 amendment 3: the 1.4.0 / 1.4.1 builds wrote «makeProxies»; the setting is gone, the file must still be read.
+        Settings().Update(s => s with { PreviewQuality = Core.Playback.PreviewQuality.Low, HoldProposalsEnabled = true });
+        var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(SettingsPath))!;
+        var holder = Holder(json, "previewQuality") ?? throw new InvalidOperationException("previewQuality not saved");
+        holder["makeProxies"] = false;
+        File.WriteAllText(SettingsPath, json.ToJsonString());
+
+        var reread = Settings();
+        Assert.Equal(UserFileState.Usable, reread.FileState);
+        Assert.Equal(Core.Playback.PreviewQuality.Low, reread.Current.PreviewQuality);
+        Assert.True(reread.Current.HoldProposalsEnabled);
+
+        static System.Text.Json.Nodes.JsonObject? Holder(System.Text.Json.Nodes.JsonNode node, string key) => node switch
+        {
+            System.Text.Json.Nodes.JsonObject o when o.ContainsKey(key) => o,
+            System.Text.Json.Nodes.JsonObject o => o.Select(p => p.Value is null ? null : Holder(p.Value, key)).FirstOrDefault(h => h is not null),
+            _ => null
+        };
+    }
+
     /// <summary>Removes the properties named <paramref name="names"/> (any case) wherever they are; how many were removed.</summary>
     private static int RemoveKeys(System.Text.Json.Nodes.JsonNode node, params string[] names)
     {

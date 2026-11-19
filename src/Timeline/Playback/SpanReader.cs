@@ -128,12 +128,8 @@ internal sealed class SpanReader : IAsyncDisposable
     private async Task RunAsync(long firstFrame)
     {
         var ct = _cts.Token;
+        var hardware = _settings.Hardware;
         var from = firstFrame;
-        // D071 §4: the proxy when the Preview has one — the same timestamps, SDR already; the source if it can't be read.
-        var proxy = IsStill ? null : _asset.DecodePath;
-        // Amendment 2: a proxy (a small H.264) is decoded in software — the hardware decoder's start costs about 180 ms per open
-        // (measured), more than the whole seek of a proxy; the source keeps the playback's choice.
-        var hardware = proxy is null ? _settings.Hardware : HardwareDecoding.Disabled;
         var bound = _asset.DecodeBound;
         var (maxWidth, maxHeight) = bound is { } b ? (b.Width, b.Height) : (_settings.MaxWidth, _settings.MaxHeight);
         while (true)
@@ -143,14 +139,14 @@ internal sealed class SpanReader : IAsyncDisposable
             {
                 var request = new VideoDecodeRequest
                 {
-                    FilePath = proxy ?? _asset.FilePath,
+                    FilePath = _asset.FilePath,
                     StartTime = _asset.StartTime,
                     FirstSamplePoint = IsStill ? SourceFrameSelector.StillImage : SamplePoint(from),
                     NominalFrameRate = _asset.NominalFrameRate,
                     MaxWidth = maxWidth,
                     MaxHeight = maxHeight,
                     Hardware = hardware,
-                    Hdr = proxy is null ? _asset.Hdr : null,   // D033: the same conversion as the thumbnail and the export
+                    Hdr = _asset.Hdr,   // D033: the same conversion as the thumbnail and the export
                     // D071 §2: a picture above 1080p (the «Оригинал» of a 4K source) needs the export's transport (D059 E1).
                     Transport = (long)maxWidth * maxHeight > LargePicturePixels ? DecodeTransport.HighThroughput : DecodeTransport.Standard
                 };
@@ -210,15 +206,6 @@ internal sealed class SpanReader : IAsyncDisposable
                 _logger.LogWarning(ex, "Decoding '{Path}' failed mid-stream; reopening without hardware decoding.", _asset.FilePath);
                 hardware = HardwareDecoding.Disabled;
                 from = Math.Max(firstFrame, Interlocked.Read(ref _lastRequestedFrame));
-            }
-            catch (VideoDecodeException ex) when (proxy is not null && !ct.IsCancellationRequested)
-            {
-                // D071 §4: a proxy removed or unreadable meanwhile (at its open or mid-stream) — the source from the frame playback
-                // asked for last, as without a proxy; the frames already buffered stay valid (the same timestamps).
-                _logger.LogWarning(ex, "The proxy '{Proxy}' of '{Path}' could not be decoded; decoding the source.", proxy, _asset.FilePath);
-                proxy = null;
-                hardware = _settings.Hardware;
-                if (delivered > 0) from = Math.Max(firstFrame, Interlocked.Read(ref _lastRequestedFrame));
             }
             catch (VideoDecodeException ex)
             {

@@ -10,12 +10,11 @@ using Xunit;
 namespace AiVideoEditor.Timeline.Tests.Playback;
 
 /// <summary>
-/// D071 §2, §4: the Preview's decoding of an asset — its proxy (<see cref="PlaybackAsset.DecodePath"/>) instead of the source,
-/// by the SDR path, the frames chosen by the source's timestamps; the bound of the quality
-/// (<see cref="PlaybackAsset.DecodeBound"/>), a large one over the high-throughput transport; an unreadable proxy falls back
-/// to the source; a new decoding reopens the asset.
+/// D071 §2, §4 (amendment 3: no proxies): the Preview decodes each asset at the quality's bound
+/// (<see cref="PlaybackAsset.DecodeBound"/>) — a large one over the high-throughput transport; without one, the playback's own
+/// bound; a new bound reopens the asset at the same frame.
 /// </summary>
-public sealed class ProxyPlaybackTests : IAsyncLifetime
+public sealed class PreviewBoundPlaybackTests : IAsyncLifetime
 {
     private static readonly FrameRate Rate = FrameRate.Fps25;
 
@@ -25,7 +24,7 @@ public sealed class ProxyPlaybackTests : IAsyncLifetime
     private readonly PlaybackService _service;
     private long _version;
 
-    public ProxyPlaybackTests() =>
+    public PreviewBoundPlaybackTests() =>
         _service = new PlaybackService(_decoder, _clock, NullLogger<PlaybackService>.Instance, new PlaybackSettings { BufferFrames = 4 });
 
     public Task InitializeAsync() => Task.CompletedTask;
@@ -58,26 +57,6 @@ public sealed class ProxyPlaybackTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_proxy_is_decoded_instead_of_the_source_by_the_SDR_path_with_the_quality_bound()
-    {
-        var asset = Video("clip.mp4", 100);
-        const string proxy = @"C:\proxies\clip-medium.mp4";
-        _decoder.Add(proxy, new FakeSource(Rate, 100));
-        Publish(a => a with { DecodePath = proxy, DecodeBound = new FrameSize(1920, 1080), Hdr = Core.Color.HdrConversion.Hlg() });
-
-        await _service.SeekAsync(MediaTime.FromFrame(40, Rate));
-        Assert.Equal(40, await SettledNumberAsync());   // the proxy's frame for frame 40: the same timestamps
-
-        var request = _decoder.Requests.Last();
-        Assert.Equal(proxy, request.FilePath);
-        Assert.Null(request.Hdr);                        // the proxy is SDR already
-        Assert.Equal(HardwareDecoding.Disabled, request.Hardware);   // amendment 2: a proxy decodes in software
-        Assert.Equal((1920, 1080), (request.MaxWidth, request.MaxHeight));
-        Assert.Equal(DecodeTransport.Standard, request.Transport);
-        Assert.Equal(0, _decoder.OpenCount(asset.FilePath));
-    }
-
-    [Fact]
     public async Task The_original_of_a_4K_source_decodes_unbounded_over_the_high_throughput_transport()
     {
         var asset = Video("clip.mp4", 50);
@@ -107,35 +86,18 @@ public sealed class ProxyPlaybackTests : IAsyncLifetime
         Assert.Equal(DecodeTransport.Standard, request.Transport);
     }
 
-    [Fact]
-    public async Task An_unreadable_proxy_falls_back_to_the_source()
-    {
-        var asset = Video("clip.mp4", 100);
-        const string proxy = @"C:\proxies\gone.mp4";   // not added: the fake reports FileNotFound
-        Publish(a => a with { DecodePath = proxy, DecodeBound = new FrameSize(1280, 720) });
-
-        await _service.SeekAsync(MediaTime.FromFrame(30, Rate));
-        Assert.Equal(30, await SettledNumberAsync());
-
-        // Each reader (the snapshot's at 0, the seek's at 30) tries the proxy first, then decodes the source.
-        Assert.True(_decoder.OpenCount(proxy) >= 1);
-        Assert.Equal(_decoder.OpenCount(proxy), _decoder.OpenCount(asset.FilePath));
-    }
 
     [Fact]
-    public async Task A_proxy_that_becomes_ready_reopens_the_asset_at_the_same_frame()
+    public async Task A_new_quality_reopens_the_asset_at_the_same_frame_with_its_bound()
     {
-        var asset = Video("clip.mp4", 100);
+        Video("clip.mp4", 100);
         Publish(a => a with { DecodeBound = new FrameSize(1920, 1080) });
         await _service.SeekAsync(MediaTime.FromFrame(20, Rate));
         Assert.Equal(20, await SettledNumberAsync());
 
-        const string proxy = @"C:\proxies\clip.mp4";
-        _decoder.Add(proxy, new FakeSource(Rate, 100));
-        Publish(a => a with { DecodePath = proxy, DecodeBound = new FrameSize(1920, 1080) });
+        Publish(a => a with { DecodeBound = new FrameSize(1280, 720) });          // «Минимум» chosen: on the fly
         Assert.Equal(20, await SettledNumberAsync());
-        Assert.Equal(proxy, _decoder.Requests.Last().FilePath);
+        Assert.Equal((1280, 720), (_decoder.Requests.Last().MaxWidth, _decoder.Requests.Last().MaxHeight));
         Assert.Equal(MediaTime.FromFrame(20, Rate), _service.Position);
-        Assert.True(_decoder.OpenCount(asset.FilePath) >= 1);
     }
 }

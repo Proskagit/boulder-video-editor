@@ -41,9 +41,8 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
 
     public AppSettingsViewModel(IUserSettingsService settings, FitSettingsViewModel? fit, AppSettingsSection section = AppSettingsSection.General,
         string? ffmpegFound = null, string? ffprobeFound = null, ITrainingClockCorrection? training = null,
-        AiVideoEditor.UI.Services.ModelSetupService? models = null, AiVideoEditor.UI.Services.ProxyCoordinator? proxies = null)
+        AiVideoEditor.UI.Services.ModelSetupService? models = null)
     {
-        _proxies = proxies;
         Models = models;
         if (models is not null)
         {
@@ -62,8 +61,6 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
         _otherHeartRateOffsetSeconds = Seconds(current.OtherHeartRateDisplayOffsetTicks);
         _holdProposalsEnabled = current.HoldProposalsEnabled;
         _timelineFollowsPlayhead = current.TimelineFollowsPlayhead;
-        _makeProxies = current.MakeProxies;
-        ProxiesSizeText = ProxySizeText();
         _canvasSnapPixels = (decimal)current.CanvasSnapPixels;
         _showPeopleMasks = current.ShowPeopleMasks;
         // D068 item 16: the two languages by name; no choice set yet shows the language the interface has now.
@@ -236,36 +233,6 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
     [ObservableProperty] private bool _holdProposalsEnabled;
 
     partial void OnHoldProposalsEnabledChanged(bool value) => _settings.Update(s => s with { HoldProposalsEnabled = value });
-
-    private readonly AiVideoEditor.UI.Services.ProxyCoordinator? _proxies;
-
-    /// <summary>D071 §3: proxies of 4K / HEVC videos made in the background for the Preview.</summary>
-    [ObservableProperty] private bool _makeProxies;
-
-    partial void OnMakeProxiesChanged(bool value) => _settings.Update(s => s with { MakeProxies = value });
-
-    /// <summary>D071 §3: «Удалить прокси» is offered with the proxies' service.</summary>
-    public bool HasProxies => _proxies is not null;
-
-    /// <summary>The button's text with the space the proxies take now.</summary>
-    [ObservableProperty] private string _proxiesSizeText = "";
-
-    private string ProxySizeText() => _proxies is null ? "" : string.Format(Strings.AppSettings_ClearProxies, Gigabytes(_proxies.CacheBytes()));
-
-    private static string Gigabytes(long bytes) =>
-        (bytes / (1024.0 * 1024 * 1024)).ToString("0.##", System.Globalization.CultureInfo.CurrentCulture);
-
-    /// <summary>D071 §3: removes every proxy not being read now; the project's are made again when «Создавать прокси» is on.</summary>
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
-    private void ClearProxies()
-    {
-        if (_proxies is null) return;
-        var freed = _proxies.ClearAll();
-        ProxiesSizeText = ProxySizeText();
-        ProxiesClearedText = string.Format(Strings.AppSettings_ProxiesCleared, Gigabytes(freed));
-    }
-
-    [ObservableProperty] private string _proxiesClearedText = "";
 
     /// <summary>D058 §1: «Таймлайн следует за плейхедом».</summary>
     [ObservableProperty] private bool _timelineFollowsPlayhead;

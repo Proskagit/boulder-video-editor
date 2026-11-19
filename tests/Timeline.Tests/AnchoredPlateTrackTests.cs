@@ -183,4 +183,71 @@ public class AnchoredPlateTrackTests
         Assert.Equal(before, f.Snapshot());
         Assert.Equal((10L, 60L), Span(plateA));
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void A_clip_moved_into_the_free_part_of_its_plates_track_takes_its_plate_to_a_new_track_above(bool magnet)
+    {
+        // D071 amendment 3 (the owner): V1 the clips, V2 the plates — B into V2's free part at 300 used to be refused (its own
+        // plate followed it onto V2 and overlapped it).
+        var f = new TimelineFixture();
+        f.Settings.FrameRate = Rate;
+        f.Settings.IsFrameRateLocked = true;
+        var a = f.Place<VideoClip>(f.V1, f.Video(60, Rate, "a.mp4"), F(0).Ticks, F(100).Ticks);
+        var b = f.Place<VideoClip>(f.V1, f.Video(60, Rate, "b.mp4"), F(100).Ticks, F(200).Ticks);
+        Ok(f.Service.AddTrack(TrackType.Video));
+        var v2 = f.Project.Timeline.VideoTracks[1];
+        var plateA = new TemplateClip { Kind = TemplateKind.Boulder, TimelineStart = F(10), Duration = F(50), AnchorClipId = a.Id };
+        var plateB = new TemplateClip { Kind = TemplateKind.Boulder, TimelineStart = F(110), Duration = F(50), AnchorClipId = b.Id };
+        v2.Clips.Add(plateA);
+        v2.Clips.Add(plateB);
+        f.Project.Timeline.MagneticMainTrack = magnet;
+        var before = f.Snapshot();
+
+        Ok(f.Service.MoveClips(new[] { b.Id }, 200, v2.Id));                          // B to V2 at 300 — free there
+
+        Assert.Contains(b, v2.Clips);
+        Assert.Equal((300L, 400L), Span(b));
+        Assert.Equal(3, f.Project.Timeline.VideoTracks.Count);                        // a new V3 for B's plate
+        Assert.Contains(plateB, f.Project.Timeline.VideoTracks[2].Clips);
+        Assert.Equal((310L, 360L), Span(plateB));
+        Assert.Contains(plateA, v2.Clips);
+        f.AssertValid();
+        f.UndoRedo.Undo();
+        Assert.Equal(before, f.Snapshot());
+        Assert.Equal(2, f.Project.Timeline.VideoTracks.Count);
+    }
+
+    [Fact]
+    public void A_clip_dragged_above_the_top_track_goes_onto_a_new_track_with_its_plate_above_it()
+    {
+        // D071 amendment 3 (the owner): with only V1 and the plates' V2, a clip is put over the others by dragging it above V2.
+        var f = new TimelineFixture();
+        f.Settings.FrameRate = Rate;
+        f.Settings.IsFrameRateLocked = true;
+        var a = f.Place<VideoClip>(f.V1, f.Video(60, Rate, "a.mp4"), F(0).Ticks, F(100).Ticks);
+        var b = f.Place<VideoClip>(f.V1, f.Video(60, Rate, "b.mp4"), F(100).Ticks, F(200).Ticks);
+        Ok(f.Service.AddTrack(TrackType.Video));
+        var v2 = f.Project.Timeline.VideoTracks[1];
+        var plateB = new TemplateClip { Kind = TemplateKind.Boulder, TimelineStart = F(110), Duration = F(50), AnchorClipId = b.Id };
+        v2.Clips.Add(new TemplateClip { Kind = TemplateKind.Boulder, TimelineStart = F(10), Duration = F(50), AnchorClipId = a.Id });
+        v2.Clips.Add(plateB);
+        var before = f.Snapshot();
+
+        Ok(f.Service.MoveClips(new[] { b.Id }, -100, MoveTargets.NewVideoTrack));      // B over A, on a new track
+
+        var tracks = f.Project.Timeline.VideoTracks;
+        Assert.Equal(4, tracks.Count);                                                 // V3 for B, V4 for its plate
+        Assert.Contains(b, tracks[2].Clips);
+        Assert.Equal((0L, 100L), Span(b));
+        Assert.Contains(plateB, tracks[3].Clips);
+        Assert.Equal((10L, 60L), Span(plateB));
+        Assert.Contains(a, f.V1.Clips);
+        f.AssertValid();
+        Assert.NotNull(f.Service.PreviewMove(new[] { b.Id }, 0, MoveTargets.NewVideoTrack));   // the ghost: allowed
+        f.UndoRedo.Undo();
+        Assert.Equal(before, f.Snapshot());
+        Assert.Equal(2, f.Project.Timeline.VideoTracks.Count);
+    }
 }

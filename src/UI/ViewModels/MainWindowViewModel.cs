@@ -46,11 +46,6 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// <summary>D070 §3: the Portable package's models (the start's offer, the status bar's progress); null in tests.</summary>
     public ModelSetupService? ModelSetup { get; }
 
-    /// <summary>D071 §3: the proxy being made (the status bar's indicator); null in tests.</summary>
-    public ProxyProgress? ProxyProgress => _proxies?.Progress;
-
-    private readonly ProxyCoordinator? _proxies;
-
     /// <summary>"Name — Boulder Video Editor", with a "*" after the name while there are unsaved changes.</summary>
     public string Title => $"{_projectService.Current.Name}{(_projectService.Current.IsDirty ? "*" : "")} — Boulder Video Editor";
 
@@ -92,11 +87,9 @@ public sealed class MainWindowViewModel : ViewModelBase
         IDialogService? dialogs = null,
         PeopleAnalysisCoordinator? people = null,
         AudioProcessingCoordinator? audioProcessing = null,
-        ModelSetupService? modelSetup = null,
-        ProxyCoordinator? proxies = null)
+        ModelSetupService? modelSetup = null)
     {
         ModelSetup = modelSetup;
-        _proxies = proxies;
         _export = export;
         _dialogs = dialogs;
         ShowExportCommand = new RelayCommand(() => _export?.ShowDetails());
@@ -285,8 +278,6 @@ public sealed class MainWindowViewModel : ViewModelBase
             await _thumbnails.ShutdownAsync(); // never throws
         if (_waveforms is not null)
             await _waveforms.ShutdownAsync();  // never throws
-        if (_proxies is not null)
-            await _proxies.ShutdownAsync();    // D071: the proxy being made is given up (its temporary file removed)
         return true;
     }
 

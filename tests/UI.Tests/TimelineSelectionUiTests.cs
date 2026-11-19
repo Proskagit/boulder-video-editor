@@ -375,6 +375,31 @@ public sealed class TimelineSelectionUiTests
     }
 
     [Fact]
+    public void A_clip_dragged_above_the_top_track_goes_onto_a_new_track()
+    {
+        // D071 amendment 3 (the owner): dragging above the tracks shows «+ Новая дорожка» and the release adds the track.
+        var b = Text(V1, 20, 30);
+        var timeline = Timeline();
+        timeline.SnappingEnabled = false;
+        var tracks = Sequence.VideoTracks.Count;
+        timeline.OnClipPressed(Vm(timeline, b), toggle: false);
+        timeline.BeginMove(X(timeline, 25));
+
+        timeline.UpdateGesture(X(timeline, 25), null, aboveTracks: true);
+        Assert.True(timeline.IsNewTrackDropTarget);
+        Assert.False(timeline.IsNewTrackDropInvalid);
+
+        timeline.EndGesture();
+        Assert.False(timeline.IsNewTrackDropTarget);
+        Assert.Equal(tracks + 1, Sequence.VideoTracks.Count);
+        Assert.Contains(b, Sequence.VideoTracks[^1].Clips);
+        Assert.Equal(20, Start(b));
+        _undo.Undo();
+        Assert.Equal(tracks, Sequence.VideoTracks.Count);
+        Assert.Contains(b, V1.Clips);
+    }
+
+    [Fact]
     public void A_snap_that_would_push_a_clip_is_skipped()
     {
         // A group's outer edges snap (D037 §2): its end to the marker at 134 would put X into N — skipped; X lands where

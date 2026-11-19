@@ -618,6 +618,12 @@ public sealed record SlipPreview(MediaTime SourceIn, MediaTime SourceOut, long F
 /// <summary>A ripple drag's preview (D030 §6): the planned start and end of each clip the release would change, and
 /// whether a dissolve stopped the trim.</summary>
 /// <summary>A planned move (<see cref="ITimelineEditService.PreviewMove"/>): the clips it changes, by id, at their new times.</summary>
+/// <summary>D071 amendment 3: the move's target «a new video track above every other» (a clip dragged above the top track).</summary>
+public static class MoveTargets
+{
+    public static readonly Guid NewVideoTrack = new("6e3c0f1a-52d0-4b71-9a40-0d071a3c0001");
+}
+
 public sealed record MovePreview(IReadOnlyDictionary<Guid, (MediaTime Start, MediaTime End)> Clips);
 
 public sealed record RippleTrimPreview(IReadOnlyDictionary<Guid, (MediaTime Start, MediaTime End)> Clips, bool Stopped);

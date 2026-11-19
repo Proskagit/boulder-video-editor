@@ -56,3 +56,15 @@ Mark each row PASS / FAIL / note.
 | D7 | Drag a video clip onto a track where another clip's «Боулдер» stands. | The place is red; on release nothing moves; the plate stays. |
 | D8 | Drag a clip from one track to another (free place). | A ghost of its future place on the target track (yellow if it would push clips, red if refused). |
 | D9 | Move a clip with its «Боулдер» from a high track down (as in the owner's screenshot). | Its plate goes down to the lowest free track above it (beside the other plates); the tracks left empty by this move disappear; Ctrl+Z puts everything back. |
+
+## E. Amendment 3 (the owner's check of 1.4.1) — the build 1.4.2
+
+Sections A, B (proxies, «Создавать / Удалить прокси») and D2–D3 are withdrawn: no proxies any more.
+
+| # | Steps | Expected |
+|---|---|---|
+| E1 | Import 4K / HEVC clips. | No «Прокси: …» in the status bar; nothing is made in the background. The old `cache\proxies` folder is gone after the start. |
+| E2 | The quality button: «Минимум» / «Среднее» / «Высокое» / «Оригинал». | Applied at once; lower is lighter (smoother scrubbing on a weak machine). |
+| E3 | Two tracks: V1 the clips, V2 the plates. Drag a clip from V1 into V2's free part. | It goes there; its «Боулдер» goes to a new V3 above it; Ctrl+Z undoes it in one step. |
+| E4 | Two tracks: drag a clip from V1 up over the ruler (above the top track). | The bar «+ Новая дорожка» while dragging; on release a new track on top with the clip, its plate above it. |
+| E5 | E4 where the clip's place is blocked (e.g. a locked track would be needed). | The bar red; nothing changes on release. |
