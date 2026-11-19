@@ -15,6 +15,11 @@ it; without it only the hold markup is unavailable — everything else works.
 
 ## Installing
 
+0. **Release 1.3 (D070):** the Setup installer installs every model below into `%LOCALAPPDATA%\BoulderVideoEditor\models`
+   (a correct file is never rewritten, a damaged one is repaired by running the installer again); the Portable archive carries
+   them in `ai-models\` and the application offers to install them at its start or from «Настройки…» → «ИИ-модели» — each
+   file copied into a temporary file and moved into place only with its pinned size and SHA-256; nothing is downloaded
+   (`docs/DISTRIBUTION.md`). The uninstaller removes them only when its «Также удалить ИИ-модели» box is ticked.
 1. **Release 1.0 (D066 §3):** unpack the models archive `AiVideoEditor-1.0.0-models.zip` (1.1: `BoulderVideoEditor-<version>-models.zip`) and run `Install-Models.cmd` — it
    installs every model below (also the people and audio models) with their sizes and SHA-256s checked
    (`tools/models`). Otherwise produce the two files with the recipe below (or copy them from a machine that has them).

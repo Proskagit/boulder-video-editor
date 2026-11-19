@@ -8,12 +8,15 @@
     size or SHA-256 differs, and writes artifacts/release/BoulderVideoEditor-<version>-models.zip:
       models\<folder>\<files>, models.json, Install-Models.cmd / .ps1, README.txt, THIRD-PARTY-NOTICES.txt, licenses\.
     The archive is stored without compression (ONNX weights do not compress) and its SHA-256 is printed.
+    With -NoZip only the folder is written (D070: tools/distribution/New-Release.ps1 puts it into the Portable folder as
+    ai-models and into the installer).
 #>
 [CmdletBinding()]
 param(
     [string] $Source = (Join-Path $env:LOCALAPPDATA 'BoulderVideoEditor\models'),
     [string] $Version = '1.0.0',
-    [string] $OutputRoot
+    [string] $OutputRoot,
+    [switch] $NoZip
 )
 
 Set-StrictMode -Version Latest
@@ -45,6 +48,10 @@ foreach ($f in 'models.json', 'Install-Models.ps1', 'Install-Models.cmd', 'THIRD
 }
 Copy-Item -Recurse (Join-Path $PSScriptRoot 'licenses') (Join-Path $stage 'licenses')
 
+if ($NoZip) {
+    Write-Host "Models package: $stage"
+    return
+}
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 [System.IO.Compression.ZipFile]::CreateFromDirectory($stage, $zip, [System.IO.Compression.CompressionLevel]::NoCompression, $false)
 $size = (Get-Item $zip).Length

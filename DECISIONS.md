@@ -11215,7 +11215,134 @@ Eight new types of the library (§0), each with its default and range as D044 §
   (whole frames, each at most its clip), and the colour — the eight values, «Сбросить цвет» and «Автоулучшение» (each video
   clip by its own frames) — each change one Undo step over the group, «—» where the clips differ.
 
+### 12. Acceptance (the product owner, 2026-11-19)
+
+The owner re-checked amendments 1 and 2 (plan rows R1–R10, S1–S7, S4a) and merged PR #78 (`3ebee10`): **Phase 50 accepted.**
+
 ### Out of scope
 
 The export window's cover frame (backlog, the owner); keyframed colour; LUTs and curves; animated transition previews; a
 switch for snapping.
+
+## D070 — Phase 51: the installer and the distribution — Setup and one Portable archive *(set by the owner on 2026-11-19)*
+
+Date: 2026-11-19. **Status: the scope set by the product owner on 2026-11-19** (the final phase: packaging, installation,
+distribution) and the owner's answers below. Branch `feat/phase-51-installer`. **No format change** (`project.json` v26).
+Release version **1.3.0**. Manual plan: `docs/PHASE51_MANUAL_TEST_PLAN.md`; the process: `docs/DISTRIBUTION.md`.
+
+### 0. What existed
+
+The portable folder (`tools/portable/Publish-Portable.ps1`, D046 / D066: self-contained win-x64, no single-file, no trimming;
+`-FfmpegPackage` puts the release's minimal FFmpeg into `ffmpeg\` and points `appsettings.json` at it) and **a separate models
+archive** (`tools/models`: `models.json`, `Pack-Models.ps1`, `Install-Models.cmd` / `.ps1` copying into
+`%LOCALAPPDATA%\BoulderVideoEditor\models`). The application keeps everything of the user in `%LOCALAPPDATA%\BoulderVideoEditor`
+(`AppPaths`: `config`, `models`, `recovery`, `cache`, `logs`) and writes nothing into its own folder; the models are pinned by
+size and SHA-256 (`HoldModel`, `PeopleModel`, `AudioModel`), a missing model is never cached (installing one needs no restart).
+The version is not in the sources: it is given to the build (the last portable was 1.2.2). No installer tool on the machine.
+
+### 1. The owner's answers (2026-11-19)
+
+- The recent projects' rows looked selected all at once when one was opened (the start screen) — fix it (§5).
+- **Inno Setup 6** for the installer (installed on the build machine by `winget install JRSoftware.InnoSetup`, 6.7.3).
+- **Per user** (no administrator rights): the models, the settings and the projects are the user's anyway.
+- Version **1.3.0**; **no code signing** (SmartScreen shows «Неизвестный издатель»; where signing goes: `docs/DISTRIBUTION.md`).
+
+### 2. Setup — `BoulderVideoEditor-<version>-setup.exe`
+
+`tools/installer/BoulderVideoEditor.iss` (Inno Setup 6), compiled by `tools/distribution/New-Release.ps1`:
+- The program into `%LOCALAPPDATA%\Programs\Boulder Video Editor` (`{autopf}` of a per-user install); the folder can be chosen on
+  the first installation; an update goes into the installed folder without asking (`DisableDirPage=auto`, `UsePreviousAppDir`).
+- **The models** into `%LOCALAPPDATA%\BoulderVideoEditor\models\<folder>` — the folder the application reads; stored in the
+  setup uncompressed (ONNX weights do not compress); a file is copied only when the one in place lacks its pinned SHA-256
+  (`ModelNeeded`, Inno's `GetSHA256OfFile`), so an update or a repeated installation repairs a damaged model and never rewrites
+  a correct one; `uninsneveruninstall` — the uninstaller never removes them by itself. Their notices into `{app}\models-licenses`.
+  The [Files] lines are generated from `models.json` (`tools/installer/New-ModelsInclude.ps1`).
+- The Start menu shortcut; the desktop shortcut as a task (ticked); «Запустить Boulder Video Editor» at the end.
+- The uninstall entry in HKCU (name, version, icon, size) by the fixed **AppId** `{564FF1BA-2649-4C46-9BF9-C48DCCEA4DA9}` — the
+  same AppId is what makes 1.3.1 update 1.3.0 instead of adding a second copy. A downgrade asks first (a run with /SUPPRESSMSGBOXES answers No and refuses).
+- `AppMutex=BoulderVideoEditor.Running` (and `CloseApplications=no`: the Restart Manager would close the editor without its unsaved-changes question): the application holds this mutex (`Program.RunningMutexName`), so the installer and
+  the uninstaller ask to close it first instead of failing on files in use.
+- `WizardStyle=modern dark` (the application is dark), its icon, Russian and English (by the language of Windows), no welcome
+  page, the models' place on the «Готово к установке» page.
+- **Uninstall:** a first window with «Также удалить ИИ-модели (около 1,2 ГБ)…» (unticked) and a note that the portable version
+  uses the same models; then the confirmation saying that projects, videos, exports and settings are never removed. Only the
+  program's own files and shortcuts are removed (Inno's uninstall log); with the box ticked also the model folders the
+  application has ever pinned (`ModelFolders()`: those of `models.json` + the older `people-v1`) and the models folder only when
+  nothing else is left in it. A silent uninstall keeps the models unless `/DELETEMODELS=1`. Never `config`, `recovery`,
+  `cache`, `logs`, a project or an export.
+- Self-contained: the .NET 8 runtime, FFmpeg (the minimal 9.0.2 build of D066 §2, GPL-2.0-or-later) and the models are inside;
+  nothing to install by hand. GPU: DirectML and NVENC are used when present, the CPU otherwise (unchanged, D034 / D059).
+
+### 3. Portable — `BoulderVideoEditor-<version>-win-x64-portable.zip`
+
+One archive: the portable folder + the models package as `ai-models\` (the unpacked models archive: `models.json`,
+`models\<folder>\<file>`, the notices, `Install-Models.cmd` as the fallback). The models are stored, the rest compressed.
+- At every start where `ai-models\models.json` is next to the exe and a pinned model file is missing in the models folder
+  (a quick check by size), after the recovery question, the application asks: «Установить» / «Не сейчас». «Установить» copies
+  the files **in the background** (`ModelSetupService` → `IModelInstaller` → Vision's `ModelPackageInstaller`): only the files
+  the application pins (the package's manifest only marks the package), each into a temporary file next to its place while its
+  SHA-256 is computed, moved into place only when the size and the SHA-256 are the pinned ones; a correct file in place is kept;
+  free space checked first; a damaged package, a full disk, a write error or a cancel leave no partial file and are reported
+  in the status bar; nothing else in the models folder is touched; a temporary file of a crashed run is removed by the next
+  one. Nothing is downloaded. The status bar shows the progress and ✕; closing the window while it runs asks first (keep /
+  cancel and close). «Не сейчас» — the editor works; each AI feature says its model is missing, and its message now names
+  «Настройки…» → «ИИ-модели».
+- «Настройки…» → «ИИ-модели» (a new section): the state (every model in place / how many files missing), the folder, and in the
+  portable version «Установить из папки ai-models» (also a repair) with the progress and ✕; without a package (Setup) the note
+  that the installer restores them.
+- **Where things live, so copies don't conflict:** the program folder is never written (it can be read-only, moved, replaced or
+  deleted); the settings, models, recovery, caches and logs are the per-user folder shared by every portable copy and by the
+  installed version (one set of models, one settings file — as before); a portable update is a new folder. The models package
+  can be deleted after installing.
+- This changes D034 §2 («the application never writes the models folder»): it now writes it **only** when the user asks it to
+  install the package's pinned files; it still never downloads, and never loads a file without its pinned SHA-256.
+
+### 4. Updates and versions
+
+Manual: the next version's Setup over the installed one (§2), or a new portable folder. No automatic update, no network check.
+The program's version is the build's (`-Version`, the assemblies' `Version` / `InformationalVersion`, the setup's
+`AppVersion`). The models' version is their folder (`sam2.1-large`, `people-v2`, `audio-v1`) and their pinned SHA-256: a new
+model is a new folder, installed beside the older one, which stays until the user removes it.
+
+### 5. The start screen's recent projects
+
+Opening one entry disables every row for the open (one action at a time, D026 §6) — Fluent painted every disabled row grey, so a
+click looked as if all projects were selected before the chosen one opened (also while the folders were being checked). A
+disabled row now keeps its transparent background (`Button.recentRow:disabled`); the behaviour is unchanged.
+
+### 6. Verification
+
+`tools/installer/Test-Installer.ps1` compiles the installer under a test identity (its own AppId, name and per-user folder, so
+the real installation and models are never touched) and runs install / update / downgrade / running application / uninstall /
+uninstall with the models, checking each. A clean Windows (no .NET, FFmpeg, models) is **not** available on the build machine
+(Windows Sandbox does not start there, D066 §7): that check is the owner's (`docs/PHASE51_MANUAL_TEST_PLAN.md`).
+
+### 7. The web Setup (the owner, 2026-11-19, after the review)
+
+The owner asked for a third asset beside the full Setup and the Portable archive: a light installer that downloads the models.
+**This changes, for this one file only, the «nothing is downloaded» rule of D034 / §2–§3** — the owner's decision; the
+application itself, the full Setup and the Portable archive still never download anything.
+- `BoulderVideoEditor-<version>-web-setup.exe` — the same `.iss` compiled with `/DWebModels=1`: the program, .NET, FFmpeg and
+  the models' notices (about 50 MB); the same AppId, so the full and the web Setup update one installation.
+- The models are downloaded **before anything is installed**: on «Готово к установке» (Inno's download page) and, for what
+  is still missing (a silent run), in `PrepareToInstall` — each into `{tmp}` with its pinned SHA-256 checked by Inno — then
+  copied like the packed ones (`[Files] Source: "{tmp}\<file>"; external`). A file whose SHA-256 differs is refused; a file
+  already in place with its SHA-256 is not downloaded (`ModelNeeded`), so an update or a repair downloads only what is
+  missing or damaged. (Refined after the review: Inno's in-line `external download` would have downloaded only after the
+  program's files were copied, so an offline update could have left a half-updated program.)
+- **Where from:** the GitHub release **`models-<models.json version>`** (now `models-1.0`) of the project's repository — the
+  pinned files as flat assets (every name is unique; `New-ModelsInclude.ps1 -BaseUrl` refuses otherwise). A models release
+  is made once per models version, independent of the program's versions, so a web Setup keeps working while that release
+  exists (and the repository is public: an anonymous download from a private one is a 404). `New-Release.ps1` writes its
+  assets (`models-1.0-assets\`: the 13 files, `SHA256SUMS`, the models' notices and licence texts); the owner publishes it.
+- **Without internet** the download fails before anything is installed: a message (nothing installed or changed; Next
+  retries, Cancel leaves the computer as it was; a silent run exits with an error); the page «Готово к установке» says that
+  the internet is needed and that the full Setup is the offline way.
+- Checked by `Test-Installer.ps1` W0–W4 against a local HTTP server: light; a tampered asset refused; the right files
+  downloaded with their SHA-256; run again — nothing requested; an update with the server down refused before any file is
+  touched. The real GitHub download (its redirect, 1.2 GB) only by the manual rows W1–W4.
+
+### Out of scope
+
+Automatic updates and any network check of the application; downloads by the application or the Portable archive; code signing; an all-users installation; file associations; MSI / MSIX / winget
+packages; removing the caches or the settings on uninstall.

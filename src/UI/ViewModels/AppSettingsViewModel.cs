@@ -12,7 +12,10 @@ public enum AppSettingsSection
     General,
     Ffmpeg,
     TimelineAndMarkup,
-    CorosFit
+    CorosFit,
+
+    /// <summary>D070 §3: the AI models — their state, the Portable package's installation.</summary>
+    Models
 }
 
 /// <summary>D062 amendment 1: the project's training clock correction as the settings window edits it — the toolbar's
@@ -37,8 +40,15 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
     private readonly IUserSettingsService _settings;
 
     public AppSettingsViewModel(IUserSettingsService settings, FitSettingsViewModel? fit, AppSettingsSection section = AppSettingsSection.General,
-        string? ffmpegFound = null, string? ffprobeFound = null, ITrainingClockCorrection? training = null)
+        string? ffmpegFound = null, string? ffprobeFound = null, ITrainingClockCorrection? training = null,
+        AiVideoEditor.UI.Services.ModelSetupService? models = null)
     {
+        Models = models;
+        if (models is not null)
+        {
+            models.PropertyChanged += OnModelsPropertyChanged;
+            _ = RefreshModelsAsync(models);
+        }
         _settings = settings;
         _training = training;
         if (training is not null) training.PropertyChanged += OnTrainingPropertyChanged;
@@ -74,11 +84,56 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
     /// <see cref="AppSettingsSection"/>; the chosen one is shown on the right. New sections are added here.</summary>
     public IReadOnlyList<string> SectionNames { get; } = new[]
     {
-        Strings.AppSettings_NavGeneral, Strings.AppSettings_NavFfmpeg, Strings.AppSettings_NavTimelineAndMarkup, Strings.AppSettings_NavCorosFit
+        Strings.AppSettings_NavGeneral, Strings.AppSettings_NavFfmpeg, Strings.AppSettings_NavTimelineAndMarkup, Strings.AppSettings_NavCorosFit,
+        Strings.AppSettings_NavModels
     };
 
+    /// <summary>D070 §3: the models' state and installation; null without the service (tests).</summary>
+    public AiVideoEditor.UI.Services.ModelSetupService? Models { get; }
+
+    /// <summary>The models folder.</summary>
+    public string ModelsFolderText => Models is null ? "" : string.Format(Strings.AppSettings_ModelsFolder, Models.ModelsRoot);
+
+    /// <summary>Checking / every model in place / how many files are missing.</summary>
+    public string ModelsStateText => Models?.State switch
+    {
+        null => Strings.AppSettings_ModelsChecking,
+        { IsComplete: true } => string.Format(Strings.AppSettings_ModelsComplete, Models.TotalGigabytes),
+        var state => string.Format(Strings.AppSettings_ModelsMissing, state.MissingFiles.Count)
+    };
+
+    /// <summary>The running installation's percent, for the section.</summary>
+    public string ModelsInstallingText => Models is null ? "" :
+        string.Format(Strings.AppSettings_ModelsInstalling, Models.Percent.ToString("0", System.Globalization.CultureInfo.CurrentCulture));
+
+    public bool ModelsInstalling => Models?.IsInstalling == true;
+
+    /// <summary>The Portable package is next to the application: the install button and its note.</summary>
+    public bool ModelsHavePackage => Models?.HasPackage == true;
+
+    public bool ModelsHaveNoPackage => Models is { HasPackage: false };
+
+    private static async Task RefreshModelsAsync(AiVideoEditor.UI.Services.ModelSetupService models)
+    {
+        try
+        {
+            await models.RefreshAsync();
+        }
+        catch (Exception)
+        {
+            // the state stays «Проверка…»; the features report a missing model themselves
+        }
+    }
+
+    private void OnModelsPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        OnPropertyChanged(nameof(ModelsStateText));
+        OnPropertyChanged(nameof(ModelsInstallingText));
+        OnPropertyChanged(nameof(ModelsInstalling));
+    }
+
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowsGeneral), nameof(ShowsFfmpeg), nameof(ShowsTimelineAndMarkup), nameof(ShowsCorosFit))]
+    [NotifyPropertyChangedFor(nameof(ShowsGeneral), nameof(ShowsFfmpeg), nameof(ShowsTimelineAndMarkup), nameof(ShowsCorosFit), nameof(ShowsModels))]
     private int _selectedSectionIndex;
 
     public AppSettingsSection SelectedSection => (AppSettingsSection)Math.Clamp(SelectedSectionIndex, 0, SectionNames.Count - 1);
@@ -87,6 +142,7 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
     public bool ShowsFfmpeg => SelectedSection == AppSettingsSection.Ffmpeg;
     public bool ShowsTimelineAndMarkup => SelectedSection == AppSettingsSection.TimelineAndMarkup;
     public bool ShowsCorosFit => SelectedSection == AppSettingsSection.CorosFit;
+    public bool ShowsModels => SelectedSection == AppSettingsSection.Models;
 
     public event EventHandler? CloseRequested;
 
@@ -112,6 +168,7 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
     public void Detach()
     {
         if (_training is not null) _training.PropertyChanged -= OnTrainingPropertyChanged;
+        if (Models is not null) Models.PropertyChanged -= OnModelsPropertyChanged;
     }
 
     private static decimal Seconds(long ticks) => (decimal)ticks / TimeSpan.TicksPerSecond;

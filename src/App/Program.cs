@@ -13,12 +13,18 @@ namespace AiVideoEditor.App;
 
 internal static class Program
 {
+    /// <summary>D070 §2: held while the application runs, so its installer (Inno Setup's <c>AppMutex</c>) asks to close it before
+    /// it updates or removes the files. Several copies may run at once; the name is per session (no <c>Global\</c>).</summary>
+    internal const string RunningMutexName = "BoulderVideoEditor.Running";
+
     // Avalonia needs a static, parameterless entry point that never touches the
     // service provider before the framework is fully initialized, hence Main is
     // split from BuildAvaloniaApp below (standard Avalonia bootstrapping pattern).
     [STAThread]
     public static void Main(string[] args)
     {
+        using var running = new Mutex(false, RunningMutexName);
+
         // Configure Serilog first so any startup failure (including one thrown by
         // Avalonia itself) is still captured in the application log.
         // D068 §1: 1.0's per-user folder (settings, models, recovery, caches) moves under the new name before

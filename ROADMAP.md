@@ -608,7 +608,7 @@ Stopping points — the product is usable after each:
 Deferred, not blocking a release: see "Follow-ups and backlog" and the open checks of Phases 17, 18, 23 and 25 (the R10
 audio device, the product owner's visual check of the S1 HDR export and PQ on real PQ footage, the NOT RUN manual rows),
 FU-21.2, the magnetic main track (D037 §5), a blurred background for vertical video (D041 §4), the technical-debt split of
-`TimelineEditService` / `TimelineViewModel`, an installer (left out by the product owner).
+`TimelineEditService` / `TimelineViewModel`. (An installer, left out at first, is Phase 51 / D070.)
 
 ### Long-term direction: the automatic rough cut (D042 "Recorded later", 2026-10-20; not a phase)
 
@@ -661,12 +661,19 @@ and Р1, the owner's check (amendment 1). **Accepted by the product owner on 202
 **Phase 50 (D069, 2026-11-18)** on `feat/phase-50-capcut-features`: the remarks of the Phase 49 check (media removal of a
 selection and Delete in the Media Browser, the empty timeline's hints, our own Save As window, the fields' arrows, «Пульс» without
 heart rate), **the magnetic main track**, **colour correction** with «Автоулучшение», **eight more transitions** (`project.json`
-v26). The export's cover frame → backlog.
+v26). The export's cover frame → backlog. **Accepted by the product owner on 2026-11-19** (merged, PR #78).
+
+**Phase 51 (D070, 2026-11-19) — the installer and the distribution, the final phase** on `feat/phase-51-installer`: release
+1.3.0 as **Setup** (`BoulderVideoEditor-1.3.0-setup.exe`, Inno Setup 6, per user: the program, .NET, FFmpeg and the AI
+models; update over the installed version, uninstall keeping the user's data and — unless ticked — the models) and **one
+Portable archive** (the program with the models in `ai-models\`, installed by the application in the background on the
+user's consent). `tools/distribution/New-Release.ps1` builds both; `tools/installer/Test-Installer.ps1` checks the
+installer; `docs/DISTRIBUTION.md`. Also: the start screen's recent projects no longer all look selected while one opens.
 
 **Development after the release (D065 §5, 2026-11-17):** the route from its first hold (a research folding Phases 31 / 32:
 the user marks one hold, the editor proposes the holds of its colour); Phase 36's Steps 36.3 (`PassId`, the «Итоги» template)
 and 36.4 (the heart rate in the summary); FU-EX.1; Motion Tracking Camera (R4); more transitions; the clips' thumbnails
-(D058 §7); the plate's X / Y offsets; an installer.
+(D058 §7); the plate's X / Y offsets. (The installer: Phase 51, D070.)
 
 **After D057 (2026-11-09).** Checked on Phase 38's target build, decided separately (D057 §4.1): the duplicated «Импорт» /
 «Готово» (2026-11-10: the tool bar's «Импорт медиа» removed, D057 §7.13; «Готово» once — D058 §6), the timeline following the playhead (D058 §1), thumbnails on the clips (deferred, D058 §7), editing several clips (D058 §3), further text improvements (deferred, D058 §7).

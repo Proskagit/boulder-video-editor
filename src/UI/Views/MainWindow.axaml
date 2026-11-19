@@ -44,7 +44,7 @@
     <!-- D060 §5: the export running in the background — its bar, its percentage and ✕; a click opens its window. -->
     <!-- D068 item 2: the bar is neutral (blue no longer means "just a message"). -->
     <Border Grid.Row="4" Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0" Padding="10,4" ToolTip.Tip="{Binding Status.Message}">
-      <Grid ColumnDefinitions="*,Auto">
+      <Grid ColumnDefinitions="*,Auto,Auto">
         <!-- D068 item 4: a warning (amber) or an error (red) has its icon and colour; an ordinary message is neutral. -->
         <StackPanel x:Name="StatusLine" Orientation="Horizontal" Spacing="6">
           <controls:IconPath x:Name="StatusWarningIcon" Glyph="{x:Static controls:Icons.Warning}" Stroke="{DynamicResource WarningBrush}"
@@ -73,6 +73,16 @@
           <Button x:Name="ExportIndicatorCancel" Content="✕" Command="{Binding CancelExportCommand}" Padding="6,0" MinHeight="0"
                   Foreground="{DynamicResource TextSecondaryBrush}" Background="Transparent" BorderThickness="0" FontSize="{DynamicResource FontSizeCaption}"
                   ToolTip.Tip="{x:Static l:Strings.Export_CompactCancelTip}"/>
+        </StackPanel>
+        <!-- D070 §3: the Portable package's models being installed in the background. -->
+        <StackPanel x:Name="ModelSetupIndicator" Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="12,0,0,0"
+                    IsVisible="{Binding ModelSetup.IsInstalling, FallbackValue=False}" ToolTip.Tip="{x:Static l:Strings.ModelSetup_CompactTip}">
+          <ProgressBar Width="120" Height="8" MinHeight="0" Minimum="0" Maximum="100" VerticalAlignment="Center"
+                       Value="{Binding ModelSetup.Percent, FallbackValue=0}" Foreground="{DynamicResource AccentBrush}" Background="{DynamicResource Surface3Brush}"/>
+          <TextBlock Text="{Binding ModelSetup.CompactText, FallbackValue={x:Null}}" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{DynamicResource FontSizeCaption}" VerticalAlignment="Center"/>
+          <Button x:Name="ModelSetupCancel" Content="✕" Command="{Binding ModelSetup.CancelCommand, FallbackValue={x:Null}}" Padding="6,0" MinHeight="0"
+                  Foreground="{DynamicResource TextSecondaryBrush}" Background="Transparent" BorderThickness="0" FontSize="{DynamicResource FontSizeCaption}"
+                  ToolTip.Tip="{x:Static l:Strings.ModelSetup_CancelTip}"/>
         </StackPanel>
       </Grid>
     </Border>

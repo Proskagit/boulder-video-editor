@@ -7,6 +7,15 @@
              x:DataType="vm:StartScreenViewModel"
              Background="{DynamicResource Surface0Brush}">
 
+  <UserControl.Styles>
+    <!-- D070 §1: a row is disabled while another entry opens (one action at a time) or while its folder is checked; Fluent
+         would paint every disabled row grey, so a click seemed to select every project before the chosen one opened. A
+         disabled row keeps its transparent background (the state text says Checking / Unavailable). -->
+    <Style Selector="Button.recentRow:disabled /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent"/>
+    </Style>
+  </UserControl.Styles>
+
   <!-- D068 item 5: the first screen — the product, «Создать проект» (the one accent), «Открыть…», the recent projects. -->
   <ScrollViewer HorizontalScrollBarVisibility="Disabled">
     <StackPanel Width="640" HorizontalAlignment="Center" Margin="0,64,0,32" Spacing="24">
@@ -35,7 +44,7 @@
           <ItemsControl ItemsSource="{Binding Recent.Items, FallbackValue={x:Null}}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="panels:RecentProjectItemViewModel">
-                <Button Command="{Binding OpenCommand}" ToolTip.Tip="{Binding ToolTip}" HorizontalAlignment="Stretch"
+                <Button Classes="recentRow" Command="{Binding OpenCommand}" ToolTip.Tip="{Binding ToolTip}" HorizontalAlignment="Stretch"
                         HorizontalContentAlignment="Stretch" Background="Transparent" Padding="12,8" CornerRadius="6">
                   <Grid ColumnDefinitions="*,Auto">
                     <StackPanel Spacing="2">

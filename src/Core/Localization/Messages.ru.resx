@@ -530,10 +530,10 @@
     <value>Не удалось загрузить ИИ-модель на {0}: {1}</value>
   </data>
   <data name="Model_Mismatch" xml:space="preserve">
-    <value>Файл ИИ-модели {0} в {1} повреждён или другой версии (ожидается {2}, SHA-256 {3}). Модель не загружена. См. docs/AI_MODEL.md.</value>
+    <value>Файл ИИ-модели {0} в {1} повреждён или другой версии (ожидается {2}, SHA-256 {3}). Модель не загружена. Установка моделей: «Настройки…» → «ИИ-модели» (docs/AI_MODEL.md).</value>
   </data>
   <data name="Model_NotInstalled" xml:space="preserve">
-    <value>ИИ-модель {0} не установлена: в {2} нет файла {1}. См. docs/AI_MODEL.md.</value>
+    <value>ИИ-модель {0} не установлена: в {2} нет файла {1}. Установка моделей: «Настройки…» → «ИИ-модели» (docs/AI_MODEL.md).</value>
   </data>
   <data name="Model_RunFailed" xml:space="preserve">
     <value>Ошибка модели зацепок на {0}: {1}</value>
@@ -1337,10 +1337,10 @@
     <value>Неизвестное разрешение экспорта.</value>
   </data>
   <data name="People_ModelMissing" xml:space="preserve">
-    <value>Модели людей {0} не установлены в {1}: слежение за скалолазом и скрытие контуров за людьми недоступны. См. docs/AI_MODEL.md.</value>
+    <value>Модели людей {0} не установлены в {1}: слежение за скалолазом и скрытие контуров за людьми недоступны. Установка моделей: «Настройки…» → «ИИ-модели» (docs/AI_MODEL.md).</value>
   </data>
   <data name="People_ModelDamaged" xml:space="preserve">
-    <value>Файл моделей людей {0} в {1} повреждён или другой версии. Модели не загружены. См. docs/AI_MODEL.md.</value>
+    <value>Файл моделей людей {0} в {1} повреждён или другой версии. Модели не загружены. Установка моделей: «Настройки…» → «ИИ-модели» (docs/AI_MODEL.md).</value>
   </data>
   <data name="People_ModelLoadFailed" xml:space="preserve">
     <value>Не удалось загрузить модели людей: {0}</value>
@@ -1467,5 +1467,14 @@
   </data>
   <data name="TransitionName_Glitch" xml:space="preserve">
     <value>Глитч</value>
+  </data>
+  <data name="ModelInstall_PackageDamaged" xml:space="preserve">
+    <value>Пакет моделей неполный или повреждён: {0} в {1}. Распакуйте архив Portable заново.</value>
+  </data>
+  <data name="ModelInstall_NoSpace" xml:space="preserve">
+    <value>Недостаточно места на диске для ИИ-моделей: нужно {0} МБ, свободно {1} МБ ({2}).</value>
+  </data>
+  <data name="ModelInstall_WriteFailed" xml:space="preserve">
+    <value>Не удалось записать ИИ-модели в {0}: {1}</value>
   </data>
 </root>

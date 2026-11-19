@@ -43,6 +43,9 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// <summary>Asks, then cancels the running export.</summary>
     public IAsyncRelayCommand CancelExportCommand { get; }
 
+    /// <summary>D070 §3: the Portable package's models (the start's offer, the status bar's progress); null in tests.</summary>
+    public ModelSetupService? ModelSetup { get; }
+
     /// <summary>"Name — Boulder Video Editor", with a "*" after the name while there are unsaved changes.</summary>
     public string Title => $"{_projectService.Current.Name}{(_projectService.Current.IsDirty ? "*" : "")} — Boulder Video Editor";
 
@@ -83,8 +86,10 @@ public sealed class MainWindowViewModel : ViewModelBase
         ExportWorkflow? export = null,
         IDialogService? dialogs = null,
         PeopleAnalysisCoordinator? people = null,
-        AudioProcessingCoordinator? audioProcessing = null)
+        AudioProcessingCoordinator? audioProcessing = null,
+        ModelSetupService? modelSetup = null)
     {
+        ModelSetup = modelSetup;
         _export = export;
         _dialogs = dialogs;
         ShowExportCommand = new RelayCommand(() => _export?.ShowDetails());
@@ -203,8 +208,23 @@ public sealed class MainWindowViewModel : ViewModelBase
         logger.LogInformation("Application shell initialized.");
     }
 
-    /// <summary>The main window has been shown: offer recovery of autosaved work, start autosave.</summary>
-    public Task OnWindowOpenedAsync() => _projectFiles.StartSessionAsync();
+    /// <summary>The main window has been shown: offer recovery of autosaved work, start autosave; then (D070 §3) offer the
+    /// Portable package's models when some are missing.</summary>
+    public async Task OnWindowOpenedAsync()
+    {
+        await _projectFiles.StartSessionAsync();
+        if (ModelSetup is not null)
+        {
+            try
+            {
+                await ModelSetup.OfferAtStartupAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Offering the models package failed.");
+            }
+        }
+    }
 
     /// <summary>The main window became active: the media files are checked again (throttled, D026 §2).</summary>
     public void OnWindowActivated() => _mediaAvailability?.OnWindowActivated();
@@ -231,6 +251,10 @@ public sealed class MainWindowViewModel : ViewModelBase
             cancelExport = true;
         }
 
+        // D070 §3: a running models installation is kept (the window stays) or, like the export, cancelled only after the
+        // unsaved-changes question agreed too — Cancel there leaves it running.
+        if (ModelSetup is not null && !await ModelSetup.AskToCloseAsync()) return false;
+
         if (!await _projectFiles.PrepareToCloseAsync()) return false;
 
         if (cancelExport && _export is not null)
@@ -238,6 +262,8 @@ public sealed class MainWindowViewModel : ViewModelBase
             Status.Report(Strings.Export_ClosingCancelling);
             await _export.CancelAndWaitAsync();
         }
+        if (ModelSetup is { IsInstalling: true })
+            await ModelSetup.CancelAndWaitAsync();
 
         _mediaAvailability?.Stop(); // no new media re-check while closing
         try

@@ -154,6 +154,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IRouteSelectionFrameSource, RouteSelectionFrameSource>();
         services.AddSingleton<RouteSelectionService>();
         services.AddSingleton<StatusService>();
+        // D070 §3: the Portable package's models (the folder ai-models next to the exe), installed into the models folder on the user's consent.
+        services.AddSingleton<IModelInstaller, AiVideoEditor.Vision.Installation.ModelPackageInstaller>();
+        services.AddSingleton(sp => new ModelSetupService(sp.GetRequiredService<IModelInstaller>(), AppPaths.ModelsFolder,
+            AiVideoEditor.Vision.Installation.ModelPackageInstaller.FindPackage(AppContext.BaseDirectory),
+            sp.GetRequiredService<StatusService>(), sp.GetRequiredService<IDialogService>(),
+            sp.GetService<Microsoft.Extensions.Logging.ILogger<ModelSetupService>>()));
         services.AddSingleton<EditingLock>();
         services.AddSingleton<InOutRangeService>();   // the session's In / Out range (D030 §8)
         services.AddSingleton<SourceViewerService>();  // the Source viewer's asset and source In / Out (D031)
