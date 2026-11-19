@@ -225,7 +225,7 @@ end;
 
 #ifdef WebModels
 { --- The web Setup's downloads (D070 §7) -------------------------------------------------------------------------------
-  Every model the computer lacks is downloaded into {tmp} and checked by its SHA-256 BEFORE anything is installed: on
+  Every model the computer lacks is downloaded into Setup's temporary folder and checked by its SHA-256 BEFORE anything is installed: on
   «Готово к установке» (with the download page; an error keeps the wizard there — Next retries, Cancel leaves the computer as
   it was), and again in PrepareToInstall for what is still missing (a silent run). A failure there stops Setup before the
   first file is touched, so an offline update never leaves a half-updated program. }
