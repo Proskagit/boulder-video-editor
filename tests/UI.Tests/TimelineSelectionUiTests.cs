@@ -391,19 +391,42 @@ public sealed class TimelineSelectionUiTests
     // --- The drop --------------------------------------------------------------------------------------------------------
 
     [Fact]
-    public void A_drop_onto_an_empty_track_lands_at_0_with_snap_and_under_the_pointer_without()
+    public void A_drop_onto_an_empty_track_lands_under_the_pointer_with_snap_and_without()
     {
+        // D071 amendment 1 (owner, 2026-11-19): no longer at 0 (D037 Q8 replaced).
         var timeline = Timeline();
         var image = Image();
         var lane = timeline.Tracks[Lane(timeline, V1)];
 
         timeline.DropMedia(image.Id, lane, X(timeline, 50));
-        Assert.Equal(0, Start(V1.Clips.Single()));
+        Assert.Equal(50, Start(V1.Clips.Single()));
         _undo.Undo();
 
         timeline.SnappingEnabled = false;
         timeline.DropMedia(image.Id, lane, X(timeline, 50));
         Assert.Equal(50, Start(V1.Clips.Single()));
+    }
+
+    [Fact]
+    public void Music_dropped_onto_an_empty_audio_track_lands_where_it_is_dropped()
+    {
+        // D071 amendment 1 (owner, 2026-11-19): a sound file goes where the mouse drops it, as a video does.
+        var music = new MediaAsset
+        {
+            FilePath = Path.Combine(Path.GetTempPath(), "aive-select-ui", Guid.NewGuid().ToString("N"), "music.mp3"),
+            Kind = MediaKind.Audio, AnalysisStatus = MediaAnalysisStatus.Completed,
+            Metadata = new MediaMetadata { Duration = MediaTime.FromSeconds(30), AudioCodec = "mp3", AudioChannels = 2, AudioSampleRate = 48000 }
+        };
+        _projects.AddMediaAssets(new[] { music });
+        Assert.True(_edit.SetMagneticMainTrack(true).Success);   // the magnet holds only V1 (D069 §6): audio stays where dropped
+        var timeline = Timeline();
+        var a1 = Sequence.AudioTracks[0];
+        var lane = timeline.Tracks[Lane(timeline, a1)];
+
+        timeline.ShowDropPreview(new[] { music.Id }, lane, X(timeline, 240));
+        timeline.DropMedia(music.Id, lane, X(timeline, 240));
+
+        Assert.Equal(240, Start(a1.Clips.Single()));
     }
 
     [Fact]

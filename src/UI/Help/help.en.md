@@ -58,6 +58,13 @@ Marking holds, following people and cleaning sound need local AI models (about 1
 - «+ Import» adds videos, sounds and pictures. Select files with a rubber band (Ctrl adds to the selection) and drag them onto the timeline as a group.
 - Several selected files can be removed from the project at once; if clips use them, the editor asks once and removes the clips with them. The files on disk stay.
 - A double click opens a file in the source: in Preview pick the part you need (I — in, O — out) and put it on the timeline («,» — insert, «.» — overwrite).
+- A file dropped on a track lands where it is dropped (on an empty track too); on V1 with the magnet on — at the nearest cut.
+
+## Preview quality and proxies
+
+- The list right of the time under the Preview: **«Original»**, **«High (1440p)»**, **«Medium (1080p)»** (the default), **«Minimum (720p)»** — the quality the Preview shows videos in. The export is always made from the originals at full quality.
+- For 4K and HEVC videos the editor makes a **proxy** in the background — a light copy at the chosen quality that plays and scrubs smoothly. The status bar shows it («Proxy: file — N %», ✕ stops it). A proxy has the same frames as the original; until it is ready the Preview shows the original.
+- Proxies live in %LOCALAPPDATA%\BoulderVideoEditor\cache\proxies and serve every project. «Settings…» → «Timeline and markup» turns making them off; «Delete proxies» frees the space.
 
 ## The timeline
 

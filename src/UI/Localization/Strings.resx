@@ -4044,4 +4044,40 @@ Everything else works without the models. They can also be installed later: «Se
   <data name="AppSettings_ModelsNoPackage" xml:space="preserve">
     <value>There is no models package (ai-models) next to the application. In the installed version the installer places the models: to restore them, run the Boulder Video Editor installer again. By hand — the models archive and Install-Models.cmd (docs/AI_MODEL.md).</value>
   </data>
+  <data name="Proxy_Compact" xml:space="preserve">
+    <value>Proxy: {0} — {1} %</value>
+  </data>
+  <data name="Proxy_CompactTip" xml:space="preserve">
+    <value>A light copy of a 4K / HEVC video is being made for a smooth Preview; the export always uses the original</value>
+  </data>
+  <data name="Proxy_CancelTip" xml:space="preserve">
+    <value>Stop making this proxy (the Preview stays on the original)</value>
+  </data>
+  <data name="PreviewQuality_Tip" xml:space="preserve">
+    <value>Preview quality. Proxies make 4K and HEVC smooth; the export is always made from the original at full quality</value>
+  </data>
+  <data name="PreviewQuality_Original" xml:space="preserve">
+    <value>Original</value>
+  </data>
+  <data name="PreviewQuality_High" xml:space="preserve">
+    <value>High (1440p)</value>
+  </data>
+  <data name="PreviewQuality_Medium" xml:space="preserve">
+    <value>Medium (1080p)</value>
+  </data>
+  <data name="PreviewQuality_Low" xml:space="preserve">
+    <value>Minimum (720p)</value>
+  </data>
+  <data name="AppSettings_MakeProxies" xml:space="preserve">
+    <value>Make proxies of 4K and HEVC videos for the Preview</value>
+  </data>
+  <data name="AppSettings_ClearProxies" xml:space="preserve">
+    <value>Delete proxies ({0} GB)</value>
+  </data>
+  <data name="AppSettings_ProxiesCleared" xml:space="preserve">
+    <value>Deleted, {0} GB freed</value>
+  </data>
+  <data name="AppSettings_ProxiesNote" xml:space="preserve">
+    <value>A proxy is a light copy of a heavy video at the Preview's quality, made in the background once per file and quality and kept for every project. The export, the thumbnails and the AI always use the original.</value>
+  </data>
 </root>

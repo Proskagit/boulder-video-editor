@@ -4857,7 +4857,7 @@ property.
   before, with the rule above.
 - **A drop from the Media Browser:** the new clip's start and end are candidates; while dragging over a lane the snap
   indicator shows where it will land. **Q8:** a drop onto a track with no clip, Snap on, places the clip at 0 — only for new
-  media from the Media Browser; existing clips moved onto an empty track keep the threshold snap only. With Snap off the clip
+  media from the Media Browser *(replaced by D071 amendment 1, 2026-11-19: such a drop lands under the pointer)*; existing clips moved onto an empty track keep the threshold snap only. With Snap off the clip
   lands exactly under the pointer and gaps stay.
 - **Not snapped** (they keep their exact meaning): Add to Timeline (the end of the first track, as before), Paste and
   + Text (at the playhead), Duplicate (right after the selection), Insert / Overwrite (D031), the trims to the playhead
@@ -11353,3 +11353,97 @@ project's planned development is closed** with this, the final phase; further wo
 
 Automatic updates and any network check of the application; downloads by the application or the Portable archive; code signing; an all-users installation; file associations; MSI / MSIX / winget
 packages; removing the caches or the settings on uninstall.
+
+## D071 — Phase 52: proxies for 4K / HEVC and the Preview's quality *(set by the owner on 2026-11-19)*
+
+Date: 2026-11-19. **Status: the scope set by the product owner on 2026-11-19** (the first of the owner's queue after 1.3.0:
+proxies → the route from its first hold → «Итоги» → codecs and presets → text styles → technical debt → the repository's page)
+and the owner's answers below. Branch `feat/phase-52-proxy`. **No format change** (`project.json` v26; the user's settings
+file gains two values with defaults). Manual plan: `docs/PHASE52_MANUAL_TEST_PLAN.md`.
+
+### 0. What existed
+
+The Preview decodes every source with the ffmpeg CLI (`FfmpegVideoDecoder`, D009 / D010), scaled to at most 1280 × 720
+(`PlaybackSettings`; a portrait picture to 405 × 720), with hardware decoding where available (NVDEC / D3D11VA) and the HDR → SDR
+conversion of D033. Seeking decodes from the key frame before the point: a 4K HEVC file from a phone or an action camera (a key
+frame every 1–2 s, 4K decoding) makes scrubbing and playback heavy. No proxy existed. Per-file analyses (camera motion, people,
+audio) are cached in `%LOCALAPPDATA%\BoulderVideoEditor\cache\…`, keyed by the video's content.
+
+### 1. The owner's answers (2026-11-19)
+
+- Proxies are made **automatically** in the background for 4K / HEVC videos, with a switch in the settings.
+- **The Preview's quality on its bar** (the owner's correction of the toggle «Прокси / Оригинал»): «Оригинал» (the source as it
+  is), «Высокое» 1440p, «Среднее» 1080p (the default), «Минимум» 720p.
+- **On pause the proxy's frame** (no swap to the source).
+- **One cache for every project**, keyed by the source's content and the quality; «Удалить прокси» in the settings.
+
+### 2. The Preview's quality (`PreviewQuality`, `PreviewDecoding`)
+
+A box per quality — 2560 × 1440, 1920 × 1080, 1280 × 720 — turned like the picture (a portrait video at 720p is 720 × 1280, no
+longer 405 × 720); «Оригинал» has no bound (the source's own size; above 1080p over the export's high-throughput transport,
+D059 E1). The bound applies to every video in the Preview, with or without a proxy. The choice (a combo box at the right of the
+transport bar) is the user's setting (`UserSettings.PreviewQuality`); a change rebuilds the Preview's snapshot at once. The
+export, the thumbnails, the filmstrips, the hold markup and every analysis never use it: they decode the source.
+
+### 3. The proxies
+
+- **Which videos:** a video (not missing, analysed) whose long side is above 1920 or coded in HEVC, at every quality but
+  «Оригинал» (`PreviewDecoding.NeedsProxy`).
+- **The file:** H.264 (libx264 veryfast, CRF 21, no B-frames, a key frame every 0.5 s), MP4, the source's display-oriented picture
+  fitted into the quality's box (never enlarged, even sides); an HDR source through D033's conversion first — the proxy is the
+  Preview's SDR picture (BT.709), decoded by the SDR path. Below normal priority; a failed hardware-decoded attempt is redone in
+  software.
+- **The same frames:** `-copyts`, `-fps_mode passthrough`, `-enc_time_base demux` keep every frame and its timestamp. That is
+  checked, never trusted: the timestamps the encoding read from the source (`showinfo`) are compared exactly, frame for frame
+  (across time bases), with the proxy decoded again; any difference fails the proxy — the Preview then stays on the source, so it
+  never shows another frame than the export. Verified on CFR 25 / 29.97 / 59.94, HEVC, VFR, a sparse file, jittered timestamps,
+  MPEG-TS with an offset start, after seeks too (`FfmpegProxyBuilderTests`).
+- **The cache** (`ProxyStore`, `%LOCALAPPDATA%\BoulderVideoEditor\cache\proxies`): the name a hash of the content (size, last
+  write, the first and last megabyte — the camera-motion cache's fingerprint), the quality and the rules' version; made into a
+  temporary file, moved into place only when checked; one making per key; above 50 GB the least recently used proxies go.
+- **The queue** (`ProxyCoordinator`, the rules of the media caches: per project, once per asset, one at a time): a ready proxy
+  replaces the source in the Preview at once; another quality drops the results and asks for its own; the status bar shows
+  «Прокси: файл — N %» with ✕ (gives that proxy up; the Preview stays on the source); closing the app gives it up (the temporary
+  file removed, no ffmpeg left — D060 §5). With «Создавать прокси» off nothing is made; a proxy already there is still used.
+
+### 4. The Preview's decoding
+
+`PlaybackAsset.DecodePath` (the proxy) and `DecodeBound` (the quality's bound), set only by the Preview
+(`PreviewViewModel.WithPreviewDecoding`) on the snapshot it builds; a change reopens the asset's decoders (the snapshot's rule).
+`SpanReader` decodes the proxy by the SDR path with the source's start time and timestamps; a proxy that cannot be opened
+(removed meanwhile) is decoded as the source. The export's snapshot never has either value.
+
+### 5. Notes of the review (2026-11-19)
+
+- **The colour first (D033 T3):** no proxy while a video's colour is unknown (metadata saved before the colour probe) — judged by
+  that persistent fact, never by the transient refresh flag (a refresh ends without an event: the proxy would never be asked
+  for, the re-review); the picture's conversion (SDR, or the HDR transfer, peak and range) is part of the cache key,
+  and a video whose colour changes is asked for again — a proxy made as SDR is never shown for a file found HDR later.
+- **The proxy's size is in the key too:** metadata without a display size (saved before Phase 7) refreshed later gives another
+  proxy. A video whose colour probe fails stays without a proxy (the Preview on the source — nothing shown wrong).
+- **Giving up is immediate:** the making running now is cancelled at once by ✕, a new quality, «Создавать прокси» turned off or
+  «Удалить прокси»; one that waited for its turn while the quality or the switch changed is given up before it starts.
+- **Temporary files** of a making that never ended (the app killed) are removed at the next making when older than 12 h.
+- **A proxy removed meanwhile** (the 50 GB limit, «Удалить прокси») while the Preview still names it: the Preview decodes the
+  source; that proxy is made again at the next project or quality change.
+- **The source viewer** (a Media Browser file opened in the Preview) takes a new quality or a proxy that became ready when a file
+  is opened in it next; the timeline's Preview takes them at once.
+- **«Оригинал» of 4K** decodes full-size frames: about 33 MB each, up to 8 buffered per clip — the memory a 4K original needs.
+- **A rotated source** (a phone's portrait video): the proxy is made upright and carries no rotation, so it is never turned twice.
+- **The quality list is not focusable**: the editor's ↑ / ↓ never change it after a choice.
+
+### Amendment 1 — the owner's remarks of 2026-11-19 (during the phase)
+
+- **A sound dropped from the Media Browser lands where it is dropped.** D037 Q8 (a drop onto a track with no clip, Snap on,
+  placed the clip at 0) is **replaced**: such a drop lands under the pointer, snapped as on any track — music dropped onto an
+  empty audio track no longer jumps to the start. The magnetic main track (D069 §6) holds only V1 (the lowest video track): audio
+  tracks are never closed up.
+- **Empty space between the Inspector's sections** (seen at random places, not reproducible on demand): the Inspector's layout
+  was checked with every kind of clip selected in turn (`InspectorLayoutTests`) — a hidden section takes no height; the cause is
+  not found yet. Open: what the owner did just before it appears and whether it goes away by scrolling.
+
+### Out of scope
+
+Proxies of light videos (1080p H.264), of images and of audio; proxies for the export, the thumbnails or the analyses; a
+choice of the proxy's codec or folder; swapping to the source on pause; showing a proxy's state per file in the Media
+Browser.

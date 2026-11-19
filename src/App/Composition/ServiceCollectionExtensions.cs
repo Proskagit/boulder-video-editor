@@ -57,6 +57,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IHdrLutStore>(sp => new HdrLutStore(AppPaths.ColorLutFolder,
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<HdrLutStore>>()));
         services.AddSingleton<IVideoDecoder, FfmpegVideoDecoder>();
+        // D071 §3: the Preview's proxies of 4K / HEVC videos, made by ffmpeg and kept for every project, keyed by the content.
+        services.AddSingleton<IProxyBuilder, FfmpegProxyBuilder>();
+        services.AddSingleton<IProxyStore>(sp => new ProxyStore(AppPaths.ProxyCacheFolder, sp.GetRequiredService<IProxyBuilder>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ProxyStore>>()));
         services.AddSingleton<IAudioDecoder, FfmpegAudioDecoder>();
         services.AddSingleton<IAudioOutput, WasapiAudioOutput>();
         services.AddSingleton<IReferenceClock, StopwatchReferenceClock>();
@@ -177,6 +181,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<AudioProcessingCoordinator>();  // D064: the clean-ups and the speech of the ducking
         services.AddSingleton<WaveformCoordinator>();
         services.AddSingleton<FilmstripCoordinator>();                         // D068 item 10
+        services.AddSingleton<ProxyCoordinator>();                             // D071: the Preview's proxies of 4K / HEVC
         services.AddSingleton<MediaAvailabilityMonitor>();
         services.AddSingleton<MediaImportWorkflow>();
         services.AddSingleton<TrainingSessionService>();   // Phase 35: the project's training, its FIT resolved at runtime (D049)

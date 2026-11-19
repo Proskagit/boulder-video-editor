@@ -60,6 +60,10 @@ public static class AppPaths
     /// <summary>D061: the people analyses (tracks, masks) kept between sessions, keyed by the video's content.</summary>
     public static string PeopleCacheFolder => Path.Combine(AppDataRoot, "cache", "people");
 
+    /// <summary>D071 §3: the Preview's proxies of 4K / HEVC videos, shared by every project, keyed by the video's content and
+    /// the quality. Not created here (the store creates it on its first write).</summary>
+    public static string ProxyCacheFolder => Path.Combine(AppDataRoot, "cache", "proxies");
+
     /// <summary>D064 §5: the cleaned sounds and the speech analyses, keyed by the source's content and the settings.</summary>
     public static string AudioCacheFolder => Path.Combine(AppDataRoot, "cache", "audio");
 

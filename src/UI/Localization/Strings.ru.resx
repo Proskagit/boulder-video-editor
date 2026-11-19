@@ -4048,4 +4048,40 @@
   <data name="AppSettings_ModelsNoPackage" xml:space="preserve">
     <value>Рядом с программой нет пакета моделей (ai-models). В установленной версии модели ставит установщик: чтобы восстановить их, запустите установщик Boulder Video Editor снова. Вручную — архив моделей и Install-Models.cmd (docs/AI_MODEL.md).</value>
   </data>
+  <data name="Proxy_Compact" xml:space="preserve">
+    <value>Прокси: {0} — {1} %</value>
+  </data>
+  <data name="Proxy_CompactTip" xml:space="preserve">
+    <value>Создаётся облегчённая копия видео 4K / HEVC для плавного Preview; экспорт всегда из оригинала</value>
+  </data>
+  <data name="Proxy_CancelTip" xml:space="preserve">
+    <value>Остановить создание этого прокси (Preview останется на оригинале)</value>
+  </data>
+  <data name="PreviewQuality_Tip" xml:space="preserve">
+    <value>Качество Preview. Прокси делают 4K и HEVC плавными; экспорт всегда из оригинала в полном качестве</value>
+  </data>
+  <data name="PreviewQuality_Original" xml:space="preserve">
+    <value>Оригинал</value>
+  </data>
+  <data name="PreviewQuality_High" xml:space="preserve">
+    <value>Высокое (1440p)</value>
+  </data>
+  <data name="PreviewQuality_Medium" xml:space="preserve">
+    <value>Среднее (1080p)</value>
+  </data>
+  <data name="PreviewQuality_Low" xml:space="preserve">
+    <value>Минимум (720p)</value>
+  </data>
+  <data name="AppSettings_MakeProxies" xml:space="preserve">
+    <value>Создавать прокси для видео 4K и HEVC (плавный Preview)</value>
+  </data>
+  <data name="AppSettings_ClearProxies" xml:space="preserve">
+    <value>Удалить прокси ({0} ГБ)</value>
+  </data>
+  <data name="AppSettings_ProxiesCleared" xml:space="preserve">
+    <value>Удалено, освобождено {0} ГБ</value>
+  </data>
+  <data name="AppSettings_ProxiesNote" xml:space="preserve">
+    <value>Прокси — облегчённая копия тяжёлого видео в качестве Preview; создаётся в фоне один раз для файла и качества и служит всем проектам. Экспорт, миниатюры и ИИ всегда работают с оригиналом.</value>
+  </data>
 </root>

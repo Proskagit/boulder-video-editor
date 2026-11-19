@@ -60,6 +60,9 @@ internal sealed class SpanReader : IAsyncDisposable
 
     private bool IsStill => Span.Status == SpanStatus.StillImage;
 
+    /// <summary>D071 §2: a bound above 1920 × 1080 pixels decodes over the high-throughput transport.</summary>
+    internal const long LargePicturePixels = 1920L * 1080;
+
     public SourceSamplePoint SamplePoint(long timelineFrame) =>
         SourceFrameSelector.SamplePoint(Span.TimelineStart, Span.SourceIn, Span.Speed, Span.SourceFrameOf(timelineFrame, _rate), _rate,
             _asset.NominalFrameRate);   // D069 amendment 2: a held edge frame where the source ends
@@ -127,6 +130,10 @@ internal sealed class SpanReader : IAsyncDisposable
         var ct = _cts.Token;
         var hardware = _settings.Hardware;
         var from = firstFrame;
+        // D071 §4: the proxy when the Preview has one — the same timestamps, SDR already; the source if it can't be read.
+        var proxy = IsStill ? null : _asset.DecodePath;
+        var bound = _asset.DecodeBound;
+        var (maxWidth, maxHeight) = bound is { } b ? (b.Width, b.Height) : (_settings.MaxWidth, _settings.MaxHeight);
         while (true)
         {
             var delivered = 0;
@@ -134,14 +141,16 @@ internal sealed class SpanReader : IAsyncDisposable
             {
                 var request = new VideoDecodeRequest
                 {
-                    FilePath = _asset.FilePath,
+                    FilePath = proxy ?? _asset.FilePath,
                     StartTime = _asset.StartTime,
                     FirstSamplePoint = IsStill ? SourceFrameSelector.StillImage : SamplePoint(from),
                     NominalFrameRate = _asset.NominalFrameRate,
-                    MaxWidth = _settings.MaxWidth,
-                    MaxHeight = _settings.MaxHeight,
+                    MaxWidth = maxWidth,
+                    MaxHeight = maxHeight,
                     Hardware = hardware,
-                    Hdr = _asset.Hdr   // D033: the same conversion as the thumbnail and the export
+                    Hdr = proxy is null ? _asset.Hdr : null,   // D033: the same conversion as the thumbnail and the export
+                    // D071 §2: a picture above 1080p (the «Оригинал» of a 4K source) needs the export's transport (D059 E1).
+                    Transport = (long)maxWidth * maxHeight > LargePicturePixels ? DecodeTransport.HighThroughput : DecodeTransport.Standard
                 };
 
                 // A reader retired before its task ran (e.g. superseded by the next seek at once)
@@ -199,6 +208,12 @@ internal sealed class SpanReader : IAsyncDisposable
                 _logger.LogWarning(ex, "Decoding '{Path}' failed mid-stream; reopening without hardware decoding.", _asset.FilePath);
                 hardware = HardwareDecoding.Disabled;
                 from = Math.Max(firstFrame, Interlocked.Read(ref _lastRequestedFrame));
+            }
+            catch (VideoDecodeException ex) when (proxy is not null && delivered == 0 && !ct.IsCancellationRequested)
+            {
+                // D071 §4: a proxy removed or unreadable meanwhile — the source, as without a proxy.
+                _logger.LogWarning(ex, "The proxy '{Proxy}' of '{Path}' could not be decoded; decoding the source.", proxy, _asset.FilePath);
+                proxy = null;
             }
             catch (VideoDecodeException ex)
             {

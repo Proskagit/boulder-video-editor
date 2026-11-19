@@ -101,9 +101,10 @@ public sealed partial class PreviewViewModel : ViewModelBase
     public PreviewViewModel(StatusService status, IPlaybackService playback, IProjectService projectService,
         ILogger<PreviewViewModel> logger, InOutRangeService? inOut = null, SourceViewerService? source = null,
         CameraMotionCoordinator? cameraMotion = null, TrainingSessionService? training = null, IUserSettingsService? settings = null,
-        PeopleAnalysisCoordinator? people = null, AudioProcessingCoordinator? audio = null)
+        PeopleAnalysisCoordinator? people = null, AudioProcessingCoordinator? audio = null, ProxyCoordinator? proxies = null)
     {
         InitPeople(people);
+        InitQuality(proxies);   // D071: the Preview's quality and proxies
         // D064 §5: a cleaned sound or a speech analysis that appears (or the comparison with the original sound) rebuilds the mix.
         _audio = audio;
         if (_audio is not null) _audio.AnalysesChanged += OnAudioAnalysesChanged;
@@ -113,6 +114,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
         if (_settings is not null) _settings.Changed += (_, _) =>
         {
             ShowPeopleMasks = _settings.Current.ShowPeopleMasks;   // D061 amendment 1: a diagnostic setting
+            OnPropertyChanged(nameof(QualityIndex));                // D071 §2
             if (!IsSourceMode && !_released) RebuildSnapshot();
         };
         ShowPeopleMasks = _settings?.Current.ShowPeopleMasks ?? false;
@@ -350,9 +352,9 @@ public sealed partial class PreviewViewModel : ViewModelBase
     private void RebuildSnapshot()
     {
         _assetStates = PlaybackSnapshotBuilder.CaptureAssetStates(_projectService.Current);
-        _playback.UpdateSnapshot(PlaybackSnapshotBuilder.Build(_projectService.Current, ++_snapshotVersion, _cameraMotion?.Tracks,
+        _playback.UpdateSnapshot(WithPreviewDecoding(PlaybackSnapshotBuilder.Build(_projectService.Current, ++_snapshotVersion, _cameraMotion?.Tracks,
             _settings?.Current.HeartRateDisplayOffsetFor(_projectService.Current.Training?.Activity.Manufacturer) ?? MediaTime.Zero,
-            _people?.Analyses, _audio?.Analyses));
+            _people?.Analyses, _audio?.Analyses)));
         _needsTick = true;
     }
 

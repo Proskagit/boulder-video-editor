@@ -350,6 +350,18 @@ src/Video/FfmpegVideoDecoder.cs	'{filePath}' is HDR, but no HDR → SDR conversi
 src/Video/FfmpegVideoDecoder.cs	'{request.FilePath}' has no decodable video frames.
 src/Video/FfmpegVideoDecoder.cs	File not found: {request.FilePath}
 src/Video/FfmpegVideoDecoder.cs	No frame at or before {point} in '{request.FilePath}' within a {TimeSpan.FromTicks(maxPreroll).TotalSeconds:0.###} s preroll.
+# D071 §3: a proxy's failure — written to the log only; the Preview stays on the source, nothing is shown.
+src/Video/FfmpegProxyBuilder.cs	ffmpeg could not be found.
+src/Video/FfmpegProxyBuilder.cs	File not found: {request.SourcePath}
+src/Video/FfmpegProxyBuilder.cs	The source is HDR, and no HDR → SDR conversion is available.
+src/Video/FfmpegProxyBuilder.cs	The proxy's frames differ from the source's: {difference}.
+src/Video/FfmpegProxyBuilder.cs	the source gave no frame
+src/Video/FfmpegProxyBuilder.cs	{source.Count} frames in the source, {proxy.Count} in the proxy
+src/Video/FfmpegProxyBuilder.cs	frame {i}: {source[i].Pts}×{source[i].TimeBase} in the source, {proxy[i].Pts}×{proxy[i].TimeBase} in the proxy
+src/Video/FfmpegProxyBuilder.cs	frame {f.Index} has no timestamp
+src/Video/FfmpegProxyBuilder.cs	The source's frames could not be read: {parseError}.
+src/Video/FfmpegProxyBuilder.cs	ffmpeg could not be started: {ex.Message}
+src/Video/FfmpegProxyBuilder.cs	ffmpeg's output could not be read: {stderrFailure.Message}
 src/Video/FfmpegVideoDecoder.cs	ffmpeg could not be found.
 src/Video/FfmpegVideoFrameStream.cs	The video stream ended early after {_delivered} frames: {failure}
 src/Video/FfmpegVideoFrameStream.cs	Unexpected ffmpeg output: {cause.Message}

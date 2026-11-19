@@ -228,7 +228,7 @@ public sealed class FfmpegVideoDecoder : IVideoDecoder
     /// frames, D033 "Context"); <c>zscale</c> only turns Y'CbCr into R'G'B' float (BT.2020 NCL matrix, the file's range →
     /// full; transfer and primaries unchanged — step 0); the LUT does steps 1–9; nothing else converts colour.
     /// </summary>
-    private static string HdrFilters(HdrConversion hdr, string w, string h, string lutPath)
+    internal static string HdrFilters(HdrConversion hdr, string w, string h, string lutPath)
     {
         var transfer = hdr.Transfer == HdrTransfer.Hlg ? HdrColor.HlgTransfer : HdrColor.PqTransfer;
         var range = hdr.FullRange ? "full" : "limited";

@@ -1370,9 +1370,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
         if (reason is not null) _status.ReportWarning(reason);
     }
 
-    /// <summary>Where a drop at <paramref name="contentX"/> puts the new clip (D037 §2): with Snap on, onto a track with no
-    /// clip at 0 (Q8), otherwise its start or end onto the nearest target within the tolerance that makes no overlap the
-    /// pointer's own place would not; with Snap off exactly under the pointer. Shows the snap indicator.</summary>
+    /// <summary>Where a drop at <paramref name="contentX"/> puts the new clip (D037 §2): with Snap on, its start or end onto the
+    /// nearest target within the tolerance that makes no overlap the pointer's own place would not — on an empty track too
+    /// (D071 amendment 1 replaced Q8's «at 0»); with Snap off exactly under the pointer. Shows the snap indicator.</summary>
     private MediaTime DropStart(Guid assetId, TimelineTrackViewModel? track, double contentX)
     {
         var raw = TimelineCoordinateMapper.XToFrameTime(contentX, PixelsPerSecond, FrameRate);
@@ -1381,12 +1381,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
         var target = track?.Track ?? (asset.Kind == MediaKind.Audio ? Sequence.AudioTracks : Sequence.VideoTracks).FirstOrDefault();
         if (target is null) return raw;
-        if (target.Clips.Count == 0)
-        {
-            SnapIndicatorX = 0;
-            IsSnapIndicatorVisible = true;
-            return MediaTime.Zero;
-        }
+        // D071 amendment 1 (owner, 2026-11-19) replaces D037 Q8: a drop onto an empty track lands under the pointer, as on any
+        // other track (music dropped onto an empty audio track no longer jumps to 0); the magnetic main track still closes up.
 
         var duration = _edit.AddedClipDuration(assetId) ?? MediaTime.Zero;
         bool Overlaps(MediaTime start) => target.Clips.Any(c => c.TimelineStart < start + duration && c.TimelineEnd > start);

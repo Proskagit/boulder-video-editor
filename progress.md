@@ -2,7 +2,36 @@
 
 ## Current phase
 
-**The project is complete (2026-11-19).** Phase 51 (D070) accepted by the product owner: PR #79 merged (`097ec18`, CI green), the
+**Phase 52 — proxies for 4K / HEVC and the Preview's quality (D071, 2026-11-19) — on `feat/phase-52-proxy`.** The first of the
+owner's queue after 1.3.0 (ROADMAP «The owner's queue after 1.3.0»). The owner's answers (D071 §1): proxies made automatically
+(a switch in the settings), the Preview's quality on its bar instead of a «Прокси / Оригинал» toggle — «Оригинал», «Высокое»
+1440p, «Среднее» 1080p (default), «Минимум» 720p —, the proxy's frame on pause, one cache for every project.
+**Done:** `PreviewQuality` / `PreviewDecoding` (Core: the boxes turned like the picture, which videos get a proxy, its size);
+`PlaybackAsset.DecodePath` / `DecodeBound`, set only by the Preview's snapshot (`PreviewViewModel.WithPreviewDecoding`),
+`SpanReader` decodes the proxy by the SDR path (a proxy that can't be opened → the source; a bound above 1080p over the
+high-throughput transport); `FfmpegProxyBuilder` (H.264 veryfast CRF 21, no B-frames, a key frame every 0.5 s, `-copyts` +
+passthrough + `-enc_time_base demux`, every frame's timestamp compared exactly with the proxy decoded again, HDR through D033 to an
+SDR BT.709 proxy, below normal priority, software retry); `ProxyStore` (`cache\proxies`, key = content fingerprint + quality +
+colour + rules' version, temporary file then move, one making per key, LRU above 50 GB, stale temporary files removed);
+`ProxyCoordinator` (the media caches' rules, one at a time, a quality change drops and asks again, a colour change asks again,
+immediate cancel, the status bar's «Прокси: файл — N %» with ✕, shutdown); the Preview's quality list (not focusable); the
+settings' «Создавать прокси…» and «Удалить прокси (N ГБ)»; the help (ru / en). **Amendment 1 (the owner's remarks during the
+phase):** a file dropped onto an empty track lands under the pointer (D037 Q8 replaced; the magnet holds only V1); the Inspector's
+gaps investigated — not reproduced in the real layout (`InspectorLayoutTests`), the owner asked for the steps.
+**Review (phase-reviewer): FAIL** — an HDR file whose colour was not probed yet could get an SDR proxy kept by the cache, and
+progress.md not updated. Fixed: no proxy while the colour is unknown, the colour in the key, a colour change asks again (+3 tests).
+**Re-review: FAIL** — the transient refresh flag in the rule left a refreshed video without a proxy for the session; fixed (the
+rule uses only the persistent «colour unknown»; +1 test in the real order: flag set → metadata → event → flag cleared); the notes taken (immediate cancel, stale temporary files, a rotated source test, the list not focusable, the
+docs). **Second re-review: PASS WITH NOTES** (taken: the proxy's size in the cache key; a failed colour probe leaves no proxy —
+D071 §5). **Gates (2026-11-19, the final code):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check` clean;
+Release + `AIVE_HEAVY_TESTS=1` with `--blame-hang`: Vision 37, Project 757, Core 1 974, Rendering 264, Export 142, Timeline 1 246,
+Video 444 (+1 skipped — the environment-gated test as since Phase 49), ExportEndToEnd 189 — green; UI 1 341 / 1 342 under the full
+load (`PreviewLayersTests.While_scrubbing_the_previous_seeks_finished_picture_is_shown`, the known scrubbing timing flake), 7 / 7
+alone five times and 1 342 / 1 342 alone twice; Export 142 / 142 three times alone (in the run before, its known rasterizer flake
+once under load). Not done: the owner's manual check (`docs/PHASE52_MANUAL_TEST_PLAN.md`),
+commit / push / PR.
+
+**Before Phase 52 — the project was complete (2026-11-19).** Phase 51 (D070) accepted by the product owner: PR #79 merged (`097ec18`, CI green), the
 releases `v1.3.0` (Latest) and `models-1.0` published, the full Setup and the web Setup re-checked by the owner (D070 §8). Fifty-one
 phases since 2026-09-06. No phase is open; new work starts as a new phase on the owner's request. Left to the owner: the unpublished
 draft `v1.0.0` (no tag; superseded by 1.3.0) may be deleted; `models-1.0` must stay (web setups download from it).

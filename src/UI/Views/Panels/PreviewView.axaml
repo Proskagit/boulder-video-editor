@@ -163,7 +163,8 @@
 
     <!-- Transport controls -->
     <Border Grid.Row="3" Background="{DynamicResource Surface1Brush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0" Padding="8">
-      <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+      <Grid ColumnDefinitions="*,Auto,*">
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
         <!-- D039 §7: the transport as icons (Play / Pause one button of one width); names and shortcuts in the tooltips. -->
         <Button Command="{Binding PreviousFrameCommand}" ToolTip.Tip="{x:Static l:Strings.Transport_PrevTip}" Padding="10,6">
           <controls:IconPath Glyph="{x:Static controls:Icons.PreviousFrame}" Filled="True"/>
@@ -191,6 +192,13 @@
         <TextBlock Text="/" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
         <TextBlock Text="{Binding DurationDisplay}" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
       </StackPanel>
+      <!-- D071 §2: the Preview's picture quality (the proxies of 4K / HEVC below «Оригинал»); the export never uses it. Not focusable:
+           the editor's ↑ / ↓ never change it after a choice. -->
+      <ComboBox x:Name="PreviewQualityBox" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0,0,0"
+                ItemsSource="{Binding QualityNames}" SelectedIndex="{Binding QualityIndex, Mode=TwoWay}" MinWidth="0" Focusable="False"
+                FontSize="{DynamicResource FontSizeCaption}" ToolTip.Tip="{x:Static l:Strings.PreviewQuality_Tip}"
+                AutomationProperties.Name="{x:Static l:Strings.PreviewQuality_Tip}"/>
+      </Grid>
     </Border>
 
   </Grid>
