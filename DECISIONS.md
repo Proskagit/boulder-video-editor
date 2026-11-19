@@ -11317,7 +11317,28 @@ the real installation and models are never touched) and runs install / update / 
 uninstall with the models, checking each. A clean Windows (no .NET, FFmpeg, models) is **not** available on the build machine
 (Windows Sandbox does not start there, D066 §7): that check is the owner's (`docs/PHASE51_MANUAL_TEST_PLAN.md`).
 
+### 7. The web Setup (the owner, 2026-11-19, after the review)
+
+The owner asked for a third asset beside the full Setup and the Portable archive: a light installer that downloads the models.
+**This changes, for this one file only, the «nothing is downloaded» rule of D034 / §2–§3** — the owner's decision; the
+application itself, the full Setup and the Portable archive still never download anything.
+- `BoulderVideoEditor-<version>-web-setup.exe` — the same `.iss` compiled with `/DWebModels=1`: the program, .NET, FFmpeg and
+  the models' notices (about 50 MB); the same AppId, so the full and the web Setup update one installation.
+- The models are downloaded by Inno Setup's `[Files] … Flags: external download` with the pinned `Hash:` (SHA-256) and
+  `ExternalSize`: a file whose SHA-256 differs never takes its place (the installation stops); a file already in place with
+  its SHA-256 is not downloaded (`ModelNeeded`), so an update or a repair downloads only what is missing or damaged.
+- **Where from:** the GitHub release **`models-<models.json version>`** (now `models-1.0`) of the project's repository — the
+  pinned files as flat assets (every name is unique; `New-ModelsInclude.ps1 -BaseUrl` refuses otherwise). A models release
+  is made once per models version, independent of the program's versions, so a web Setup keeps working while that release
+  exists. `New-Release.ps1` writes its assets (`models-1.0-assets\`, with `SHA256SUMS`); the owner publishes the release.
+  Licences: the models are Apache-2.0 / MIT (docs/AI_MODEL.md); their notices are in the installed `models-licenses\` and
+  must be attached to the models release too.
+- **Without internet** the download fails with Inno's message (retry, or cancel — the program is not installed half-way);
+  the page «Готово к установке» says that the internet is needed and that the full Setup is the offline way.
+- Checked by `Test-Installer.ps1` W0–W3 against a local HTTP server: light; a tampered asset refused; the right files
+  downloaded with their SHA-256; run again — nothing requested.
+
 ### Out of scope
 
-Automatic updates and any network check; code signing; an all-users installation; file associations; MSI / MSIX / winget
+Automatic updates and any network check of the application; downloads by the application or the Portable archive; code signing; an all-users installation; file associations; MSI / MSIX / winget
 packages; removing the caches or the settings on uninstall.

@@ -64,9 +64,19 @@ the next release.)
 | D11 | Start again, «Установить», let it finish. | Every model in place («уже были на месте» counts the files copied before). |
 | D12 | Copy the portable folder elsewhere, delete `ai-models\` in the copy, start the copy. | No question (models installed); the same settings and «Недавние» as the first copy. |
 
+## W. The web Setup (after the models release `models-1.0` is published)
+
+| # | Steps | Expected |
+|---|---|---|
+| W1 | After C3 (no models, no program): run `BoulderVideoEditor-1.3.0-web-setup.exe` (about 50 MB). | The same wizard; «Готово к установке» says the models are downloaded from GitHub (internet needed). |
+| W2 | «Установить». | The progress shows the model files being downloaded (about 1.2 GB); then «Запустить». «Настройки…» → «ИИ-модели»: every model in place; «Разметить зацепки» works. |
+| W3 | Run the web Setup again. | Quick: nothing downloaded (the models are in place). |
+| W4 | Disconnect the network, delete `models\audio-v1`, run the web Setup. | A download error with retry / cancel; cancel leaves the installed program as it was. |
+
 ## E. Not by hand
 
-Covered automatically, noted for the record: the installer's update over the previous version, the downgrade refusal, the
+Covered automatically, noted for the record: the web Setup against a local server (light, a tampered asset refused, the
+download, nothing requested again — `Test-Installer.ps1` W0–W3); the installer's update over the previous version, the downgrade refusal, the
 running application's refusal, the two uninstalls (with and without the models), the files of the per-user folder kept
 (`Test-Installer.ps1`); the models installer's damaged package, full disk, cancel, crash leftovers, other files untouched
 (`ModelPackageInstallerTests`); the start's offer, the background installation, the settings section, closing during it

@@ -21,16 +21,22 @@ mapping (+2 tests), a running copy's fresh temporary file kept (stale ones only 
 clean; Release + `AIVE_HEAVY_TESTS=1` with `--blame-hang`: Vision 37, Project 757, Core 1 959, Rendering 264, UI 1 334, Timeline 1 241,
 Video 418 (+1 skipped — the same environment-gated test as in every phase since 49), ExportEndToEnd 189 — green; Export 141 / 142 under the full load (the known rasterizer flake of
 `ExportServiceTests`, this time `A_rasterizer_failure_propagates_and_abandons_the_encoding`; Export untouched by the phase), 142 / 142
-three times alone. **Release 1.3.0** built from `9e16f98` (`artifacts/release/1.3.0`): `BoulderVideoEditor-1.3.0-setup.exe` 1 234 MiB
-(SHA-256 0b0ba283…), `BoulderVideoEditor-1.3.0-win-x64-portable.zip` 1 250 MiB (71d986c0…). **`Test-Installer.ps1`: 36 / 36 PASS**
+three times alone. **The web Setup (D070 §7, the owner's request after the review):** the same `.iss` with `/DWebModels=1`, the models downloaded by
+Inno's `external download` with the pinned `Hash:` from the GitHub release `models-1.0` (flat assets; the owner publishes it), a file
+in place with its SHA-256 never downloaded. **Release 1.3.0** built from `c13fc76` (`artifacts/release/1.3.0`; only docs changed
+after it): `BoulderVideoEditor-1.3.0-setup.exe` 1 234 MiB (SHA-256 54030bad…), `BoulderVideoEditor-1.3.0-web-setup.exe` 50 MiB
+(5a81e9d1…), `BoulderVideoEditor-1.3.0-win-x64-portable.zip` 1 250 MiB (03efdad8…), the models release's assets in
+`models-1.0-assets\` (13 files + SHA256SUMS). No C# changed after `9e16f98` (the gates above stand). **`Test-Installer.ps1`: 46 / 46
+PASS** (W0–W3: the web Setup 50 MiB; a tampered asset on a local 127.0.0.1 server refused, exit 5, no file without its SHA-256 in
+place; the right files downloaded; run again — no request); before the web Setup **36 / 36 PASS**
 (install, the installed app starts, update 1.3.0 → 1.3.1 repairing one damaged model and keeping 12, downgrade refused, refused while
 the app runs, uninstall keeping the models, uninstall with them; settings, recovery, cache, projects and other files kept every time).
 The real models package installed by the application's installer into a temporary folder (`Vision.ModelTests`,
 `AIVE_MODELS_PACKAGE`): 13 copied, then 13 kept. **Not done:** a clean Windows (no .NET / FFmpeg / models) — not available here
 (Windows Sandbox broken, D066 §7) → the owner's plan `docs/PHASE51_MANUAL_TEST_PLAN.md`; the new windows not seen on screen by me (the
 computer-use tool reaches only Start-menu apps); the FFmpeg sources tar is not on this PC — attach the v1.0.0 release's
-`aive-ffmpeg-minimal-9.0.2-sources.tar` (FFmpeg unchanged). Open question to the owner: an additional light web Setup downloading the
-models from our GitHub Release (changes the «no download» rule).
+`aive-ffmpeg-minimal-9.0.2-sources.tar` (FFmpeg unchanged). The owner's actions before the web Setup works: publish the release `models-1.0` with the assets
+(`docs/DISTRIBUTION.md`); attach the FFmpeg sources tar to the 1.3.0 release.
 
 **Phase 50 — the 1.1 remarks, the magnetic main track, colour correction, more transitions (D069, 2026-11-18) — on
 `feat/phase-50-capcut-features`.** Step 0: Phase 49's acceptance recorded (D068 §8, DEVELOPMENT_PLAN, ROADMAP). The owner's answers

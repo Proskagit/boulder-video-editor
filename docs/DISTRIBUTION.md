@@ -5,11 +5,14 @@ Boulder Video Editor is distributed for Windows 10 / 11 x64 in two ways, built t
 | File | What it is |
 |---|---|
 | `BoulderVideoEditor-<version>-setup.exe` | The installer: the program, .NET, FFmpeg and the AI models; per user, no administrator rights. |
+| `BoulderVideoEditor-<version>-web-setup.exe` | The light installer (~50 MB): the program, .NET, FFmpeg; the AI models downloaded from the `models-<n>` release on GitHub, each checked by its SHA-256 (D070 §7). Needs internet. |
 | `BoulderVideoEditor-<version>-win-x64-portable.zip` | One archive: the portable program (.NET, FFmpeg) and the AI models in `ai-models\`. |
 | `aive-ffmpeg-minimal-<ffmpeg>-sources.tar` | The complete corresponding source of the bundled FFmpeg (GPL-2.0-or-later, D066 §6). |
 | `SHA256SUMS` | The checksums of the files above. |
 
-Nothing is downloaded by the application or the installer; there is no automatic update.
+Nothing is downloaded by the application, the full Setup or the Portable archive; only the web Setup downloads the models,
+from the separate GitHub release `models-<models.json version>` (now `models-1.0`), whose assets are the pinned files.
+There is no automatic update.
 
 ## Where things live
 
@@ -65,7 +68,8 @@ From a clean checkout of the release commit (a dirty tree is marked `.dirty` in 
 pwsh -File tools/distribution/New-Release.ps1 -Version 1.3.0 -FfmpegPackage <ffmpeg package folder> -FfmpegSourcesTar <sources.tar>
 ```
 
-It writes `artifacts/release/<version>/` (the setup, the portable zip, the tar, `SHA256SUMS`; the portable folder unpacked
+It writes `artifacts/release/<version>/` (the setup, the web setup, the portable zip, the tar, `SHA256SUMS`; the models
+release's assets in `models-<n>-assets\`; the portable folder unpacked
 beside them; the work folders in `stage\`). Steps inside: `tools/portable/Publish-Portable.ps1` (self-contained win-x64,
 `-FfmpegPackage`), `tools/models/Pack-Models.ps1 -NoZip`, the portable folder with `ai-models\` zipped (models stored,
 the rest compressed), `tools/installer/New-ModelsInclude.ps1` and `ISCC` on `tools/installer/BoulderVideoEditor.iss`.
@@ -77,7 +81,17 @@ Then check the installer on this machine without touching the real installation 
 pwsh -File tools/installer/Test-Installer.ps1 -Stage artifacts/release/<version>/stage -Version <version>
 ```
 
-and run `docs/PHASE51_MANUAL_TEST_PLAN.md` on a clean Windows account. The GitHub Release (a tag `v<version>`, the four
+and run `docs/PHASE51_MANUAL_TEST_PLAN.md` on a clean Windows account.
+
+**The models release** (once per models version; the web Setup downloads from it): a published GitHub release with the tag
+`models-1.0` whose assets are the files of `artifacts/release/<version>/models-1.0-assets\` (13 model files, `SHA256SUMS`)
+and the models' notices (`stage\BoulderVideoEditor-<version>-models\THIRD-PARTY-NOTICES.txt`, `licenses\`):
+
+```
+gh release create models-1.0 artifacts/release/1.3.0/models-1.0-assets/* --title "AI models 1.0" --notes "The AI models of Boulder Video Editor (for the web Setup)."
+```
+
+Never delete or replace it while a web Setup that points at it is published; a new model is a new models release. The GitHub Release (a tag `v<version>`, the four
 files, release notes) is published by the product owner.
 
 ### A new version
@@ -104,6 +118,8 @@ in the published folder before the portable zip and the setup are made, and the 
 
 - **Setup:** run the setup → the folder (first time only) → «Создать значок на Рабочем столе» → «Установить» →
   «Запустить Boulder Video Editor». No administrator rights.
+- **Web Setup:** the same, but the missing models are downloaded during the installation (internet needed; a download whose
+  SHA-256 differs stops the installation, nothing of it is kept). The full and the web Setup update the same installation.
 - **Update:** run the new version's setup: the same folder, the same entry, the shortcuts as chosen before; settings,
   projects and models kept; a model in place with its SHA-256 is not copied again, a damaged or missing one is. Installing an
   older version over a newer one asks first (`/SUPPRESSMSGBOXES` answers No). A running editor is asked to be closed first.
