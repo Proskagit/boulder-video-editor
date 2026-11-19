@@ -530,10 +530,10 @@
     <value>The AI model could not be loaded on the {0}: {1}</value>
   </data>
   <data name="Model_Mismatch" xml:space="preserve">
-    <value>The AI model file {0} in {1} is damaged or another version (expected {2}, SHA-256 {3}). It was not loaded. See docs/AI_MODEL.md.</value>
+    <value>The AI model file {0} in {1} is damaged or another version (expected {2}, SHA-256 {3}). It was not loaded. To install the models: «Settings…» → «AI models» (docs/AI_MODEL.md).</value>
   </data>
   <data name="Model_NotInstalled" xml:space="preserve">
-    <value>The AI model {0} is not installed: {1} is missing in {2}. See docs/AI_MODEL.md.</value>
+    <value>The AI model {0} is not installed: {1} is missing in {2}. To install the models: «Settings…» → «AI models» (docs/AI_MODEL.md).</value>
   </data>
   <data name="Model_RunFailed" xml:space="preserve">
     <value>The hold model failed on the {0}: {1}</value>
@@ -1337,10 +1337,10 @@
     <value>The export resolution is unknown.</value>
   </data>
   <data name="People_ModelMissing" xml:space="preserve">
-    <value>The people models {0} are not installed in {1}: Follow and the outlines hidden behind people are unavailable. See docs/AI_MODEL.md.</value>
+    <value>The people models {0} are not installed in {1}: Follow and the outlines hidden behind people are unavailable. To install the models: «Settings…» → «AI models» (docs/AI_MODEL.md).</value>
   </data>
   <data name="People_ModelDamaged" xml:space="preserve">
-    <value>A file of the people models {0} in {1} is damaged or another version. It was not loaded. See docs/AI_MODEL.md.</value>
+    <value>A file of the people models {0} in {1} is damaged or another version. It was not loaded. To install the models: «Settings…» → «AI models» (docs/AI_MODEL.md).</value>
   </data>
   <data name="People_ModelLoadFailed" xml:space="preserve">
     <value>The people models could not be loaded: {0}</value>
@@ -1467,5 +1467,14 @@
   </data>
   <data name="TransitionName_Glitch" xml:space="preserve">
     <value>Glitch</value>
+  </data>
+  <data name="ModelInstall_PackageDamaged" xml:space="preserve">
+    <value>The models package is incomplete or damaged: {0} in {1}. Unpack the Portable archive again.</value>
+  </data>
+  <data name="ModelInstall_NoSpace" xml:space="preserve">
+    <value>Not enough disk space for the AI models: {0} MB needed, {1} MB free ({2}).</value>
+  </data>
+  <data name="ModelInstall_WriteFailed" xml:space="preserve">
+    <value>The AI models could not be written to {0}: {1}</value>
   </data>
 </root>

@@ -18,7 +18,8 @@ public interface IFitSettingsDialog
 /// at the section «COROS / FIT» for this menu item, at «Общие» for the toolbar's «Настройки…»; the calibration's semantics are
 /// unchanged. Without it (tests of D051) the FIT window alone, as before.</remarks>
 public sealed class FitSettingsWorkflow(IFitCalibrationStore store, IFitSettingsDialog dialog, StatusService status, IDialogService? dialogs = null,
-    IUserSettingsService? settings = null, IAppSettingsDialog? appDialog = null, IFfmpegLocator? ffmpeg = null, IFfprobeLocator? ffprobe = null)
+    IUserSettingsService? settings = null, IAppSettingsDialog? appDialog = null, IFfmpegLocator? ffmpeg = null, IFfprobeLocator? ffprobe = null,
+    ModelSetupService? models = null)
 {
     public bool HasAppSettings => settings is not null && appDialog is not null;
 
@@ -44,7 +45,7 @@ public sealed class FitSettingsWorkflow(IFitCalibrationStore store, IFitSettings
         {
             // only shown for information
         }
-        var window = new AppSettingsViewModel(settings, fit, section, ffmpegPath, ffprobePath, training);
+        var window = new AppSettingsViewModel(settings, fit, section, ffmpegPath, ffprobePath, training, models);
         try
         {
             await appDialog.ShowAsync(window);

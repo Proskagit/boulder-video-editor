@@ -3965,4 +3965,83 @@ If you don't save, your changes will be lost.</value>
   <data name="Transition_Dragging" xml:space="preserve">
     <value>Transition length: {0}</value>
   </data>
+  <data name="ModelSetup_OfferTitle" xml:space="preserve">
+    <value>AI models</value>
+  </data>
+  <data name="ModelSetup_OfferMessage" xml:space="preserve">
+    <value>The AI models are not installed. They are needed for the hold markup, following the climber (Follow) and hiding the outlines behind people, voice enhancement and ducking the music under speech.
+
+Install them now from the ai-models folder of this portable version? About {0} GB will be copied to {1}. The installation runs in the background — the editor stays usable. Nothing is downloaded from the internet.
+
+Everything else works without the models. They can also be installed later: «Settings…» → «AI models».</value>
+  </data>
+  <data name="ModelSetup_Install" xml:space="preserve">
+    <value>Install</value>
+  </data>
+  <data name="ModelSetup_Later" xml:space="preserve">
+    <value>Not now</value>
+  </data>
+  <data name="ModelSetup_CompactText" xml:space="preserve">
+    <value>AI models: {0} %</value>
+  </data>
+  <data name="ModelSetup_CompactTip" xml:space="preserve">
+    <value>Installing the AI models from the ai-models folder</value>
+  </data>
+  <data name="ModelSetup_CancelTip" xml:space="preserve">
+    <value>Cancel installing the AI models</value>
+  </data>
+  <data name="ModelSetup_Started" xml:space="preserve">
+    <value>Installing the AI models (in the background).</value>
+  </data>
+  <data name="ModelSetup_Done" xml:space="preserve">
+    <value>The AI models are installed: {0} file(s) copied, {1} already in place.</value>
+  </data>
+  <data name="ModelSetup_Cancelled" xml:space="preserve">
+    <value>Installing the AI models was cancelled. To try again: «Settings…» → «AI models».</value>
+  </data>
+  <data name="ModelSetup_Failed" xml:space="preserve">
+    <value>The AI models were not installed: {0} To try again: «Settings…» → «AI models».</value>
+  </data>
+  <data name="ModelSetup_CloseTitle" xml:space="preserve">
+    <value>Installing the AI models</value>
+  </data>
+  <data name="ModelSetup_CloseQuestion" xml:space="preserve">
+    <value>The AI models are being installed ({0} %). Cancel it and close the editor? The files already installed stay; the installation can be repeated at the next start.</value>
+  </data>
+  <data name="ModelSetup_KeepInstalling" xml:space="preserve">
+    <value>Keep installing</value>
+  </data>
+  <data name="ModelSetup_CancelAndClose" xml:space="preserve">
+    <value>Cancel and close</value>
+  </data>
+  <data name="AppSettings_NavModels" xml:space="preserve">
+    <value>AI models</value>
+  </data>
+  <data name="AppSettings_Models" xml:space="preserve">
+    <value>AI models</value>
+  </data>
+  <data name="AppSettings_ModelsFolder" xml:space="preserve">
+    <value>Models folder: {0}</value>
+  </data>
+  <data name="AppSettings_ModelsComplete" xml:space="preserve">
+    <value>Every model is in place (about {0} GB).</value>
+  </data>
+  <data name="AppSettings_ModelsMissing" xml:space="preserve">
+    <value>Model files missing: {0}. The features that need them say so.</value>
+  </data>
+  <data name="AppSettings_ModelsChecking" xml:space="preserve">
+    <value>Checking…</value>
+  </data>
+  <data name="AppSettings_ModelsInstall" xml:space="preserve">
+    <value>Install from the ai-models folder</value>
+  </data>
+  <data name="AppSettings_ModelsInstalling" xml:space="preserve">
+    <value>Installing: {0} %</value>
+  </data>
+  <data name="AppSettings_ModelsPackageNote" xml:space="preserve">
+    <value>The models are copied from the ai-models folder next to the application, every file checked by its size and SHA-256; correct files already installed are not copied again. Nothing is downloaded from the internet.</value>
+  </data>
+  <data name="AppSettings_ModelsNoPackage" xml:space="preserve">
+    <value>There is no models package (ai-models) next to the application. In the installed version the installer places the models: to restore them, run the Boulder Video Editor installer again. By hand — the models archive and Install-Models.cmd (docs/AI_MODEL.md).</value>
+  </data>
 </root>

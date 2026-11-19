@@ -3969,4 +3969,83 @@
   <data name="Transition_Dragging" xml:space="preserve">
     <value>Длина перехода: {0}</value>
   </data>
+  <data name="ModelSetup_OfferTitle" xml:space="preserve">
+    <value>ИИ-модели</value>
+  </data>
+  <data name="ModelSetup_OfferMessage" xml:space="preserve">
+    <value>ИИ-модели не установлены. Они нужны для разметки зацепок, слежения за скалолазом (Follow) и скрытия контуров за людьми, улучшения голоса и приглушения музыки под речь.
+
+Установить их сейчас из папки ai-models этой портативной версии? Будет скопировано около {0} ГБ в {1}. Установка идёт в фоне — редактором можно пользоваться. Из интернета ничего не скачивается.
+
+Без моделей работают все остальные функции. Установить их можно и позже: «Настройки…» → «ИИ-модели».</value>
+  </data>
+  <data name="ModelSetup_Install" xml:space="preserve">
+    <value>Установить</value>
+  </data>
+  <data name="ModelSetup_Later" xml:space="preserve">
+    <value>Не сейчас</value>
+  </data>
+  <data name="ModelSetup_CompactText" xml:space="preserve">
+    <value>ИИ-модели: {0} %</value>
+  </data>
+  <data name="ModelSetup_CompactTip" xml:space="preserve">
+    <value>Идёт установка ИИ-моделей из папки ai-models</value>
+  </data>
+  <data name="ModelSetup_CancelTip" xml:space="preserve">
+    <value>Прервать установку ИИ-моделей</value>
+  </data>
+  <data name="ModelSetup_Started" xml:space="preserve">
+    <value>Установка ИИ-моделей началась (в фоне).</value>
+  </data>
+  <data name="ModelSetup_Done" xml:space="preserve">
+    <value>ИИ-модели установлены: скопировано файлов — {0}, уже были на месте — {1}.</value>
+  </data>
+  <data name="ModelSetup_Cancelled" xml:space="preserve">
+    <value>Установка ИИ-моделей прервана. Повторить: «Настройки…» → «ИИ-модели».</value>
+  </data>
+  <data name="ModelSetup_Failed" xml:space="preserve">
+    <value>ИИ-модели не установлены: {0} Повторить: «Настройки…» → «ИИ-модели».</value>
+  </data>
+  <data name="ModelSetup_CloseTitle" xml:space="preserve">
+    <value>Установка ИИ-моделей</value>
+  </data>
+  <data name="ModelSetup_CloseQuestion" xml:space="preserve">
+    <value>Идёт установка ИИ-моделей ({0} %). Прервать её и закрыть редактор? Уже установленные файлы останутся; установку можно повторить при следующем запуске.</value>
+  </data>
+  <data name="ModelSetup_KeepInstalling" xml:space="preserve">
+    <value>Продолжить установку</value>
+  </data>
+  <data name="ModelSetup_CancelAndClose" xml:space="preserve">
+    <value>Прервать и закрыть</value>
+  </data>
+  <data name="AppSettings_NavModels" xml:space="preserve">
+    <value>ИИ-модели</value>
+  </data>
+  <data name="AppSettings_Models" xml:space="preserve">
+    <value>ИИ-модели</value>
+  </data>
+  <data name="AppSettings_ModelsFolder" xml:space="preserve">
+    <value>Папка моделей: {0}</value>
+  </data>
+  <data name="AppSettings_ModelsComplete" xml:space="preserve">
+    <value>Все модели на месте (около {0} ГБ).</value>
+  </data>
+  <data name="AppSettings_ModelsMissing" xml:space="preserve">
+    <value>Не хватает файлов моделей: {0}. Функции, которым они нужны, сообщат об этом.</value>
+  </data>
+  <data name="AppSettings_ModelsChecking" xml:space="preserve">
+    <value>Проверка…</value>
+  </data>
+  <data name="AppSettings_ModelsInstall" xml:space="preserve">
+    <value>Установить из папки ai-models</value>
+  </data>
+  <data name="AppSettings_ModelsInstalling" xml:space="preserve">
+    <value>Идёт установка: {0} %</value>
+  </data>
+  <data name="AppSettings_ModelsPackageNote" xml:space="preserve">
+    <value>Модели копируются из папки ai-models рядом с программой, каждый файл проверяется по размеру и SHA-256; уже установленные правильные файлы не копируются заново. Из интернета ничего не скачивается.</value>
+  </data>
+  <data name="AppSettings_ModelsNoPackage" xml:space="preserve">
+    <value>Рядом с программой нет пакета моделей (ai-models). В установленной версии модели ставит установщик: чтобы восстановить их, запустите установщик Boulder Video Editor снова. Вручную — архив моделей и Install-Models.cmd (docs/AI_MODEL.md).</value>
+  </data>
 </root>

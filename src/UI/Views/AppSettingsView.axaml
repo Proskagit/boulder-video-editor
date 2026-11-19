@@ -125,6 +125,22 @@
           </StackPanel>
         </StackPanel>
 
+        <!-- D070 §3: the AI models — their state; in the Portable version the install (or repair) from its ai-models folder. -->
+        <StackPanel x:Name="ModelsSection" Spacing="8" IsVisible="{Binding ShowsModels}">
+          <TextBlock Classes="heading" Text="{x:Static l:Strings.AppSettings_Models}"/>
+          <TextBlock x:Name="ModelsStateText" Text="{Binding ModelsStateText}" TextWrapping="Wrap"/>
+          <TextBlock Classes="note" Text="{Binding ModelsFolderText}"/>
+          <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ModelsHavePackage}">
+            <Button x:Name="ModelsInstallButton" Content="{x:Static l:Strings.AppSettings_ModelsInstall}"
+                    Command="{Binding Models.InstallCommand, FallbackValue={x:Null}}"/>
+            <TextBlock Text="{Binding ModelsInstallingText}" IsVisible="{Binding ModelsInstalling}" VerticalAlignment="Center"/>
+            <Button Content="✕" Command="{Binding Models.CancelCommand, FallbackValue={x:Null}}" IsVisible="{Binding ModelsInstalling}"
+                    ToolTip.Tip="{x:Static l:Strings.ModelSetup_CancelTip}"/>
+          </StackPanel>
+          <TextBlock Classes="note" Text="{x:Static l:Strings.AppSettings_ModelsPackageNote}" IsVisible="{Binding ModelsHavePackage}"/>
+          <TextBlock Classes="note" Text="{x:Static l:Strings.AppSettings_ModelsNoPackage}" IsVisible="{Binding ModelsHaveNoPackage}"/>
+        </StackPanel>
+
       </StackPanel>
     </ScrollViewer>
   </DockPanel>

@@ -259,7 +259,7 @@ $runtime = ($components | Where-Object { $_.Id -eq "Microsoft.NETCore.App.Runtim
 $files = Get-ChildItem -Recurse -File $out
 $bytes = ($files | Measure-Object -Sum Length).Sum
 $info = @(
-    "AI Video Editor $informational ($rid, self-contained, portable folder)",
+    "Boulder Video Editor $informational ($rid, self-contained, portable folder)",
     "Commit: $commit$(if ($dirty) { ' (uncommitted changes present)' })",
     "Built: $((Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm')) UTC",
     ".NET SDK: $sdk",

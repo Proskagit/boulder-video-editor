@@ -177,11 +177,15 @@ public sealed class SettingsWindowTests
 
         // The left column of the sections (D062 amendment 1: the only way to the FIT section now).
         var list = view.GetLogicalDescendants().OfType<ListBox>().Single(c => c.Name == "SectionList");
-        Assert.Equal(4, vm.SectionNames.Count);
+        Assert.Equal(5, vm.SectionNames.Count);              // D070 §3: + «ИИ-модели»
         Assert.Same(vm.SectionNames, list.ItemsSource);
         Assert.True(vm.ShowsGeneral);
         vm.SelectedSectionIndex = 3;
         Assert.True(vm.ShowsCorosFit);
         Assert.False(vm.ShowsGeneral);
+        Assert.Contains("ModelsSection", names);
+        vm.SelectedSectionIndex = 4;
+        Assert.True(vm.ShowsModels);
+        Assert.False(vm.ShowsCorosFit);
     }
 }
