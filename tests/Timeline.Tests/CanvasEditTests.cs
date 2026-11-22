@@ -96,6 +96,21 @@ public class CanvasEditTests
     private static VisualProperties V(Clip clip) => VisualProperties.Of(clip)!.Value;
 
     [Fact]
+    public void A_canvas_change_scales_a_texts_block_width_with_its_font()   // D075 amendment 1 (D028 CS-1 B)
+    {
+        var s = new Scene();
+        s.Title.BoxWidth = 400;
+        Ok(s.F.Service.SetCanvasSize(3840, 2160));
+        Assert.Equal((144.0, (double?)800), (s.Title.FontSize, s.Title.BoxWidth));
+        s.F.UndoRedo.Undo();
+        Assert.Equal((double?)400, s.Title.BoxWidth);
+
+        s.Title.BoxWidth = ClipPropertyLimits.MaxBoxWidth;                  // twice that is out of range: the whole change refused
+        Assert.False(s.F.Service.SetCanvasSize(3840, 2160).Success);
+        Assert.Equal(ClipPropertyLimits.MaxBoxWidth, s.Title.BoxWidth);
+    }
+
+    [Fact]
     public void A_canvas_change_is_one_undo_step_that_scales_positions_and_font_sizes_and_nothing_else()
     {
         var s = new Scene();

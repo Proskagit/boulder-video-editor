@@ -6,11 +6,14 @@
 phase; codecs → Phase 57). **Done:** italic, `TextShadow`, line spacing, block width (Preview side handles —
 `TransformGestureKind.TextWidth` — and the Inspector), saved styles (`SavedTextStyle`, `UserSettings.TextStyles`; `Normalized`
 keeps the same list when nothing is dropped so unchanged settings stay equal), format **v28**; `TimelineEditService` /
-`TimelineViewModel` split into partial files by section (no change); `README.md` English + Russian with four screenshots of a
+`TimelineViewModel` split into partial files by section (no change); `README.md` English + Russian with a title screenshot and four more of a
 copy of the owner's project (`docs/images`; the copy and its recent-list entry removed after). **Tests:**
 `TextStyle2PersistenceTests` (3), `TextStyle2RenderTests` (7: Preview = export for each, wrap, spacing, shadow colour),
 `TextStyle2InspectorTests` (2), `PreviewTransformUiTests` (+1 the side handle); the pinned format versions 27 → 28; the
 Inspector's numeric field count 57 → 62; the localization allowlist.
+**Review (phase-reviewer): FAIL** — a canvas change scaled the font but not «Ширина» (D028 CS-1 B). Fixed: `PlanCanvas` scales
+`BoxWidth` (+ test); notes taken (the shadow's copies now make exactly its opacity, «Непрозрачность» in Russian, a default style
+name never replaces a style, the undo names of the new fields, the split files' summaries, the allowlist moved with the split).
 
 **Phase 56 — the holds' contour (D075, 2026-11-22) — on `feat/phase-56-holds-contour`** (from `origin/main` `13500cf`).
 **Step 0:** Phase 55 accepted (PR #85 merged) — D074 «Acceptance», DEVELOPMENT_PLAN, ROADMAP. **Measured and withdrawn:** the

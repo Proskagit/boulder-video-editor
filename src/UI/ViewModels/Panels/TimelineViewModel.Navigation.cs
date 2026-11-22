@@ -16,7 +16,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AiVideoEditor.UI.ViewModels.Panels;
 
-/// <summary>The In / Out range (D030 §8), the playhead and the zoom (split out of TimelineViewModel.cs, D075 amendment 1 — no change).</summary>
+/// <summary>The In / Out range (D030 §8), the playhead, the zoom, the ruler and the per-zoom pictures (waveforms, filmstrips, markers) (split out, D075 amendment 1 — no change).</summary>
 public sealed partial class TimelineViewModel
 {
     // --- In / Out range (D030 §8): session state, never a project change ----------------------------------------------

@@ -16,7 +16,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AiVideoEditor.UI.ViewModels.Panels;
 
-/// <summary>The editing commands, trim to the playhead, ripple delete, copy / paste, markers and tracks (split out, D075 amendment 1 — no change).</summary>
+/// <summary>The editing commands (adding media, text and templates, drops and their ghost), trim to the playhead, ripple delete, copy / paste, markers, tracks and their state (split out, D075 amendment 1 — no change).</summary>
 public sealed partial class TimelineViewModel
 {
     // --- Editing commands ---------------------------------------------------------

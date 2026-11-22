@@ -700,7 +700,7 @@
     <value>Тень</value>
   </data>
   <data name="Inspector_ShadowOpacity" xml:space="preserve">
-    <value>Прозрачность</value>
+    <value>Непрозрачность</value>
   </data>
   <data name="Inspector_ShadowBlur" xml:space="preserve">
     <value>Размытие</value>

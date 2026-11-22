@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AiVideoEditor.Timeline;
 
-/// <summary>Clip properties, the frame rate, the canvas, the project and export settings (split out, D075 amendment 1 — no change).</summary>
+/// <summary>Clip properties, the frame rate, the canvas, the project and export settings, the training clock and the recording zero (split out, D075 amendment 1 — no change).</summary>
 public sealed partial class TimelineEditService
 {
     // --- Clip properties -------------------------------------------------------
@@ -179,7 +179,8 @@ public sealed partial class TimelineEditService
                 var change = new ClipPropertyChange
                 {
                     Visual = visual with { PositionX = visual.PositionX * scale, PositionY = visual.PositionY * scale },
-                    Text = text is { } t ? t with { FontSize = t.FontSize * scale } : null,
+                    // D075 amendment 1: the block's width is canvas pixels too — scaled with the font, so the lines wrap the same.
+                    Text = text is { } t ? t with { FontSize = t.FontSize * scale, BoxWidth = t.BoxWidth * scale } : null,
                     Keyframes = scaledKeys
                 };
                 if (ClipPropertyValidator.Validate(clip, change) is { } error)

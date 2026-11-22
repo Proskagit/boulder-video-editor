@@ -11972,12 +11972,14 @@ typed in the Inspector, Q4 A, Q5 — the page in English then Russian, Q6 — sc
    typed in the Inspector; **saved styles** — «Сохранить стиль» under a name (empty — «Стиль N», a name taken is replaced), kept in
    the global settings (`UserSettings.TextStyles`, every project), a click applies the font, size, colour, bold, italic,
    alignment, spacing, outline, background and shadow (never the words, the place, the width or the timing), ✕ deletes. A text
-   without them is drawn and saved exactly as before.
+   without them is drawn and saved exactly as before. A canvas change (D028 CS-1 B) scales «Ширина» with the font size, so the
+   lines wrap the same; a width that would leave its limits refuses the change as a font size does. The shadow of an outlined
+   text follows the fill's glyphs (not the outline's). Where all its copies overlap the shadow is exactly its opacity.
 2. **Technical debt:** `TimelineEditService.cs` (2 821 lines) and `TimelineViewModel.cs` (2 034) split by their sections into
    partial files (`.Add`, `.Move`, `.Trim`, `.Tracks`, `.Settings`, `.Dissolves`; `.Projection`, `.Navigation`, `.Commands`,
    `.SelectionState`, `.Gestures`) — the code moved byte for byte, no change.
-3. **The repository's page:** `README.md` rewritten — English, then Russian: what the editor does, the quick start, four
-   screenshots of the owner's project copy (`docs/images`: the holds, «Итоги», the route's areas, the help), the developer notes.
+3. **The repository's page:** `README.md` rewritten — English, then Russian: what the editor does, the quick start, a title
+   screenshot and four more of the owner's project copy (`docs/images`: the holds, «Итоги», the route's areas, the help), the developer notes.
 
 ### Out of scope
 

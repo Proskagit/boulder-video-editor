@@ -122,7 +122,13 @@ public sealed partial class InspectorViewModel
     {
         if (_settings is null || _clip is null || TextProperties.Of(_clip) is not { } text) return;
         var name = NewTextStyleName.Trim();
-        if (name.Length == 0) name = string.Format(Strings.TextStyle_DefaultName, _settings.Current.TextStyles.Count + 1);
+        if (name.Length == 0)
+        {
+            var taken = _settings.Current.TextStyles.Select(x => x.Name).ToHashSet();
+            var n = 1;
+            while (taken.Contains(string.Format(Strings.TextStyle_DefaultName, n))) n++;
+            name = string.Format(Strings.TextStyle_DefaultName, n);   // the first free «Стиль N»: a default name never replaces a style
+        }
         var style = SavedTextStyle.Of(name, text);
         _settings.Update(s => s with { TextStyles = s.TextStyles.Where(x => x.Name != name).Append(style).ToList() });
         NewTextStyleName = "";

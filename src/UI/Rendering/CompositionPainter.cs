@@ -264,7 +264,8 @@ public static class CompositionPainter
                 var angle = 2 * Math.PI * k / Ring;
                 copies.Add(offset + new Vector(Math.Cos(angle) * radius, Math.Sin(angle) * radius));
             }
-        var each = 1 - Math.Pow(1 - shadow.Opacity, 1.0 / copies.Count * 2.2);
+        // Where every copy overlaps (the middle of a stroke) the shadow is exactly its opacity; toward the edges it fades.
+        var each = 1 - Math.Pow(1 - shadow.Opacity, 1.0 / copies.Count);
         foreach (var at in copies)
             using (context.PushOpacity(each))
                 context.DrawText(layout, origin + at);

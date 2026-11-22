@@ -713,7 +713,7 @@
     <value>Непрозрачность должна быть от {0} до {1}.</value>
   </data>
   <data name="Prop_TextShadow" xml:space="preserve">
-    <value>Прозрачность, размытие или смещение тени вне допустимого.</value>
+    <value>Непрозрачность, размытие или смещение тени вне допустимого.</value>
   </data>
   <data name="Prop_LineSpacing" xml:space="preserve">
     <value>Интервал должен быть от {0} до {1}.</value>
