@@ -98,7 +98,8 @@ public interface ITimelineEditService
     /// its track moves left by the trimmed frames (other tracks and markers stay; after a ripple trim of the start the
     /// result names the new playhead, <see cref="TimelineEditResult.Playhead"/>, Q5). Dissolves are never removed
     /// (Q4 / Q6): a plain trim does not trim an edge that is a dissolve's cut, and a trim stops where a dissolve needs
-    /// the clip's frames, with a message. One undo step for all the clips; refused — nothing changes — when no selected
+    /// the clip's frames, with a message. D074 §1: an empty <paramref name="clipIds"/> takes the video clips the playhead is inside on the
+    /// unlocked tracks (and their linked sound). One undo step for all the clips; refused — nothing changes — when no selected
     /// clip contains the playhead, a trimmed clip's track is locked, or no trim is possible because of dissolves.</summary>
     TimelineEditResult TrimToPlayhead(IReadOnlyCollection<Guid> clipIds, ClipEdge edge, MediaTime playhead, bool ripple);
 

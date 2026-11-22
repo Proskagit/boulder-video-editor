@@ -1607,6 +1607,18 @@
   <data name="Timeline_RemoveMarkerTip" xml:space="preserve">
     <value>Удалить маркер в позиции указателя</value>
   </data>
+  <data name="Timeline_TrimStart" xml:space="preserve">
+    <value>Обрезать слева</value>
+  </data>
+  <data name="Timeline_TrimStartTip" xml:space="preserve">
+    <value>Разрезать по указателю и удалить левую часть (Q): выбранные клипы, а без выбора — видео под указателем. Shift+Q — ещё и закрыть промежуток</value>
+  </data>
+  <data name="Timeline_TrimEnd" xml:space="preserve">
+    <value>Обрезать справа</value>
+  </data>
+  <data name="Timeline_TrimEndTip" xml:space="preserve">
+    <value>Разрезать по указателю и удалить правую часть (W): выбранные клипы, а без выбора — видео под указателем. Shift+W — ещё и закрыть промежуток</value>
+  </data>
   <data name="Timeline_RippleDelete" xml:space="preserve">
     <value>Удалить со сдвигом</value>
   </data>
@@ -2991,13 +3003,13 @@
     <value>Сбалансированный</value>
   </data>
   <data name="ExportProfile_BalancedDetail" xml:space="preserve">
-    <value>по умолчанию: качество и размер как раньше</value>
+    <value>хорошая картинка, файл меньше</value>
   </data>
   <data name="ExportProfile_HighQuality" xml:space="preserve">
     <value>Высокое качество</value>
   </data>
   <data name="ExportProfile_HighQualityDetail" xml:space="preserve">
-    <value>меньше артефактов, экспорт дольше</value>
+    <value>лучшая картинка (по умолчанию в новом проекте), экспорт дольше</value>
   </data>
   <data name="ExportProfile_Custom" xml:space="preserve">
     <value>Пользовательский</value>

@@ -9,7 +9,8 @@ using Xunit;
 
 namespace AiVideoEditor.UI.Tests;
 
-/// <summary>D072 amendment 2: «Предлагать трассу» is off by default; the user's choice is kept in the settings.</summary>
+/// <summary>D072 amendment 2: «Предлагать трассу» is off by default; the user's choice is kept in the settings — D074 §2: until
+/// the next new or opened project, which starts with it off (the run's first project keeps the saved value).</summary>
 public class RouteProposalDefaultTests
 {
     private static HoldMarkupViewModel Markup(IUserSettingsService settings)
@@ -37,5 +38,32 @@ public class RouteProposalDefaultTests
 
         Markup(settings).IsRouteProposalEnabled = false;
         Assert.False(Markup(new InMemoryUserSettings(settings.Current)).IsRouteProposalEnabled);
+    }
+
+    [Fact]
+    public async Task A_new_or_an_opened_project_starts_with_them_off()   // D074 §2
+    {
+        var settings = new InMemoryUserSettings();
+        var undo = new UndoRedoService();
+        var projects = new ProjectService(undo, NullLogger<ProjectService>.Instance);
+        var edit = new TimelineEditService(projects, undo, NullLogger<TimelineEditService>.Instance);
+        var markup = new HoldMarkupViewModel(edit, projects, new StatusService(), settings: settings) { IsRouteProposalEnabled = true };
+
+        projects.CreateNew("Next");
+        Assert.False(markup.IsRouteProposalEnabled);
+        Assert.False(settings.Current.RouteProposalsEnabled);
+
+        var folder = Path.Combine(Path.GetTempPath(), "aive-d074-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            await projects.SaveAsAsync(folder);
+            markup.IsRouteProposalEnabled = true;
+            await projects.OpenAsync(folder);
+            Assert.False(markup.IsRouteProposalEnabled);
+        }
+        finally
+        {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
     }
 }

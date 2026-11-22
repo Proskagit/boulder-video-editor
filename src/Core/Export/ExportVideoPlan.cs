@@ -80,18 +80,20 @@ public sealed record ExportVideoPlan(ExportVideoEncoder Encoder, string Preset, 
     public const string X264FastPreset = "veryfast";
     public const int X264FastCrf = 18;
 
-    /// <summary>«Высокое качество» with libx264.</summary>
+    /// <summary>«Высокое качество» with libx264 — D074 §6 (the owner): the highest quality level, CRF 14 (D059 had 16).</summary>
     public const string X264HighQualityPreset = "slow";
-    public const int X264HighQualityCrf = 16;
+    public const int X264HighQualityCrf = 14;
 
     // Calibrated 2026-11-11 (D059 §5, docs/EXPORT_PERFORMANCE.md §5): the largest CQ whose VMAF is not below the libx264
-    // counterpart's on all five references — Fast ↔ veryfast CRF 18, Balanced ↔ medium CRF 18, High quality ↔ slow CRF 16.
+    // counterpart's on all five references — Fast ↔ veryfast CRF 18, Balanced ↔ medium CRF 18, High quality ↔ slow CRF 16 (D074 §6 then raised it to the highest level, below).
     public const string NvencFastPreset = "p2";
     public const int NvencFastCq = 25;
     public const string NvencBalancedPreset = "p5";
     public const int NvencBalancedCq = 22;
     public const string NvencHighQualityPreset = "p7";
-    public const int NvencHighQualityCq = 20;
+    /// <summary>D074 §6: «Высокое качество» with NVENC is the highest quality — the CQ calibrated against CRF 14
+    /// (<see cref="NvencCqOf"/> of <see cref="ExportQuality.Maximum"/>; D059 had 20 ↔ slow CRF 16).</summary>
+    public const int NvencHighQualityCq = 19;
 
     /// <summary>«Пользовательский» speed → NVENC preset.</summary>
     public static string NvencPresetOf(ExportSpeedPreset preset) => preset switch

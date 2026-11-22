@@ -97,6 +97,10 @@ public sealed record ExportEncoding(ExportQuality Quality, ExportSpeedPreset Pre
     /// <summary>Today's output (D023, D028): «Сбалансированный», libx264 — CRF 18, preset medium, AAC 192 kbps.</summary>
     public static ExportEncoding Default { get; } = new(ExportQuality.High, ExportSpeedPreset.Medium, 192) { Profile = ExportProfile.Balanced };
 
+    /// <summary>D074 §6 (the owner): a new project's export — «Высокое качество» with NVENC (libx264 of the same profile where
+    /// NVENC is unavailable). <see cref="Default"/> stays the meaning of a file without export settings.</summary>
+    public static ExportEncoding NewProject { get; } = Default with { Profile = ExportProfile.HighQuality, Encoder = ExportVideoEncoder.Nvenc };
+
     /// <summary>The AAC bitrates offered, in kbps.</summary>
     public static IReadOnlyList<int> AudioBitratesKbps { get; } = new[] { 128, 160, 192, 256, 320 };
 

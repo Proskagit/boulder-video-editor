@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Holds;
 using AiVideoEditor.Core.Interfaces;
@@ -159,7 +160,11 @@ public sealed partial class TimelineEditService
         if (HoldMarkupRules.Validate(after) is { } invalid) return TimelineEditResult.Fail(invalid);
         if (before is not null && after.SameAs(before)) return TimelineEditResult.Unchanged();
 
-        var command = new SetHoldMarkupCommand(clip, routeId, before, after, fields);
+        IUndoableCommand command = new SetHoldMarkupCommand(clip, routeId, before, after, fields);
+        // D074 §4 (the owner's Q17): a route that gets its first holds hides them behind people at once — the clip's Occlusion on,
+        // in the same step (the people's analysis then runs in the background; with nobody in front nothing is hidden).
+        if (!clip.HidesOutlinesBehindPeople && !after.Holds.IsDefaultOrEmpty && (before is null || before.Holds.IsDefaultOrEmpty))
+            command = new CompositeCommand(command.Description, new[] { command, new SetClipOcclusionCommand(clip, true) });
         ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(new[] { clip.Id });
     }

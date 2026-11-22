@@ -11829,8 +11829,73 @@ sweep repeats** while the block is shown: 0.6 s across, then a 0.3 s pause (`Tem
 All the corrections accepted. The FLASH chips of one «Итоги» sweep **together**: each on the board's clock (from the template's
 start), not on its row's entrance. No other change; the owner asked to move on to the next phase.
 
+### Acceptance (2026-11-22)
+
+The owner checked 1.6.3 and merged PR #84 (`fc765fe`, amendments 1–4 included). Phase 54 is accepted.
+
 ### Out of scope
 
 A stored `PassId` or a user grouping of attempts; the list of routes chosen by hand; ranks, points or zones; the FIT's falls; FLASH
 from the FIT; the template's length changed automatically; other layouts (columns chosen by the user, a vertical-only layout); a
 summary of several projects; hundredths of a second.
+
+## D074 — Phase 55: editing comfort *(set by the owner on 2026-11-22, D073 amendment 2)*
+
+The owner's notes on 1.6.0–1.6.3 that are not «Итоги» (D073 amendment 2, Q15–Q19, and his later word on the magnet and the export).
+
+### 1. «Обрезать слева / справа» — buttons (Q16 A)
+
+Two buttons on the timeline's bar after «Разрезать»: cut at the playhead and drop the left / right part — the existing trim to the
+playhead (D030 §5, Q / W; Shift — closing the gap). New: **with nothing selected** they (and Q / W) take the video clips the playhead
+is inside on the unlocked tracks with their linked sound — the anchored plates follow their clip as with any trim (the rule is the
+edit service's `TrimToPlayhead` with an empty list, as `Split`'s; with no video there — «Под указателем нет видео для обрезки…»).
+With a selection, as before. One undo step. Hidden (unlocked) tracks count, as for «Разрезать».
+
+### 2. The defaults of a new or an opened project
+
+- **The magnet is the project's own** (the owner revised Q15: switching it on when opening would move a project's clips): on in a
+  new project (D069 §6), as saved when opening — unchanged.
+- **«Предлагать трассу» off** with every new, opened or recovered project (the setting no longer carries over from the previous
+  project within one run; it is still saved, so the run's first project — the one the application starts with — keeps it).
+- The timeline's snapping — no switch left since D069 §6 (always on): nothing to do.
+
+### 3. The export window scrolls
+
+Everything above «Экспорт» / «Отмена» — the file, the size, the profile, «Подробные настройки», «Таймкоды» — in one vertical
+scroll; the buttons stay in view; the timestamps' box at most 260 px high (it scrolls itself); the window opens 600 px high.
+
+### 4. A route's first holds hide behind people (Q17 A)
+
+When a route gets its first holds (markup, a proposed route, the route from its first hold — every path through the hold markup),
+its clip's «Скрывать контуры за людьми» is switched on **in the same undo step** — the people's analysis then runs in the background
+(D061); with nobody in front nothing is hidden. A clip where the user switched it off stays off while its route has holds (another
+route of the clip getting its first holds, or the route's holds all removed and marked again, switches it on again). Routes from
+the FIT (oranges without holds) and style edits do not switch it.
+
+### 5. «Люди» and «Зацепки» for an anchored plate
+
+A selected «Боулдер» anchored to a video clip carries that clip: the Inspector's «Слежение и люди» edits the clip, «Зацепки» shows
+the clip's holds of the plate's route; the plate's own fields stay. A free plate — none.
+
+### 6. The export's quality by default (the owner)
+
+«Высокое качество» is the **highest** quality level: NVENC p7 multipass **CQ 19** (the CQ calibrated against CRF 14, D059 §5; was
+CQ 20 ↔ slow CRF 16) and libx264 slow **CRF 14** (was 16). **The application's new projects** export at «Высокое качество» with
+**NVENC** (libx264 of the same profile where NVENC is unavailable). A project file without export settings keeps meaning
+«Сбалансированный» (nothing of a saved project changes, except that its «Высокое качество» is now CQ 19 / CRF 14).
+
+Also: the «Сбалансированный» / «Высокое качество» details no longer call «Сбалансированный» the default («хорошая картинка, файл
+меньше» / «лучшая картинка (по умолчанию в новом проекте), экспорт дольше»).
+
+### Review (phase-reviewer, 2026-11-22): FAIL → fixed
+
+(1) For an anchored plate «Удалить часть» of Follow vanished after any playhead move (`OnPlayheadMoved` still read `_clip`) — now
+the section's `PeopleClip` (+ test). (2) The no-selection rule of the trim lived in the view model — moved into
+`TimelineEditService.TrimToPlayhead` (an empty list), the UI passes the selection (+ test with a locked track and a text). Notes
+taken: the Balanced detail, a proposed route (`AddHolds`) and a style edit for §4, the startup rule of §2 written down, manual rows
+for a machine without NVENC and for the bar at 1024 / 1440 px.
+
+### Out of scope
+
+The holds' contour (Phase 56); a project-level switch for «Предлагать трассу»; trimming the plates or the text under the playhead
+without a selection.

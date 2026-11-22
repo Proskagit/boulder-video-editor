@@ -94,7 +94,7 @@ public sealed partial class InspectorViewModel
         InspectorCategory.Clip => true,
         InspectorCategory.Text => HasTextProperties || HasTemplate,
         InspectorCategory.People => HasPeopleSection,
-        InspectorCategory.Holds => _clip is VideoClip && HoldMarkup is { HasClip: true },
+        InspectorCategory.Holds => PeopleClip is not null && HoldMarkup is { HasClip: true },   // D074 §5: an anchored plate too
         InspectorCategory.Fit => ShowsTraining || ShowsFitMarks || ShowsFitLink,
         InspectorCategory.Audio => HasAudioProperties,
         _ => false

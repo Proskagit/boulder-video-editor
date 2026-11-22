@@ -24,7 +24,7 @@ public sealed class Phase50AmendmentTests : IDisposable
 
     public Phase50AmendmentTests()
     {
-        _projects = new ProjectService(_undo, NullLogger<ProjectService>.Instance, magneticMainTrackInNewProjects: true);
+        _projects = new ProjectService(_undo, NullLogger<ProjectService>.Instance, applicationDefaultsInNewProjects: true);
         _edit = new TimelineEditService(_projects, _undo, NullLogger<TimelineEditService>.Instance);
         _t = new TimelineViewModel(_projects, _edit, new StatusService(), NullLogger<TimelineViewModel>.Instance);
     }

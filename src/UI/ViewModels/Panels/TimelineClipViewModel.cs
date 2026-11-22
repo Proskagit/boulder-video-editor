@@ -365,6 +365,12 @@ public sealed record TimelineClipSelection(Clip Clip, string Name, MediaAsset? A
     /// so Delete means the markup, D048 §3.9): the Inspector shows the video with its holds on this route.</summary>
     public Guid? OrangeRouteId { get; init; }
 
+    /// <summary>D074 §5: a «Боулдер» anchored to a video clip is selected — that clip (its «Люди» and «Зацепки» are shown and
+    /// edited from the plate) and the plate's route; null otherwise.</summary>
+    public VideoClip? Anchor { get; init; }
+
+    public Guid? AnchorRouteId { get; init; }
+
     /// <summary>The orange of a route is selected, not a clip.</summary>
     public bool IsOrange => OrangeRouteId is not null;
 }

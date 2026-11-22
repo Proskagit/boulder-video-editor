@@ -386,6 +386,13 @@
             <Button Classes="icon" Command="{Binding SplitAtPlayheadCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_SplitTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_Split}">
               <controls:IconPath Glyph="{x:Static controls:Icons.Split}"/>
             </Button>
+            <!-- D074 §1: cut at the playhead and drop the left / right part in one press (Q / W; Shift — closing the gap). -->
+            <Button x:Name="TrimStartButton" Classes="icon" Command="{Binding TrimStartToPlayheadCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_TrimStartTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_TrimStart}">
+              <controls:IconPath Glyph="{x:Static controls:Icons.TrimStart}"/>
+            </Button>
+            <Button x:Name="TrimEndButton" Classes="icon" Command="{Binding TrimEndToPlayheadCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_TrimEndTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_TrimEnd}">
+              <controls:IconPath Glyph="{x:Static controls:Icons.TrimEnd}"/>
+            </Button>
             <Button Classes="icon" Command="{Binding DeleteSelectedCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_DeleteTip}" AutomationProperties.Name="{x:Static l:Strings.Timeline_Delete}">
               <controls:IconPath Glyph="{x:Static controls:Icons.Delete}"/>
             </Button>

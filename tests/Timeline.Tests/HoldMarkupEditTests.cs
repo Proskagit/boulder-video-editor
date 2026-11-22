@@ -56,6 +56,39 @@ public class HoldMarkupEditTests
     }
 
     [Fact]
+    public void A_routes_first_hold_hides_the_outlines_behind_people_in_the_same_step()   // D074 §4
+    {
+        var f = WithVideo(out var clip);
+        Assert.False(clip.HidesOutlinesBehindPeople);
+        Assert.True(f.Service.AddHold(clip.Id, Hold("#E53935")).Success);
+        Assert.True(clip.HidesOutlinesBehindPeople);
+        Assert.Equal("Add Hold", f.UndoRedo.NextUndo!.Description);
+
+        f.UndoRedo.Undo();                                                               // one step: the hold and the switch
+        Assert.Null(clip.HoldMarkup);
+        Assert.False(clip.HidesOutlinesBehindPeople);
+        f.UndoRedo.Redo();
+        Assert.True(clip.HidesOutlinesBehindPeople);
+
+        // Turned off by the user, it stays off while the route has holds.
+        Assert.True(f.Service.SetClipHidesOutlinesBehindPeople(clip.Id, false).Success);
+        Assert.True(f.Service.AddHold(clip.Id, Hold("#43A047", x: 0.3)).Success);
+        Assert.False(clip.HidesOutlinesBehindPeople);
+    }
+
+    [Fact]
+    public void A_proposed_route_switches_occlusion_on_a_style_edit_does_not()   // D074 §4: AddHolds — the proposed route
+    {
+        var f = WithVideo(out var clip);
+        f.Service.SetHoldStyle(clip.Id, HoldStyle.Of(new HoldMarkup()) with { StrokeWidth1080 = 6 });   // a style without holds
+        Assert.False(clip.HidesOutlinesBehindPeople);
+        Assert.True(f.Service.AddHolds(clip.Id, new[] { Hold("#E53935"), Hold("#E53935", x: 0.3) }).Success);
+        Assert.True(clip.HidesOutlinesBehindPeople);
+        f.UndoRedo.Undo();
+        Assert.False(clip.HidesOutlinesBehindPeople);
+    }
+
+    [Fact]
     public void Auto_is_recomputed_from_the_stored_samples_of_holds_marked_on_different_frames()
     {
         var f = WithVideo(out var clip);

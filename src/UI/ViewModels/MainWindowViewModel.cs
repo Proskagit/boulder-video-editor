@@ -342,7 +342,9 @@ public sealed class MainWindowViewModel : ViewModelBase
         Preview.HoldMarkup = markup;
         markup.Playhead = () => Timeline.Playhead;
         markup.IsPausedOnTimeline = () => !Preview.IsPlaying && !Preview.IsSourceMode;
-        Timeline.SelectionChanged += (_, selection) => markup.SetClip(selection?.Clip, selection?.OrangeRouteId);
+        // D074 §5: an anchored plate shows its clip's holds (of the plate's route).
+        Timeline.SelectionChanged += (_, selection) => markup.SetClip(selection?.Anchor ?? selection?.Clip,
+            selection?.OrangeRouteId ?? (selection?.Anchor is null ? null : selection.AnchorRouteId));
         Timeline.TransitionSelectionChanged += (_, selection) => { if (selection is not null) markup.SetClip(null); };
         MediaBrowser.SelectionChanged += (_, asset) => { if (asset is not null) markup.SetClip(null); };
         Timeline.PlayheadChanged += (_, _) => markup.OnPlayheadMoved();

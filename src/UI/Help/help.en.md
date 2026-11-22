@@ -105,7 +105,7 @@ The Inspector's **«Follow and people»** section.
 
 - **«Follow the climber»** — the visible part of the frame moves with the chosen person. It needs room: scale the clip beyond «Fill». Follow the whole clip or «from here» — from the current frame.
 - **«Smoothness»** — how gently the frame catches up. **«Climber in the frame»** — where they stand in the frame; easier to drag the frame in Preview.
-- **«Hide outlines behind people»** — the hold outlines hide behind anyone who covers them.
+- **«Hide outlines behind people»** — the hold outlines hide behind anyone who covers them. It switches on by itself when a route gets its first holds (you can switch it off here). «Follow and people» and «Holds» also open for a «Boulder» plate anchored to a clip.
 - The people analysis runs in the background with its progress in the section. Its results are kept, so it isn't computed twice.
 
 # Text, templates and transitions
@@ -126,7 +126,7 @@ The Inspector's **«Follow and people»** section.
 # Export
 
 - **«Export»** (Ctrl+E) — choose the place and the file's name. The name offered is the date and time, for example 20261118_1430.mp4.
-- The export window: the name, the folder, the resolution and the quality profile; the encoder and fine settings are in «More settings». The expected file size is shown below. With an in and out set, only that part is exported.
+- The export window: the name, the folder, the resolution and the quality profile; the encoder and fine settings are in «More settings». The expected file size is shown below; the window scrolls when the settings and the timestamps are opened. A new project exports at «High quality» with NVENC (without an NVIDIA card — libx264 with the same profile). With an in and out set, only that part is exported.
 - A new project not saved yet is exported at once, without saving.
 - When it is done you see how long it took and «Show in folder».
 - **The export runs in the background:** keep working. The video holds the project as it was when the export started.
@@ -151,7 +151,7 @@ The Inspector's **«Follow and people»** section.
 
 - **S** — split, **Delete** — delete, **Ctrl+D** — duplicate, **Ctrl+C / Ctrl+V** — copy / paste
 - **Ctrl+A** — select all, **Esc** — clear the selection
-- **Q / W** — trim the start / end to the playhead (with Shift the following clips move)
+- **Q / W** — trim the start / end to the playhead (with Shift the following clips move); the same «Trim Left / Right» buttons are on the timeline's bar. With nothing selected — the video under the playhead
 - **Alt+← / Alt+→** — nudge the selection by a frame (with Shift by a second)
 - **I / O** — in / out, **«,» / «.»** — insert / overwrite from the source
 - **N** — the main track magnet, **Ctrl+= / Ctrl+−** — zoom, **\** — the whole timeline

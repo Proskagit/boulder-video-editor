@@ -232,8 +232,8 @@
   <data name="Edit_RateUnknownFallback" xml:space="preserve">
     <value>Source frame rate of {0} is unknown — project frame rate set to {1} FPS (fallback, not the file's actual frame rate).</value>
   </data>
-  <data name="Edit_SelectClipToTrim" xml:space="preserve">
-    <value>Select the clip to trim: the playhead must be inside it.</value>
+  <data name="Edit_NoVideoToTrim" xml:space="preserve">
+    <value>No video under the playhead to trim: put the playhead inside a clip, or select the clip.</value>
   </data>
   <data name="Edit_SelectedClipGone" xml:space="preserve">
     <value>A selected clip no longer exists.</value>

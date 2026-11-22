@@ -1605,6 +1605,18 @@ Recover them now? Discarded changes can't be restored.</value>
   <data name="Timeline_RemoveMarkerTip" xml:space="preserve">
     <value>Remove the marker at the playhead</value>
   </data>
+  <data name="Timeline_TrimStart" xml:space="preserve">
+    <value>Trim Left</value>
+  </data>
+  <data name="Timeline_TrimStartTip" xml:space="preserve">
+    <value>Cut at the playhead and remove the left part (Q): the selected clips, or with none selected the video under the playhead. Shift+Q also closes the gap</value>
+  </data>
+  <data name="Timeline_TrimEnd" xml:space="preserve">
+    <value>Trim Right</value>
+  </data>
+  <data name="Timeline_TrimEndTip" xml:space="preserve">
+    <value>Cut at the playhead and remove the right part (W): the selected clips, or with none selected the video under the playhead. Shift+W also closes the gap</value>
+  </data>
   <data name="Timeline_RippleDelete" xml:space="preserve">
     <value>Ripple Delete</value>
   </data>
@@ -2987,13 +2999,13 @@ If you don't save, your changes will be lost.</value>
     <value>Balanced</value>
   </data>
   <data name="ExportProfile_BalancedDetail" xml:space="preserve">
-    <value>the default: quality and size as before</value>
+    <value>a good picture, a smaller file</value>
   </data>
   <data name="ExportProfile_HighQuality" xml:space="preserve">
     <value>High quality</value>
   </data>
   <data name="ExportProfile_HighQualityDetail" xml:space="preserve">
-    <value>fewer artefacts, a longer export</value>
+    <value>the best picture (the default of a new project), a longer export</value>
   </data>
   <data name="ExportProfile_Custom" xml:space="preserve">
     <value>Custom</value>

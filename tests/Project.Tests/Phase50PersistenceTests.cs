@@ -61,12 +61,34 @@ public class Phase50PersistenceTests
     [Fact]
     public void The_applications_new_projects_have_the_magnet_on_and_a_service_built_for_a_test_does_not()
     {
-        var app = new ProjectService(new UndoRedoService(), NullLogger<ProjectService>.Instance, magneticMainTrackInNewProjects: true);
+        var app = new ProjectService(new UndoRedoService(), NullLogger<ProjectService>.Instance, applicationDefaultsInNewProjects: true);
         Assert.True(app.Current.Timeline.MagneticMainTrack);
         Assert.True(app.CreateNew("Next").Timeline.MagneticMainTrack);
 
         var plain = new ProjectService(new UndoRedoService(), NullLogger<ProjectService>.Instance);
         Assert.False(plain.Current.Timeline.MagneticMainTrack);
+    }
+
+    [Fact]
+    public async Task The_applications_new_projects_export_at_the_highest_quality_and_an_older_file_keeps_its_own()   // D074 §6
+    {
+        var app = new ProjectService(new UndoRedoService(), NullLogger<ProjectService>.Instance, applicationDefaultsInNewProjects: true);
+        Assert.Equal(ExportEncoding.NewProject, app.Current.Settings.Export);
+        Assert.Equal(ExportEncoding.NewProject, app.CreateNew("Next").Settings.Export);
+        Assert.Equal((ExportProfile.HighQuality, ExportVideoEncoder.Nvenc), (ExportEncoding.NewProject.Profile, ExportEncoding.NewProject.Encoder));
+        Assert.Equal(ExportEncoding.Default, new ProjectService(new UndoRedoService(), NullLogger<ProjectService>.Instance).Current.Settings.Export);
+
+        // Saved and opened, it stays; a file without export settings is still the old default (nothing of a project changes).
+        var folder = Path.Combine(Path.GetTempPath(), "aive-d074-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            await app.SaveAsAsync(folder);
+            Assert.Equal(ExportEncoding.NewProject, (await app.OpenAsync(folder)).Settings.Export);
+        }
+        finally
+        {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
     }
 
     // --- D069 §7: a video clip's colour correction ---------------------------------------------------------------------
