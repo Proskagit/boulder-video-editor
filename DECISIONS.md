@@ -11797,6 +11797,21 @@ distinctive look. Variants A (over the video) and B (a full-frame card) shown on
 2. **No «Итоги» on vertical videos** — the owner does not put them there. The portrait layout stays as built (no extra work, not
    removed); the manual check's B10 is dropped; the smaller portrait board is no longer an open point.
 
+### Amendment 2 (2026-11-22) — the owner on 1.6.1: open, the answers Q14–Q20
+
+On this branch: (1) **FLASH redrawn** — the white block with the bolt «looks drawn in Paint»; round 1 of mock-ups: B «Скос»
+liked but white on orange does not read; round 2 (B1 orange slanted with navy text, B2 navy slanted with orange, D1 / D2 cyan
+with a yellow bolt, lowercase «Flash» / «flash») — **the owner's pick pending (Q14)**; the bolt goes from «Итоги» too.
+(2) **«Итоги»' pace:** every row in during the first half (5 s of 10), the totals held the second half. (3) **The status written
+on the lilac strip of the timeline** (Q18 A: «TOP», «ПОПЫТКА», «FLASH»).
+Next phases (Q19, agreed): **Phase 55 — editing comfort:** two buttons «обрезать слева / справа» on the timeline bar (Q16 A; Q / W
+exist); a new project — and an opened one — starts with the defaults: the magnet on (Q15 A, also when opening), «Предлагать
+трассу» off and the timeline's snapping on (the owner: these carried over from project to project within one run); «Скрывать
+за людьми» on with every new route, the people's analysis in the background (Q17 A); the Inspector's «Люди» / «Зацепки» for a
+plate anchored to a clip (its clip edited). **Phase 56 — the holds' contour:** the jagged edges (the 256 × 256 mask stretched),
+the triangles' corners lost to the smoothing, notches — a crop refinement of the mask and a corner-keeping smoothing, measured on
+a copy of the owner's project «Новый проект» (Desktop, 27 September; Q20).
+
 ### Out of scope
 
 A stored `PassId` or a user grouping of attempts; the list of routes chosen by hand; ranks, points or zones; the FIT's falls; FLASH
