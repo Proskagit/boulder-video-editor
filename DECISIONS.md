@@ -11824,6 +11824,11 @@ The pace of «Итоги» and the FLASH block accepted («сочно»). (1) **
 name on the green: centred in height, the same dark backing and light text (not at the segment's bottom in purple). (2) **The FLASH
 sweep repeats** while the block is shown: 0.6 s across, then a 0.3 s pause (`TemplatePainter.FlashSweepPeriod` 0.9 s).
 
+### Amendment 4 (2026-11-22) — the owner on 1.6.3
+
+All the corrections accepted. The FLASH chips of one «Итоги» sweep **together**: each on the board's clock (from the template's
+start), not on its row's entrance. No other change; the owner asked to move on to the next phase.
+
 ### Out of scope
 
 A stored `PassId` or a user grouping of attempts; the list of routes chosen by hand; ranks, points or zones; the FIT's falls; FLASH

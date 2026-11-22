@@ -42,6 +42,8 @@ recorded in D073 amendment 2.
 Project 764, Core 1 993, Export 142, Rendering 281, UI 1 329, Timeline 1 255, Video 418 (+1 skip), ExportEndToEnd 189. **Known
 flake:** one UI.Tests run hung in `ProjectSettingsUiTests.A_refusal_by_the_service_is_shown_in_the_open_dialog_and_changes_nothing`
 (untouched by this change; `--blame-hang` dump at 10 min); three reruns green (1 329).
+**Amendment 4 (2026-11-22, the owner on 1.6.3):** everything accepted; «Итоги»' FLASH chips sweep together (the board's clock);
+Release build + Rendering.Tests only, at the owner's word (no full gates).
 **Re-review: PASS WITH NOTES** (taken: the YouTube timestamps' grouping of copies recorded in D073; noted: the split test builds
 the state by hand, pre-D053 areas without a route id).
 **Gates (2026-11-22, the final code):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `Vision.ModelTests` builds;

@@ -221,7 +221,8 @@ internal static class SummaryPainter
         var chip = new Rect(centre.X - chipWidth / 2, centre.Y - 21 * v, chipWidth, 42 * v);
         if (flash)
         {
-            FlashBlock(context, chip, label, v, since);
+            // D073 amendment 4: every FLASH chip of the board sweeps together — on the board's clock, not its row's.
+            FlashBlock(context, chip, label, v, since < 0 ? since : t);
             return;
         }
         context.DrawRectangle(Brush(fill), null, chip, 6 * v, 6 * v);
