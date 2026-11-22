@@ -7,7 +7,7 @@ using Xunit;
 
 namespace AiVideoEditor.UI.Tests;
 
-/// <summary>D060 §3: the resolution in the export dialog — the presets at the canvas's aspect ratio with their sizes, the
+/// <summary>D060 §3 (D076: in the preset's fields): the resolution in the export dialog — the presets at the canvas's aspect ratio with their sizes, the
 /// default that is exactly the earlier output, the output's line and the estimate following the choice, and the project
 /// settings keeping the project's resolution untouched. D060 §5: the overall percentage of the compact indicator.</summary>
 public class ExportResolutionDialogTests
@@ -19,15 +19,14 @@ public class ExportResolutionDialogTests
         new(new Sequence(), FrameRate.Fps25, Output(w, h), @"C:\out\video.mp4", encoding: encoding);
 
     [Fact]
-    public void A_16_9_project_offers_the_four_presets_with_their_sizes_and_opens_on_its_own()
+    public void A_16_9_project_offers_its_own_size_first_then_the_other_sizes_and_opens_on_its_own()   // D076: in the preset's fields
     {
         var dialog = Dialog(1920, 1080);
 
-        Assert.Equal(new[] { ExportResolution.Uhd4K, ExportResolution.FullHd, ExportResolution.Hd, ExportResolution.Sd },
-            dialog.Resolutions.Select(r => r.Value));
-        Assert.Equal(new[] { "3840 × 2160", "1920 × 1080 · the project's size", "1280 × 720", "854 × 480" },
-            dialog.Resolutions.Select(r => r.Detail));
-        Assert.Equal(ExportResolution.FullHd, dialog.SelectedResolution.Value);
+        Assert.Equal(new[] { ExportResolution.Project, ExportResolution.Uhd4K, ExportResolution.Qhd, ExportResolution.Hd, ExportResolution.Sd },
+            dialog.Settings.Resolutions.Select(r => r.Value));
+        Assert.Equal(new[] { "1920 × 1080", "3840 × 2160", "2560 × 1440", "1280 × 720", "854 × 480" }, dialog.Settings.Resolutions.Select(r => r.Detail));
+        Assert.Equal(ExportResolution.Project, dialog.Settings.SelectedResolution.Value);
         Assert.StartsWith("1920 × 1080", dialog.Info);
     }
 
@@ -35,18 +34,17 @@ public class ExportResolutionDialogTests
     public void A_vertical_project_gets_standing_sizes()
     {
         var dialog = Dialog(1080, 1920);
-        Assert.Equal("1080 × 1920 · the project's size", dialog.Resolutions.Single(r => r.Value == ExportResolution.FullHd).Detail);
-        Assert.Equal("720 × 1280", dialog.Resolutions.Single(r => r.Value == ExportResolution.Hd).Detail);
-        Assert.Equal(ExportResolution.FullHd, dialog.SelectedResolution.Value);
+        Assert.Equal("1440 × 2560", dialog.Settings.Resolutions.Single(r => r.Value == ExportResolution.Qhd).Detail);
+        Assert.Equal("720 × 1280", dialog.Settings.Resolutions.Single(r => r.Value == ExportResolution.Hd).Detail);
+        Assert.Equal(ExportResolution.Project, dialog.Settings.SelectedResolution.Value);
     }
 
     [Fact]
-    public void A_canvas_of_no_preset_s_size_offers_As_in_the_project_first_and_opens_on_it()
+    public void A_stored_preset_of_the_canvas_size_opens_as_the_project_size()
     {
-        var dialog = Dialog(2560, 1440);
-        Assert.Equal(ExportResolution.Project, dialog.Resolutions[0].Value);
-        Assert.Equal("2560 × 1440", dialog.Resolutions[0].Detail);
-        Assert.Equal(ExportResolution.Project, dialog.SelectedResolution.Value);
+        var dialog = Dialog(2560, 1440, ExportEncoding.Default with { Resolution = ExportResolution.Qhd });
+        Assert.Equal(ExportResolution.Project, dialog.Settings.SelectedResolution.Value);
+        Assert.DoesNotContain(dialog.Settings.Resolutions, r => r.Value == ExportResolution.Qhd);
         Assert.StartsWith("2560 × 1440", dialog.Info);
     }
 
@@ -58,7 +56,7 @@ public class ExportResolutionDialogTests
         var changed = new List<string?>();
         dialog.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
 
-        dialog.SelectedResolution = dialog.Resolutions.Single(r => r.Value == ExportResolution.Hd);
+        dialog.Settings.SelectedResolution = dialog.Settings.Resolutions.Single(r => r.Value == ExportResolution.Hd);
 
         Assert.Contains(nameof(ExportDialogViewModel.Info), changed);
         Assert.StartsWith("1280 × 720", dialog.Info);
@@ -71,7 +69,7 @@ public class ExportResolutionDialogTests
     }
 
     [Fact]
-    public void The_canvas_s_own_preset_is_returned_as_the_canvas()
+    public void The_project_settings_are_returned_unchanged_when_nothing_is_chosen()
     {
         var dialog = Dialog(1920, 1080);
         ExportDialogResult? result = null;
@@ -84,17 +82,24 @@ public class ExportResolutionDialogTests
     public void A_stored_resolution_is_shown()
     {
         var dialog = Dialog(1920, 1080, ExportEncoding.Default with { Resolution = ExportResolution.Sd });
-        Assert.Equal(ExportResolution.Sd, dialog.SelectedResolution.Value);
+        Assert.Equal(ExportResolution.Sd, dialog.Settings.SelectedResolution.Value);
         Assert.StartsWith("854 × 480", dialog.Info);
     }
 
     [Fact]
-    public void The_project_settings_editor_keeps_the_project_s_resolution()
+    public void The_file_type_renames_the_files_extension_and_wins_over_a_typed_one()   // D076
     {
-        var editor = new ExportEncodingEditorViewModel(ExportEncoding.Default with { Resolution = ExportResolution.Hd });
-        editor.SelectedProfile = editor.Profiles.Single(p => p.Value == ExportProfile.HighQuality);
-        Assert.Equal(ExportResolution.Hd, editor.Value.Resolution);
-        Assert.Equal(ExportProfile.HighQuality, editor.Value.Profile);
+        var dialog = Dialog(1920, 1080);
+        dialog.Settings.SelectedContainer = dialog.Settings.Containers.Single(c => c.Value == ExportContainer.Mkv);
+        Assert.Equal("video.mkv", dialog.FileName);
+        Assert.Equal(@"C:\out\video.mkv", dialog.OutputPath);
+
+        dialog.FileName = "clip.mp4";                       // typed with another video extension: the chosen type wins
+        Assert.Equal(@"C:\out\clip.mkv", dialog.OutputPath);
+        dialog.FileName = "clip";
+        Assert.Equal(@"C:\out\clip.mkv", dialog.OutputPath);
+        dialog.FileName = "clip.final";                     // another extension is the user's name
+        Assert.Equal(@"C:\out\clip.final", dialog.OutputPath);
     }
 
     [Theory]

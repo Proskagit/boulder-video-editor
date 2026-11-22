@@ -67,26 +67,27 @@ public sealed class FfmpegExportEncoderTests : IDisposable
 
     public static TheoryData<ExportQuality, string> Levels => new()
     {
-        { ExportQuality.Maximum, "14" }, { ExportQuality.High, "18" }, { ExportQuality.Standard, "23" }, { ExportQuality.Compact, "28" }
+        { ExportQuality.Maximum, "14" }, { ExportQuality.VeryHigh, "16" }, { ExportQuality.High, "18" }, { ExportQuality.Standard, "23" }, { ExportQuality.Compact, "28" }
     };
 
     [Theory]
     [MemberData(nameof(Levels))]
     public void A_quality_level_changes_only_the_crf(ExportQuality quality, string crf)
     {
-        var settings = ExportEncoding.Default with { Profile = ExportProfile.Custom, Quality = quality };
+        var settings = ExportEncoding.Default with { Quality = quality };
 
         Assert.Equal(GoldenVideoArguments.Replace("-crf 18", $"-crf {crf}"), VideoLine(settings));
         Assert.Equal(GoldenAudioArguments, AudioLine(settings));
     }
 
     [Theory]
+    [InlineData(ExportSpeedPreset.VeryFast, "veryfast")]
     [InlineData(ExportSpeedPreset.Fast, "fast")]
     [InlineData(ExportSpeedPreset.Medium, "medium")]
     [InlineData(ExportSpeedPreset.Slow, "slow")]
     public void A_speed_preset_changes_only_the_preset(ExportSpeedPreset preset, string name)
     {
-        var settings = ExportEncoding.Default with { Profile = ExportProfile.Custom, Preset = preset };
+        var settings = ExportEncoding.Default with { Preset = preset };
 
         Assert.Equal(GoldenVideoArguments.Replace("-preset medium", $"-preset {name}"), VideoLine(settings));
         Assert.Equal(GoldenAudioArguments, AudioLine(settings));
@@ -159,7 +160,7 @@ public sealed class FfmpegExportEncoderTests : IDisposable
     public async Task Every_quality_level_and_preset_encodes_a_valid_mp4_with_those_x264_settings(
         ExportQuality quality, ExportSpeedPreset preset, string crf, int subme)
     {
-        var settings = ExportEncoding.Default with { Profile = ExportProfile.Custom, Quality = quality, Preset = preset };
+        var settings = ExportEncoding.Default with { Quality = quality, Preset = preset };
         var output = Output(160, 90, FrameRate.Fps25, 50);                                  // 2 s
         await Encode(output, Out(), k => 0.3f * MathF.Sin(2 * MathF.PI * 440 * k / 48_000f), (n, px, stride) => NumberFrame(n, px, stride, 160, 90),
             settings: settings);

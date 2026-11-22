@@ -164,6 +164,14 @@ internal sealed class ExportEncodingDto
     /// <see cref="ExportResolution"/> name. Absent = the canvas, the output of every earlier version (which ignores it).</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Resolution { get; set; }
+
+    /// <summary>D076 (format v29): the video codec — an exact <see cref="ExportVideoCodec"/> name; absent = H.264.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Codec { get; set; }
+
+    /// <summary>D076 (format v29): the file container — an exact <see cref="ExportContainer"/> name; absent = MP4.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Container { get; set; }
 }
 
 internal sealed class MediaAssetDto

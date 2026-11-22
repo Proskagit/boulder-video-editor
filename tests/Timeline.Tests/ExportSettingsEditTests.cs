@@ -45,7 +45,7 @@ public class ExportSettingsEditTests
         Ok(result);
         Assert.Same(Compact, f.Settings.Export);
         Assert.Equal("Change Export Settings", Top(f));
-        Assert.Contains("320 kbps", result.Message);
+        Assert.Contains("AAC 320", result.Message);   // D076: the settings in short
         Assert.True(f.Project.IsDirty);
         Assert.Equal(before, f.Snapshot());                                // the timeline doesn't change …
         Assert.Equal(changes, f.TimelineChangedCount);                     // … and isn't notified
@@ -63,7 +63,7 @@ public class ExportSettingsEditTests
         var (f, _) = Scene();
         var top = f.UndoRedo.CurrentPosition;
 
-        var result = f.Service.SetExportSettings(new ExportEncoding(ExportQuality.High, ExportSpeedPreset.Medium, 192) { Profile = ExportProfile.Balanced });
+        var result = f.Service.SetExportSettings(new ExportEncoding(ExportQuality.High, ExportSpeedPreset.Medium, 192));
 
         Assert.True(result.Success && result.NoChange);
         Assert.Same(top, f.UndoRedo.CurrentPosition);

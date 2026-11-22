@@ -6,7 +6,7 @@ namespace AiVideoEditor.Core.Export;
 /// <summary>
 /// The export resolution presets (D060 §3) — the one place their sizes are computed.
 /// <para>
-/// A preset fixes the output's short side (4K UHD 2160, Full HD 1080, HD 720, SD 480); the long side keeps the canvas's
+/// A preset fixes the output's short side (4K UHD 2160, 2K 1440 — D076 —, Full HD 1080, HD 720, SD 480); the long side keeps the canvas's
 /// aspect ratio, rounded to the nearest even number (H.264 4:2:0), a half up — the rule of
 /// <see cref="ProjectSettingsRules.SuggestedCanvas"/>. 16:9 gives 3840 × 2160, 1920 × 1080, 1280 × 720 and 854 × 480;
 /// 9:16 the same sizes standing (Full HD 1080 × 1920); a square 1080 × 1080. A long side beyond
@@ -24,12 +24,13 @@ public static class ExportResolutions
 {
     /// <summary>The presets in the order offered, largest first.</summary>
     public static IReadOnlyList<ExportResolution> Presets { get; } =
-        new[] { ExportResolution.Uhd4K, ExportResolution.FullHd, ExportResolution.Hd, ExportResolution.Sd };
+        new[] { ExportResolution.Uhd4K, ExportResolution.Qhd, ExportResolution.FullHd, ExportResolution.Hd, ExportResolution.Sd };
 
     /// <summary>The short side of <paramref name="resolution"/>; null for <see cref="ExportResolution.Project"/>.</summary>
     public static int? ShortSide(ExportResolution resolution) => resolution switch
     {
         ExportResolution.Uhd4K => 2160,
+        ExportResolution.Qhd => 1440,
         ExportResolution.FullHd => 1080,
         ExportResolution.Hd => 720,
         ExportResolution.Sd => 480,
@@ -71,6 +72,14 @@ public static class ExportResolutions
         encoding.Resolution != ExportResolution.Project && SizeFor(encoding.Resolution, canvas) == canvas
             ? encoding with { Resolution = ExportResolution.Project }
             : encoding;
+
+    /// <summary>D076 Q4: a preset's resolution is a ceiling — <paramref name="encoding"/> with a resolution larger than the
+    /// canvas (its short side longer than the canvas's) or of exactly its size stored as <see cref="ExportResolution.Project"/>:
+    /// a preset never enlarges the picture.</summary>
+    public static ExportEncoding Ceiling(ExportEncoding encoding, FrameSize canvas) =>
+        ShortSide(encoding.Resolution) is { } side && canvas.IsValid && side >= Math.Min(canvas.Width, canvas.Height)
+            ? encoding with { Resolution = ExportResolution.Project }
+            : Normalize(encoding, canvas);
 
     /// <summary>The even number nearest to <paramref name="numerator"/> / <paramref name="denominator"/>, a half up.</summary>
     private static long NearestEven(long numerator, long denominator) => 2 * ((numerator + denominator) / (2 * denominator));

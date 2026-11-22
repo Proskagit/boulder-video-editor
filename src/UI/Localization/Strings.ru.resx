@@ -188,9 +188,6 @@
   <data name="Export_FinishedTitle" xml:space="preserve">
     <value>Экспорт завершён</value>
   </data>
-  <data name="Export_Mp4Filter" xml:space="preserve">
-    <value>Видео MP4</value>
-  </data>
   <data name="Export_NoFileWritten" xml:space="preserve">
     <value>{0} Файл не записан; существующий файл не изменён.</value>
   </data>
@@ -1119,19 +1116,19 @@
     <value>Компактное</value>
   </data>
   <data name="Quality_CompactDetail" xml:space="preserve">
-    <value>CRF 28 — самый маленький файл</value>
+    <value>самый маленький файл</value>
   </data>
   <data name="Quality_High" xml:space="preserve">
     <value>Высокое</value>
   </data>
   <data name="Quality_HighDetail" xml:space="preserve">
-    <value>CRF 18 — по умолчанию</value>
+    <value>высокое, как раньше</value>
   </data>
   <data name="Quality_Maximum" xml:space="preserve">
     <value>Максимальное</value>
   </data>
   <data name="Quality_MaximumDetail" xml:space="preserve">
-    <value>CRF 14 — самый большой файл</value>
+    <value>лучшая картинка, файл больше всех</value>
   </data>
   <data name="Quality_Standard" xml:space="preserve">
     <value>Стандартное</value>
@@ -1488,19 +1485,19 @@
     <value>Быстро</value>
   </data>
   <data name="Speed_FastDetail" xml:space="preserve">
-    <value>fast — быстрее, файл больше</value>
+    <value>быстрее, файл больше</value>
   </data>
   <data name="Speed_Medium" xml:space="preserve">
     <value>Средне</value>
   </data>
   <data name="Speed_MediumDetail" xml:space="preserve">
-    <value>medium — по умолчанию</value>
+    <value>баланс</value>
   </data>
   <data name="Speed_Slow" xml:space="preserve">
     <value>Медленно</value>
   </data>
   <data name="Speed_SlowDetail" xml:space="preserve">
-    <value>slow — медленнее, файл меньше</value>
+    <value>медленнее, файл меньше</value>
   </data>
   <data name="Status_Ready" xml:space="preserve">
     <value>Готово.</value>
@@ -2068,7 +2065,7 @@
     <value>Экспортировать</value>
   </data>
   <data name="ExportDialog_Info" xml:space="preserve">
-    <value>{0} × {1}, {2} кадр/с, длительность {3}, MP4 (H.264 / AAC)</value>
+    <value>{0} × {1}, {2} кадр/с, длительность {3}, {4} ({5} / AAC)</value>
   </data>
   <data name="ExportDialog_InfoRange" xml:space="preserve">
     <value>диапазон In / Out</value>
@@ -3062,56 +3059,23 @@
   <data name="Inspector_RecordingStartRoutesOnly" xml:space="preserve">
     <value>Начало записи уточняет только границы трасс; пульс идёт по времени файла видео.</value>
   </data>
-  <data name="ExportProfile_Label" xml:space="preserve">
-    <value>Профиль</value>
-  </data>
-  <data name="ExportProfile_Fast" xml:space="preserve">
-    <value>Быстрый</value>
-  </data>
-  <data name="ExportProfile_FastDetail" xml:space="preserve">
-    <value>приоритет — скорость, файл крупнее</value>
-  </data>
-  <data name="ExportProfile_Balanced" xml:space="preserve">
-    <value>Сбалансированный</value>
-  </data>
-  <data name="ExportProfile_BalancedDetail" xml:space="preserve">
-    <value>хорошая картинка, файл меньше</value>
-  </data>
-  <data name="ExportProfile_HighQuality" xml:space="preserve">
-    <value>Высокое качество</value>
-  </data>
-  <data name="ExportProfile_HighQualityDetail" xml:space="preserve">
-    <value>лучшая картинка (по умолчанию в новом проекте), экспорт дольше</value>
-  </data>
-  <data name="ExportProfile_Custom" xml:space="preserve">
-    <value>Пользовательский</value>
-  </data>
-  <data name="ExportProfile_CustomDetail" xml:space="preserve">
-    <value>кодировщик, качество, скорость и битрейт вручную</value>
-  </data>
   <data name="ExportEncoder_Label" xml:space="preserve">
     <value>Кодировщик</value>
   </data>
   <data name="ExportEncoder_Nvenc" xml:space="preserve">
-    <value>NVIDIA NVENC</value>
+    <value>Видеокарта NVIDIA (NVENC)</value>
   </data>
   <data name="ExportEncoder_NvencDetail" xml:space="preserve">
-    <value>аппаратное кодирование на видеокарте NVIDIA — обычно быстрее</value>
+    <value>аппаратное кодирование — обычно намного быстрее</value>
   </data>
   <data name="ExportEncoder_NvencUnavailable" xml:space="preserve">
-    <value>NVIDIA NVENC (недоступен на этом компьютере)</value>
-  </data>
-  <data name="ExportEncoder_X264" xml:space="preserve">
-    <value>libx264</value>
-  </data>
-  <data name="ExportEncoder_X264Detail" xml:space="preserve">
-    <value>программное кодирование на процессоре — обычно медленнее, со своим профилем качества</value>
+    <value>Видеокарта NVIDIA (NVENC) — недоступна на этом компьютере</value>
   </data>
   <data name="ExportEncoder_Both" xml:space="preserve">
-    <value>Оба кодировщика работают через FFmpeg; формат всегда MP4 · H.264 · AAC.</value>
+    <value>Оба кодируют через FFmpeg; звук — AAC.</value>
   </data>
   <data name="ExportEncoder_Unavailable" xml:space="preserve">
-    <value>NVENC не может быть использован ({0}) — кодировать будет libx264 с тем же профилем.</value>
+    <value>NVENC здесь не использовать ({0}) — тот же кодек закодирует процессор ({1}).</value>
   </data>
   <data name="ExportEncoder_TooLarge" xml:space="preserve">
     <value>NVENC кодирует кадры не больше {0} пикселей</value>
@@ -4170,5 +4134,119 @@
   </data>
   <data name="Inspector_SummaryHint" xml:space="preserve">
     <value>Показывает трассы, начавшиеся до этого шаблона (после предыдущих «Итогов»). Строку меняют в «Боулдере» трассы; попытки — и здесь, ниже.</value>
+  </data>
+  <data name="ExportPreset_Label" xml:space="preserve">
+    <value>Пресет</value>
+  </data>
+  <data name="ExportPreset_Fast" xml:space="preserve">
+    <value>Быстрый</value>
+  </data>
+  <data name="ExportPreset_FastDetail" xml:space="preserve">
+    <value>Full HD · H.264 — быстро, играет везде</value>
+  </data>
+  <data name="ExportPreset_Medium" xml:space="preserve">
+    <value>Средний</value>
+  </data>
+  <data name="ExportPreset_MediumDetail" xml:space="preserve">
+    <value>2K · HEVC — хорошая картинка, небольшой файл</value>
+  </data>
+  <data name="ExportPreset_High" xml:space="preserve">
+    <value>Высокий</value>
+  </data>
+  <data name="ExportPreset_HighDetail" xml:space="preserve">
+    <value>4K · HEVC — очень высокое качество</value>
+  </data>
+  <data name="ExportPreset_Maximum" xml:space="preserve">
+    <value>Максимальный</value>
+  </data>
+  <data name="ExportPreset_MaximumDetail" xml:space="preserve">
+    <value>как в проекте · HEVC — наивысшее качество (новые проекты)</value>
+  </data>
+  <data name="ExportPreset_Custom" xml:space="preserve">
+    <value>Пользовательский</value>
+  </data>
+  <data name="ExportPreset_CustomDetail" xml:space="preserve">
+    <value>свои настройки ниже</value>
+  </data>
+  <data name="ExportPreset_SaveNew" xml:space="preserve">
+    <value>＋ Сохранить пресет…</value>
+  </data>
+  <data name="ExportPreset_Name" xml:space="preserve">
+    <value>Имя пресета</value>
+  </data>
+  <data name="ExportPreset_Save" xml:space="preserve">
+    <value>Сохранить</value>
+  </data>
+  <data name="ExportPreset_DeleteTip" xml:space="preserve">
+    <value>Удалить сохранённый пресет (настройки останутся)</value>
+  </data>
+  <data name="ExportPreset_SavedTip" xml:space="preserve">
+    <value>Сохранённые пресеты доступны в каждом проекте.</value>
+  </data>
+  <data name="ExportCodec_Label" xml:space="preserve">
+    <value>Кодек</value>
+  </data>
+  <data name="ExportCodec_H264Detail" xml:space="preserve">
+    <value>играет везде, файл больше всех</value>
+  </data>
+  <data name="ExportCodec_HevcDetail" xml:space="preserve">
+    <value>та же картинка в файле меньше</value>
+  </data>
+  <data name="ExportCodec_Av1Detail" xml:space="preserve">
+    <value>самый маленький файл, новые плееры</value>
+  </data>
+  <data name="ExportCodec_H264Note" xml:space="preserve">
+    <value>H.264 воспроизводится на любом устройстве и сайте.</value>
+  </data>
+  <data name="ExportCodec_HevcNote" xml:space="preserve">
+    <value>HEVC играют телефоны, телевизоры, YouTube, VLC и Telegram; встроенным плеерам Windows нужно «Расширения для видео HEVC» из Microsoft Store.</value>
+  </data>
+  <data name="ExportCodec_Av1Note" xml:space="preserve">
+    <value>AV1 играют YouTube, браузеры и новые телефоны; Windows нужно бесплатное «Расширение AV1 Video»; старые устройства могут не воспроизвести.</value>
+  </data>
+  <data name="ExportCodec_Unavailable" xml:space="preserve">
+    <value>{0} здесь не закодировать: в этом FFmpeg нет {1}, а NVENC для него недоступен.</value>
+  </data>
+  <data name="ExportContainer_Label" xml:space="preserve">
+    <value>Формат файла</value>
+  </data>
+  <data name="ExportContainer_Mp4Detail" xml:space="preserve">
+    <value>самый совместимый</value>
+  </data>
+  <data name="ExportContainer_MovDetail" xml:space="preserve">
+    <value>QuickTime, для монтажа на Apple</value>
+  </data>
+  <data name="ExportContainer_MkvDetail" xml:space="preserve">
+    <value>Matroska, для плееров и архива</value>
+  </data>
+  <data name="ExportEncoder_Software" xml:space="preserve">
+    <value>Процессор ({0})</value>
+  </data>
+  <data name="ExportEncoder_SoftwareDetail" xml:space="preserve">
+    <value>программное кодирование — работает везде, медленнее</value>
+  </data>
+  <data name="ExportSpeed_SoftwareHevcAv1" xml:space="preserve">
+    <value>HEVC / AV1 на процессоре в несколько раз медленнее, чем на видеокарте.</value>
+  </data>
+  <data name="ExportResolution_Qhd" xml:space="preserve">
+    <value>2K</value>
+  </data>
+  <data name="Export_FileFilter" xml:space="preserve">
+    <value>Видео {0}</value>
+  </data>
+  <data name="Quality_VeryHigh" xml:space="preserve">
+    <value>Очень высокое</value>
+  </data>
+  <data name="Quality_VeryHighDetail" xml:space="preserve">
+    <value>почти лучшее, файл меньше</value>
+  </data>
+  <data name="Quality_StandardDetail" xml:space="preserve">
+    <value>хорошее, файл меньше</value>
+  </data>
+  <data name="Speed_VeryFast" xml:space="preserve">
+    <value>Очень быстро</value>
+  </data>
+  <data name="Speed_VeryFastDetail" xml:space="preserve">
+    <value>быстрее всего, файл больше</value>
   </data>
 </root>

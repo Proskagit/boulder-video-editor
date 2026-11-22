@@ -385,8 +385,7 @@ public sealed class ProjectSettingsUiTests : IAsyncLifetime
 
     private static void Choose(ProjectSettingsViewModel d, ExportEncoding e)
     {
-        // D059 §4: the D028 values are the «Пользовательский» profile's.
-        d.Export.SelectedProfile = d.Export.Profiles.Single(o => o.Value == e.Profile);
+        // D076: every field explicit.
         d.SelectedQuality = d.Qualities.Single(o => o.Value == e.Quality);
         d.SelectedSpeed = d.Speeds.Single(o => o.Value == e.Preset);
         d.SelectedBitrate = d.Bitrates.Single(o => o.Value == e.AudioBitrateKbps);
@@ -401,9 +400,8 @@ public sealed class ProjectSettingsUiTests : IAsyncLifetime
         var d = Draft();
 
         Assert.Equal((ExportQuality.Standard, ExportSpeedPreset.Fast, 256), (d.SelectedQuality.Value, d.SelectedSpeed.Value, d.SelectedBitrate.Value));
-        Assert.Equal(new[] { "Maximum", "High", "Standard", "Compact" }, d.Qualities.Select(o => o.Label));
-        Assert.Equal(new[] { "CRF 14", "CRF 18", "CRF 23", "CRF 28" }, d.Qualities.Select(o => o.Detail[..6]));
-        Assert.Equal(new[] { "Fast", "Medium", "Slow" }, d.Speeds.Select(o => o.Label));
+        Assert.Equal(new[] { "Maximum", "Very high", "High", "Standard", "Compact" }, d.Qualities.Select(o => o.Label));
+        Assert.Equal(new[] { "Very fast", "Fast", "Medium", "Slow" }, d.Speeds.Select(o => o.Label));
         Assert.Equal(new[] { "128 kbps", "160 kbps", "192 kbps", "256 kbps", "320 kbps" }, d.Bitrates.Select(o => o.Label));
         Assert.Equal(Settings.Export, d.DraftExport);
     }
@@ -482,7 +480,7 @@ public sealed class ProjectSettingsUiTests : IAsyncLifetime
         Assert.True(_dialog.Closed);
         Assert.Equal(Compact, Settings.Export);
         Assert.Equal("Change Export Settings", ((IUndoableCommand)_undo.CurrentPosition).Description);
-        Assert.Contains("320 kbps", _status.Message);
+        Assert.Contains("AAC 320", _status.Message);
         Assert.True(_projects.Current.IsDirty);
         _undo.Undo();
         Assert.Same(top, _undo.CurrentPosition);                              // exactly one step for the three values

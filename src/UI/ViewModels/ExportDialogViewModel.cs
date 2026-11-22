@@ -25,10 +25,8 @@ public sealed record ExportDialogResult(string OutputPath)
 /// timestamps of what is exported as a small read-only text to copy (<see cref="YouTubeTimestamps"/>: the whole sequence,
 /// or with an In / Out range export the range, its times from In — the timestamps describe the file being made).
 /// <para>
-/// D060 §3: the resolution of the exported file — 4K UHD / Full HD / HD / SD at the canvas's aspect ratio
-/// (<see cref="ExportResolutions"/>), each with its size; «Как в проекте» with the canvas's size is offered first only when
-/// the canvas is none of them. The canvas and the project settings never change. Opens on the project's choice, or — none
-/// stored — on the preset that is the canvas's size (or «Как в проекте»), i.e. exactly the earlier output.
+/// D076: the preset on top, its every field — the file type, the codec, the resolution (D060 §3) … — in «Подробные
+/// настройки» (<see cref="ExportEncodingEditorViewModel"/>); the file's extension follows the file type.
 /// </para>
 /// </summary>
 public sealed partial class ExportDialogViewModel : ViewModelBase
@@ -42,21 +40,18 @@ public sealed partial class ExportDialogViewModel : ViewModelBase
     /// <param name="encoders">Which encoders work here (NVENC offered only when confirmed); null = libx264 only.</param>
     public ExportDialogViewModel(Sequence sequence, FrameRate rate, ExportOutput output, string suggestedPath,
         ExportRange? range = null, Func<string, string, Task<string?>>? browse = null, ExportEncoding? encoding = null,
-        ExportEncoderAvailability? encoders = null)
+        ExportEncoderAvailability? encoders = null, Core.Interfaces.IUserSettingsService? userSettings = null)
     {
         _browse = browse;
         _canvas = output.Size;
         _duration = output.Duration;
         _fps = output.FrameRate.ToDouble().ToString("0.###", CultureInfo.CurrentCulture);
         encoding ??= ExportEncoding.Default;
-        Settings = new ExportEncodingEditorViewModel(encoding, encoders, output);
+        // D076: the resolution is the preset's (in the settings editor); the file's extension follows the chosen file type.
+        Settings = new ExportEncodingEditorViewModel(encoding, encoders, output, userSettings: userSettings);
+        Settings.Changed += OnSettingsChanged;
+        _container = Settings.Value.Container;
         IsRange = range is not null;
-        Resolutions = BuildResolutions(_canvas);
-        var initial = encoding.Resolution == ExportResolution.Project
-            ? ExportResolutions.PresetMatching(_canvas) ?? ExportResolution.Project
-            : encoding.Resolution;
-        _selectedResolution = Resolutions.FirstOrDefault(r => r.Value == initial) ?? Resolutions[0];
-        Settings.Resolution = _selectedResolution.Value;
         Timestamps = range is { } r
             ? YouTubeTimestamps.Text(sequence, rate, MediaTime.FromFrame(r.FirstFrame, rate), MediaTime.FromFrame(r.EndFrame, rate))
             : YouTubeTimestamps.Text(sequence, rate);
@@ -72,50 +67,27 @@ public sealed partial class ExportDialogViewModel : ViewModelBase
     {
         get
         {
-            var size = ExportResolutions.SizeFor(SelectedResolution.Value, _canvas);
-            return string.Format(Strings.ExportDialog_Info, size.Width, size.Height, _fps, TimeFormat.ToShortString(_duration))
+            var size = ExportResolutions.SizeFor(Settings.Resolution, _canvas);
+            var e = Settings.Value;
+            return string.Format(Strings.ExportDialog_Info, size.Width, size.Height, _fps, TimeFormat.ToShortString(_duration),
+                    e.Container.ToString().ToUpperInvariant(), ExportEncodingEditorViewModel.CodecOptions.Single(c => c.Value == e.Codec).Label.Split(' ')[0])
                 + (IsRange ? " · " + Strings.ExportDialog_InfoRange : "");
         }
     }
 
-    /// <summary>D060 §3: the resolutions offered for this canvas (largest first).</summary>
-    public IReadOnlyList<ExportChoice<ExportResolution>> Resolutions { get; }
+    private ExportContainer _container;
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Info))]
-    private ExportChoice<ExportResolution> _selectedResolution;
-
-    partial void OnSelectedResolutionChanged(ExportChoice<ExportResolution> value)
+    /// <summary>D076: a new file type renames the file's extension (.mp4 → .mov / .mkv); the output's line follows the
+    /// resolution.</summary>
+    private void OnSettingsChanged(object? sender, EventArgs e)
     {
-        if (value is not null) Settings.Resolution = value.Value;
+        OnPropertyChanged(nameof(Info));
+        var container = Settings.Value.Container;
+        if (container == _container) return;
+        _container = container;
+        var name = FileName.Trim();
+        if (ExportFormat.ContainerOf(name) is not null) FileName = Path.ChangeExtension(name, ExportFormat.ExtensionOf(container));
     }
-
-    /// <summary>The presets at the canvas's aspect ratio, each with its size; «Как в проекте» first when the canvas is no
-    /// preset's size.</summary>
-    public static IReadOnlyList<ExportChoice<ExportResolution>> BuildResolutions(FrameSize canvas)
-    {
-        var list = new List<ExportChoice<ExportResolution>>();
-        if (ExportResolutions.PresetMatching(canvas) is null)
-            list.Add(new ExportChoice<ExportResolution>(ExportResolution.Project, Strings.ExportResolution_Project,
-                string.Format(Strings.ExportResolution_Size, canvas.Width, canvas.Height)));
-        foreach (var preset in ExportResolutions.Presets)
-        {
-            var size = ExportResolutions.SizeFor(preset, canvas);
-            var detail = string.Format(Strings.ExportResolution_Size, size.Width, size.Height);
-            if (size == canvas) detail += " · " + Strings.ExportResolution_AsProject;
-            list.Add(new ExportChoice<ExportResolution>(preset, ResolutionName(preset), detail));
-        }
-        return list;
-    }
-
-    public static string ResolutionName(ExportResolution resolution) => resolution switch
-    {
-        ExportResolution.Uhd4K => Strings.ExportResolution_Uhd4K,
-        ExportResolution.FullHd => Strings.ExportResolution_FullHd,
-        ExportResolution.Hd => Strings.ExportResolution_Hd,
-        ExportResolution.Sd => Strings.ExportResolution_Sd,
-        _ => Strings.ExportResolution_Project
-    };
 
     /// <summary>The export settings (D059 §4) with the expected file size of the output.</summary>
     public ExportEncodingEditorViewModel Settings { get; }
@@ -135,7 +107,7 @@ public sealed partial class ExportDialogViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(ExportCommand))]
     private string _fileName = "";
 
-    /// <summary>The folder and the file name, the <c>.mp4</c> added when the name has no extension; null while either is empty
+    /// <summary>The folder and the file name, the chosen file type's extension added when the name has no extension; null while either is empty
     /// or not a usable path.</summary>
     public string? OutputPath
     {
@@ -144,7 +116,10 @@ public sealed partial class ExportDialogViewModel : ViewModelBase
             var name = FileName.Trim();
             var folder = Folder.Trim();
             if (name.Length == 0 || folder.Length == 0) return null;
-            if (!Path.HasExtension(name)) name += ExportFormat.FileExtension;
+            var extension = ExportFormat.ExtensionOf(Settings.Value.Container);
+            if (!Path.HasExtension(name)) name += extension;
+            // D076: the chosen file type wins over another video extension typed or picked (.mp4 / .mov / .mkv).
+            else if (ExportFormat.ContainerOf(name) is not null) name = Path.ChangeExtension(name, extension);
             try
             {
                 return Path.Combine(folder, name);
@@ -190,11 +165,17 @@ public sealed partial class ExportDialogViewModel : ViewModelBase
     private void Export()
     {
         // D060 §3: a preset of exactly the canvas's size is stored as the canvas — the same output, nothing new in the file.
-        if (OutputPath is { } path) Closed?.Invoke(this, new ExportDialogResult(path) { Encoding = ExportResolutions.Normalize(Settings.Value, _canvas) });
+        if (OutputPath is not { } path) return;
+        Settings.Detach();
+        Closed?.Invoke(this, new ExportDialogResult(path) { Encoding = ExportResolutions.Normalize(Settings.Value, _canvas) });
     }
 
     [RelayCommand]
-    private void Cancel() => Closed?.Invoke(this, null);
+    private void Cancel()
+    {
+        Settings.Detach();
+        Closed?.Invoke(this, null);
+    }
 
     [RelayCommand]
     private void Copy() => CopyRequested?.Invoke(this, Timestamps);

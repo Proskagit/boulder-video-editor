@@ -13,7 +13,7 @@ A bouldering video in ten steps.
 - **7. Follow.** When the climber is well visible and the frame has room (a vertical video from a horizontal one, a zoom), switch on «Follow the climber»: the frame follows the climber and the hold outlines hide behind people («Hide outlines behind people»).
 - **8. Sound.** Music on a sound track; ducking under speech, «Noise reduction» and «Voice enhancement» when people talk.
 - **9. Design.** Text, templates («Boulder», «Summary», «Heart rate», «Highlight», REC, VHS).
-- **10. Export.** «Export» (Ctrl+E): the resolution and the folder; with an NVIDIA card it is fast through NVENC, in the background — you can keep working. The YouTube timestamps are there too.
+- **10. Export.** «Export» (Ctrl+E): the preset and the folder; with an NVIDIA card it is fast through NVENC, in the background — you can keep working. The YouTube timestamps are there too.
 
 # Getting started
 
@@ -26,7 +26,7 @@ Boulder Video Editor is an editor for bouldering videos. Its core is working wit
 - **Holds.** Pause on a clip and press «Mark holds» in the Inspector.
 - **Training.** «Import FIT Training…» on the toolbar binds the climbs to the clips.
 - **Design.** Add a template («Boulder», «Heart rate» and others), text and transitions.
-- **Export.** «Export» (Ctrl+E) saves the finished MP4 video.
+- **Export.** «Export» (Ctrl+E) saves the finished video — MP4, MOV or MKV; H.264, HEVC or AV1.
 
 ## The editor's window
 
@@ -126,7 +126,7 @@ The Inspector's **«Follow and people»** section.
 # Export
 
 - **«Export»** (Ctrl+E) — choose the place and the file's name. The name offered is the date and time, for example 20261118_1430.mp4.
-- The export window: the name, the folder, the resolution and the quality profile; the encoder and fine settings are in «More settings». The expected file size is shown below; the window scrolls when the settings and the timestamps are opened. A new project exports at «High quality» with NVENC (without an NVIDIA card — libx264 with the same profile). With an in and out set, only that part is exported.
+- The export window: the name, the folder and the **preset**: «Fast» (Full HD, H.264), «Medium» (2K, HEVC), «High» (4K, HEVC), «Maximum» (the project's size, HEVC, the highest quality). A preset never enlarges the picture beyond the project's size. «More settings» show every field of the preset: the file type (MP4 / MOV / MKV), the codec (H.264 / HEVC / AV1), the encoder (an NVIDIA graphics card or the processor), the resolution, the quality or the bitrate, the speed, the sound; change any — the preset becomes «Custom». «＋ Save preset…» keeps your settings under a name — offered in every project; ✕ deletes it. The expected file size is shown below; the window scrolls when the settings and the timestamps are opened. A new project exports at «Maximum» with NVENC (without an NVIDIA card — the same codec on the processor, slower). HEVC is smaller than H.264 for the same picture; Windows' own players need an extension from the Microsoft Store for HEVC. With an in and out set, only that part is exported.
 - A new project not saved yet is exported at once, without saving.
 - When it is done you see how long it took and «Show in folder».
 - **The export runs in the background:** keep working. The video holds the project as it was when the export started.

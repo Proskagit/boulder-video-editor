@@ -70,9 +70,9 @@ public sealed class ExportService : IExportService
         var output = job.Output;
         var watch = Stopwatch.StartNew();
         _logger.LogInformation("Export started: {Path} ({Width}×{Height}, {Rate} fps, {Frames} frames, {Samples} audio samples; " +
-            "profile {Profile}, encoder {Encoder}, quality {Quality}, preset {Preset}, rate control {RateControl}, AAC {Bitrate} kbps)",
+            "codec {Codec}, container {Container}, encoder {Encoder}, quality {Quality}, preset {Preset}, rate control {RateControl}, AAC {Bitrate} kbps)",
             job.OutputPath, output.Size.Width, output.Size.Height, output.FrameRate, output.FrameCount, output.AudioSampleCount,
-            job.Encoding.Profile, job.Encoding.Encoder, job.Encoding.Quality, job.Encoding.Preset, job.Encoding.RateControl,
+            job.Encoding.Codec, job.Encoding.Container, job.Encoding.Encoder, job.Encoding.Quality, job.Encoding.Preset, job.Encoding.RateControl,
             job.Encoding.AudioBitrateKbps);
         if (output.Size != job.Snapshot.Canvas)
             _logger.LogInformation("Export resolution {Resolution}: the {CanvasWidth}×{CanvasHeight} canvas drawn at {Width}×{Height}.",
@@ -85,8 +85,8 @@ public sealed class ExportService : IExportService
             await ExportTransitionSourceCheck.RunAsync(job.Snapshot, output, _videoDecoder, new ExportDecodeSettings(), ct);
 
             // D059 §3: a hardware encoder that fails (at its start or in the middle) never leaves a partial file — the
-            // encoding is abandoned like any failure and the export starts again with libx264 of the same profile. A second
-            // failure (libx264) propagates.
+            // encoding is abandoned like any failure and the export starts again on the processor with the same codec and settings (D076). A second
+            // failure (the processor) propagates.
             var encoding = job.Encoding;
             string? fallback = null;
             while (true)
@@ -100,9 +100,9 @@ public sealed class ExportService : IExportService
                 catch (ExportException ex) when (attempt.Hardware && !ct.IsCancellationRequested &&
                                                   ex.Failure is ExportFailure.EncodeFailed or ExportFailure.EncoderUnavailable)
                 {
-                    _logger.LogWarning(ex, "The hardware encoder failed ({Encoder}); the export starts again with libx264.", attempt.Description);
+                    _logger.LogWarning(ex, "The hardware encoder failed ({Encoder}); the export starts again on the processor (the same codec).", attempt.Description);
                     fallback = ex.Message;
-                    encoding = encoding.WithLibx264();
+                    encoding = encoding.WithSoftware();
                 }
             }
         }

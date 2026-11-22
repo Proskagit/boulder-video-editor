@@ -51,8 +51,13 @@ public sealed class ProjectSettings
     public ExportEncoding Export { get; set; } = ExportEncoding.Default;
 }
 
-public enum ExportContainer { Mp4 }
-public enum ExportVideoCodec { H264 }
+/// <summary>D076: the export's file container — MP4 (every file before D076), MOV (QuickTime) or MKV (Matroska).</summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ExportContainer>))]
+public enum ExportContainer { Mp4, Mov, Mkv }
+
+/// <summary>D076: the export's video codec — H.264 (every file before D076), HEVC (H.265) or AV1.</summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ExportVideoCodec>))]
+public enum ExportVideoCodec { H264, Hevc, Av1 }
 public enum ExportAudioCodec { Aac }
 
 /// <summary>

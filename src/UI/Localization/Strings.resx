@@ -188,9 +188,6 @@
   <data name="Export_FinishedTitle" xml:space="preserve">
     <value>Export finished</value>
   </data>
-  <data name="Export_Mp4Filter" xml:space="preserve">
-    <value>MP4 video</value>
-  </data>
   <data name="Export_NoFileWritten" xml:space="preserve">
     <value>{0} No file was written; an existing file was left unchanged.</value>
   </data>
@@ -1117,19 +1114,19 @@ The file on disk is not deleted. You can undo this with Undo.</value>
     <value>Compact</value>
   </data>
   <data name="Quality_CompactDetail" xml:space="preserve">
-    <value>CRF 28 — smallest file</value>
+    <value>the smallest file</value>
   </data>
   <data name="Quality_High" xml:space="preserve">
     <value>High</value>
   </data>
   <data name="Quality_HighDetail" xml:space="preserve">
-    <value>CRF 18 — default</value>
+    <value>high, as before</value>
   </data>
   <data name="Quality_Maximum" xml:space="preserve">
     <value>Maximum</value>
   </data>
   <data name="Quality_MaximumDetail" xml:space="preserve">
-    <value>CRF 14 — largest file</value>
+    <value>the best picture, the largest file</value>
   </data>
   <data name="Quality_Standard" xml:space="preserve">
     <value>Standard</value>
@@ -1486,19 +1483,19 @@ Recover them now? Discarded changes can't be restored.</value>
     <value>Fast</value>
   </data>
   <data name="Speed_FastDetail" xml:space="preserve">
-    <value>H.264 preset fast — quicker, larger file</value>
+    <value>faster, a larger file</value>
   </data>
   <data name="Speed_Medium" xml:space="preserve">
     <value>Medium</value>
   </data>
   <data name="Speed_MediumDetail" xml:space="preserve">
-    <value>H.264 preset medium — default</value>
+    <value>the balance</value>
   </data>
   <data name="Speed_Slow" xml:space="preserve">
     <value>Slow</value>
   </data>
   <data name="Speed_SlowDetail" xml:space="preserve">
-    <value>H.264 preset slow — slower, smaller file</value>
+    <value>slower, a smaller file</value>
   </data>
   <data name="Status_Ready" xml:space="preserve">
     <value>Ready.</value>
@@ -2064,7 +2061,7 @@ If you don't save, your changes will be lost.</value>
     <value>Export</value>
   </data>
   <data name="ExportDialog_Info" xml:space="preserve">
-    <value>{0} × {1}, {2} fps, {3}, MP4 (H.264 / AAC)</value>
+    <value>{0} × {1}, {2} fps, {3}, {4} ({5} / AAC)</value>
   </data>
   <data name="ExportDialog_InfoRange" xml:space="preserve">
     <value>In / Out range</value>
@@ -3058,56 +3055,23 @@ If you don't save, your changes will be lost.</value>
   <data name="Inspector_RecordingStartRoutesOnly" xml:space="preserve">
     <value>The recording start refines the route bounds only; the heart rate follows the video file's time.</value>
   </data>
-  <data name="ExportProfile_Label" xml:space="preserve">
-    <value>Profile</value>
-  </data>
-  <data name="ExportProfile_Fast" xml:space="preserve">
-    <value>Fast</value>
-  </data>
-  <data name="ExportProfile_FastDetail" xml:space="preserve">
-    <value>speed first, a larger file</value>
-  </data>
-  <data name="ExportProfile_Balanced" xml:space="preserve">
-    <value>Balanced</value>
-  </data>
-  <data name="ExportProfile_BalancedDetail" xml:space="preserve">
-    <value>a good picture, a smaller file</value>
-  </data>
-  <data name="ExportProfile_HighQuality" xml:space="preserve">
-    <value>High quality</value>
-  </data>
-  <data name="ExportProfile_HighQualityDetail" xml:space="preserve">
-    <value>the best picture (the default of a new project), a longer export</value>
-  </data>
-  <data name="ExportProfile_Custom" xml:space="preserve">
-    <value>Custom</value>
-  </data>
-  <data name="ExportProfile_CustomDetail" xml:space="preserve">
-    <value>encoder, quality, speed and bitrate by hand</value>
-  </data>
   <data name="ExportEncoder_Label" xml:space="preserve">
     <value>Encoder</value>
   </data>
   <data name="ExportEncoder_Nvenc" xml:space="preserve">
-    <value>NVIDIA NVENC</value>
+    <value>NVIDIA graphics card (NVENC)</value>
   </data>
   <data name="ExportEncoder_NvencDetail" xml:space="preserve">
-    <value>hardware encoding on the NVIDIA graphics card — usually faster</value>
+    <value>hardware encoding — usually much faster</value>
   </data>
   <data name="ExportEncoder_NvencUnavailable" xml:space="preserve">
-    <value>NVIDIA NVENC (unavailable here)</value>
-  </data>
-  <data name="ExportEncoder_X264" xml:space="preserve">
-    <value>libx264</value>
-  </data>
-  <data name="ExportEncoder_X264Detail" xml:space="preserve">
-    <value>software encoding on the processor — usually slower, its own quality profile</value>
+    <value>NVIDIA graphics card (NVENC) — unavailable here</value>
   </data>
   <data name="ExportEncoder_Both" xml:space="preserve">
-    <value>Both encoders run through FFmpeg; the format is always MP4 · H.264 · AAC.</value>
+    <value>Both encode through FFmpeg; the sound is AAC.</value>
   </data>
   <data name="ExportEncoder_Unavailable" xml:space="preserve">
-    <value>NVENC can't be used ({0}) — libx264 will encode with the same profile.</value>
+    <value>NVENC can't be used here ({0}) — the processor ({1}) encodes the same codec.</value>
   </data>
   <data name="ExportEncoder_TooLarge" xml:space="preserve">
     <value>NVENC encodes frames up to {0} px</value>
@@ -4166,5 +4130,119 @@ Everything else works without the models. They can also be installed later: «Se
   </data>
   <data name="Inspector_SummaryHint" xml:space="preserve">
     <value>Lists the routes that start before this template (after the previous «Summary»). Edit a route's «Boulder» to change its row; the attempts — also below.</value>
+  </data>
+  <data name="ExportPreset_Label" xml:space="preserve">
+    <value>Preset</value>
+  </data>
+  <data name="ExportPreset_Fast" xml:space="preserve">
+    <value>Fast</value>
+  </data>
+  <data name="ExportPreset_FastDetail" xml:space="preserve">
+    <value>Full HD · H.264 — quick, plays everywhere</value>
+  </data>
+  <data name="ExportPreset_Medium" xml:space="preserve">
+    <value>Medium</value>
+  </data>
+  <data name="ExportPreset_MediumDetail" xml:space="preserve">
+    <value>2K · HEVC — good picture, small file</value>
+  </data>
+  <data name="ExportPreset_High" xml:space="preserve">
+    <value>High</value>
+  </data>
+  <data name="ExportPreset_HighDetail" xml:space="preserve">
+    <value>4K · HEVC — very high quality</value>
+  </data>
+  <data name="ExportPreset_Maximum" xml:space="preserve">
+    <value>Maximum</value>
+  </data>
+  <data name="ExportPreset_MaximumDetail" xml:space="preserve">
+    <value>as the project · HEVC — the highest quality (new projects)</value>
+  </data>
+  <data name="ExportPreset_Custom" xml:space="preserve">
+    <value>Custom</value>
+  </data>
+  <data name="ExportPreset_CustomDetail" xml:space="preserve">
+    <value>your own settings below</value>
+  </data>
+  <data name="ExportPreset_SaveNew" xml:space="preserve">
+    <value>＋ Save preset…</value>
+  </data>
+  <data name="ExportPreset_Name" xml:space="preserve">
+    <value>Preset name</value>
+  </data>
+  <data name="ExportPreset_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="ExportPreset_DeleteTip" xml:space="preserve">
+    <value>Delete the saved preset (the settings stay)</value>
+  </data>
+  <data name="ExportPreset_SavedTip" xml:space="preserve">
+    <value>Saved presets are offered in every project.</value>
+  </data>
+  <data name="ExportCodec_Label" xml:space="preserve">
+    <value>Codec</value>
+  </data>
+  <data name="ExportCodec_H264Detail" xml:space="preserve">
+    <value>plays everywhere, the largest file</value>
+  </data>
+  <data name="ExportCodec_HevcDetail" xml:space="preserve">
+    <value>the same picture in a smaller file</value>
+  </data>
+  <data name="ExportCodec_Av1Detail" xml:space="preserve">
+    <value>the smallest file, newer players</value>
+  </data>
+  <data name="ExportCodec_H264Note" xml:space="preserve">
+    <value>H.264 plays on every device and site.</value>
+  </data>
+  <data name="ExportCodec_HevcNote" xml:space="preserve">
+    <value>HEVC plays on phones, TVs, YouTube, VLC and Telegram; Windows' own players need «HEVC Video Extensions» from the Microsoft Store.</value>
+  </data>
+  <data name="ExportCodec_Av1Note" xml:space="preserve">
+    <value>AV1 plays on YouTube, in browsers and on recent phones; Windows needs the free «AV1 Video Extension»; older devices may not play it.</value>
+  </data>
+  <data name="ExportCodec_Unavailable" xml:space="preserve">
+    <value>{0} can't be encoded here: this FFmpeg has no {1} and NVENC is unavailable for it.</value>
+  </data>
+  <data name="ExportContainer_Label" xml:space="preserve">
+    <value>File type</value>
+  </data>
+  <data name="ExportContainer_Mp4Detail" xml:space="preserve">
+    <value>the most compatible</value>
+  </data>
+  <data name="ExportContainer_MovDetail" xml:space="preserve">
+    <value>QuickTime, for Apple editors</value>
+  </data>
+  <data name="ExportContainer_MkvDetail" xml:space="preserve">
+    <value>Matroska, for players and archives</value>
+  </data>
+  <data name="ExportEncoder_Software" xml:space="preserve">
+    <value>Processor ({0})</value>
+  </data>
+  <data name="ExportEncoder_SoftwareDetail" xml:space="preserve">
+    <value>software encoding — works everywhere, slower</value>
+  </data>
+  <data name="ExportSpeed_SoftwareHevcAv1" xml:space="preserve">
+    <value>HEVC / AV1 on the processor is several times slower than on a graphics card.</value>
+  </data>
+  <data name="ExportResolution_Qhd" xml:space="preserve">
+    <value>2K</value>
+  </data>
+  <data name="Export_FileFilter" xml:space="preserve">
+    <value>{0} video</value>
+  </data>
+  <data name="Quality_VeryHigh" xml:space="preserve">
+    <value>Very high</value>
+  </data>
+  <data name="Quality_VeryHighDetail" xml:space="preserve">
+    <value>almost the best, a smaller file</value>
+  </data>
+  <data name="Quality_StandardDetail" xml:space="preserve">
+    <value>good, a smaller file</value>
+  </data>
+  <data name="Speed_VeryFast" xml:space="preserve">
+    <value>Very fast</value>
+  </data>
+  <data name="Speed_VeryFastDetail" xml:space="preserve">
+    <value>the quickest, a larger file</value>
   </data>
 </root>

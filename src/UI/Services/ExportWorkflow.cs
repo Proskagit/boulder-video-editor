@@ -402,20 +402,31 @@ public sealed class ExportWorkflow
             return await _picker.PickSaveFileAsync(request) is { } picked ? new ExportDialogResult(picked) : null;
 
         var output = ExportOutput.For(Core.Playback.PlaybackSnapshotBuilder.Build(project, 0), range);
-        var suggested = Path.Combine(request.StartFolder ?? "", request.SuggestedFileName ?? project.Name + ExportFormat.FileExtension);
+        var suggested = Path.Combine(request.StartFolder ?? "", request.SuggestedFileName ?? project.Name + ExportFormat.ExtensionOf(project.Settings.Export.Container));
         var dialog = new ExportDialogViewModel(project.Timeline, project.Settings.FrameRate, output, suggested, range,
             (folder, name) => _picker.PickSaveFileAsync(new SaveFilePickerRequest
             {
-                Title = request.Title, DefaultExtension = request.DefaultExtension, FileTypeFilters = request.FileTypeFilters,
+                // D076: the picker offers the file type of the name shown (the one chosen in the dialog).
+                Title = request.Title, DefaultExtension = ExportFormat.ExtensionOf(ExportFormat.ContainerOf(name) ?? project.Settings.Export.Container).TrimStart('.'),
+                FileTypeFilters = FileTypes(ExportFormat.ContainerOf(name) ?? project.Settings.Export.Container),
                 StartFolder = string.IsNullOrWhiteSpace(folder) ? request.StartFolder : folder,
                 SuggestedFileName = string.IsNullOrWhiteSpace(name) ? request.SuggestedFileName : name
-            }), project.Settings.Export, await EncoderAvailability.GetAsync(_encoders));
+            }), project.Settings.Export, await EncoderAvailability.GetAsync(_encoders), _settings);
         return await _exportDialog.ShowAsync(dialog);
     }
 
     /// <summary>D067 §4: the name an export suggests — the local date and time it is chosen at, <c>yyyyMMdd_HHmm</c>.</summary>
-    public static string SuggestedFileName(DateTime now) =>
-        now.ToString("yyyyMMdd_HHmm", System.Globalization.CultureInfo.InvariantCulture) + ExportFormat.FileExtension;
+    public static string SuggestedFileName(DateTime now, Core.Entities.ExportContainer container = Core.Entities.ExportContainer.Mp4) =>
+        now.ToString("yyyyMMdd_HHmm", System.Globalization.CultureInfo.InvariantCulture) + ExportFormat.ExtensionOf(container);
+
+    /// <summary>D076: the picker's file types, <paramref name="first"/> first.</summary>
+    public static IReadOnlyList<FilePickerFileTypeFilter> FileTypes(Core.Entities.ExportContainer first) =>
+        new[] { first }.Concat(new[] { Core.Entities.ExportContainer.Mp4, Core.Entities.ExportContainer.Mov, Core.Entities.ExportContainer.Mkv }.Where(c => c != first))
+            .Select(c => new FilePickerFileTypeFilter
+            {
+                Name = string.Format(Strings.Export_FileFilter, ExportFormat.ExtensionOf(c).TrimStart('.').ToUpperInvariant()),
+                Patterns = new[] { "*" + ExportFormat.ExtensionOf(c) }
+            }).ToList();
 
     /// <summary>The picker's start: the folder of the last export (else the project's), and always a new name by the time
     /// (D067 §4) — never the last file's name, which a second export would replace.</summary>
@@ -423,7 +434,8 @@ public sealed class ExportWorkflow
     {
         var last = project.LastExportSettings.OutputPath;
         string? folder = null;
-        var name = SuggestedFileName(now);
+        var container = project.Settings.Export.Container;
+        var name = SuggestedFileName(now, container);
         if (!string.IsNullOrWhiteSpace(last))
         {
             try
@@ -441,8 +453,8 @@ public sealed class ExportWorkflow
             // D068 Р1: a project never saved exports to the user's Videos.
             StartFolder = folder ?? project.ProjectFolderPath ?? VideosFolder(),
             SuggestedFileName = name,
-            DefaultExtension = ExportFormat.FileExtension.TrimStart('.'),
-            FileTypeFilters = new[] { new FilePickerFileTypeFilter { Name = Strings.Export_Mp4Filter, Patterns = new[] { "*" + ExportFormat.FileExtension } } }
+            DefaultExtension = ExportFormat.ExtensionOf(container).TrimStart('.'),
+            FileTypeFilters = FileTypes(container)
         };
     }
 

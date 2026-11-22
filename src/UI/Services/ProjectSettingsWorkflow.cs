@@ -18,9 +18,13 @@ public sealed class ProjectSettingsWorkflow
     private readonly IProjectSettingsDialog _dialog;
     private readonly Core.Export.IExportEncoderCapabilities? _encoders;
 
+    private readonly Core.Interfaces.IUserSettingsService? _userSettings;
+
     public ProjectSettingsWorkflow(IProjectService projects, ITimelineEditService edit, StatusService status,
-        EditingLock editingLock, IProjectSettingsDialog dialog, Core.Export.IExportEncoderCapabilities? encoders = null)
+        EditingLock editingLock, IProjectSettingsDialog dialog, Core.Export.IExportEncoderCapabilities? encoders = null,
+        Core.Interfaces.IUserSettingsService? userSettings = null)
     {
+        _userSettings = userSettings;
         _encoders = encoders;
         _projects = projects;
         _edit = edit;
@@ -59,8 +63,9 @@ public sealed class ProjectSettingsWorkflow
         try
         {
             var encoders = await EncoderAvailability.GetAsync(_encoders);
-            var settings = new ProjectSettingsViewModel(_projects.Current.Settings, _edit, _status, () => _editingLock.IsLocked, encoders);
-            await _dialog.ShowAsync(settings);
+            var settings = new ProjectSettingsViewModel(_projects.Current.Settings, _edit, _status, () => _editingLock.IsLocked, encoders, _userSettings);
+            try { await _dialog.ShowAsync(settings); }
+            finally { settings.Export.Detach(); }
         }
         finally
         {

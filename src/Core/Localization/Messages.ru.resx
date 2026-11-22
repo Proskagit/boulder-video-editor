@@ -890,7 +890,7 @@
     <value>Офлайн-медиафайлов нет.</value>
   </data>
   <data name="Settings_ExportSet" xml:space="preserve">
-    <value>Параметры экспорта: качество {0}, кодирование {1}, AAC {2} кбит/с.</value>
+    <value>Параметры экспорта: {0}.</value>
   </data>
   <data name="Split_InsideCrossfade" xml:space="preserve">
     <value>Нельзя разрезать внутри перекрёстного затухания.</value>
@@ -1306,9 +1306,6 @@
   <data name="FitRoutes_ClipTimesConflict" xml:space="preserve">
     <value>У файла этого клипа тег времени и время в имени расходятся (файл редактировали?): начало записи неизвестно. Задайте его по подъёму ниже.</value>
   </data>
-  <data name="Encoding_Profile" xml:space="preserve">
-    <value>Неизвестный профиль экспорта.</value>
-  </data>
   <data name="Encoding_Encoder" xml:space="preserve">
     <value>Неизвестный кодировщик экспорта.</value>
   </data>
@@ -1319,19 +1316,7 @@
     <value>Битрейт видео {0} Мбит/с не поддерживается.</value>
   </data>
   <data name="Settings_ExportProfileSet" xml:space="preserve">
-    <value>Параметры экспорта: профиль «{0}», {1}, AAC {2} кбит/с.</value>
-  </data>
-  <data name="ExportProfile_Fast" xml:space="preserve">
-    <value>Быстрый</value>
-  </data>
-  <data name="ExportProfile_Balanced" xml:space="preserve">
-    <value>Сбалансированный</value>
-  </data>
-  <data name="ExportProfile_HighQuality" xml:space="preserve">
-    <value>Высокое качество</value>
-  </data>
-  <data name="ExportProfile_Custom" xml:space="preserve">
-    <value>Пользовательский</value>
+    <value>Параметры экспорта: пресет «{0}».</value>
   </data>
   <data name="Nvenc_NoFfmpeg" xml:space="preserve">
     <value>FFmpeg не найден.</value>
@@ -1497,5 +1482,32 @@
   </data>
   <data name="MakeRoom_OtherClipsPlate" xml:space="preserve">
     <value>Нельзя {0}: там стоит плашка «Боулдер» другого клипа — она остаётся на месте.</value>
+  </data>
+  <data name="Encoding_Codec" xml:space="preserve">
+    <value>Неизвестный кодек экспорта.</value>
+  </data>
+  <data name="Encoding_Container" xml:space="preserve">
+    <value>Неизвестный тип файла экспорта.</value>
+  </data>
+  <data name="Encoding_Av1Mov" xml:space="preserve">
+    <value>AV1 нельзя сохранить в файл MOV: выберите MP4 или MKV.</value>
+  </data>
+  <data name="ExportQuality_VeryHigh" xml:space="preserve">
+    <value>Очень высокое</value>
+  </data>
+  <data name="ExportPreset_Fast" xml:space="preserve">
+    <value>Быстрый</value>
+  </data>
+  <data name="ExportPreset_Medium" xml:space="preserve">
+    <value>Средний</value>
+  </data>
+  <data name="ExportPreset_High" xml:space="preserve">
+    <value>Высокий</value>
+  </data>
+  <data name="ExportPreset_Maximum" xml:space="preserve">
+    <value>Максимальный</value>
+  </data>
+  <data name="Export_CodecUnavailable" xml:space="preserve">
+    <value>{0} нельзя закодировать этим FFmpeg (нет {1}), а NVENC для него недоступен.</value>
   </data>
 </root>

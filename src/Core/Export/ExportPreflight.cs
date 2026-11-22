@@ -255,9 +255,11 @@ public static class ExportPreflight
             return null;
         }
 
-        if (!string.Equals(Path.GetExtension(full), ExportFormat.FileExtension, StringComparison.OrdinalIgnoreCase))
+        // D076: the extension of the chosen container (.mp4 / .mov / .mkv).
+        var extension = ExportFormat.ExtensionOf(project.Settings.Export.Container);
+        if (!string.Equals(Path.GetExtension(full), extension, StringComparison.OrdinalIgnoreCase))
         {
-            issues.Add(Error(ExportIssueKind.InvalidOutputPath, string.Format(Messages.Preflight_Extension, ExportFormat.FileExtension)));
+            issues.Add(Error(ExportIssueKind.InvalidOutputPath, string.Format(Messages.Preflight_Extension, extension)));
             return null;
         }
 

@@ -79,7 +79,8 @@ public class ExportResolutionsTests
         Assert.Equal(ExportResolution.FullHd, ExportResolutions.PresetMatching(S(1920, 1080)));
         Assert.Equal(ExportResolution.FullHd, ExportResolutions.PresetMatching(S(1080, 1920)));
         Assert.Equal(ExportResolution.Uhd4K, ExportResolutions.PresetMatching(S(3840, 2160)));
-        Assert.Null(ExportResolutions.PresetMatching(S(2560, 1440)));
+        Assert.Equal(ExportResolution.Qhd, ExportResolutions.PresetMatching(S(2560, 1440)));   // D076: 2K
+        Assert.Null(ExportResolutions.PresetMatching(S(3000, 2000)));
     }
 
     [Fact]
