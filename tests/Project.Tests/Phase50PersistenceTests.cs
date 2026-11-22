@@ -31,7 +31,7 @@ public class Phase50PersistenceTests
     public void The_magnet_survives_a_save_open_save_exactly(bool magnet)
     {
         var first = Save(Build(magnet));
-        Assert.Equal(27, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(28, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
         Assert.Equal(magnet, JsonNode.Parse(first)!["timeline"]!["magneticMainTrack"]!.GetValue<bool>());
 
         var loaded = Load(first);
@@ -43,7 +43,7 @@ public class Phase50PersistenceTests
     [Fact]
     public void A_version_25_file_opens_with_the_magnet_off_even_with_the_member()
     {
-        var v25 = Save(Build(magnet: true)).Replace("\"formatVersion\": 27", "\"formatVersion\": 25");
+        var v25 = Save(Build(magnet: true)).Replace("\"formatVersion\": 28", "\"formatVersion\": 25");
 
         Assert.False(Load(v25).Timeline.MagneticMainTrack);
     }
@@ -128,7 +128,7 @@ public class Phase50PersistenceTests
     public void A_version_25_file_ignores_a_colour_and_an_out_of_range_value_refuses_the_file()
     {
         var json = Save(WithClip(Core.Color.ColorCorrection.Neutral.With(0, 40)));
-        Assert.True(ColorOf(Load(json.Replace("\"formatVersion\": 27", "\"formatVersion\": 25"))).IsNeutral);
+        Assert.True(ColorOf(Load(json.Replace("\"formatVersion\": 28", "\"formatVersion\": 25"))).IsNeutral);
 
         var broken = json.Replace("\"exposure\": 40", "\"exposure\": 140");
         Assert.NotEqual(json, broken);

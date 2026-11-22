@@ -62,7 +62,7 @@ public class KeyframePersistenceTests
     {
         var first = Save(Build());
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(27, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(28, root["formatVersion"]!.GetValue<int>());
         var keys = Clip(root, 0)["keyframes"]!.AsArray();
         Assert.Equal(2, keys.Count);
         Assert.Equal(5_000_000, keys[0]!["timeTicks"]!.GetValue<long>());
@@ -96,7 +96,7 @@ public class KeyframePersistenceTests
         }
         foreach (var plate in project.Timeline.VideoTracks[1].Clips.OfType<TemplateClip>()) plate.PlateCorner = OverlayCorner.BottomLeft;
         var current = Save(project);
-        var v23 = current.Replace("\"formatVersion\": 27", "\"formatVersion\": 23");
+        var v23 = current.Replace("\"formatVersion\": 28", "\"formatVersion\": 23");
         var loaded = Load(v23);
         Assert.All(loaded.Timeline.VideoTracks[0].Clips.OfType<VideoClip>(), c => Assert.Null(c.Keyframes));
         Assert.Equal(current, Save(loaded));
@@ -133,6 +133,6 @@ public class KeyframePersistenceTests
     {
         var json = Save(Build());
         Assert.False(ProjectSerializer.PeekNewerVersion(json, ProjectSerializer.FormatId));
-        Assert.True(ProjectSerializer.PeekNewerVersion(json.Replace("\"formatVersion\": 27", "\"formatVersion\": 28"), ProjectSerializer.FormatId));
+        Assert.True(ProjectSerializer.PeekNewerVersion(json.Replace("\"formatVersion\": 28", "\"formatVersion\": 29"), ProjectSerializer.FormatId));
     }
 }

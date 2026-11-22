@@ -973,14 +973,14 @@
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Inspector_LineSpacing}" Classes="label"/>
                     <controls:CommitNumericUpDown x:Name="LineSpacingField" Value="{Binding LineSpacing, Mode=TwoWay}" Increment="0.1"
-                                 Minimum="{Binding MinLineSpacing}" Maximum="{Binding MaxLineSpacing}" FormatString="0.##" Width="80"
+                                 Minimum="{Binding MinLineSpacing}" Maximum="{Binding MaxLineSpacing}" FormatString="0.##" Width="72"
                                  ToolTip.Tip="{x:Static l:Strings.Inspector_LineSpacingTip}"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Inspector_BoxWidth}" Classes="label"/>
                     <TextBox x:Name="BoxWidthField" Text="{Binding BoxWidthText, Mode=TwoWay}" Watermark="{x:Static l:Strings.Inspector_BoxWidthAuto}"
                              Width="80" ToolTip.Tip="{x:Static l:Strings.Inspector_BoxWidthTip}"/>
-                    <TextBlock Text="px" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Inspector_Alignment}" Classes="label"/>
@@ -1082,21 +1082,21 @@
                     <StackPanel Orientation="Horizontal" Spacing="8">
                       <TextBlock Text="{x:Static l:Strings.Inspector_ShadowOpacity}" Classes="label"/>
                       <controls:CommitNumericUpDown x:Name="ShadowOpacityField" Value="{Binding ShadowOpacityPercent, Mode=TwoWay}" Increment="5"
-                                   Minimum="0" Maximum="100" FormatString="0" Width="70"/>
+                                   Minimum="0" Maximum="100" FormatString="0.#" Width="72"/>
                       <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8">
                       <TextBlock Text="{x:Static l:Strings.Inspector_ShadowBlur}" Classes="label"/>
                       <controls:CommitNumericUpDown x:Name="ShadowBlurField" Value="{Binding ShadowBlurPercent, Mode=TwoWay}" Increment="1"
-                                   Minimum="0" Maximum="{Binding MaxShadowBlurPercent}" FormatString="0" Width="70"/>
+                                   Minimum="0" Maximum="{Binding MaxShadowBlurPercent}" FormatString="0.#" Width="72"/>
                       <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8" ToolTip.Tip="{x:Static l:Strings.Inspector_ShadowOffsetTip}">
                       <TextBlock Text="{x:Static l:Strings.Inspector_ShadowOffset}" Classes="label"/>
                       <controls:CommitNumericUpDown x:Name="ShadowOffsetXField" Value="{Binding ShadowOffsetXPercent, Mode=TwoWay}" Increment="1"
-                                   Minimum="{Binding MinShadowOffsetPercent}" Maximum="{Binding MaxShadowOffsetPercent}" FormatString="0" Width="64"/>
+                                   Minimum="{Binding MinShadowOffsetPercent}" Maximum="{Binding MaxShadowOffsetPercent}" FormatString="0.#" Width="72"/>
                       <controls:CommitNumericUpDown x:Name="ShadowOffsetYField" Value="{Binding ShadowOffsetYPercent, Mode=TwoWay}" Increment="1"
-                                   Minimum="{Binding MinShadowOffsetPercent}" Maximum="{Binding MaxShadowOffsetPercent}" FormatString="0" Width="64"/>
+                                   Minimum="{Binding MinShadowOffsetPercent}" Maximum="{Binding MaxShadowOffsetPercent}" FormatString="0.#" Width="72"/>
                     </StackPanel>
                   </StackPanel>
                 </StackPanel>

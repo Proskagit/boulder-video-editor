@@ -87,6 +87,8 @@ public sealed record UserSettings
     public MediaTime HeartRateDisplayOffsetFor(int? manufacturer) =>
         manufacturer is { } m ? HeartRateDisplayOffsetFor(FitWorkoutParser.VendorOf(m)) : MediaTime.Zero;
 
+    private static bool Valid(Entities.SavedTextStyle? s) => s is not null && !string.IsNullOrWhiteSpace(s.Name) && !string.IsNullOrWhiteSpace(s.FontFamily);
+
     /// <summary>These settings with every value inside its bounds (a value from a file edited by hand).</summary>
     public UserSettings Normalized() => this with
     {
@@ -101,8 +103,9 @@ public sealed record UserSettings
         Language = string.IsNullOrWhiteSpace(Language) ? null : Language.Trim(),
         FfmpegPath = string.IsNullOrWhiteSpace(FfmpegPath) ? null : FfmpegPath.Trim(),
         FfprobePath = string.IsNullOrWhiteSpace(FfprobePath) ? null : FfprobePath.Trim(),
-        TextStyles = (TextStyles ?? Array.Empty<Entities.SavedTextStyle>())
-            .Where(s => s is not null && !string.IsNullOrWhiteSpace(s.Name) && !string.IsNullOrWhiteSpace(s.FontFamily)).ToList()
+        TextStyles = TextStyles is null ? Array.Empty<Entities.SavedTextStyle>()
+            : TextStyles.All(Valid) ? TextStyles      // the same list: unchanged settings stay equal
+            : TextStyles.Where(Valid).ToList()
     };
 }
 

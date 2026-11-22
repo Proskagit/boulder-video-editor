@@ -121,6 +121,9 @@ src/UI/ViewModels/Panels/InspectorViewModel.TextStyle.cs	Change Disappearance
 src/UI/ViewModels/Panels/InspectorViewModel.TextStyle.cs	Change Outline
 src/UI/ViewModels/Panels/InspectorViewModel.TextStyle.cs	Change Text Background
 src/UI/ViewModels/Panels/InspectorViewModel.TextStyle.cs	Place Text
+src/UI/ViewModels/Panels/InspectorViewModel.TextStyle2.cs	Change Italic
+src/UI/ViewModels/Panels/InspectorViewModel.TextStyle2.cs	Change Shadow
+src/UI/ViewModels/Panels/InspectorViewModel.TextStyle2.cs	Apply Text Style
 src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Change Heart Colour
 src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Change Heart Rate Look
 src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Change Route Colour
@@ -132,6 +135,7 @@ src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Crop Clip
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Move Clip
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Move Climber in Frame
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Scale Clip
+src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Change Text Width
 src/UI/Services/TransformKeyframeEditor.cs	Add Keyframe
 src/UI/Services/TransformKeyframeEditor.cs	Change Keyframe
 src/UI/Services/TransformKeyframeEditor.cs	Change Keyframe Easing
@@ -560,6 +564,11 @@ src/Project/Persistence/ProjectSerializer.cs	Follow parts that overlap or are ou
 src/Project/Persistence/ProjectSerializer.cs	a Follow offset out of range
 src/Project/Persistence/ProjectSerializer.cs	unknown template language
 src/Project/Persistence/ProjectSerializer.cs	a route's attempts out of range
+src/Project/Persistence/ProjectSerializer.cs	a text shadow has no state
+src/Project/Persistence/ProjectSerializer.cs	a text shadow has no colour
+src/Project/Persistence/ProjectSerializer.cs	a text shadow has no opacity
+src/Project/Persistence/ProjectSerializer.cs	a text shadow has no softness
+src/Project/Persistence/ProjectSerializer.cs	a text shadow has no offset
 
 # D073 — the English words a «Боулдер» / «Итоги» draws on the frame when the template's own language is English (part of the
 # template's look, chosen per template and kept with it, never the interface's text — like the Russian words of TemplateRules).
