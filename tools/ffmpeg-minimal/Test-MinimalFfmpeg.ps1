@@ -312,10 +312,10 @@ elseif ($nvencRef.Code -ne 0) { Add-Result 'NVENC trial encoding' 'SKIP' 'no NVI
 else { Add-Result 'NVENC trial encoding' 'FAIL' "the reference encodes, the candidate not - exit $($nvenc.Code): $(($nvenc.Err -split "`r?`n" | Select-Object -Last 2) -join ' | ')" }
 
 # --- 6b. Phase 57 (D076): the export's codecs and containers -----------------------------------------------------------
-# Software HEVC / AV1 (no hardware needed) into every container the export offers; AV1 never into .mov (the mov muxer
+# Software HEVC / AV1 (no hardware needed; the sound: the export check's PCM - the build has no sine source) into every container the export offers; AV1 never into .mov (the mov muxer
 # refuses it, the application does not offer it).
 $codecSrc = @('-hide_banner', '-nostats', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=s=640x360:r=30:d=1',
-    '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000:d=1', '-vf', 'format=yuv420p', '-c:a', 'aac', '-shortest')
+    '-f', 'f32le', '-ar', '48000', '-ac', '2', '-i', $audio, '-vf', 'format=yuv420p', '-c:a', 'aac', '-shortest')
 $codecCases = [ordered]@{
     'libx264 mov' = @('-c:v', 'libx264', '-crf', '18', '-f', 'mov', 'x264.mov')
     'libx264 mkv' = @('-c:v', 'libx264', '-crf', '18', '-f', 'matroska', 'x264.mkv')
