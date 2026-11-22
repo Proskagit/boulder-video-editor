@@ -44,7 +44,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 27;
+    public const int CurrentFormatVersion = 28;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -147,6 +147,9 @@ public static class ProjectSerializer
     /// <summary>The first version with «Итоги», FLASH, a template's language and the stated attempts (D073). A v26 file has none
     /// (its templates' words are Russian) and is saved as v27.</summary>
     private const int SummaryVersion = 27;
+
+    /// <summary>D075 amendment 1: a text's italic, shadow, line spacing and block width.</summary>
+    private const int TextStyle2Version = 28;
 
     /// <summary>Whether a template of <paramref name="kind"/> in a file of <paramref name="formatVersion"/> carries the
     /// heart-rate look and corner: the overlay (v13), a «Боулдер» from v16 (D055 §5).</summary>
@@ -646,7 +649,15 @@ public static class ProjectSerializer
                 Background = t.Background == TextBackground.Default ? null
                     : new TextBackgroundDto { Enabled = t.Background.IsEnabled, ColorHex = t.Background.ColorHex, Opacity = t.Background.Opacity },
                 MotionIn = ToDto(t.MotionIn),
-                MotionOut = ToDto(t.MotionOut)
+                MotionOut = ToDto(t.MotionOut),
+                Italic = t.Italic ? true : null,
+                Shadow = t.Shadow == TextShadow.Default ? null : new TextShadowDto
+                {
+                    Enabled = t.Shadow.IsEnabled, ColorHex = t.Shadow.ColorHex, Opacity = t.Shadow.Opacity, Blur = t.Shadow.Blur,
+                    OffsetX = t.Shadow.OffsetX, OffsetY = t.Shadow.OffsetY
+                },
+                LineSpacing = t.LineSpacing == 1.0 ? null : t.LineSpacing,
+                BoxWidth = t.BoxWidth
             },
             TemplateClip p => new TemplateClipDto
             {
@@ -1471,6 +1482,17 @@ public static class ProjectSerializer
                 b.ColorHex ?? throw Damaged("a text background has no colour"), b.Opacity ?? throw Damaged("a text background has no opacity"));
         clip.MotionIn = FromDto(dto.MotionIn);
         clip.MotionOut = FromDto(dto.MotionOut);
+
+        // Format v28 (D075 amendment 1): italic, the shadow, the line spacing, the block's width; absent — none.
+        if (formatVersion < TextStyle2Version) return;
+        clip.Italic = dto.Italic ?? false;
+        if (dto.Shadow is { } sh)
+            clip.Shadow = new TextShadow(sh.Enabled ?? throw Damaged("a text shadow has no state"),
+                sh.ColorHex ?? throw Damaged("a text shadow has no colour"), sh.Opacity ?? throw Damaged("a text shadow has no opacity"),
+                sh.Blur ?? throw Damaged("a text shadow has no softness"), sh.OffsetX ?? throw Damaged("a text shadow has no offset"),
+                sh.OffsetY ?? throw Damaged("a text shadow has no offset"));
+        clip.LineSpacing = dto.LineSpacing ?? 1.0;
+        clip.BoxWidth = dto.BoxWidth;
     }
 
     private static TextMotion FromDto(TextMotionDto? dto) => dto is null

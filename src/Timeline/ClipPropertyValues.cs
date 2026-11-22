@@ -80,6 +80,12 @@ public enum ClipPropertyFields : long
     TemplateLanguage = 1L << 50,
     TemplateBackground = 1L << 51,
 
+    // D075 amendment 1: the text's italic, shadow, line spacing and block width.
+    Italic = 1L << 52,
+    Shadow = 1L << 53,
+    LineSpacing = 1L << 54,
+    BoxWidth = 1L << 55,
+
     Template = TemplateDate | TemplateRoute | TemplateGrade | TemplateStatus | TemplateAccent | TemplateTitle | TemplateSubtitle |
                TemplateStatusAt | TemplateLook | TemplateCorner | TemplateShowHeartRate | TemplateHeart | TemplatePlateCorner |
                TemplateAttempts | TemplateLanguage | TemplateBackground,
@@ -145,6 +151,7 @@ public readonly record struct ClipPropertyValues(VisualProperties? Visual, Audio
                 throw new InvalidOperationException($"{clip.GetType().Name} has no text properties.");
             (c.Text, c.FontFamily, c.FontSize, c.ColorHex, c.Alignment) = (t.Text, t.FontFamily, t.FontSize, t.ColorHex, t.Alignment);
             (c.Bold, c.Outline, c.Background, c.MotionIn, c.MotionOut) = (t.Bold, t.Outline, t.Background, t.MotionIn, t.MotionOut);
+            (c.Italic, c.Shadow, c.LineSpacing, c.BoxWidth) = (t.Italic, t.Shadow, t.LineSpacing, t.BoxWidth);
         }
 
         if (Fade is { } f)
@@ -212,6 +219,10 @@ public readonly record struct ClipPropertyValues(VisualProperties? Visual, Audio
             if (!ta.Background.Opacity.Equals(tb.Background.Opacity)) fields |= ClipPropertyFields.BackgroundOpacity;
             if (ta.MotionIn != tb.MotionIn) fields |= ClipPropertyFields.MotionIn;
             if (ta.MotionOut != tb.MotionOut) fields |= ClipPropertyFields.MotionOut;
+            if (ta.Italic != tb.Italic) fields |= ClipPropertyFields.Italic;
+            if (ta.Shadow != tb.Shadow) fields |= ClipPropertyFields.Shadow;
+            if (!ta.LineSpacing.Equals(tb.LineSpacing)) fields |= ClipPropertyFields.LineSpacing;
+            if (ta.BoxWidth != tb.BoxWidth) fields |= ClipPropertyFields.BoxWidth;
         }
 
         if (a.Fade is { } fa && b.Fade is { } fb)

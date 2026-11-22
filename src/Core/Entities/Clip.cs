@@ -175,6 +175,19 @@ public sealed class TextClip : Clip
     /// <summary>D043 §2: «Подложка» (off by default; its values kept while off).</summary>
     public TextBackground Background { get; set; } = TextBackground.Default;
 
+    /// <summary>D075 amendment 1: italic (an older project's text is upright).</summary>
+    public bool Italic { get; set; }
+
+    /// <summary>D075 amendment 1: «Тень» (off by default; its values kept while off).</summary>
+    public TextShadow Shadow { get; set; } = TextShadow.Default;
+
+    /// <summary>D075 amendment 1: «Интервал» — the line height × the font's own (1: as before).</summary>
+    public double LineSpacing { get; set; } = 1.0;
+
+    /// <summary>D075 amendment 1: «Ширина» — the text block's width in canvas pixels, the lines wrapped by words to it; null —
+    /// no wrapping, the block as wide as its longest line (as before).</summary>
+    public double? BoxWidth { get; set; }
+
     /// <summary>D043 §1: the motion of the appearance over <see cref="Clip.FadeIn"/> (none by default).</summary>
     public TextMotion MotionIn { get; set; } = TextMotion.None;
 

@@ -712,6 +712,15 @@
   <data name="Prop_Opacity" xml:space="preserve">
     <value>Непрозрачность должна быть от {0} до {1}.</value>
   </data>
+  <data name="Prop_TextShadow" xml:space="preserve">
+    <value>Непрозрачность, размытие или смещение тени вне допустимого.</value>
+  </data>
+  <data name="Prop_LineSpacing" xml:space="preserve">
+    <value>Интервал должен быть от {0} до {1}.</value>
+  </data>
+  <data name="Prop_BoxWidth" xml:space="preserve">
+    <value>Ширина блока текста должна быть от {0} до {1} px.</value>
+  </data>
   <data name="Prop_OutlineThickness" xml:space="preserve">
     <value>Толщина обводки должна быть от {0} до {1} от размера шрифта.</value>
   </data>

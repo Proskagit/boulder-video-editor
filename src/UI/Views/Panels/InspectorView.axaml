@@ -964,7 +964,24 @@
                       </DataTemplate>
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
-                  <CheckBox Content="{x:Static l:Strings.Inspector_Bold}" IsChecked="{Binding IsBold, Mode=TwoWay}" Margin="128,0,0,0"/>
+                  <StackPanel Orientation="Horizontal" Spacing="12" Margin="128,0,0,0">
+                    <CheckBox Content="{x:Static l:Strings.Inspector_Bold}" IsChecked="{Binding IsBold, Mode=TwoWay}"/>
+                    <!-- D075 amendment 1: italic. -->
+                    <CheckBox x:Name="ItalicToggle" Content="{x:Static l:Strings.Inspector_Italic}" IsChecked="{Binding IsItalic, Mode=TwoWay}"/>
+                  </StackPanel>
+                  <!-- D075 amendment 1: the line spacing and the block's width (also dragged in the Preview). -->
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{x:Static l:Strings.Inspector_LineSpacing}" Classes="label"/>
+                    <controls:CommitNumericUpDown x:Name="LineSpacingField" Value="{Binding LineSpacing, Mode=TwoWay}" Increment="0.1"
+                                 Minimum="{Binding MinLineSpacing}" Maximum="{Binding MaxLineSpacing}" FormatString="0.##" Width="72"
+                                 ToolTip.Tip="{x:Static l:Strings.Inspector_LineSpacingTip}"/>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{x:Static l:Strings.Inspector_BoxWidth}" Classes="label"/>
+                    <TextBox x:Name="BoxWidthField" Text="{Binding BoxWidthText, Mode=TwoWay}" Watermark="{x:Static l:Strings.Inspector_BoxWidthAuto}"
+                             Width="80" ToolTip.Tip="{x:Static l:Strings.Inspector_BoxWidthTip}"/>
+                    <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                  </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Inspector_Alignment}" Classes="label"/>
                     <ComboBox ItemsSource="{Binding Alignments}" SelectedItem="{Binding Alignment, Mode=TwoWay}" Width="150">
@@ -1041,6 +1058,62 @@
                       <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                   </Grid>
+                </StackPanel>
+                <!-- D075 amendment 1: «Тень» — on / off, its colour, opacity, softness and offset. -->
+                <StackPanel x:Name="ShadowPanel" Spacing="6">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{x:Static l:Strings.Inspector_Shadow}" Classes="label"/>
+                    <CheckBox x:Name="ShadowToggle" IsChecked="{Binding IsShadowOn, Mode=TwoWay}" VerticalAlignment="Center" MinWidth="0"/>
+                    <Border Width="22" Height="22" CornerRadius="2" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1"
+                            Background="{Binding ShadowColorSwatch}" VerticalAlignment="Center"/>
+                  </StackPanel>
+                  <ItemsControl x:Name="ShadowColorSwatches" ItemsSource="{Binding Swatches}" Margin="128,-2,0,0" IsVisible="{Binding IsShadowOn}">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Button Classes="swatch" ToolTip.Tip="{Binding Name}" CommandParameter="{Binding Hex}"
+                                Command="{Binding $parent[UserControl].DataContext.SetShadowColorCommand}">
+                          <Border Background="{Binding Hex}"/>
+                        </Button>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <StackPanel Spacing="6" IsVisible="{Binding IsShadowOn}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <TextBlock Text="{x:Static l:Strings.Inspector_ShadowOpacity}" Classes="label"/>
+                      <controls:CommitNumericUpDown x:Name="ShadowOpacityField" Value="{Binding ShadowOpacityPercent, Mode=TwoWay}" Increment="5"
+                                   Minimum="0" Maximum="100" FormatString="0.#" Width="72"/>
+                      <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <TextBlock Text="{x:Static l:Strings.Inspector_ShadowBlur}" Classes="label"/>
+                      <controls:CommitNumericUpDown x:Name="ShadowBlurField" Value="{Binding ShadowBlurPercent, Mode=TwoWay}" Increment="1"
+                                   Minimum="0" Maximum="{Binding MaxShadowBlurPercent}" FormatString="0.#" Width="72"/>
+                      <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8" ToolTip.Tip="{x:Static l:Strings.Inspector_ShadowOffsetTip}">
+                      <TextBlock Text="{x:Static l:Strings.Inspector_ShadowOffset}" Classes="label"/>
+                      <controls:CommitNumericUpDown x:Name="ShadowOffsetXField" Value="{Binding ShadowOffsetXPercent, Mode=TwoWay}" Increment="1"
+                                   Minimum="{Binding MinShadowOffsetPercent}" Maximum="{Binding MaxShadowOffsetPercent}" FormatString="0.#" Width="72"/>
+                      <controls:CommitNumericUpDown x:Name="ShadowOffsetYField" Value="{Binding ShadowOffsetYPercent, Mode=TwoWay}" Increment="1"
+                                   Minimum="{Binding MinShadowOffsetPercent}" Maximum="{Binding MaxShadowOffsetPercent}" FormatString="0.#" Width="72"/>
+                    </StackPanel>
+                  </StackPanel>
+                </StackPanel>
+                <!-- D075 amendment 2: the styles as one list — «По умолчанию», the saved styles, «＋ Сохранить новый стиль…»; ✕ deletes the
+                     chosen saved style. -->
+                <StackPanel x:Name="TextStylesPanel" Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasSavedStyleStore}"
+                            ToolTip.Tip="{x:Static l:Strings.Inspector_TextStylesTip}">
+                  <TextBlock Text="{x:Static l:Strings.Inspector_TextStyles}" Classes="label"/>
+                  <ComboBox x:Name="TextStyleList" ItemsSource="{Binding StyleChoices}" SelectedItem="{Binding SelectedStyleChoice, Mode=TwoWay}" Width="190">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate>
+                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <Button x:Name="DeleteTextStyleButton" Content="✕" Padding="6,2" ToolTip.Tip="{x:Static l:Strings.Inspector_DeleteTextStyle}"
+                          Command="{Binding DeleteSelectedTextStyleCommand}"/>
                 </StackPanel>
               </StackPanel>
             </controls:InspectorSection>

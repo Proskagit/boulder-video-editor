@@ -47,6 +47,9 @@ public sealed record UserSettings
     /// <summary>D058 §1: the timeline turns its page with the playhead while playing; on by default.</summary>
     public bool TimelineFollowsPlayhead { get; init; } = true;
 
+    /// <summary>D075 amendment 1: the user's saved text styles, in the order saved (offered in every project).</summary>
+    public IReadOnlyList<Entities.SavedTextStyle> TextStyles { get; init; } = Array.Empty<Entities.SavedTextStyle>();
+
     /// <summary>D063 §B: the Preview's magnetic snap of a picture's edges to the canvas edges — its threshold in screen
     /// pixels (0: off).</summary>
     public double CanvasSnapPixels { get; init; } = Composition.CanvasSnap.DefaultThresholdPixels;
@@ -84,6 +87,8 @@ public sealed record UserSettings
     public MediaTime HeartRateDisplayOffsetFor(int? manufacturer) =>
         manufacturer is { } m ? HeartRateDisplayOffsetFor(FitWorkoutParser.VendorOf(m)) : MediaTime.Zero;
 
+    private static bool Valid(Entities.SavedTextStyle? s) => s is not null && !string.IsNullOrWhiteSpace(s.Name) && !string.IsNullOrWhiteSpace(s.FontFamily);
+
     /// <summary>These settings with every value inside its bounds (a value from a file edited by hand).</summary>
     public UserSettings Normalized() => this with
     {
@@ -97,7 +102,10 @@ public sealed record UserSettings
         PreviewQuality = Enum.IsDefined(PreviewQuality) ? PreviewQuality : Playback.PreviewDecoding.DefaultQuality,
         Language = string.IsNullOrWhiteSpace(Language) ? null : Language.Trim(),
         FfmpegPath = string.IsNullOrWhiteSpace(FfmpegPath) ? null : FfmpegPath.Trim(),
-        FfprobePath = string.IsNullOrWhiteSpace(FfprobePath) ? null : FfprobePath.Trim()
+        FfprobePath = string.IsNullOrWhiteSpace(FfprobePath) ? null : FfprobePath.Trim(),
+        TextStyles = TextStyles is null ? Array.Empty<Entities.SavedTextStyle>()
+            : TextStyles.All(Valid) ? TextStyles      // the same list: unchanged settings stay equal
+            : TextStyles.Where(Valid).ToList()
     };
 }
 

@@ -247,5 +247,6 @@ public sealed partial class InspectorViewModel
         IsBackgroundOn = text.Background.IsEnabled;
         BackgroundOpacityPercent = (decimal)text.Background.Opacity * 100m;
         BackgroundColorSwatch = text.Background.ColorHex;
+        SyncTextStyle2(text);
     }
 }

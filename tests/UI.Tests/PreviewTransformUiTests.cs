@@ -68,7 +68,7 @@ public sealed class PreviewTransformUiTests : IAsyncLifetime
     }
 
     /// <summary>A text box of 20 canvas px per character × 50 px (the painter needs a running Avalonia).</summary>
-    private static (double, double) MeasureText(TextProperties text) => (Math.Max(1, text.Text.Length * 20.0), 50);
+    private static (double, double) MeasureText(TextProperties text) => (text.BoxWidth ?? Math.Max(1, text.Text.Length * 20.0), 50);   // D075: a set width is the box
 
     public Task InitializeAsync() => Task.CompletedTask;
 
@@ -691,6 +691,40 @@ public sealed class PreviewTransformUiTests : IAsyncLifetime
     }
 
     // --- text -------------------------------------------------------------------------------------------------------
+
+    [Fact]
+    public void A_texts_side_handle_sets_its_block_width_in_one_step_and_a_cancel_leaves_none()   // D075 amendment 1
+    {
+        AddVideo();
+        _vm.Timeline.SetPlayhead(MediaTime.Zero);
+        Assert.True(_edit.AddTextClip(MediaTime.Zero).Success);
+        var text = _projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<TextClip>().Single();
+        _vm.Timeline.SelectClipFromPreview(text.Id);
+        Tool.IsMoveOn = true;
+        Assert.True(Tool.HasWidthHandles);
+        var steps = Steps();
+
+        // "Text": a box of 80 px centred at (960, 540); the right handle dragged 30 px right — the width grows by 60 (centre kept).
+        var right = Tool.Target!.Frame.HandlePoint(CropEdges.Right);
+        Assert.True(Tool.BeginTextWidth(CropEdges.Right, right));
+        Tool.UpdateGesture(new PointD(right.X + 10, right.Y), keepAxis: false);
+        Tool.UpdateGesture(new PointD(right.X + 30, right.Y), keepAxis: false);
+        Tool.EndGesture();
+        Assert.Equal(140, text.BoxWidth);
+        Assert.Equal(steps + 1, Steps());
+        Assert.Equal("Change Text Width", _undo.NextUndo!.Description);
+
+        var left = Tool.Target!.Frame.HandlePoint(CropEdges.Left);
+        Assert.True(Tool.BeginTextWidth(CropEdges.Left, left));
+        Tool.UpdateGesture(new PointD(left.X + 20, left.Y), keepAxis: false);   // inward: narrower by 40
+        Assert.Equal(100, text.BoxWidth);
+        Tool.CancelGesture();
+        Assert.Equal(140, text.BoxWidth);                                         // the cancel writes the start back
+        Assert.Equal(steps + 1, Steps());
+
+        _undo.Undo();
+        Assert.Null(text.BoxWidth);
+    }
 
     [Fact]
     public void A_text_clip_moves_and_scales_but_has_no_crop()

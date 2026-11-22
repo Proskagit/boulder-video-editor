@@ -82,15 +82,22 @@ public readonly record struct TextProperties(string Text, string FontFamily, dou
     public TextMotion MotionIn { get; init; } = TextMotion.None;
     public TextMotion MotionOut { get; init; } = TextMotion.None;
 
+    /// <summary>D075 amendment 1: italic, «Тень», «Интервал», «Ширина».</summary>
+    public bool Italic { get; init; }
+    public TextShadow Shadow { get; init; } = TextShadow.Default;
+    public double LineSpacing { get; init; } = 1.0;
+    public double? BoxWidth { get; init; }
+
     /// <summary>True when the text is drawn exactly as before D043: no outline, no background, not bold (the motions
-    /// only move it).</summary>
-    public bool IsPlain => !Bold && !Outline.IsEnabled && !Background.IsEnabled;
+    /// only move it) — and none of D075's style.</summary>
+    public bool IsPlain => !Bold && !Outline.IsEnabled && !Background.IsEnabled && !Italic && !Shadow.IsEnabled && LineSpacing == 1.0 && BoxWidth is null;
 
     /// <summary>The clip's current values, or null for clips that aren't text.</summary>
     public static TextProperties? Of(Clip clip) => clip is TextClip t
         ? new TextProperties(t.Text, t.FontFamily, t.FontSize, t.ColorHex, t.Alignment)
         {
-            Bold = t.Bold, Outline = t.Outline, Background = t.Background, MotionIn = t.MotionIn, MotionOut = t.MotionOut
+            Bold = t.Bold, Outline = t.Outline, Background = t.Background, MotionIn = t.MotionIn, MotionOut = t.MotionOut,
+            Italic = t.Italic, Shadow = t.Shadow, LineSpacing = t.LineSpacing, BoxWidth = t.BoxWidth
         }
         : null;
 }
@@ -133,6 +140,18 @@ public static class ClipPropertyLimits
     /// <summary>D043 §2: the background's opacity.</summary>
     public const double MinBackgroundOpacity = 0;
     public const double MaxBackgroundOpacity = 1;
+
+    /// <summary>D075 amendment 1: «Интервал», × the font's own line height.</summary>
+    public const double MinLineSpacing = 0.5;
+    public const double MaxLineSpacing = 3.0;
+
+    /// <summary>D075 amendment 1: «Ширина», canvas pixels.</summary>
+    public const double MinBoxWidth = 10;
+    public const double MaxBoxWidth = 20_000;
+
+    /// <summary>D075 amendment 1: «Тень» — its softness and its offset (each × the font size).</summary>
+    public const double MaxShadowBlur = 0.5;
+    public const double MaxShadowOffset = 0.5;
 }
 
 /// <summary>D043 §1: the durations the «Анимация» block sets (seconds). They limit the block's input, not a file: a

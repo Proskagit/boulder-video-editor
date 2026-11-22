@@ -678,6 +678,78 @@ The file is replaced only when the export succeeds.</value>
   <data name="Inspector_BackgroundOpacity" xml:space="preserve">
     <value>Opacity</value>
   </data>
+  <data name="Inspector_Italic" xml:space="preserve">
+    <value>Italic</value>
+  </data>
+  <data name="Inspector_LineSpacing" xml:space="preserve">
+    <value>Line spacing</value>
+  </data>
+  <data name="Inspector_LineSpacingTip" xml:space="preserve">
+    <value>The distance between the lines, × the font's own (1 — as before).</value>
+  </data>
+  <data name="Inspector_BoxWidth" xml:space="preserve">
+    <value>Width</value>
+  </data>
+  <data name="Inspector_BoxWidthTip" xml:space="preserve">
+    <value>The text block's width in pixels; the lines wrap by words. Empty — no wrapping. Also drag the side handles of the text's frame in the Preview.</value>
+  </data>
+  <data name="Inspector_BoxWidthAuto" xml:space="preserve">
+    <value>auto</value>
+  </data>
+  <data name="Inspector_Shadow" xml:space="preserve">
+    <value>Shadow</value>
+  </data>
+  <data name="Inspector_ShadowOpacity" xml:space="preserve">
+    <value>Opacity</value>
+  </data>
+  <data name="Inspector_ShadowBlur" xml:space="preserve">
+    <value>Softness</value>
+  </data>
+  <data name="Inspector_ShadowOffset" xml:space="preserve">
+    <value>Offset X / Y</value>
+  </data>
+  <data name="Inspector_ShadowOffsetTip" xml:space="preserve">
+    <value>The shadow's shift, % of the font size (positive: right / down).</value>
+  </data>
+  <data name="Inspector_TextStyles" xml:space="preserve">
+    <value>Styles</value>
+  </data>
+  <data name="Inspector_TextStylesTip" xml:space="preserve">
+    <value>Your saved styles, in every project: a click applies the font, size, colour, bold, italic, alignment, spacing, outline, background and shadow.</value>
+  </data>
+  <data name="Inspector_TextStyleName" xml:space="preserve">
+    <value>Style name</value>
+  </data>
+  <data name="Inspector_SaveTextStyle" xml:space="preserve">
+    <value>Save style</value>
+  </data>
+  <data name="Inspector_DeleteTextStyle" xml:space="preserve">
+    <value>Delete the style</value>
+  </data>
+  <data name="TextStyle_DefaultName" xml:space="preserve">
+    <value>Style {0}</value>
+  </data>
+  <data name="TextStyle_Saved" xml:space="preserve">
+    <value>Style «{0}» saved</value>
+  </data>
+  <data name="Preview_TextWidth" xml:space="preserve">
+    <value>Text width: {0:0} px</value>
+  </data>
+  <data name="TextStyle_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="TextStyle_SaveNew" xml:space="preserve">
+    <value>＋ Save a new style…</value>
+  </data>
+  <data name="TextStyle_Bold" xml:space="preserve">
+    <value>bold</value>
+  </data>
+  <data name="TextStyle_Italic" xml:space="preserve">
+    <value>italic</value>
+  </data>
+  <data name="TextStyle_Shadow" xml:space="preserve">
+    <value>shadow</value>
+  </data>
   <data name="Inspector_Bold" xml:space="preserve">
     <value>Bold</value>
   </data>

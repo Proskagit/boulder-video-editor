@@ -63,7 +63,7 @@ public class TemplateEditTests
     }
 
     [Fact]
-    public void It_goes_on_the_topmost_video_track_and_makes_room_there()
+    public void It_goes_on_the_topmost_video_track_when_free_else_on_a_new_track()   // D075 amendment 2
     {
         var f = new TimelineFixture();
         var v2 = new Track { Type = TrackType.Video, Name = "V2", Order = 1 };
@@ -71,12 +71,17 @@ public class TemplateEditTests
         var image = f.Image();
         var existing = f.PlaceImageFrames(v2, image, 30, 90, f.Rate);
 
-        var result = f.Service.AddTemplateClip(TemplateKind.Boulder, MediaTime.FromFrame(30, f.Rate));
+        var free = f.Service.AddTemplateClip(TemplateKind.Rec, MediaTime.FromFrame(200, f.Rate));
+        Ok(free);
+        Assert.Contains(v2.Clips, c => c.Id == free.ClipIds[0]);           // V2 is free there
 
+        var result = f.Service.AddTemplateClip(TemplateKind.Boulder, MediaTime.FromFrame(30, f.Rate));
         Ok(result);
-        var template = v2.Clips.OfType<TemplateClip>().Single();
+        Assert.Equal(3, f.Project.Timeline.VideoTracks.Count);
+        var v3 = f.Project.Timeline.VideoTracks.OrderBy(t => t.Order).Last();
+        var template = v3.Clips.OfType<TemplateClip>().Single();
         Assert.Equal(MediaTime.FromFrame(30, f.Rate), template.TimelineStart);
-        Assert.Equal(template.TimelineEnd, existing.TimelineStart);      // D037 §3: room made on the right
+        Assert.Equal(30L, existing.TimelineStart.ToNearestFrame(f.Rate));  // nothing pushed
         Assert.Empty(f.V1.Clips);
         f.AssertValid();
     }

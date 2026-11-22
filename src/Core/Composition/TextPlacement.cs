@@ -33,10 +33,12 @@ public static class TextPlacement
     public const double MarginFactor = 0.08;
 
     /// <summary>How far the drawing reaches past the text box on every side, canvas pixels before the scale.</summary>
-    public static double DrawnExtent(TextProperties text) =>
+    public static double DrawnExtent(TextProperties text) => Math.Max(
         text.Background.IsEnabled ? TextBackground.PaddingFactor * text.FontSize
         : text.Outline.IsEnabled ? text.Outline.Thickness * text.FontSize
-        : 0;
+        : 0,
+        // D075 amendment 1: the shadow reaches past the box by its offset and softness.
+        text.Shadow.IsEnabled ? (Math.Max(Math.Abs(text.Shadow.OffsetX), Math.Abs(text.Shadow.OffsetY)) + text.Shadow.Blur) * text.FontSize : 0);
 
     /// <summary>The position of the cell <paramref name="row"/> × <paramref name="column"/> for a text box of
     /// <paramref name="boxWidth"/> × <paramref name="boxHeight"/> (the painter's layout, local units = canvas pixels at

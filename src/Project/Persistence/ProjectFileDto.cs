@@ -640,6 +640,30 @@ internal sealed class TextClipDto : ClipDto
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public TextMotionDto? MotionOut { get; set; }
+
+    // Format v28 (D075 amendment 1): optional, written only when set.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Italic { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public TextShadowDto? Shadow { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? LineSpacing { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? BoxWidth { get; set; }
+}
+
+/// <summary>Format v28: «Тень» — on / off, the colour, the opacity, the softness and the offset (× the font size).</summary>
+internal sealed class TextShadowDto
+{
+    public bool? Enabled { get; set; }
+    public string? ColorHex { get; set; }
+    public double? Opacity { get; set; }
+    public double? Blur { get; set; }
+    public double? OffsetX { get; set; }
+    public double? OffsetY { get; set; }
 }
 
 /// <summary>Format v7: «Обводка» — on / off, the colour, the thickness (× the font size).</summary>

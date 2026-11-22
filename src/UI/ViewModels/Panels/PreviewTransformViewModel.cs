@@ -29,7 +29,10 @@ public enum TransformGestureKind
     Crop,
 
     /// <summary>D061 amendment 1: on a followed part, the drag moves the person's place in the frame (the part's offset).</summary>
-    FollowOffset
+    FollowOffset,
+
+    /// <summary>D075 amendment 1: a text's side handle — the block's width (the lines wrapped to it), the centre kept.</summary>
+    TextWidth
 }
 
 /// <summary>The clip the tools act on (D038 §2): the primary selected clip under the playhead, its frame on the canvas
@@ -229,6 +232,12 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
 
     /// <summary>Move shows the frame's four corner handles (Scale, D038 §3).</summary>
     public bool HasScaleHandles => Tool == PreviewTool.Move && CanEdit;
+
+    /// <summary>D075 amendment 1: the side handles of a text's frame — its block's width.</summary>
+    public bool HasWidthHandles => HasScaleHandles && Target is { IsText: true };
+
+    /// <summary>D075 amendment 1: the two side handles.</summary>
+    public static readonly CropEdges[] WidthHandles = { CropEdges.Left, CropEdges.Right };
 
     /// <summary>Crop shows the eight crop handles — pictures only.</summary>
     public bool HasCropHandles => Tool == PreviewTool.Crop && CanEdit && Target is { IsText: false, Geometry: not null, FollowPart: null };
@@ -439,6 +448,39 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
 
         /// <summary>Crop: canvas → source pixels at the start (frozen).</summary>
         public Affine2D CanvasToSource { get; init; }
+
+        /// <summary>TextWidth: the text's properties at the start (what a cancel writes back).</summary>
+        public TextProperties? StartText { get; init; }
+    }
+
+    /// <summary>D075 amendment 1: starts dragging a text's <paramref name="side"/> handle (Left / Right) from
+    /// <paramref name="pointer"/> (canvas).</summary>
+    public bool BeginTextWidth(CropEdges side, PointD pointer)
+    {
+        if (!HasWidthHandles || _gesture is not null || Target is not { Clip: TextClip text } target || side is not (CropEdges.Left or CropEdges.Right))
+            return false;
+        _gesture = new Gesture
+        {
+            Kind = TransformGestureKind.TextWidth, Undo = new ClipPropertyGesture("Change Text Width"), Clip = target.Clip,
+            Start = target.Visual, Target = target, Pointer = pointer, Handle = side, StartText = TextProperties.Of(text)
+        };
+        SnappedEdges = CropEdges.None;
+        OnPropertyChanged(nameof(IsGestureActive));
+        OnPropertyChanged(nameof(GestureKind));
+        OnPropertyChanged(nameof(GestureHandle));
+        return true;
+    }
+
+    /// <summary>The width a side handle at <paramref name="pointer"/> gives: the frame's local width grown on both sides by how
+    /// far the pointer moved along the frame's own x axis (the centre kept), whole pixels, within the limits.</summary>
+    private static double TextWidthAt(Gesture g, PointD pointer)
+    {
+        var transform = g.Target.Frame.Transform;
+        if (Math.Abs(transform.Determinant) < 1e-12) return g.Target.Frame.LocalRect.Width;
+        var inverse = transform.Invert();
+        var dx = inverse.Apply(pointer).X - inverse.Apply(g.Pointer).X;
+        var width = g.Target.Frame.LocalRect.Width + 2 * (g.Handle == CropEdges.Right ? dx : -dx);
+        return Math.Round(Math.Clamp(width, ClipPropertyLimits.MinBoxWidth, ClipPropertyLimits.MaxBoxWidth));
     }
 
     /// <summary>Starts dragging the target's position from <paramref name="pointer"/> (canvas).</summary>
@@ -515,6 +557,21 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         if (g.Kind == TransformGestureKind.FollowOffset)
         {
             MoveFollowOffset(g, pointer, keepAxis);
+            return;
+        }
+        if (g.Kind == TransformGestureKind.TextWidth)
+        {
+            if (TextProperties.Of(g.Clip) is not { } current) return;
+            var width = TextWidthAt(g, pointer);
+            if (current.BoxWidth == width) return;
+            var result = _edit.SetClipProperties(g.Clip.Id, new ClipPropertyChange { Text = current with { BoxWidth = width }, Gesture = g.Undo });
+            if (!result.Success)
+            {
+                _status.ReportWarning(result.Message ?? Strings.Inspector_ClipNotChanged);
+                CancelGesture();
+                return;
+            }
+            ModeText = string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.Preview_TextWidth, width);
             return;
         }
         var next = g.Kind switch
@@ -699,7 +756,9 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         // D063: every stored value the gesture may have changed goes back — the static properties, the keyframes, the Follow.
         if (g.Clip is VideoClip video && !Equals(video.Follow, g.StartFollowAll))
             _edit.SetClipFollow(video.Id, g.StartFollowAll, gesture: g.Undo);
-        if (g.StartStatic is { } startStatic &&
+        if (g.StartText is { } startText && TextProperties.Of(g.Clip) != startText)
+            _edit.SetClipProperties(g.Clip.Id, new ClipPropertyChange { Text = startText, Gesture = g.Undo });
+        if (g.Kind != TransformGestureKind.TextWidth && g.StartStatic is { } startStatic &&
             (VisualProperties.Of(g.Clip) != startStatic || KeyframeValues.Of(g.Clip) != g.StartKeyframes))
             _edit.SetClipProperties(g.Clip.Id, new ClipPropertyChange { Visual = startStatic, Keyframes = g.StartKeyframes, Gesture = g.Undo });
         DropGesture();

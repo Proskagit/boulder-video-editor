@@ -106,16 +106,18 @@ public class TextClipEditTests
         var changes = f.TimelineChangedCount;
         var history = f.UndoRedo.CurrentPosition;
 
+        // D075 amendment 2: over the video the text goes on a new track (V1 keeps its clip, one step); after the video's end the
+        // topmost track — now the new one — takes the next text.
         var result = f.Service.AddTextClip(F(100, f.Rate));
-
-        Assert.False(result.Success);
-        Assert.Contains("overlap", result.Message);
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(2, f.Project.Timeline.VideoTracks.Count);
+        Assert.Single(f.V1.Clips);
+        f.UndoRedo.Undo();
         Assert.Equal(before, f.Snapshot());
-        Assert.Equal(changes, f.TimelineChangedCount);
-        Assert.Same(history, f.UndoRedo.CurrentPosition);
+        Assert.Single(f.Project.Timeline.VideoTracks);
+        _ = (changes, history);
 
-        // Touching the end is fine; no new track was created either way.
-        Added(f, f.Service.AddTextClip(F(250, f.Rate)));
+        Added(f, f.Service.AddTextClip(F(250, f.Rate)));                    // touching the end: V1 is free there
         Assert.Single(f.Project.Timeline.VideoTracks);
     }
 

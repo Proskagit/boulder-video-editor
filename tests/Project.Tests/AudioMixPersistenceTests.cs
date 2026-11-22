@@ -72,7 +72,7 @@ public class AudioMixPersistenceTests
     {
         var first = Save(Build(withMix: true));
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(27, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(28, root["formatVersion"]!.GetValue<int>());
         Assert.Equal(2, VideoClip(root)["volumePoints"]!.AsArray().Count);
         Assert.Equal(35, VideoClip(root)["cleanup"]!["noiseReduction"]!.GetValue<int>());
         Assert.Equal(-18.5, AudioTrack(root)["ducking"]!["depthDb"]!.GetValue<double>());
@@ -106,7 +106,7 @@ public class AudioMixPersistenceTests
     public void A_version_24_file_opens_without_the_mix_and_is_saved_as_version_25_differing_only_in_the_version()
     {
         var current = Save(Build(withMix: false));
-        var v24 = current.Replace("\"formatVersion\": 27", "\"formatVersion\": 24");
+        var v24 = current.Replace("\"formatVersion\": 28", "\"formatVersion\": 24");
         var loaded = Load(v24);
         Assert.Equal(1.0, loaded.Timeline.MasterVolume);
         Assert.All(loaded.Timeline.AudioTracks, t => Assert.Equal((1.0, false, (DuckingSettings?)null), (t.Volume, t.IsSolo, t.Ducking)));
@@ -116,7 +116,7 @@ public class AudioMixPersistenceTests
     [Fact]
     public void Members_in_a_version_24_file_are_ignored()
     {
-        var v24 = Save(Build(withMix: true)).Replace("\"formatVersion\": 27", "\"formatVersion\": 24");
+        var v24 = Save(Build(withMix: true)).Replace("\"formatVersion\": 28", "\"formatVersion\": 24");
         var loaded = Load(v24);
         var clip = (VideoClip)loaded.Timeline.VideoTracks[0].Clips[0];
         Assert.Null(clip.Volumes);
@@ -161,6 +161,6 @@ public class AudioMixPersistenceTests
     {
         var json = Save(Build(withMix: true));
         Assert.False(ProjectSerializer.PeekNewerVersion(json, ProjectSerializer.FormatId));
-        Assert.True(ProjectSerializer.PeekNewerVersion(json.Replace("\"formatVersion\": 27", "\"formatVersion\": 28"), ProjectSerializer.FormatId));
+        Assert.True(ProjectSerializer.PeekNewerVersion(json.Replace("\"formatVersion\": 28", "\"formatVersion\": 29"), ProjectSerializer.FormatId));
     }
 }

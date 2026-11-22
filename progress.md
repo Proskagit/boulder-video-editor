@@ -2,6 +2,44 @@
 
 ## Current phase
 
+**Phase 56 amendment 1 (D075, 2026-11-22) — text styles, technical debt, the repository's page** (the owner added them to the
+phase; codecs → Phase 57). **Done:** italic, `TextShadow`, line spacing, block width (Preview side handles —
+`TransformGestureKind.TextWidth` — and the Inspector), saved styles (`SavedTextStyle`, `UserSettings.TextStyles`; `Normalized`
+keeps the same list when nothing is dropped so unchanged settings stay equal), format **v28**; `TimelineEditService` /
+`TimelineViewModel` split into partial files by section (no change); `README.md` English + Russian with a title screenshot and four more of a
+copy of the owner's project (`docs/images`; the copy and its recent-list entry removed after). **Tests:**
+`TextStyle2PersistenceTests` (3), `TextStyle2RenderTests` (7: Preview = export for each, wrap, spacing, shadow colour),
+`TextStyle2InspectorTests` (2), `PreviewTransformUiTests` (+1 the side handle); the pinned format versions 27 → 28; the
+Inspector's numeric field count 57 → 62; the localization allowlist.
+**Review (phase-reviewer): FAIL** — a canvas change scaled the font but not «Ширина» (D028 CS-1 B). Fixed: `PlanCanvas` scales
+`BoxWidth` (+ test); notes taken (the shadow's copies now make exactly its opacity, «Непрозрачность» in Russian, a default style
+name never replaces a style, the undo names of the new fields, the split files' summaries, the allowlist moved with the split).
+**Re-review: PASS WITH NOTES.** Gates: Debug / Release `-warnaserror` 0 / 0, ModelTests build, `git diff --check` clean; Release +
+`AIVE_HEAVY_TESTS=1`: Vision 37, Project 768, Core 2 001, Export 142, Rendering 288, UI 1 341 (after the four new undo names
+were listed), Timeline 1 261, Video 418 (+1 skip), ExportEndToEnd 189 = 6 445. Portable `BoulderVideoEditor-1.9.0-win-x64`.
+**Not done:** the owner's manual check (rows 1–13), the merge.
+**Amendment 2 (2026-11-22, the owner on 1.9.0):** a text / template over a busy top track goes on a new track
+(`TrackForNewOverlay`, nothing pushed); Delete / Ripple delete remove the video tracks they empty (`RemoveEmptiedVideoTracks`);
+the styles as one list (`StyleChoices`: «По умолчанию», saved, «＋ Сохранить новый стиль…» with a descriptive unique name; ✕ for
+the chosen). Tests: 4 rewritten to the new track rule, +1 deletion removes the track, +1 the styles list. Gates: 0 / 0; 6 447 green
+(Video 1 skip). Checked on a copy of the owner's project: «+ Текст» over a plate on V2 adds V3 with the text. Portable 1.9.1.
+
+**Phase 56 — the holds' contour (D075, 2026-11-22) — on `feat/phase-56-holds-contour`** (from `origin/main` `13500cf`).
+**Step 0:** Phase 55 accepted (PR #85 merged) — D074 «Acceptance», DEVELOPMENT_PLAN, ROADMAP. **Measured and withdrawn:** the
+mask refined on a close-up (79 holds of a copy of the owner's project, ≈ 290 ms a hold, sheets sent) — the owner: sometimes extra
+areas, sometimes better detail, not worth the second pass → only the smoothing (D075 §2); its code removed. **Done:** the
+owner's rule in `ContourSmoothing` — teeth smoothed, a corner standing alone kept (`Corners`: 4 % / 15 % / 60°, the turn measured a
+side's length along the contour; the Gaussian never averages across a corner); the slider stays. **Tests:** `ContourSmoothingTests`
+(+6: a jagged triangle keeps its tips — 8.7 px cut without the rule —, a round hold has no corners, small discs r 5–18 px no
+corners and smoothed), `HoldMarkupUiTests` (a 40 × 40 square keeps its corners at every strength; the slider reshapes a round
+candidate and a confirmed hold keeps its shape). Small holds: a side ≥ 6 px, no corners under 30 px across. **Review
+(phase-reviewer): FAIL** — the rewritten UI test no longer covered the slider → the round-candidate test added; notes taken (small
+holds, the doc comment on the rescale, the help in «Разметка зацепок», the notch written out of scope, ROADMAP's base). Manual plan
+`docs/PHASE56_MANUAL_TEST_PLAN.md`. **Re-review: PASS WITH NOTES.** Gates: Debug / Release `-warnaserror` 0 / 0, ModelTests build,
+`git diff --check` clean; Release + `AIVE_HEAVY_TESTS=1`: Vision 37, Project 765, Core 2 001, Export 142, Rendering 281, UI 1 338,
+Timeline 1 260, Video 418 (+1 skip), ExportEndToEnd 189 = 6 431. Portable `BoulderVideoEditor-1.8.0-win-x64`. **Not done:** the
+owner's manual check, the merge.
+
 **Phase 55 — editing comfort (D074, 2026-11-22) — on `feat/phase-55-editing-comfort`** (from `origin/main` `fc765fe` — Phase 54
 accepted, PR #84 merged). The owner's notes on 1.6.x (D073 amendment 2, Q15–Q19). **Done:** §1 «Обрезать слева / справа» buttons
 (`TimelineView` bar, `Icons.TrimStart` / `TrimEnd`), Q / W without a selection take the video under the playhead with its linked

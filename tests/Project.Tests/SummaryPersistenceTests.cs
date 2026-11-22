@@ -52,7 +52,7 @@ public class SummaryPersistenceTests
     {
         var first = Save(Build());
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(27, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(28, root["formatVersion"]!.GetValue<int>());
         Assert.Equal("Summary", Clip(root, 1)["template"]!.GetValue<string>());
         Assert.True(Clip(root, 1)["ownBackground"]!.GetValue<bool>());
         Assert.Equal("Flash", Clip(root, 0)["status"]!.GetValue<string>());
@@ -98,7 +98,7 @@ public class SummaryPersistenceTests
     }
 
     [Fact]
-    public void A_v26_files_new_fields_are_ignored_and_saved_as_v27()
+    public void A_v26_files_new_fields_are_ignored_and_saved_as_the_current_version()
     {
         var root = JsonNode.Parse(Save(Build()))!;
         root["formatVersion"] = 26;
@@ -109,7 +109,7 @@ public class SummaryPersistenceTests
         Assert.Null(area.Attempts);
         Assert.Equal(TemplateLanguage.Russian, area.Language);
         Assert.False(loaded.Timeline.VideoTracks[0].Clips.OfType<TemplateClip>().Last().OwnBackground);
-        Assert.Equal(27, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(28, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
     }
 
     [Fact]

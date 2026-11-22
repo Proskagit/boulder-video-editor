@@ -1,268 +1,138 @@
 # Boulder Video Editor
 
-## Быстрый старт
+![Boulder Video Editor — the route's holds marked on the video](docs/images/main.jpg)
 
-Скачайте установщик со страницы [Releases](https://github.com/Proskagit/boulder-video-editor/releases/latest) (полный или лёгкий
-web-Setup) или портативный архив и сделайте ролик за десять шагов:
+**[English](#english) · [Русский](#русский)**
+
+---
+
+## English
+
+A desktop video editor made for bouldering videos (Windows 10/11 x64). Its core is the work with **holds**: a click on a hold
+gives its exact outline, a whole route is proposed from its first hold, the outlines follow the camera and hide behind the
+climber, and the training from your watch (FIT) lays the climbs out on the clips by itself — with the heart rate.
+
+### What it does
+
+- **Holds and routes** — local AI (SAM 2.1): a click gives the hold's outline, smoothed without cutting its corners; «Suggest the
+  route» proposes all holds of the route from its first one; the outlines appear one by one, follow the camera and hide
+  behind people.
+- **Training from the watch** — a FIT file (COROS, Garmin…): every climb is laid out on its clip — the green «Boulder» plate
+  before the climb, the orange holds, the lilac result (TOP / attempt / Flash); the heart rate shown as it was recorded.
+- **Templates** — «Boulder» (route, grade, result, heart rate), «Summary» (an animated board of the day: time on each route,
+  attempts, heart rate, totals), «Heart rate», «Highlight», REC, VHS; Russian or English words on the frame.
+- **Editing** — a magnetic main track, trim / split / «Trim left / right», a Source viewer, J / L cuts, transitions, keyframes,
+  Follow (the frame follows the climber), colour correction and auto-enhance.
+- **Text** — fonts, outline, background, italic, shadow, line spacing, a block width with word wrap (dragged in the Preview),
+  saved styles, appearance animations.
+- **Sound** — volume line, mixer, ducking under speech, noise reduction, voice enhancement.
+- **Export** — MP4 H.264; with an NVIDIA card fast through NVENC in the background, «High quality» by default; YouTube
+  chapter timestamps (each route and the «Summary») to copy.
+- Russian / English interface, in-app help (F1). Nothing is uploaded anywhere: the AI models run on your computer.
+
+### Quick start
+
+Download the installer (full or light web Setup) or the portable archive from
+[Releases](https://github.com/Proskagit/boulder-video-editor/releases/latest) and make a video in ten steps:
+
+1. **Project** — «Create project» on the start screen.
+2. **Clips** — videos into «Media» (Ctrl+I) and onto the timeline.
+3. **Training** — «Import FIT training…»: the climbs from your watch bind to the clips by themselves — routes and heart rate.
+4. **Editing** — trim, split (S), «Trim left / right» (Q / W), the magnetic main track, «Transition» between clips.
+5. **Holds** — «Mark holds»: a click on a hold gives its outline; the outlines follow the camera.
+6. **Colour** — «COLOUR» → «Auto enhance».
+7. **Follow** — «Follow the climber» when the frame has room: the frame follows the climber, the outlines hide behind people.
+8. **Sound** — music, ducking under speech, noise reduction, voice enhancement.
+9. **Design** — text and templates («Boulder», «Summary», «Heart rate», «Highlight»…).
+10. **Export** — Ctrl+E, MP4; with NVIDIA — fast through NVENC, in the background; copy the YouTube timestamps.
+
+Help on any step — F1 in the program.
+
+### Screenshots
+
+| | |
+|---|---|
+| ![Holds markup](docs/images/holds.jpg) | ![The day's summary](docs/images/summary.jpg) |
+| *A route's holds marked from its first hold* | *«Summary» — the board of the day* |
+| ![The route's result on the timeline](docs/images/lilac.jpg) | ![Help](docs/images/help.jpg) |
+| *The green / orange / lilac areas of a route and its result* | *In-app help (F1)* |
+
+### For developers
+
+.NET 8 · C# · Avalonia · CommunityToolkit.Mvvm · Serilog · FFmpeg / FFprobe. The time base is `MediaTime` (100 ns ticks).
+
+```bash
+git clone https://github.com/Proskagit/boulder-video-editor.git
+cd boulder-video-editor
+dotnet build
+dotnet run --project src/App/App.csproj
+dotnet test                      # AIVE_HEAVY_TESTS=1 adds the 4K export scenes
+```
+
+- **FFmpeg** is looked up at `Ffmpeg:FfmpegPath` / `Ffmpeg:FfprobePath` in `appsettings.json`, then on `PATH`.
+- **The AI models** (≈ 1.2 GB) are installed with the Setup or from the portable folder; see `docs/AI_MODEL.md`.
+- **The release** (Setup, web Setup, portable): `pwsh -File tools/distribution/New-Release.ps1` — `docs/DISTRIBUTION.md`;
+  a portable folder alone: `pwsh -File tools/portable/Publish-Portable.ps1`.
+- **Layout:** `src/Core` (domain, no UI / FFmpeg), `src/Timeline` (edits as undoable commands, playback), `src/Project`
+  (`project.json`, autosave), `src/Video` / `src/Audio` / `src/Media` / `src/Export` (FFmpeg, WASAPI, export), `src/Vision`
+  (ONNX models), `src/UI` (Avalonia views and view models), `src/App` (composition root); `tests/` — one suite per area.
+- **Where the history lives:** `DECISIONS.md` (every decision), `docs/DEVELOPMENT_PLAN.md` (the phases), `ROADMAP.md`,
+  `progress.md`, `ARCHITECTURE.md`.
+
+---
+
+## Русский
+
+Настольный видеоредактор для роликов о боулдеринге (Windows 10/11 x64). Главное в нём — работа с **зацепками**: щелчок по
+зацепке даёт её точный контур, вся трасса предлагается по первой зацепке, контуры следуют за камерой и прячутся за
+скалолазом, а тренировка с часов (FIT) сама раскладывает подъёмы по клипам — вместе с пульсом.
+
+### Что умеет
+
+- **Зацепки и трассы** — локальный ИИ (SAM 2.1): щелчок даёт контур зацепки, сглаженный без срезания углов; «Предлагать
+  трассу» отмечает все зацепки трассы по первой; контуры появляются по очереди, следуют за камерой и прячутся за людьми.
+- **Тренировка с часов** — FIT-файл (COROS, Garmin…): каждый подъём раскладывается на свой клип — зелёная плашка «Боулдер»
+  перед подъёмом, оранжевые зацепки, лиловый результат (TOP / попытка / Flash); пульс показывается таким, каким записан.
+- **Шаблоны** — «Боулдер» (трасса, категория, результат, пульс), «Итоги» (анимированное табло дня: время на каждой трассе,
+  попытки, пульс, итог), «Пульс», «Хайлайт», REC, VHS; надписи на кадре по-русски или по-английски.
+- **Монтаж** — магнитная основная дорожка, обрезка / разрез / «Обрезать слева / справа», окно источника, J / L-склейки,
+  переходы, ключевые кадры, Follow (кадр ведёт скалолаза), цветокоррекция и автоулучшение.
+- **Текст** — шрифты, обводка, подложка, курсив, тень, интервал, ширина блока с переносом (тянется в Preview), сохранённые
+  стили, анимация появления.
+- **Звук** — линия громкости, микшер, приглушение под речь, шумоподавление, улучшение речи.
+- **Экспорт** — MP4 H.264; с видеокартой NVIDIA быстро через NVENC в фоне, по умолчанию «Высокое качество»; таймкоды
+  глав YouTube (каждая трасса и «Итоги») — скопировать в описание.
+- Интерфейс на русском и английском, справка в программе (F1). Ничего никуда не отправляется: модели ИИ работают на вашем
+  компьютере.
+
+### Быстрый старт
+
+Скачайте установщик (полный или лёгкий web-Setup) или портативный архив со страницы
+[Releases](https://github.com/Proskagit/boulder-video-editor/releases/latest) и сделайте ролик за десять шагов:
 
 1. **Проект** — «Создать проект» на стартовом экране.
 2. **Клипы** — видео в «Медиа» (Ctrl+I) и на таймлайн.
 3. **Тренировка** — «Импорт FIT-тренировки…»: подъёмы с часов (COROS, Garmin…) сами привяжутся к клипам — трассы и пульс.
-4. **Монтаж** — обрезка, разрез (S), магнитная основная дорожка, «Переход» между клипами.
+4. **Монтаж** — обрезка, разрез (S), «Обрезать слева / справа» (Q / W), магнитная основная дорожка, «Переход» между клипами.
 5. **Зацепки** — «Разметить зацепки»: щелчок по зацепке — контур, контуры следуют за камерой.
 6. **Цвет** — «ЦВЕТ» → «Автоулучшение».
 7. **Follow** — «Следить за скалолазом», если у кадра есть запас: кадр ведёт скалолаза, контуры прячутся за людьми.
 8. **Звук** — музыка, приглушение под речь, шумоподавление, улучшение речи.
-9. **Оформление** — текст и шаблоны («Боулдер», «Пульс», «Хайлайт»…).
-10. **Экспорт** — Ctrl+E, MP4; с NVIDIA — быстро через NVENC, в фоне.
+9. **Оформление** — текст и шаблоны («Боулдер», «Итоги», «Пульс», «Хайлайт»…).
+10. **Экспорт** — Ctrl+E, MP4; с NVIDIA — быстро через NVENC, в фоне; скопируйте таймкоды для YouTube.
 
 Подсказка по любому шагу — F1 в программе.
 
-A simplified, desktop-first video editor (Windows 10/11 x64, Avalonia UI, .NET 8),
-architected so professional-grade features can be layered in over time without a
-rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–29
-are complete and merged**; Phases 30–37 are merged in full or in part, not all accepted — their state: "Official phases" in
-`docs/DEVELOPMENT_PLAN.md` (the summary of Phases 0–22 follows; Phases 23 and later: "Status" below) (architecture, UI skeleton, media import, ffprobe metadata
-analysis, timeline editing, preview playback with audio, project persistence with
-autosave/recovery, basic editing: speed, volume, opacity, transform, crop,
-text; MP4 export; quality: stability, thumbnails, waveforms, hotkeys,
-performance, polish, CI; fades and a cross dissolve; media relink and recent projects — Phase 11, merged
-2026-10-05; editing essentials: track delete / reorder, removing media, ripple delete, copy / paste / duplicate,
-markers — Phase 12, merged 2026-10-05 as `c0cb600`, CI green; project & export settings — Phase 13, merged 2026-10-06 as
-`ed40b74`, CI green on PR #13; stabilization / technical debt, no new user functionality — Phase 14, merged 2026-10-07 as
-`7200976`, CI green on the first attempt, DECISIONS.md D029). Phase 15 (editing tools: track mute / hide / lock, trim to
-the playhead, ripple trim, slip, an In / Out range, a canvas-relative size for new text) merged 2026-10-08 as `a3793a4`,
-CI green — DECISIONS.md D030. Phase 16 (a Source viewer with In / Out, Insert / Overwrite) merged 2026-10-08 as
-`79e4e78`, CI green on PR #17 and on `main` — DECISIONS.md D031. Phase 17 (audio editing: unlink / link, J / L cuts,
-sound-only Insert / Overwrite, audio crossfades; `project.json` v4) merged 2026-10-13 as `fa96468` (PR #18), CI green —
-DECISIONS.md D032. Phase 18 (HDR → SDR of phone footage: HLG measured on the product owner's footage — their visual check open — PQ implemented but not verified on real PQ footage; Revision R1, closeout Step 18.12) merged 2026-10-14 as `c29a767` (PR #19), CI green —
-DECISIONS.md D033. Phase 19 (the AI hold markup, DECISIONS.md D034) merged 2026-10-15 as `2d0a10b` (PR #20), CI green; the model
-is installed by hand (`docs/AI_MODEL.md`). Phase 20 (the manual correction of hold contours, DECISIONS.md D035) merged as
-`a657bff` (PR #21). Phase 21 (the animation of the hold outlines, DECISIONS.md D036; `project.json` v6) merged as `7318ba8`
-(PR #22). Phase 22 (timeline selection, snapping and making room, DECISIONS.md D037) merged as `1aaedc8` (PR #23).
+### Скриншоты
 
-## Requirements
+| | |
+|---|---|
+| ![Разметка зацепок](docs/images/holds.jpg) | ![Итоги дня](docs/images/summary.jpg) |
+| *Зацепки трассы, отмеченные по первой* | *«Итоги» — табло дня* |
+| ![Результат трассы на таймлайне](docs/images/lilac.jpg) | ![Справка](docs/images/help.jpg) |
+| *Зелёная / оранжевая / лиловая области трассы и её результат* | *Справка в программе (F1)* |
 
-- **.NET 8 SDK** (or newer LTS) — https://dotnet.microsoft.com/download
-- Windows 10/11 x64 for the shipping target. The code also builds and runs on
-  Linux/macOS during development since Avalonia is cross-platform; only the
-  packaging/manifest is Windows-specific.
-- **FFmpeg** — not required to build or run. **ffprobe** (media metadata) and
-  **ffmpeg** (preview decoding) are looked up at `Ffmpeg:FfprobePath` /
-  `Ffmpeg:FfmpegPath` in `appsettings.json` (absolute, or relative to the application folder), then on `PATH`. Without ffprobe, import
-  still works and metadata is reported as unavailable; without ffmpeg, the preview
-  shows no picture or sound, and thumbnails, waveforms and the export are unavailable.
+### Разработчикам
 
-## Getting started
-
-```bash
-git clone <repo-url>
-cd AiVideoEditor
-dotnet restore
-dotnet build
-dotnet run --project src/App/App.csproj
-```
-
-Running the tests:
-
-```bash
-dotnet test
-```
-
-The tests that need ffmpeg / ffprobe look for them on `PATH` and are skipped without them; the heavy 4K export
-scenes run only with `AIVE_HEAVY_TESTS=1`. CI (`.github/workflows/ci.yml`, GitHub Actions on Windows) runs the full
-suite on every pull request to `main` and push to `main` with FFmpeg 9.0.1 essentials (gyan.dev) and fails on any
-skipped test other than those two 4K scenes.
-
-The SDK is pinned by `global.json` (8.0.424, latest patch). **The release** — the Setup installer, the light web Setup and the single
-Portable archive with the AI models (DECISIONS.md D070) — is built by one command (Inno Setup 6 needed:
-`winget install JRSoftware.InnoSetup`); the whole process, the layout and where the user's data lives: `docs/DISTRIBUTION.md`.
-
-```bash
-pwsh -File tools/distribution/New-Release.ps1 -Version 1.3.0 -FfmpegPackage <minimal FFmpeg package> -FfmpegSourcesTar <sources.tar>
-pwsh -File tools/installer/Test-Installer.ps1 -Stage artifacts/release/1.3.0/stage -Version 1.3.0
-```
-
-The portable Windows folder alone (S1, DECISIONS.md D046) is built from a clean checkout by:
-
-```bash
-pwsh -File tools/portable/Publish-Portable.ps1 -Zip
-```
-
-It writes `artifacts/portable/BoulderVideoEditor-<version>-win-x64` (self-contained `win-x64`, an ordinary folder, no
-single-file and no trimming) with the user's instruction `README.txt`, `THIRD-PARTY-NOTICES.txt` and `licenses\`
-(generated from the published packages, not yet reviewed), `docs\AI_MODEL.md` and `BUILD-INFO.txt`. FFmpeg and the AI
-model are not included. For a local technical check only, `-FfmpegDir <folder>` copies a local FFmpeg (e.g. the
-gyan.dev 9.0.1 essentials build the tests are calibrated on) into `ffmpeg\`, points `appsettings.json` at it by
-relative paths and names it in the notices as not reviewed — not the distribution decision of D046 §2.
-
-## Solution layout
-
-```
-AiVideoEditor.sln
-src/
-  App/             Composition root: Program.cs, DI wiring, Serilog bootstrap,
-                   Application/Window XAML shell. No business logic.
-  UI/              Avalonia Views + ViewModels (MVVM). Talks to Core interfaces
-                   only — never to FFmpeg or the filesystem directly.
-  Core/            Domain model (Project, Sequence (the timeline), Track, Clip,
-                   MediaAsset, ...), service interfaces, MediaTime, the undo/redo
-                   Command pattern. No dependency on Avalonia, FFmpeg, or any
-                   concrete infra.
-  Infrastructure/  Serilog logging setup, app folder layout, ffprobe / ffmpeg location.
-  Video/           ffprobe metadata analysis (Phase 3); ffmpeg video/audio decoding
-                   for playback (Phase 5), export (Phase 8), thumbnails and waveforms
-                   (Phase 9); the ffmpeg export encoder (Phase 8).
-  Audio/           WASAPI audio output for playback (Phase 5).
-  Timeline/        Timeline editing commands (Phases 4, 7) and the playback engine
-                   (Phase 5).
-  Media/           Media import: extension validation, file info (Phase 2);
-                   thumbnails, waveforms and their cache (Phase 9).
-  Export/          Offline export orchestration (Phase 8): renders the timeline frame
-                   by frame like the Preview and hands frames and audio to the encoder.
-  Project/         Current project state (Phase 2); project.json persistence,
-                   save point, autosave/recovery, missing media (Phase 6); where the
-                   media caches live (Phase 9).
-tests/
-  Core.Tests/      Unit tests for the dependency-free domain layer.
-  Project.Tests/   Persistence, save point, autosave/recovery, missing media.
-  Timeline.Tests/  Timeline editing and playback engine (fake decoder/clock).
-  UI.Tests/        View models and UI workflows against real services.
-  Video.Tests/     ffmpeg/ffprobe and audio-device integration tests.
-  Export.Tests/    Export frame selection and orchestration (fakes).
-  Rendering.Tests/ The shared Avalonia rasterizer (Preview == export bytes).
-  ExportEndToEnd.Tests/  Whole exports with real ffmpeg; Preview ↔ export parity
-                   (4K scenes only with AIVE_HEAVY_TESTS=1).
-docs/
-  DEVELOPMENT_PLAN.md          Phase-by-phase roadmap and standing architectural rules.
-  EXPORT_MANUAL_TEST_PLAN.md   Manual export checks (Phase 8).
-  EXPORT_PERFORMANCE.md        Export speed, NVENC calibration, the size estimate (Phase 40, D059); resolution and the
-                               background export (Phase 41, D060).
-  PHASE9_MANUAL_TEST_PLAN.md   Manual checks of Phase 9, run at its closeout.
-  PHASE10_MANUAL_TEST_PLAN.md  Manual checks of Phase 10 (fades, dissolves), run at its closeout.
-  PHASE11_MANUAL_TEST_PLAN.md  Manual checks of Phase 11 (media re-check, relink, recent projects), run at its closeout.
-```
-
-Agent-oriented docs (`CLAUDE.md`, `ARCHITECTURE.md`, `ROADMAP.md`,
-`DECISIONS.md`, `progress.md`) live in the repository root.
-
-Dependencies flow one way: `App` → `UI`/`Infrastructure`/subsystems → `Core`.
-`Core` depends on nothing but the BCL and logging abstractions, so the domain
-model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
-
-## Why these choices
-
-- **Avalonia + MVVM** — cross-platform now, matches the "future macOS" goal in
-  the spec, and keeps UI declarative (XAML) with no logic in code-behind.
-- **Command pattern for undo/redo** (`IUndoableCommand` / `IUndoRedoService` in
-  `Core.Common`) — every editing operation from Phase 4 onward is a discrete,
-  reversible command, not a full-project snapshot.
-- **`MediaTime`** — a 100ns-tick time value distinct from any UI frame rate, so
-  the timeline's internal representation stays frame-rate-independent as the
-  spec requires.
-- **FFmpeg behind Core interfaces** — nothing in `UI` or `Timeline` calls
-  FFmpeg directly. Probing is behind `IMediaAnalysisService` (Phase 3), decoding
-  behind `IVideoDecoder` / `IAudioDecoder` (Phase 5), thumbnails and waveforms behind
-  `IThumbnailService` / `IWaveformService` (Phase 9), export behind `IExportService` (Phase 8).
-- **Serilog with per-area log files** (`app-*.log`, `ffmpeg-*.log`,
-  `errors-*.log` under `%LOCALAPPDATA%\BoulderVideoEditor\logs`; an `export-*.log` sink
-  is configured but nothing writes to it yet) — keeps FFmpeg noise separate from
-  general app logs while still collecting every error in one place for quick triage.
-
-## Status
-
-Phases 0–18 complete (Phase 18 — HDR → SDR, D033 with Revision R1 — merged as `c29a767`, PR #19, CI green; the product owner's visual check of the S1 export and PQ on real PQ footage still open). Phase 19 (AI hold markup, D034) merged as `2d0a10b` (PR #20). Phase 20 (hold contour correction, D035) merged as `a657bff` (PR #21). Phase 21 (animation of the hold outlines, D036, `project.json` v6) merged as `7318ba8` (PR #22). Phase 22 (timeline selection, snapping and making room, D037) merged as `1aaedc8` (PR #23). Phase 23 (direct Move, Scale and Crop in the Preview, D038) merged as `c652667` (PR #24). Phase 24 (Russian localization and interface polish, D039) merged as `d3df0ba` (PR #25). Phase 25 (technical backlog and small UX improvements, D040) merged as `58c48cb` (PR #26). Phase 26 (vertical video and framing, D041) merged as `41dadf2` (PR #27). Phase 27 (text animation and readability, D043, `project.json` v7) merged as `36a1a58` (PR #28). Phase 28 (the transition library: Наплыв, Затемнение, Вспышка, Наезд, Сдвиг, D044, v8) merged as `4f0e66a` (PR #29). Phase 29 (visual templates REC, VHS, «Боулдер», «Хайлайт» and the music audit, D045, v9) merged as `e28a9d3` (PR #30). Merged since, not all accepted: Phases 30 and 31 (stabilisation and the portable build S1, D046; automatic hold proposals, D047) and the camera-motion part of the hold tracking with PR #31; Phases 32–34 (D048: route selection — paused —, the intro / final timing, the overlay strip; v10) with PR #32; Phase 35 in part (COROS trainings, D049 / D050; v11 — the heart-rate overlay not yet done) and Phase 37 (FIT route starts and the start calibration, D051; v12) with PR #33. The state of every phase and what comes next: `docs/DEVELOPMENT_PLAN.md`, "Official phases"; a summary: `ROADMAP.md`.
-Working: media import
-with validation and duplicate detection, background ffprobe metadata analysis, Media Browser and Inspector,
-timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),
-preview playback with video and audio, and projects on disk: New / Open / Save /
-Save As (a project folder with `project.json`), unsaved-changes prompt, window title
-with `*`, autosave to a recovery file every 2 minutes with a recovery offer after a
-crash, missing media shown as offline. Phase 7: per-clip speed (0.25×–4×, pitch kept),
-volume (0–200 %) and mute, opacity, position/scale/rotation, crop and text clips, edited
-in the Inspector with undo/redo, composited in a multi-layer Preview and saved in
-`project.json` format v2 (v1 files still open). Phase 8: export of the timeline to MP4
-(H.264 CRF 18 / AAC 48 kHz stereo, canvas size and exact project frame rate) with a
-preflight, a progress dialog and Cancel, rendered like the Preview.
-
-Phase 9: stability fixes (clean close, analysis cancelled on New / Open, at most
-4 analyses at once, audio device changes, ffmpeg diagnostics in `ffmpeg-*.log`); Media
-Browser thumbnails and timeline waveforms with a per-project cache; hotkeys J / K / L
-(back one second / pause / play), loop (Ctrl+L), Ctrl+I import, Ctrl+E export, \ zoom
-to fit — none of them fire while typing in a text field; a faster export (layers decoded
-ahead and in parallel).
-
-Phase 10: Fade In / Fade Out per clip (picture and its own sound, in whole frames, cut to
-the clip when an edit shortens it) and a cross dissolve on the cut between two clips of a
-video track (Dissolve in the timeline header, length in the Inspector, source handles,
-the sound a hard cut), identical in the Preview and the export; `project.json` format v3
-(v1 / v2 files still open).
-
-Phase 11 (DECISIONS.md D026; accepted 2026-10-05, merged into `main` with PR #11, CI green):
-re-checking media availability during the session, relink of missing media (one file or a batch found next
-to it, undoable) and a list of recent projects. Step 11.3: media
-files are checked again when the window becomes active (at most every 3 s) and before an export — a file moved away
-shows as offline, a file put back is online again without reopening the project. Step 11.4: the relink itself (checks,
-warnings, undo) is implemented underneath, Step 11.5 the batch search in a chosen folder, Step 11.6 their UI: while
-media is offline the Media Browser shows Relink… (the selected item) and Find Missing… (a folder), undoable like any edit.
-Steps 11.7–11.8: `Recent ▾` next to Open lists the last 10 projects opened, saved as or recovered (kept in
-`%LOCALAPPDATA%\BoulderVideoEditor\config\recent-projects.json`); an entry whose project can't be found is shown as
-unavailable and can be removed with ✕.
-
-Phase 12 (DECISIONS.md D027; merged into `main` as `c0cb600` on 2026-10-05, CI green): editing essentials.
-Each track header has ▲ / ▼ (move among the tracks of its kind — the layer order of the Preview and the export) and ✕
-(delete; with clips only after a confirmation; never a locked track or the last one). ✕ on the selected Media Browser
-row removes the media from the project — with its clips after a confirmation; the file on disk stays. Ripple Delete
-removes the selected clips and closes up their tracks; Close Gap removes the empty space before the selected clip.
-Ctrl+C / Ctrl+V (Paste) / Ctrl+D (Duplicate) copy clips with all their properties (never a dissolve) to the playhead or
-right after them. ◀ ◆+ ◆− ▶ left of the ruler add, remove and go to markers (snap targets too). Every one of these is
-undoable and off during an export; an import interrupted by New / Open / Recover adds nothing to the other project.
-
-Phase 22 (DECISIONS.md D037): Ctrl+A selects every clip of the unlocked tracks, Esc clears the selection, a drag from an
-empty place of the lanes draws a marquee (with Ctrl it adds); the Inspector says "(1 of N selected)". Snap (on by default,
-N) never makes an overlap and also places a drop from the Media Browser (onto an empty track at 0). A move, a drop, Paste,
-Duplicate or + Text onto clips pushes them right by the overlap — on their track; a linked partner follows or nothing
-changes; a clip landing inside another one is refused. Alt+← / Alt+→ nudge the selection by a frame, with Shift by a
-second; a drag near the view's edge scrolls it.
-
-Phase 13 (DECISIONS.md D028; merged as `ed40b74`): **Project Settings…** in the toolbar — the frame size (presets, custom, ⇄
-Swap; positions and text sizes scale with it), the frame rate (the clips move to the new frame grid; fades, dissolves and
-markers keep their time) and, in its EXPORT section, the export quality (Maximum / High / Standard / Compact), the
-encoding speed (Fast / Medium / Slow) and the AAC bitrate (128–320 kbps); one Apply is one Undo step; the export settings
-are saved with the project (`settings.export`; older projects export as before).
-
-Phase 16 (DECISIONS.md D031; merged as `79e4e78`): the Source viewer. Double-click
-a video or audio file in the Media Browser: the Preview switches to **Source** and plays it (the Timeline / Source switch
-above the picture goes back); I / O mark a source range (the band on the source bar, ✕ clears it; session state, never
-saved), the arrows, Home / End, J / K / L and Space act on the source while it is shown, Loop loops the range. `,`
-**Insert**s the range at the timeline playhead — a clip there is split and the rest of that track moves right — and `.`
-**Overwrite**s from the playhead; the target is the track of the selected clip of the right kind, else V1 / A1; the
-playhead goes to the end of the new clip. A video goes in with its sound as one clip. Every edit is one Undo step and off
-during an export.
-
-Phase 17 (DECISIONS.md D032; merged as `fa96468`): audio editing. **Unlink Audio** in
-the timeline tools turns a video clip's sound into an audio clip of its own (on the first free audio track; what you hear
-does not change); **Link** joins a video clip and an audio clip, and **Unlink** separates them again. Linked clips are
-selected, moved, trimmed, split, rippled, sped up, slipped, deleted and copied together (a locked partner refuses the
-edit); Alt + drag of an edge trims one of them alone — a J or L cut (🔗 marks linked clips). **Dissolve** on two audio
-clips that meet adds a linear crossfade (1 s, or the longest that fits). In the Source viewer, **Sound only** inserts or
-overwrites just the sound of a video. Projects are saved as `project.json` v4 (older projects open as before; Phase 16
-can't open a v4 file).
-
-Phase 18 (DECISIONS.md D033 with Revision R1; merged as `c29a767`): HDR footage from
-phones (HLG and PQ, BT.2020, 10 bit — Dolby Vision 8.4 and HDR Vivid by their HLG base layer) is converted to the
-editor's SDR picture by one fixed rule — a scene-light rendering close to the phone's own SDR conversion — the same in the
-Preview, the Media Browser's thumbnails and the export; SDR footage looks and exports exactly as before. HLG is measured
-on the product owner's phone footage (their visual check of the export still open); PQ is implemented but **not verified on real PQ footage**. The Inspector's **Color** row shows what a file is
-("HDR · HLG · BT.2020 · 10-bit · Dolby Vision 8.4 (not applied)"); an HDR file in a combination the rule does not convert
-is named with the reason when you export. Projects stay `project.json` v4; older projects get their clips' colour read in
-the background after Open.
-
-Phase 15 (DECISIONS.md D030; merged as `a3793a4`): editing tools. Each track
-header has M (mute), 👁 (hide; video tracks) and 🔒 (lock; a locked track refuses every edit, mute / hide still allowed),
-saved in `project.json` v3. Q / W trim the selected clip's start / end to the playhead, Shift+Q / Shift+W ripple the
-rest of its track; Shift + dragging a clip's edge is a ripple trim; Alt + dragging a video or audio clip's body slips its
-source (the clip stays in place). I / O set an In / Out range on the ruler (the playhead's frame included; ✕ clears it)
-— with Loop on, playback loops over it, and Export asks Range / Entire sequence; the range is session state, never
-saved. A new text clip's size follows the canvas height (48 at 1080 px). Every edit is one Undo step and off during an
-export.
+Сборка, тесты, выпуск и устройство решения — в разделе [For developers](#for-developers) выше; вся история решений —
+в `DECISIONS.md`, фазы — в `docs/DEVELOPMENT_PLAN.md`.

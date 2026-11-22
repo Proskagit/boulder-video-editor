@@ -11905,6 +11905,10 @@ Also: the «Сбалансированный» / «Высокое качеств
    profile takes that profile's level and speed (`ExportEncoding.CustomOf`); a new project's own custom fields are «Максимальное»
    / «Медленно» too.
 
+### Acceptance (2026-11-22)
+
+The owner checked 1.7.1 («приёмка завершена») and merged PR #85 (`13500cf`, amendment 1 included). Phase 55 is accepted.
+
 ### Review (phase-reviewer, 2026-11-22): FAIL → fixed
 
 (1) For an anchored plate «Удалить часть» of Follow vanished after any playhead move (`OnPlayheadMoved` still read `_clip`) — now
@@ -11917,3 +11921,83 @@ for a machine without NVENC and for the bar at 1024 / 1440 px.
 
 The holds' contour (Phase 56); a project-level switch for «Предлагать трассу»; trimming the plates or the text under the playhead
 without a selection.
+
+## D075 — Phase 56: the holds' contour *(set by the owner on 2026-11-22, D073 amendment 2)*
+
+The owner's notes on 1.6.0: a hold's outline is jagged («ребристость, зубчики»), a triangle hold loses its tips, and a blue
+hold shows a notch that is not there.
+
+### 0. Step 0 — Phase 55 accepted
+
+PR #85 merged (`13500cf`) — D074 «Acceptance», DEVELOPMENT_PLAN, ROADMAP, progress.
+
+### 1. Why (what exists)
+
+SAM 2.1 Large sees the whole frame squeezed to 1024 × 1024 (16:9 stretched to a square) and answers on a 256 × 256 grid, bilinearly
+upsampled to the frame (`SamImageProcessing.Upsample`); `MaskContour` traces the binary mask's pixel boundary and
+`ContourSmoothing` (D065 §2) smooths it with a Gaussian — which removes the steps but also rounds every corner. A hold of 60–100 px
+is some 10–15 grid cells: the steps, the lost tips and the notches all come from that grid.
+
+### 2. Measured: the refinement on a close-up — withdrawn by the owner
+
+Tried first: a hold's mask refined on a close-up (a square around the first mask, bounds + 50 % a side, encoded on its own and
+prompted with the same points; the agreeing refined mask pasted back). Measured on a copy of the owner's project «Новый проект»
+(7 routes, 79 holds): ≈ 290 ms more a hold on the GPU, median IoU 0.946 with the saved outlines; four comparison sheets sent to
+the owner. **The owner (2026-11-22):** the new outline sometimes takes in areas that are not the hold, sometimes the old one is
+better, sometimes the new one has finer detail — not worth a second model pass and the time; **only the smoothing**. The
+refinement is not in the product (the code removed; this paragraph is its record).
+
+### 3. The model — the smoothing keeps the corners (the owner's rule)
+
+Clusters of close vertices — the teeth — are smoothed; a vertex that stands alone is not. On the contour simplified at 4 % of
+the hold's diameter (at least 1.5 px), a vertex is a corner when both its sides are at least 15 % of the diameter and the
+contour turns at least 60° between its points a side's length before and after it (a bump of a round hold turns little there; a
+circle simplified at 4 % turns about 46° a vertex, never a corner); the Gaussian never averages across a corner
+(`ContourSmoothing.Corners`). The slider «Сглаживание» stays (Q3 A) — its strength scales the smoothing between corners; at
+every strength the corners stay. New holds only (Q2): a saved contour is never smoothed again (D065 §2, unchanged). Q1 / Q4
+(when to refine) fall with the refinement.
+
+A side is also at least 6 px (`MinCornerSidePixels`), and a hold under 30 px across has no corners (`MinCornerHoldPixels`): over a
+small hold's pixel steps the contour turns like corners everywhere, so a small hold is smoothed as before. A corner is not averaged; only the area's rescale (D065 §2) moves it by a fraction of a pixel.
+
+### Amendment 1 (2026-11-22) — text styles, technical debt, the repository's page (the owner added them to this phase)
+
+The codecs and presets (FU-EX.1) go to Phase 57. The owner's answers: Q1 A, Q2 A, Q3 — the width dragged in the Preview, shown and
+typed in the Inspector, Q4 A, Q5 — the page in English then Russian, Q6 — screenshots from a copy of his project.
+
+1. **Text styles** (format **v28**): italic; «Тень» — on / off, colour, opacity, softness and offset (× the font size; the
+   softness drawn as copies on two rings, no blur effect, so Preview = export); «Интервал» — the line height × the font's own
+   (1 — as before); «Ширина» — the block's width in canvas pixels, the lines wrapped by words (empty — no wrapping, as before),
+   dragged by the side handles of the text's frame in the Preview (the centre kept, one undo step, a cancel leaves none) and
+   typed in the Inspector; **saved styles** — «Сохранить стиль» under a name (empty — «Стиль N», a name taken is replaced), kept in
+   the global settings (`UserSettings.TextStyles`, every project), a click applies the font, size, colour, bold, italic,
+   alignment, spacing, outline, background and shadow (never the words, the place, the width or the timing), ✕ deletes. A text
+   without them is drawn and saved exactly as before. A canvas change (D028 CS-1 B) scales «Ширина» with the font size, so the
+   lines wrap the same; a width that would leave its limits refuses the change as a font size does. The shadow of an outlined
+   text follows the fill's glyphs (not the outline's). Where all its copies overlap the shadow is exactly its opacity.
+2. **Technical debt:** `TimelineEditService.cs` (2 821 lines) and `TimelineViewModel.cs` (2 034) split by their sections into
+   partial files (`.Add`, `.Move`, `.Trim`, `.Tracks`, `.Settings`, `.Dissolves`; `.Projection`, `.Navigation`, `.Commands`,
+   `.SelectionState`, `.Gestures`) — the code moved byte for byte, no change.
+3. **The repository's page:** `README.md` rewritten — English, then Russian: what the editor does, the quick start, a title
+   screenshot and four more of the owner's project copy (`docs/images`: the holds, «Итоги», the route's areas, the help), the developer notes.
+
+### Amendment 2 (2026-11-22) — the owner on 1.9.0
+
+Text processing accepted («можно двигаться дальше») with three corrections:
+
+1. **A new text or template over a busy top track goes on a new track** (replaces D045 §5 / D037 §3 for them: «the topmost
+   video track, never a new one», making room there): when the topmost video track has a clip at the new one's time — a
+   «Боулдер» plate (which cannot be pushed), a title — a new video track above every track takes it, in the same step; nothing
+   is pushed. A free topmost track takes it as before.
+2. **A video track a deletion leaves empty is removed** with the deletion (Delete, Ripple delete; D071 amendment 2's rule for a
+   move, now for these too: never the main track, a locked one, an empty track the user made or one a ducking listens to).
+3. **The styles are one list:** «Стиль» — a drop-down with «По умолчанию» (the look a new text starts with), the saved styles
+   and «＋ Сохранить новый стиль…» (the shown look saved under a name that says what it is — «Segoe UI 54 · жирный · курсив»,
+   unique); the list shows the style the text has; ✕ deletes the chosen saved style. The separate buttons and the name field
+   are gone.
+
+### Out of scope
+
+The refinement on a close-up (§2, withdrawn); a notch that is in the model's mask itself (the blue hold of the owner's
+screenshot) — the smoothing does not fill a real dent of the mask: such an outline is corrected by a Shift+click or by hand
+(D034); re-smoothing saved holds; another model; the people's masks.
