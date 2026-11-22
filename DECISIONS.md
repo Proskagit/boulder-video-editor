@@ -12151,3 +12151,7 @@ peak. The «Максимальный» of a new project is therefore D074 §6's 
 10-bit HEVC / AV1 and HDR export (8-bit BT.709 stays); other containers (WebM — no AAC; AVI); other audio codecs; a hardware
 encoder of another vendor (Intel QSV, AMD AMF); choosing the frame rate in a preset (the project's, D028); a preset editor
 apart from the export window; sharing presets between computers.
+
+### The owner's manual check (2026-11-23)
+
+1.10.0 checked by the owner: the export window and the defaults are fine, no remarks. The phase closes on his merge of PR #87.

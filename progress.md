@@ -31,7 +31,8 @@ exact D059 encoder part pinned by tests; notes taken (the «Очень быст�
 English guide's level names). Gates after the fix: the same — 0 / 0, 6 496 passed, 2 skips.
 **Final re-review: PASS WITH NOTES** (its note taken: a test of the «Очень быстро» values per encoder — Core 2 011, so 6 502 in all). Portable
 `artifacts/portable/BoulderVideoEditor-1.10.0-win-x64` (the new minimal FFmpeg in `ffmpegin` with its notices).
-**Not done:** the owner's manual check (`docs/PHASE57_MANUAL_TEST_PLAN.md`), the merge.
+**The owner's manual check of 1.10.0 (2026-11-23): passed** — the export window and the defaults «всё окей», no remarks.
+**Not done:** the merge (the owner's).
 
 **Phase 56 amendment 1 (D075, 2026-11-22) — text styles, technical debt, the repository's page** (the owner added them to the
 phase; codecs → Phase 57). **Done:** italic, `TextShadow`, line spacing, block width (Preview side handles —
