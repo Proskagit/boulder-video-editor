@@ -59,6 +59,10 @@ src/Timeline/TimelineEditService.Tracks.cs	Bake Ducking
 src/UI/ViewModels/Panels/TimelineViewModel.Volume.cs	Change Sound Fade
 src/UI/ViewModels/Panels/TimelineViewModel.Volume.cs	Change Volume
 src/Timeline/Commands/TimelineCommands.cs	Unmute Track
+src/Timeline/Commands/TimelineCommands.cs	Change Italic
+src/Timeline/Commands/TimelineCommands.cs	Change Shadow
+src/Timeline/Commands/TimelineCommands.cs	Change Line Spacing
+src/Timeline/Commands/TimelineCommands.cs	Change Text Width
 src/Timeline/EditPlan.cs	Update Dissolve
 src/Timeline/MediaRelinkService.cs	Relink Media
 src/Timeline/MediaRelinkService.cs	Relink {relinks.Count} Media Files

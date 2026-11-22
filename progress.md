@@ -14,6 +14,10 @@ Inspector's numeric field count 57 → 62; the localization allowlist.
 **Review (phase-reviewer): FAIL** — a canvas change scaled the font but not «Ширина» (D028 CS-1 B). Fixed: `PlanCanvas` scales
 `BoxWidth` (+ test); notes taken (the shadow's copies now make exactly its opacity, «Непрозрачность» in Russian, a default style
 name never replaces a style, the undo names of the new fields, the split files' summaries, the allowlist moved with the split).
+**Re-review: PASS WITH NOTES.** Gates: Debug / Release `-warnaserror` 0 / 0, ModelTests build, `git diff --check` clean; Release +
+`AIVE_HEAVY_TESTS=1`: Vision 37, Project 768, Core 2 001, Export 142, Rendering 288, UI 1 341 (after the four new undo names
+were listed), Timeline 1 261, Video 418 (+1 skip), ExportEndToEnd 189 = 6 445. Portable `BoulderVideoEditor-1.9.0-win-x64`.
+**Not done:** the owner's manual check (rows 1–13), the merge.
 
 **Phase 56 — the holds' contour (D075, 2026-11-22) — on `feat/phase-56-holds-contour`** (from `origin/main` `13500cf`).
 **Step 0:** Phase 55 accepted (PR #85 merged) — D074 «Acceptance», DEVELOPMENT_PLAN, ROADMAP. **Measured and withdrawn:** the
