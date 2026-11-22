@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Builds the minimal FFmpeg (DECISIONS.md D046 §13) for win64 from SOURCES (fetch-sources.sh) into OUT, without network:
-# run it with `docker run --network=none`. zlib, x264, zimg (with graphengine) and dav1d are built as static libraries,
+# run it with `docker run --network=none`. zlib, x264, x265, SVT-AV1, zimg (with graphengine) and dav1d are built as static libraries,
 # then ffmpeg.exe / ffprobe.exe with --disable-everything and only components.txt enabled. The build fails if configure
-# enables any external library beyond zlib, libx264, libzimg, libdav1d and NVENC (ffnvcodec: nv-codec-headers, headers
+# enables any external library beyond zlib, libx264, libx265, libsvtav1 (Phase 57), libzimg, libdav1d and NVENC (ffnvcodec: nv-codec-headers, headers
 # only — the NVIDIA driver is loaded at run time; S1, D066).
 set -euo pipefail
 
@@ -90,6 +90,48 @@ EOF
     ninja -C build -j"$JOBS" && ninja -C build install
 )
 
+# --- CMake cross toolchain (x265, SVT-AV1) ---------------------------------------------------------------------------
+cat > "$WORK/cross-mingw64.cmake" <<EOF
+set(CMAKE_SYSTEM_NAME Windows)
+set(CMAKE_SYSTEM_PROCESSOR AMD64)
+set(CMAKE_C_COMPILER $HOST-gcc)
+set(CMAKE_CXX_COMPILER $HOST-g++)
+set(CMAKE_RC_COMPILER $HOST-windres)
+set(CMAKE_ASM_NASM_COMPILER nasm)
+set(CMAKE_FIND_ROOT_PATH /usr/$HOST $DEPS)
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+EOF
+
+# --- x265 (software HEVC, 8-bit only; Phase 57, D076) ---------------------------------------------------------------
+# Its version comes from `git describe --tags`: the bundle has no tags, so the pinned commit is tagged with the version.
+checkout x265 "$WORK/src/x265"
+git -C "$WORK/src/x265" tag "$(lock x265 3)" HEAD
+(
+    cd "$WORK/src/x265"
+    cmake -S source -B build-win64 -G Ninja -DCMAKE_TOOLCHAIN_FILE="$WORK/cross-mingw64.cmake" -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="$DEPS" -DENABLE_SHARED=OFF -DENABLE_CLI=OFF -DENABLE_ASSEMBLY=ON \
+        -DCMAKE_ASM_NASM_FLAGS=-w-macro-params-legacy
+    ninja -C build-win64 -j"$JOBS" && ninja -C build-win64 install
+)
+# CMake lists the toolchain's implicit libraries in x265.pc; gcc_s would import libgcc_s_seh-1.dll - the static libgcc is
+# linked anyway.
+sed -i 's/ -lgcc_s//g' "$DEPS/lib/pkgconfig/x265.pc"
+
+# --- SVT-AV1 (software AV1 encoder; Phase 57, D076) ----------------------------------------------------------------
+checkout svt-av1 "$WORK/src/svt-av1"
+git -C "$WORK/src/svt-av1" tag "v$(lock svt-av1 3)" HEAD
+(
+    cd "$WORK/src/svt-av1"
+    cmake -S . -B build-win64 -G Ninja -DCMAKE_TOOLCHAIN_FILE="$WORK/cross-mingw64.cmake" -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="$DEPS" -DCMAKE_INSTALL_LIBDIR=lib -DBUILD_SHARED_LIBS=OFF -DBUILD_APPS=OFF -DBUILD_DEC=OFF \
+        -DBUILD_TESTING=OFF
+    ninja -C build-win64 -j"$JOBS" && ninja -C build-win64 install
+)
+echo "x265.pc / SvtAv1Enc.pc private libraries:"
+grep -h '^Libs' "$DEPS/lib/pkgconfig/x265.pc" "$DEPS/lib/pkgconfig/SvtAv1Enc.pc"
+
 # --- nv-codec-headers (NVENC; headers and ffnvcodec.pc only, nothing compiled) -------------------------------------
 checkout nv-codec-headers "$WORK/src/nv-codec-headers"
 (
@@ -108,7 +150,7 @@ configure_args=(
     --disable-autodetect --disable-everything
     --enable-static --disable-shared
     --disable-ffplay --disable-doc --disable-network --disable-debug
-    --enable-w32threads --enable-zlib --enable-libx264 --enable-libzimg --enable-libdav1d --enable-d3d11va --enable-dxva2
+    --enable-w32threads --enable-zlib --enable-libx264 --enable-libx265 --enable-libsvtav1 --enable-libzimg --enable-libdav1d --enable-d3d11va --enable-dxva2
     --enable-ffnvcodec --enable-nvenc
     --extra-cflags="-I$DEPS/include"
     --extra-ldflags="-L$DEPS/lib -static -Wl,--no-insert-timestamp"
@@ -139,7 +181,7 @@ enabled_external="$(
 echo "Enabled external / hardware libraries: $enabled_external"
 # cuda: the CUDA driver loader of nv-codec-headers that NVENC selects (dynamic loading of nvcuda.dll; no CUDA SDK, no
 # code of NVIDIA linked in).
-expected="cuda d3d11va dxva2 ffnvcodec libdav1d libx264 libzimg nvenc zlib "
+expected="cuda d3d11va dxva2 ffnvcodec libdav1d libsvtav1 libx264 libx265 libzimg nvenc zlib "
 [[ "$enabled_external" == "$expected" ]] || {
     echo "Unexpected external libraries: got '$enabled_external', expected '$expected'" >&2
     exit 1
@@ -175,6 +217,8 @@ copy_licence zimg     "$WORK/src/zimg" COPYING
 copy_licence graphengine "$WORK/src/zimg/graphengine" COPYING
 copy_licence zlib     "$WORK/src/zlib-1.3.2" LICENSE
 copy_licence dav1d    "$WORK/src/dav1d-1.5.4" COPYING
+copy_licence x265     "$WORK/src/x265" COPYING
+copy_licence svt-av1  "$WORK/src/svt-av1" LICENSE.md PATENTS.md
 # nv-codec-headers has no licence file: each header carries its MIT terms and copyright in its first comment block, copied
 # here verbatim (as the IJG headers below).
 mkdir -p "$OUT/licenses/nv-codec-headers"

@@ -26,6 +26,7 @@ RUN rm -f /etc/apt/sources.list.d/* \
       mingw-w64-common=12.0.0-5 \
       nasm=2.16.03-1 \
       meson=1.7.0-1 \
+      cmake=3.31.6-2 \
       ninja-build=1.12.1-1 \
       make=4.4.1-2 \
       pkgconf=1.8.1-4 \

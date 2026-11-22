@@ -36,6 +36,11 @@ encoder libx264
 encoder aac
 # S1 (D066): NVIDIA's hardware H.264 encoder of the export (Phase 40, D059); nv-codec-headers only, the driver loaded at run time.
 encoder h264_nvenc
+# Phase 57 (D076): HEVC and AV1 - NVIDIA's encoders (the same nv-codec-headers) and the software fallbacks.
+encoder hevc_nvenc
+encoder av1_nvenc
+encoder libx265
+encoder libsvtav1
 encoder rawvideo
 encoder pcm_f32le
 
@@ -57,6 +62,9 @@ demuxer pcm_f32le
 
 # Muxers — the export (mp4 selects mov) and the decoders' pipes.
 muxer mp4
+# Phase 57 (D076): the export's containers .mov and .mkv.
+muxer mov
+muxer matroska
 muxer rawvideo
 muxer pcm_f32le
 # S1 (D066): the NVENC availability check encodes a test picture into nothing (FfmpegEncoderCapabilities).

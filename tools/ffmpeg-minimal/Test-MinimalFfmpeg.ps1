@@ -6,7 +6,7 @@
     -Candidate: the folder with the minimal ffmpeg.exe / ffprobe.exe. -Reference: a full FFmpeg (the pinned gyan.dev
     9.0.1 essentials) that makes the fixtures — the minimal build has no encoders for them — and decodes them for
     comparison. Checks:
-      1. version, -buildconf (only libx264, libzimg, libdav1d; GPL without version3; --disable-everything);
+      1. version, -buildconf (only libx264, libx265, libsvtav1, libzimg, libdav1d; GPL without version3; --disable-everything);
       2. the components of components.txt present (from enabled-config.txt of the build when given, and from the
          binaries' own lists), the excluded ones absent (lists and the binaries' strings);
       3. every target format decoded by the application's own command lines (pipe:1, BGRA / f32le), compared with the
@@ -101,7 +101,7 @@ Add-Result 'ffprobe version' $(if ($probeVersion -match '9\.0\.2') { 'PASS' } el
 $buildconf = (Get-Lines $cand.ffmpeg @('-hide_banner', '-buildconf')) -join "`n"
 Set-Content -Path (Join-Path $Out 'buildconf.txt') -Value $buildconf -Encoding utf8
 $libs = @([regex]::Matches($buildconf, '--enable-(lib[a-z0-9_]+)') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
-$expectedLibs = @('libdav1d', 'libx264', 'libzimg')
+$expectedLibs = @('libdav1d', 'libsvtav1', 'libx264', 'libx265', 'libzimg')
 Add-Result 'external libraries' $(if (-not (Compare-Object $libs $expectedLibs)) { 'PASS' } else { 'FAIL' }) ($libs -join ', ')
 $flagsOk = $buildconf -match '--enable-gpl' -and $buildconf -notmatch '--enable-version3' -and $buildconf -notmatch '--enable-nonfree' -and $buildconf -match '--disable-everything'
 Add-Result 'licence flags' $(if ($flagsOk) { 'PASS' } else { 'FAIL' }) 'gpl, no version3, no nonfree, --disable-everything'
@@ -141,14 +141,15 @@ $absent = foreach ($w in $wanted) {
     if (-not $found) { $key }
 }
 Add-Result 'components present (binaries)' $(if (-not $absent) { 'PASS' } else { 'FAIL' }) $(if ($absent) { $absent -join ' ' } else { 'decoders, encoders, filters, protocols, demuxers, muxers, hwaccels' })
-$extraEncoders = @($encoders | Where-Object { $_ -notin @('libx264', 'h264_nvenc', 'aac', 'rawvideo', 'pcm_f32le') })
-Add-Result 'no other encoders' $(if (-not $extraEncoders) { 'PASS' } else { 'FAIL' }) $(if ($extraEncoders) { $extraEncoders -join ' ' } else { 'libx264, h264_nvenc, aac, rawvideo, pcm_f32le only' })
-$denied = @('libx265', 'libaom-av1', 'libopenh264', 'liblcevc_dec', 'librubberband', 'libdvdnav', 'libdvdread')
+$allowedEncoders = @('libx264', 'h264_nvenc', 'libx265', 'hevc_nvenc', 'libsvtav1', 'av1_nvenc', 'aac', 'rawvideo', 'pcm_f32le')
+$extraEncoders = @($encoders | Where-Object { $_ -notin $allowedEncoders })
+Add-Result 'no other encoders' $(if (-not $extraEncoders) { 'PASS' } else { 'FAIL' }) $(if ($extraEncoders) { $extraEncoders -join ' ' } else { ($allowedEncoders -join ', ') + ' only' })
+$denied = @('libaom-av1', 'libopenh264', 'liblcevc_dec', 'librubberband', 'libdvdnav', 'libdvdread')
 $deniedFound = @(($decoders + $encoders + $filters) | Where-Object { $_ -in $denied })
 $bytes = [System.IO.File]::ReadAllBytes($cand.ffmpeg)
 $text = [System.Text.Encoding]::ASCII.GetString($bytes)
-$deniedStrings = @('dvdcss', 'OpenH264', 'LCEVC_', 'x265 (build', 'rubberband') | Where-Object { $text.Contains($_) }
-Add-Result 'excluded components absent' $(if (-not $deniedFound -and -not $deniedStrings) { 'PASS' } else { 'FAIL' }) $(if ($deniedFound -or $deniedStrings) { "$deniedFound $deniedStrings" } else { 'libdvdcss, openh264, LCEVCdec, libx265, rubberband' })
+$deniedStrings = @('dvdcss', 'OpenH264', 'LCEVC_', 'rubberband') | Where-Object { $text.Contains($_) }
+Add-Result 'excluded components absent' $(if (-not $deniedFound -and -not $deniedStrings) { 'PASS' } else { 'FAIL' }) $(if ($deniedFound -or $deniedStrings) { "$deniedFound $deniedStrings" } else { 'libdvdcss, openh264, LCEVCdec, libaom, rubberband' })
 
 # --- 3. Fixtures (made by the reference) and the application's decoding ------------------------------------------------
 $src = @('-f', 'lavfi', '-i', 'testsrc2=s=640x360:r=30:d=1')
@@ -309,6 +310,40 @@ $nvencRef = Invoke-Tool $ref.ffmpeg $nvencArgs $null $null   # the reference has
 if ($nvenc.Code -eq 0) { Add-Result 'NVENC trial encoding' 'PASS' 'h264_nvenc works here' }
 elseif ($nvencRef.Code -ne 0) { Add-Result 'NVENC trial encoding' 'SKIP' 'no NVIDIA encoder here: the reference cannot encode either (the application falls back to libx264)' }
 else { Add-Result 'NVENC trial encoding' 'FAIL' "the reference encodes, the candidate not - exit $($nvenc.Code): $(($nvenc.Err -split "`r?`n" | Select-Object -Last 2) -join ' | ')" }
+
+# --- 6b. Phase 57 (D076): the export's codecs and containers -----------------------------------------------------------
+# Software HEVC / AV1 (no hardware needed) into every container the export offers; AV1 never into .mov (the mov muxer
+# refuses it, the application does not offer it).
+$codecSrc = @('-hide_banner', '-nostats', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=s=640x360:r=30:d=1',
+    '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000:d=1', '-vf', 'format=yuv420p', '-c:a', 'aac', '-shortest')
+$codecCases = [ordered]@{
+    'libx264 mov' = @('-c:v', 'libx264', '-crf', '18', '-f', 'mov', 'x264.mov')
+    'libx264 mkv' = @('-c:v', 'libx264', '-crf', '18', '-f', 'matroska', 'x264.mkv')
+    'libx265 mp4' = @('-c:v', 'libx265', '-preset', 'fast', '-crf', '20', '-tag:v', 'hvc1', '-x265-params', 'log-level=error', '-f', 'mp4', 'x265.mp4')
+    'libx265 mov' = @('-c:v', 'libx265', '-preset', 'fast', '-crf', '20', '-tag:v', 'hvc1', '-x265-params', 'log-level=error', '-f', 'mov', 'x265.mov')
+    'libx265 mkv' = @('-c:v', 'libx265', '-preset', 'fast', '-crf', '20', '-x265-params', 'log-level=error', '-f', 'matroska', 'x265.mkv')
+    'libsvtav1 mp4' = @('-c:v', 'libsvtav1', '-preset', '10', '-crf', '35', '-f', 'mp4', 'svtav1.mp4')
+    'libsvtav1 mkv' = @('-c:v', 'libsvtav1', '-preset', '10', '-crf', '35', '-f', 'matroska', 'svtav1.mkv')
+}
+foreach ($case in $codecCases.Keys) {
+    $a = $codecCases[$case]; $file = Join-Path $wk $a[-1]
+    $r = Invoke-Tool $cand.ffmpeg ($codecSrc + $a[0..($a.Count - 2)] + @($file)) $null $null
+    $ok = $r.Code -eq 0 -and (Test-Path $file) -and (Get-Item $file).Length -gt 0
+    if ($ok) {
+        $probe = Invoke-Tool $ref.ffmpeg @('-hide_banner', '-loglevel', 'error', '-i', $file, '-f', 'null', '-') $null $null
+        $ok = $probe.Code -eq 0
+    }
+    Add-Result "export $case" $(if ($ok) { 'PASS' } else { 'FAIL' }) "exit $($r.Code): $(($r.Err -split "`r?`n" | Select-Object -Last 2) -join ' | ')"
+}
+foreach ($hw in 'hevc_nvenc', 'av1_nvenc') {
+    $hwArgs = @('-hide_banner', '-nostats', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc2=s=640x360:r=30', '-frames:v', '10',
+        '-vf', 'format=yuv420p', '-c:v', $hw, '-preset', 'p5', '-tune', 'hq', '-rc', 'vbr', '-cq', '25', '-b:v', '0', '-f', 'null', '-')
+    $c = Invoke-Tool $cand.ffmpeg $hwArgs $null $null
+    $rr = Invoke-Tool $ref.ffmpeg $hwArgs $null $null
+    if ($c.Code -eq 0) { Add-Result "$hw trial encoding" 'PASS' "$hw works here" }
+    elseif ($rr.Code -ne 0) { Add-Result "$hw trial encoding" 'SKIP' 'no such NVIDIA encoder here (the reference cannot encode either)' }
+    else { Add-Result "$hw trial encoding" 'FAIL' "the reference encodes, the candidate not - exit $($c.Code)" }
+}
 
 # --- 7. Sizes and checksums --------------------------------------------------------------------------------------------
 foreach ($exe in $cand.ffmpeg, $cand.ffprobe) {
