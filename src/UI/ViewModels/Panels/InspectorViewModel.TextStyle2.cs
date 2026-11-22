@@ -8,6 +8,15 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace AiVideoEditor.UI.ViewModels.Panels;
 
+/// <summary>D075 amendment 2: what a line of the styles' list is.</summary>
+public enum TextStyleChoiceKind { Default, Saved, SaveNew }
+
+/// <summary>D075 amendment 2: a line of the styles' list.</summary>
+public sealed record TextStyleChoice(string Name, SavedTextStyle? Style, TextStyleChoiceKind Kind)
+{
+    public override string ToString() => Name;
+}
+
 /// <summary>
 /// D075 amendment 1 — the text's italic, «Тень», «Интервал», «Ширина» (its block's width, also dragged in the Preview) and the
 /// saved styles (the user's own, global, in <see cref="UserSettings.TextStyles"/>). A switch, a swatch or a style applied is an
@@ -78,6 +87,8 @@ public sealed partial class InspectorViewModel
         ShadowBlurPercent = Math.Round((decimal)text.Shadow.Blur * 100m);
         ShadowOffsetXPercent = Math.Round((decimal)text.Shadow.OffsetX * 100m);
         ShadowOffsetYPercent = Math.Round((decimal)text.Shadow.OffsetY * 100m);
+        if (StyleChoices.Count == 0) RefreshSavedStyles();
+        SelectedStyleChoice = ChoiceOfShown();
     }
 
     // --- the saved styles ----------------------------------------------------------------------------------------------
@@ -112,7 +123,76 @@ public sealed partial class InspectorViewModel
     {
         SavedTextStyles.Clear();
         foreach (var style in _settings?.Current.TextStyles ?? Array.Empty<SavedTextStyle>()) SavedTextStyles.Add(style);
+        var was = _syncing;
+        _syncing = true;
+        try
+        {
+            StyleChoices.Clear();
+            StyleChoices.Add(new TextStyleChoice(Strings.TextStyle_Default, null, TextStyleChoiceKind.Default));
+            foreach (var style in SavedTextStyles) StyleChoices.Add(new TextStyleChoice(style.Name, style, TextStyleChoiceKind.Saved));
+            if (_settings is not null) StyleChoices.Add(new TextStyleChoice(Strings.TextStyle_SaveNew, null, TextStyleChoiceKind.SaveNew));
+            SelectedStyleChoice = ChoiceOfShown();
+        }
+        finally
+        {
+            _syncing = was;
+        }
     }
+
+    // --- D075 amendment 2: the styles as one list ------------------------------------------------------------------------
+
+    /// <summary>«По умолчанию», the saved styles, «＋ Сохранить новый стиль…».</summary>
+    public ObservableCollection<TextStyleChoice> StyleChoices { get; } = new();
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(DeleteSelectedTextStyleCommand))]
+    private TextStyleChoice? _selectedStyleChoice;
+
+    /// <summary>A choice of the list: the default look or a saved style applied (one step each), or the shown look saved as a new
+    /// style (then chosen).</summary>
+    partial void OnSelectedStyleChoiceChanged(TextStyleChoice? value)
+    {
+        if (_syncing || value is null || _clip is null) return;
+        switch (value.Kind)
+        {
+            case TextStyleChoiceKind.Default:
+                EditStyle(DefaultLook, "Apply Text Style");
+                break;
+            case TextStyleChoiceKind.Saved:
+                ApplyTextStyle(value.Style);
+                break;
+            case TextStyleChoiceKind.SaveNew:
+                SaveTextStyle();   // the list is refilled by the settings' change, the new style chosen
+                break;
+        }
+        var was = _syncing;
+        _syncing = true;
+        try { SelectedStyleChoice = ChoiceOfShown(); }
+        finally { _syncing = was; }
+    }
+
+    /// <summary>The look a new text starts with (D043 §4): Segoe UI at the canvas's size, white, bold, centred, the black
+    /// background; no italic, outline or shadow; the words, the place, the width and the timing kept.</summary>
+    private TextProperties DefaultLook(TextProperties t) => t with
+    {
+        FontFamily = new TextClip().FontFamily, FontSize = ProjectSettingsRules.NewTextFontSize(_canvas.IsValid ? _canvas.Height : 1080), ColorHex = "#FFFFFF",
+        Alignment = TextAlignment.Center, Bold = true, Italic = false, LineSpacing = 1.0, Outline = TextOutline.Default,
+        Background = TextBackground.Default with { IsEnabled = true }, Shadow = TextShadow.Default
+    };
+
+    /// <summary>The choice whose look the shown text has (a saved style, else the default look), or none.</summary>
+    private TextStyleChoice? ChoiceOfShown()
+    {
+        if (_clip is null || TextProperties.Of(_clip) is not { } text) return null;
+        foreach (var choice in StyleChoices.Where(c => c.Kind == TextStyleChoiceKind.Saved))
+            if (choice.Style!.ApplyTo(text) == text) return choice;
+        return DefaultLook(text) == text ? StyleChoices.FirstOrDefault(c => c.Kind == TextStyleChoiceKind.Default) : null;
+    }
+
+    private bool CanDeleteSelectedTextStyle() => SelectedStyleChoice is { Kind: TextStyleChoiceKind.Saved };
+
+    [RelayCommand(CanExecute = nameof(CanDeleteSelectedTextStyle))]
+    private void DeleteSelectedTextStyle() => DeleteTextStyle(SelectedStyleChoice?.Style);
 
     private bool CanSaveTextStyle() => _settings is not null;
 
@@ -124,10 +204,15 @@ public sealed partial class InspectorViewModel
         var name = NewTextStyleName.Trim();
         if (name.Length == 0)
         {
+            // D075 amendment 2: a name that says what the style is — «Segoe UI 54 · жирный · курсив» — unique (a number added).
             var taken = _settings.Current.TextStyles.Select(x => x.Name).ToHashSet();
-            var n = 1;
-            while (taken.Contains(string.Format(Strings.TextStyle_DefaultName, n))) n++;
-            name = string.Format(Strings.TextStyle_DefaultName, n);   // the first free «Стиль N»: a default name never replaces a style
+            var parts = new List<string> { string.Format(CultureInfo.InvariantCulture, "{0} {1:0}", text.FontFamily, text.FontSize) };
+            if (text.Bold) parts.Add(Strings.TextStyle_Bold);
+            if (text.Italic) parts.Add(Strings.TextStyle_Italic);
+            if (text.Shadow.IsEnabled) parts.Add(Strings.TextStyle_Shadow);
+            var basis = string.Join(" · ", parts);
+            name = basis;
+            for (var n = 2; taken.Contains(name); n++) name = $"{basis} ({n})";
         }
         var style = SavedTextStyle.Of(name, text);
         _settings.Update(s => s with { TextStyles = s.TextStyles.Where(x => x.Name != name).Append(style).ToList() });

@@ -735,6 +735,21 @@ The file is replaced only when the export succeeds.</value>
   <data name="Preview_TextWidth" xml:space="preserve">
     <value>Text width: {0:0} px</value>
   </data>
+  <data name="TextStyle_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="TextStyle_SaveNew" xml:space="preserve">
+    <value>＋ Save a new style…</value>
+  </data>
+  <data name="TextStyle_Bold" xml:space="preserve">
+    <value>bold</value>
+  </data>
+  <data name="TextStyle_Italic" xml:space="preserve">
+    <value>italic</value>
+  </data>
+  <data name="TextStyle_Shadow" xml:space="preserve">
+    <value>shadow</value>
+  </data>
   <data name="Inspector_Bold" xml:space="preserve">
     <value>Bold</value>
   </data>

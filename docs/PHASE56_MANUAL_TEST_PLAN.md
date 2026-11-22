@@ -27,3 +27,12 @@ Mark each row PASS / FAIL / note.
 | 11 | «Сохранить стиль» with a name; another text (another project too) → click the style. | The other text takes the look (font, size, colour, outline, shadow…) but keeps its words and place; ✕ deletes the style. |
 | 12 | Open a 1.8 project (copy). | Its texts look as before; saved — a 1.8 build no longer opens it (format v28). |
 | 13 | The repository's page on GitHub (after the merge). | English, then Russian; the screenshots show. |
+
+## Amendment 2 (1.9.1)
+
+| # | Steps | Expected |
+|---|---|---|
+| 14 | Playhead over a «Боулдер» plate on V2 → «+ Текст». | A new track V3 with the text; the plate stays where it was. Ctrl+Z removes both. |
+| 15 | Delete that text. | The empty V3 is removed (no empty row left); Ctrl+Z brings the track and the text back. |
+| 16 | A text → «Стиль»: «＋ Сохранить новый стиль…». | The style appears in the list with a name like «Segoe UI 54 · жирный» and is shown as chosen. |
+| 17 | Another text → choose the style; then «По умолчанию». | The look applied each time (words and place kept); ✕ deletes the chosen saved style. |

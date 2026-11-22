@@ -250,7 +250,7 @@ public class MakeRoomEditTests
     }
 
     [Fact]
-    public void A_new_text_makes_room_on_the_topmost_track()
+    public void A_new_text_over_a_busy_top_track_goes_on_a_new_track_and_never_pushes()   // D075 amendment 2
     {
         var f = new TimelineFixture();
         var a = Text(f, f.V1, 100, 110);
@@ -259,10 +259,32 @@ public class MakeRoomEditTests
         var result = f.Service.AddTextClip(F(f, 50));
 
         Ok(result);
-        var added = f.V1.Clips.Single(c => c.Id == result.ClipIds[0]);
+        Assert.Equal(2, f.Project.Timeline.VideoTracks.Count);
+        var v2 = f.Project.Timeline.VideoTracks.Single(t => t != f.V1);
+        var added = v2.Clips.Single(c => c.Id == result.ClipIds[0]);
         Assert.Equal(50L, added.TimelineStart.ToNearestFrame(f.Rate));
-        Assert.Equal(added.TimelineEnd, a.TimelineStart);
+        Assert.Equal(100L, a.TimelineStart.ToNearestFrame(f.Rate));         // the clip there stays
         AssertOneStep(f, before);
+    }
+
+    [Fact]
+    public void Deleting_the_last_clip_of_an_upper_track_removes_the_track_and_undo_brings_it_back()   // D075 amendment 2
+    {
+        var f = new TimelineFixture();
+        Text(f, f.V1, 100, 110);
+        var result = f.Service.AddTextClip(F(f, 50));                       // → a new V2
+        Ok(result);
+        Assert.Equal(2, f.Project.Timeline.VideoTracks.Count);
+        var before = f.Snapshot();
+
+        Ok(f.Service.DeleteClips(new[] { result.ClipIds[0] }));
+        Assert.Single(f.Project.Timeline.VideoTracks);                      // no empty row left hanging
+        AssertOneStep(f, before);
+
+        var user = f.Service.AddTrack(TrackType.Video);                     // an empty track the user made stays
+        Ok(user);
+        Ok(f.Service.DeleteClips(new[] { f.V1.Clips[0].Id }));
+        Assert.Equal(2, f.Project.Timeline.VideoTracks.Count);              // the main track and the user's empty one
     }
 
     [Fact]

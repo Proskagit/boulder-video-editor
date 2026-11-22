@@ -94,4 +94,32 @@ public sealed class TextStyle2InspectorTests
         Assert.Empty(_settings.Current.TextStyles);
         Assert.Empty(other.SavedTextStyles);
     }
+
+    [Fact]
+    public void The_styles_list_holds_the_default_the_saved_and_save_new_and_applies_with_a_choice()   // D075 amendment 2
+    {
+        var clip = Add("Текст", 0);
+        clip.FontSize = 90;
+        clip.Italic = true;
+        var inspector = Show(clip);
+        Assert.Equal(new[] { TextStyleChoiceKind.Default, TextStyleChoiceKind.SaveNew }, inspector.StyleChoices.Select(c => c.Kind));
+        Assert.Null(inspector.SelectedStyleChoice);                        // the shown look is none of them
+
+        inspector.SelectedStyleChoice = inspector.StyleChoices.Last();     // «＋ Сохранить новый стиль…»
+        var saved = Assert.Single(_settings.Current.TextStyles);
+        Assert.Equal("Segoe UI 90 · курсив", saved.Name.Replace("italic", "курсив"));
+        Assert.Equal(TextStyleChoiceKind.Saved, inspector.SelectedStyleChoice!.Kind);   // the new style chosen
+        Assert.Equal(3, inspector.StyleChoices.Count);
+
+        inspector.SelectedStyleChoice = inspector.StyleChoices.First();    // «По умолчанию»
+        Assert.Equal((false, true, true), (clip.Italic, clip.Bold, clip.Background.IsEnabled));
+        Assert.Equal(TextStyleChoiceKind.Default, inspector.SelectedStyleChoice!.Kind);
+
+        inspector.SelectedStyleChoice = inspector.StyleChoices[1];         // the saved one again
+        Assert.Equal((90.0, true), (clip.FontSize, clip.Italic));
+        Assert.True(inspector.DeleteSelectedTextStyleCommand.CanExecute(null));
+        inspector.DeleteSelectedTextStyleCommand.Execute(null);
+        Assert.Empty(_settings.Current.TextStyles);
+        Assert.Equal(2, inspector.StyleChoices.Count);
+    }
 }

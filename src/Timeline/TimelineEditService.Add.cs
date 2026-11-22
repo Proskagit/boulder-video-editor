@@ -269,6 +269,7 @@ public sealed partial class TimelineEditService
             (clip.PositionX, clip.PositionY) = TextPlacement.Position(new FrameSize(Settings.FrameWidth, Settings.FrameHeight), text,
                 VisualProperties.Of(clip)!.Value, width, height, TextGridRow.Bottom, TextGridColumn.Centre);
         }
+        track = TrackForNewOverlay(plan, track, startFrame, startFrame + frames);
         plan.Insert(track, clip);
 
         if (MakeRoom(plan, new[] { ((Clip)clip, track) }, string.Format(Messages.Verb_AddText, track.Name)) is { } roomError)   // D037 §3
@@ -278,6 +279,18 @@ public sealed partial class TimelineEditService
 
         Commit(plan, "Add Text");
         return TimelineEditResult.Ok(new[] { clip.Id });
+    }
+
+    /// <summary>
+    /// D075 amendment 2 (the owner): a new text or template goes on the topmost video track when that track is free at its time;
+    /// when something is there (a «Боулдер» plate, another title), on a new video track above every track — never pushing the
+    /// clips there (an anchored plate cannot move). The new track is part of the same step.
+    /// </summary>
+    private Track TrackForNewOverlay(EditPlan plan, Track top, long startFrame, long endFrame)
+    {
+        var rate = plan.Rate;
+        var busy = plan.EffectiveClips(top).Any(c => c.State.Start.ToNearestFrame(rate) < endFrame && startFrame < c.State.End.ToNearestFrame(rate));
+        return busy ? TopNewVideoTrack(plan) : top;
     }
 
     public TimelineEditResult AddTemplateClip(TemplateKind kind, MediaTime start)
@@ -319,6 +332,7 @@ public sealed partial class TimelineEditService
         var (fadeIn, fadeOut) = TemplateRules.Animation(kind);
         clip.FadeIn = MediaTime.FromFrame(Math.Clamp(MediaTime.FromSeconds(fadeIn).ToNearestFrame(rate), 0, frames), rate);
         clip.FadeOut = MediaTime.FromFrame(Math.Clamp(MediaTime.FromSeconds(fadeOut).ToNearestFrame(rate), 0, frames), rate);
+        track = TrackForNewOverlay(plan, track, startFrame, startFrame + frames);
         plan.Insert(track, clip);
 
         if (MakeRoom(plan, new[] { ((Clip)clip, track) }, string.Format(Messages.Verb_AddTemplate, track.Name)) is { } roomError)   // D037 §3

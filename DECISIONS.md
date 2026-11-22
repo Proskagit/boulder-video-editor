@@ -11981,6 +11981,21 @@ typed in the Inspector, Q4 A, Q5 — the page in English then Russian, Q6 — sc
 3. **The repository's page:** `README.md` rewritten — English, then Russian: what the editor does, the quick start, a title
    screenshot and four more of the owner's project copy (`docs/images`: the holds, «Итоги», the route's areas, the help), the developer notes.
 
+### Amendment 2 (2026-11-22) — the owner on 1.9.0
+
+Text processing accepted («можно двигаться дальше») with three corrections:
+
+1. **A new text or template over a busy top track goes on a new track** (replaces D045 §5 / D037 §3 for them: «the topmost
+   video track, never a new one», making room there): when the topmost video track has a clip at the new one's time — a
+   «Боулдер» plate (which cannot be pushed), a title — a new video track above every track takes it, in the same step; nothing
+   is pushed. A free topmost track takes it as before.
+2. **A video track a deletion leaves empty is removed** with the deletion (Delete, Ripple delete; D071 amendment 2's rule for a
+   move, now for these too: never the main track, a locked one, an empty track the user made or one a ducking listens to).
+3. **The styles are one list:** «Стиль» — a drop-down with «По умолчанию» (the look a new text starts with), the saved styles
+   and «＋ Сохранить новый стиль…» (the shown look saved under a name that says what it is — «Segoe UI 54 · жирный · курсив»,
+   unique); the list shows the style the text has; ✕ deletes the chosen saved style. The separate buttons and the name field
+   are gone.
+
 ### Out of scope
 
 The refinement on a close-up (§2, withdrawn); a notch that is in the model's mask itself (the blue hold of the owner's

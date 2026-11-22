@@ -32,6 +32,7 @@ public sealed partial class TimelineEditService
             return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, lockedTemplateTrack.Name));
         plan.ReconcileTransitions();   // a deleted clip's dissolves go with it (D025 §5)
         if (CloseMainTrackGaps(plan) is { } magnetError) return TimelineEditResult.Fail(magnetError);   // D069 §6
+        RemoveEmptiedVideoTracks(plan);   // D075 amendment 2: a video track the deletion leaves empty goes with it (Undo puts it back)
 
         Commit(plan, clips.Count == 1 ? "Delete Clip" : "Delete Clips");
         return TimelineEditResult.Ok(clips.Select(c => c.Id).ToList(), TransitionNote(plan));
@@ -286,6 +287,7 @@ public sealed partial class TimelineEditService
         // kept as it is; none is created where clips now meet (D027 §2, D025 §5). The result is validated like any edit.
         if (Validate(plan) is { } error) return TimelineEditResult.Fail(string.Format(Messages.Edit_CantRippleDelete, error));
 
+        RemoveEmptiedVideoTracks(plan);   // D075 amendment 2
         Commit(plan, clips.Count == 1 ? "Ripple Delete Clip" : "Ripple Delete Clips");
         return TimelineEditResult.Ok(clips.Select(c => c.Id).ToList(), TransitionNote(plan));
     }

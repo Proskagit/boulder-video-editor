@@ -125,7 +125,7 @@ public sealed class TextClipUiTests : IAsyncLifetime
     }
 
     [Fact]
-    public void A_rejected_add_reports_why_and_keeps_the_selection()
+    public void An_add_over_a_busy_top_track_goes_on_a_new_track()
     {
         var video = _edit.AddClip(Video("v.mp4").Id).ClipIds[0];  // V1 is also the topmost track
         var clip = Sequence.VideoTracks[0].Clips.Single(c => c.Id == video);
@@ -135,10 +135,10 @@ public sealed class TextClipUiTests : IAsyncLifetime
         Sequence.PlayheadPosition = F(100);
         Timeline.AddTextCommand.Execute(null);
 
+        // D075 amendment 2: the busy top track gets company — the text on a new track above, the video untouched.
         Assert.Equal(clips, Sequence.VideoTracks[0].Clips.Count);
-        Assert.Contains("overlap", _status.Message);
-        Assert.True(ViewOf(clip).IsSelected);
-        Assert.Single(Sequence.VideoTracks);                    // no track was created
+        Assert.Equal(2, Sequence.VideoTracks.Count);
+        Assert.Single(Sequence.VideoTracks.OrderBy(t => t.Order).Last().Clips.OfType<TextClip>());
     }
 
     [Fact]

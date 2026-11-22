@@ -735,6 +735,21 @@
   <data name="Preview_TextWidth" xml:space="preserve">
     <value>Ширина текста: {0:0} px</value>
   </data>
+  <data name="TextStyle_Default" xml:space="preserve">
+    <value>По умолчанию</value>
+  </data>
+  <data name="TextStyle_SaveNew" xml:space="preserve">
+    <value>＋ Сохранить новый стиль…</value>
+  </data>
+  <data name="TextStyle_Bold" xml:space="preserve">
+    <value>жирный</value>
+  </data>
+  <data name="TextStyle_Italic" xml:space="preserve">
+    <value>курсив</value>
+  </data>
+  <data name="TextStyle_Shadow" xml:space="preserve">
+    <value>тень</value>
+  </data>
   <data name="Inspector_Bold" xml:space="preserve">
     <value>Жирный</value>
   </data>

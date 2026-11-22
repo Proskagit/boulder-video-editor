@@ -18,6 +18,10 @@ name never replaces a style, the undo names of the new fields, the split files' 
 `AIVE_HEAVY_TESTS=1`: Vision 37, Project 768, Core 2 001, Export 142, Rendering 288, UI 1 341 (after the four new undo names
 were listed), Timeline 1 261, Video 418 (+1 skip), ExportEndToEnd 189 = 6 445. Portable `BoulderVideoEditor-1.9.0-win-x64`.
 **Not done:** the owner's manual check (rows 1–13), the merge.
+**Amendment 2 (2026-11-22, the owner on 1.9.0):** a text / template over a busy top track goes on a new track
+(`TrackForNewOverlay`, nothing pushed); Delete / Ripple delete remove the video tracks they empty (`RemoveEmptiedVideoTracks`);
+the styles as one list (`StyleChoices`: «По умолчанию», saved, «＋ Сохранить новый стиль…» with a descriptive unique name; ✕ for
+the chosen). Tests: 4 rewritten to the new track rule, +1 deletion removes the track, +1 the styles list. Portable 1.9.1.
 
 **Phase 56 — the holds' contour (D075, 2026-11-22) — on `feat/phase-56-holds-contour`** (from `origin/main` `13500cf`).
 **Step 0:** Phase 55 accepted (PR #85 merged) — D074 «Acceptance», DEVELOPMENT_PLAN, ROADMAP. **Measured and withdrawn:** the
