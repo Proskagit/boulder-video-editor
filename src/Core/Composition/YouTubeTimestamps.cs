@@ -11,7 +11,7 @@ namespace AiVideoEditor.Core.Composition;
 /// <list type="bullet">
 /// <item>The first line is always at <c>00:00</c>: <c>00:00 Intro</c> when no route starts at 0.</item>
 /// <item>A line: <c>Трасса {номер} · {категория}</c> — a missing part drops with its « · » (<c>Трасса 7</c>,
-/// <c>Трасса · 7A</c>, <c>Трасса</c>); Top adds <c> 🟢</c>, Attempt <c> 🔴</c>, no status nothing.</item>
+/// <c>Трасса · 7A</c>, <c>Трасса</c>); Top adds <c> 🟢</c>, Flash <c> ⚡</c> (D073), Attempt <c> 🔴</c>, no status nothing.</item>
 /// <item>The parts of a split area are one route (its earliest part): an anchored area by its route, a free one by the part
 /// whose template clock starts at 0. Different routes are different lines, even at the same time or with the same name.</item>
 /// <item>With an exported range, the times are from its start; areas starting outside it are left out.</item>
@@ -24,6 +24,7 @@ public static class YouTubeTimestamps
     public const string Intro = "Intro";
     public const string Top = "🟢";
     public const string Attempt = "🔴";
+    public const string Flash = "⚡";
 
     public static IReadOnlyList<(MediaTime Time, string Title)> Lines(Sequence sequence, FrameRate rate, MediaTime? rangeStart = null, MediaTime? rangeEnd = null)
     {
@@ -73,7 +74,8 @@ public static class YouTubeTimestamps
         var title = new StringBuilder(RouteWord);
         if (route.Length > 0) title.Append(' ').Append(route);
         if (grade.Length > 0) title.Append(" · ").Append(grade);
-        if (area.Status == BoulderStatus.Top) title.Append(' ').Append(Top);
+        if (area.Status == BoulderStatus.Flash) title.Append(' ').Append(Flash);   // D073
+        else if (area.Status == BoulderStatus.Top) title.Append(' ').Append(Top);
         else if (area.Status == BoulderStatus.Attempt) title.Append(' ').Append(Attempt);
         return title.ToString();
     }

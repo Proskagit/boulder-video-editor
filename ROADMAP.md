@@ -679,20 +679,29 @@ Phase 51, D070; the clips' thumbnails — Phase 49, D068 item 10; more transitio
 
 **The owner's queue after 1.3.0 (2026-11-19), each a phase of its own in this order:** 1) proxies for 4K / HEVC and the
 Preview's quality — **Phase 52, D071**; 2) the route from its first hold («Разметить зацепки» → a click on one hold → «подождите,
-анализ» → every proposed hold of the route marked, the user confirms, adds or removes); 3) the «Итоги» template (36.3 / 36.4; the owner's concept of 2026-11-19 — an animated header, rows per route, the route's time from
+анализ» → every proposed hold of the route marked, the user confirms, adds or removes) — **Phase 53, D072**; 3) the «Итоги» template — **Phase 54, D073** (36.3 / 36.4; the owner's concept of 2026-11-19 — an animated header, rows per route, the route's time from
 the orange area's end to the purple area's start, scrolling past ~10 rows — in `docs/SUMMARY_TEMPLATE_CONCEPT.md`);
 4) codecs and presets (FU-EX.1, HEVC / AV1); 5) text styles (D058 §7: italic, shadow, line spacing, wrapping, saved styles);
 6) technical debt (the split of `TimelineEditService` / `TimelineViewModel`); 7) the repository's page (its «Status» rewritten,
 the page restructured). Other ideas (Shorts per route, comparing attempts, beta notes …) wait until then.
 
-**Phase 53 (D072, 2026-11-19) — the route from its first hold** on `feat/phase-53-route-from-hold`: «Предлагать трассу» (on by
+**Phase 54 (D073, 2026-11-22) — the «Итоги» template** on `feat/phase-54-summary-template` (`project.json` v27): «Шаблон ▾ →
+Итоги» — an animated board of the routes before it (after the previous «Итоги»): the header «Итоги дня» with the date, a table
+(number, result, attempts, the climb time from the orange's end to the lilac's start, grade, average / maximum heart rate of the
+climb), the totals as cards; attempts of one boulder (number + grade) one row; 10 rows visible, then scrolling; over the dimmed
+video or as a full-frame card («Свой фон»); the drawn words Russian / English per template («Боулдер» too); a new status FLASH
+with its own white block and bolt; «Боулдер»'s «Попыток». Closes the backlog's 36.3 (`PassId` as the number + grade key) and
+36.4. Manual plan: `docs/PHASE54_MANUAL_TEST_PLAN.md`.
+
+**Phase 53 (D072, 2026-11-19) — the route from its first hold — accepted by the owner 2026-11-19 (PR #83)** on `feat/phase-53-route-from-hold`: «Предлагать трассу» (on by
 default) — the markup's first click on a route without holds → «Подождите, идёт анализ» → the route's holds of that colour proposed
 on the markup frame → remove / add / tolerance → «Принять» in one Undo step; the D048 research variant (split colour map, chroma
 and hue gates, no grid) in production; D047's proposals of every hold and the hidden «Авторазметка» removed; Step 0: the Preview's
 quality «Оригинал» by default. Amendment 1 (the owner's check of 1.5.0): the route is the group around the clicked hold (the same
 colour far away is another route), at most 15, stricter colour (hue 20°, no white / grey / black on a coloured route), the
 proposals drawn in the route's colour, no list. Amendment 2 (1.5.1): no «Допуск цвета», the orange starts on the markup's frame,
-the group no longer stops at a touching pair, «Предлагать трассу» off by default. Manual plan: `docs/PHASE53_MANUAL_TEST_PLAN.md`.
+the group no longer stops at a touching pair, «Предлагать трассу» off by default. Amendment 3 (1.5.2): the group's link one fixed
+20 % of the long side. Manual plan: `docs/PHASE53_MANUAL_TEST_PLAN.md`.
 
 **Phase 52 (D071, 2026-11-19) — the Preview's quality — accepted by the owner 2026-11-19 (PR #82)** on `feat/phase-52-proxy`: the quality on the Preview's bar (Оригинал /
 Высокое 1440p / Среднее 1080p by default / Минимум 720p) applied on the fly; proxies for 4K / HEVC were made and withdrawn by the

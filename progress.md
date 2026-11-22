@@ -2,6 +2,42 @@
 
 ## Current phase
 
+**Phase 54 — the «Итоги» template (D073, 2026-11-20 … 22) — on `feat/phase-54-summary-template`** (from `origin/main` `4c1314e`).
+The third of the owner's queue after 1.3.0 (backlog 36.3 `PassId`, 36.4 the heart rate in the summary). **Step 0:** Phase 53
+accepted by the owner (PR #83 merged, `4c1314e`) — D072 «Acceptance», DEVELOPMENT_PLAN, ROADMAP. **The owner's answers:** Q1–Q8
+(2026-11-20: one header «Итоги дня», routes before the template after the previous «Итоги», attempts grouped by number + grade,
+«—» without a number, the user's length with an adaptive pace, added by hand, no FIT → no heart-rate column, the totals as a
+fixed bottom row) and, after his reference screenshots (2026-11-22), Q9–Q12 all A (one board with «Свой фон», the language per
+template, «Попыток» on «Боулдер», FLASH by hand) and Q13 (FLASH clearly unlike TOP, always English).
+**Done:** `TemplateKind.Summary`, `BoulderStatus.Flash`, `TemplateClip.Language` / `Attempts` / `OwnBackground` (+ `TemplateProperties`,
+`ClipPropertyValues` flags and apply, the clone of split / duplicate / paste), `TemplateWords` (RU / EN, «FLASH» English);
+`SummaryBoard.Of` (Core: the routes, the parts of a split — of the area or its clip — joined by the continuing clock, copies
+apart, attempts by number + grade, `S − Ae` in source time via `RouteOverlays.OrangeEndOf`, the heart rate of the FIT samples in
+the window with the display offset, the totals) computed into `TemplateSpan.Summary` by `PlaybackSnapshotBuilder`;
+`SummaryPainter` (the header, the table with captions, 10 rows then scrolling, the totals as cards, over the dimmed video or a
+full-frame card, figures shrunk to fit, a narrower board on portrait); `TemplatePainter.FlashBlock` / `Bolt` (white block, yellow
+bolt, outline, breathing glow, one sweep) and «Боулдер»'s words by language; format **v27** (v26 refuses Summary / Flash, reads
+Russian words); the Inspector («Заголовок», «Дата», «Свой фон», «Надписи на кадре», «Попыток», «Флеш»), «Шаблон ▾ → Итоги» (the
+training's local date), the timeline label, YouTube « ⚡», help ru / en; manual plan `docs/PHASE54_MANUAL_TEST_PLAN.md`.
+**Tests:** `SummaryBoardTests` (13), `SummaryPersistenceTests` (5), `SummaryRenderingTests` (12: Preview = export ×5, own
+background, scroll, FLASH ≠ TOP, the time format), `SummaryTemplateUiTests` (6), `TemplateCompositionTests` (+1, validation),
+`YouTubeTimestampsTests` (+1); the pinned format versions 26 → 27; «Flash» no longer the unknown status of
+`TemplatePersistenceTests` («Zone»), the status count 3 → 4; the localization allowlist (undo names, damaged-file reasons, the
+English drawn words).
+**Review (phase-reviewer): FAIL** — a route whose video clip was split after its orange became two attempts (the time lost, the
+attempts doubled; the grouping keyed by clip + route), and progress.md was stale. Fixed: the parts of a split joined by the
+continuing template clock (copies — clock 0 — stay apart), `S` by its part's clip, `Ae` from the clip with the orange (+3 tests:
+split with / without a number, a copy, a status beyond the area with a free area); notes taken (its own message for an unknown
+language, the time rounded on ticks, an undo-step test, manual rows B11–B12).
+**Re-review: PASS WITH NOTES** (taken: the YouTube timestamps' grouping of copies recorded in D073; noted: the split test builds
+the state by hand, pre-D053 areas without a route id).
+**Gates (2026-11-22, the final code):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `Vision.ModelTests` builds;
+`git diff --check` clean; Release + `AIVE_HEAVY_TESTS=1` with `--blame-hang`: Vision 37, Project 764, Core 1 992, Export 142,
+Rendering 280, UI 1 325, Timeline 1 255, Video 418 (+1 environment-gated skip), ExportEndToEnd 189 — all green (6 402). The first
+run failed on pinned format versions 26 in UI / Timeline tests, the localization guard (the new undo names, damaged-file reasons,
+English drawn words, «English») and the status buttons' count — fixed.
+**Not done:** the owner's manual check (`docs/PHASE54_MANUAL_TEST_PLAN.md`), the merge. Portable `BoulderVideoEditor-1.6.0-win-x64`.
+
 **Phase 53 amendment 3 (D072, the owner's check of 1.5.2, 2026-11-19):** the group's link raised to 20 % of the long side
 (was 7 … 12 %), then simplified to one constant `RouteHoldGrouping.Link` (the spacing-based link removed — the owner: one threshold
 is enough). Release `-warnaserror` 0 / 0, the route's tests green (Core 21, UI 16); the full suites by the PR's CI. PR #83;

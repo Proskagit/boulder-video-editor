@@ -94,7 +94,8 @@ public sealed partial class LocalizationGuardTests
         "ExportEncoder_Nvenc", "ExportEncoder_X264",  // D059: the encoders' own names
         "ExportResolution_Uhd4K", "ExportResolution_FullHd", "ExportResolution_Hd", "ExportResolution_Sd",  // D060: the standards' names
         "AppSettings_Coros", "AppSettings_Garmin",   // D062 amendment 1: the watch makers' brand names
-        "InspectorRail_Fit"   // D068 item 8: the file format's name, as the rest of the interface says «FIT»
+        "InspectorRail_Fit",  // D068 item 8: the file format's name, as the rest of the interface says «FIT»
+        "TemplateLanguage_English"   // D073: a language named in itself («English»), as language pickers do
     };
 
     /// <summary>D068 §1: no user-visible text names the old product.</summary>

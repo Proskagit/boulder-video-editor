@@ -350,6 +350,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
             TemplateKind.Boulder => string.Join(" · ", new[] { clip.Route, clip.Grade }.Where(s => s.Length > 0)),
             TemplateKind.Highlight => clip.Title,
             TemplateKind.HeartRate => string.Empty,
+            TemplateKind.Summary => clip.Title,
             _ => clip.Date
         };
         return detail.Length > 0 ? string.Format(Strings.Clip_TemplateWith, name, detail) : name;
@@ -361,6 +362,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         TemplateKind.Vhs => Strings.TemplateType_Vhs,
         TemplateKind.Boulder => Strings.TemplateType_Boulder,
         TemplateKind.HeartRate => Strings.TemplateType_HeartRate,
+        TemplateKind.Summary => Strings.TemplateType_Summary,
         _ => Strings.TemplateType_Highlight
     };
 

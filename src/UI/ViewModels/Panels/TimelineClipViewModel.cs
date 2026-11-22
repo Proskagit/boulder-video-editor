@@ -109,7 +109,7 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
 
 
     /// <summary>The mark's colour: TOP's yellow or ПОПЫТКА's blue, lightened to show on the clip.</summary>
-    public string StatusMarkColorHex => Clip is TemplateClip { Status: BoulderStatus.Top } ? TemplateRules.TopHex : "#9DB8DC";
+    public string StatusMarkColorHex => Clip is TemplateClip { Status: BoulderStatus.Top or BoulderStatus.Flash } ? TemplateRules.TopHex : "#9DB8DC";
 
     /// <summary>D048 §4.1, the overlay strip of a video clip (a view of its anchored «Боулдер» and Duration animation):
     /// green, orange over it, lilac on top, in pixels from the clip's left edge; empty without one.</summary>

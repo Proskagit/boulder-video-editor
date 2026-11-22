@@ -352,8 +352,12 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var clip = new TemplateClip
         {
             Kind = kind, Date = fields.Date, Route = fields.Route, Grade = fields.Grade, Status = fields.Status,
-            AccentHex = fields.AccentHex, Title = fields.Title, Subtitle = fields.Subtitle, Look = fields.Look, Corner = fields.Corner
+            AccentHex = fields.AccentHex, Title = fields.Title, Subtitle = fields.Subtitle, Look = fields.Look, Corner = fields.Corner,
+            Language = fields.Language
         };
+        // D073: «Итоги»'s date line — the training's local date when the project has one.
+        if (kind == TemplateKind.Summary && Project.Training?.Workout is { } workout)
+            clip.Subtitle = workout.StartUtc.ToOffset(workout.UtcOffset ?? TimeSpan.Zero).ToString("dd.MM.yyyy", System.Globalization.CultureInfo.InvariantCulture);
         ClipState.FromFrames(startFrame, startFrame + frames, MediaTime.Zero, rate).ApplyTo(clip);
         var (fadeIn, fadeOut) = TemplateRules.Animation(kind);
         clip.FadeIn = MediaTime.FromFrame(Math.Clamp(MediaTime.FromSeconds(fadeIn).ToNearestFrame(rate), 0, frames), rate);
@@ -2786,6 +2790,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 Kind = p.Kind, CounterStart = p.CounterStart, Date = p.Date, Route = p.Route, Grade = p.Grade, Status = p.Status,
                 AccentHex = p.AccentHex, Title = p.Title, Subtitle = p.Subtitle, StatusAt = p.StatusAt, Look = p.Look, Corner = p.Corner,
                 ShowHeartRate = p.ShowHeartRate, HeartHex = p.HeartHex, PlateCorner = p.PlateCorner,
+                Attempts = p.Attempts, Language = p.Language, OwnBackground = p.OwnBackground,   // D073
                 // D048 §3.5: kept by a split's right part (re-anchored by the split); remapped or cleared by a paste. D053: the
                 // route and the FIT climb go with it (cleared on a copy).
                 AnchorClipId = p.AnchorClipId, AnchorRouteId = p.AnchorRouteId, FitClimb = p.FitClimb, FitLayout = p.FitLayout, RouteStart = p.RouteStart

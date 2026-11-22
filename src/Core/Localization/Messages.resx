@@ -1231,6 +1231,15 @@
   <data name="Template_HeartRate" xml:space="preserve">
     <value>Heart rate</value>
   </data>
+  <data name="Template_AttemptsRange" xml:space="preserve">
+    <value>The attempts are a whole number from {0} to {1}.</value>
+  </data>
+  <data name="Template_Summary" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="Template_UnknownLanguage" xml:space="preserve">
+    <value>Unknown language of the template's words.</value>
+  </data>
   <data name="Template_UnknownLook" xml:space="preserve">
     <value>Unknown look or position of the heart-rate overlay.</value>
   </data>

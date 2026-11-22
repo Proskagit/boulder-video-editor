@@ -38,6 +38,13 @@ public class YouTubeTimestampsTests
     private string Text(MediaTime? from = null, MediaTime? to = null) => YouTubeTimestamps.Text(_sequence, Rate, from, to);
 
     [Fact]
+    public void A_flash_is_marked_with_a_bolt()   // D073
+    {
+        Area(0, "2", "6B+", BoulderStatus.Flash, Guid.NewGuid());
+        Assert.Equal("00:00 Трасса 2 · 6B+ ⚡", Text());
+    }
+
+    [Fact]
     public void The_owners_example()
     {
         Area(42, "1", "6A", BoulderStatus.Top, Guid.NewGuid());

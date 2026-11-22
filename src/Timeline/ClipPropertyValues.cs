@@ -75,8 +75,14 @@ public enum ClipPropertyFields : long
     SoundFadeOut = 1L << 47,
     Cleanup = 1L << 48,
 
+    // D073: «Боулдер»'s stated attempts, a template's language, «Итоги»'s own background.
+    TemplateAttempts = 1L << 49,
+    TemplateLanguage = 1L << 50,
+    TemplateBackground = 1L << 51,
+
     Template = TemplateDate | TemplateRoute | TemplateGrade | TemplateStatus | TemplateAccent | TemplateTitle | TemplateSubtitle |
-               TemplateStatusAt | TemplateLook | TemplateCorner | TemplateShowHeartRate | TemplateHeart | TemplatePlateCorner,
+               TemplateStatusAt | TemplateLook | TemplateCorner | TemplateShowHeartRate | TemplateHeart | TemplatePlateCorner |
+               TemplateAttempts | TemplateLanguage | TemplateBackground,
 
     KeyframeValues = KeyframeX | KeyframeY | KeyframeScale,
 
@@ -151,6 +157,7 @@ public readonly record struct ClipPropertyValues(VisualProperties? Visual, Audio
             (c.Date, c.Route, c.Grade, c.Status, c.AccentHex, c.Title, c.Subtitle, c.StatusAt, c.Look, c.Corner) =
                 (p.Date, p.Route, p.Grade, p.Status, p.AccentHex, p.Title, p.Subtitle, p.StatusAt, p.Look, p.Corner);
             (c.ShowHeartRate, c.HeartHex, c.PlateCorner) = (p.ShowHeartRate, p.HeartHex, p.PlateCorner);
+            (c.Attempts, c.Language, c.OwnBackground) = (p.Attempts, p.Language, p.OwnBackground);
         }
 
         if (Keyframes is { } k)
@@ -228,6 +235,9 @@ public readonly record struct ClipPropertyValues(VisualProperties? Visual, Audio
             if (pa.ShowHeartRate != pb.ShowHeartRate) fields |= ClipPropertyFields.TemplateShowHeartRate;
             if (!string.Equals(pa.HeartHex, pb.HeartHex, StringComparison.Ordinal)) fields |= ClipPropertyFields.TemplateHeart;
             if (pa.PlateCorner != pb.PlateCorner) fields |= ClipPropertyFields.TemplatePlateCorner;
+            if (pa.Attempts != pb.Attempts) fields |= ClipPropertyFields.TemplateAttempts;
+            if (pa.Language != pb.Language) fields |= ClipPropertyFields.TemplateLanguage;
+            if (pa.OwnBackground != pb.OwnBackground) fields |= ClipPropertyFields.TemplateBackground;
         }
 
         if (a.Keyframes is { } ka && b.Keyframes is { } kb && !Equals(ka.Keys, kb.Keys))

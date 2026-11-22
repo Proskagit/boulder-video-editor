@@ -168,6 +168,15 @@
           </StackPanel>
         </MenuItem.Header>
       </MenuItem>
+      <!-- D073: «Итоги» — the routes before it. -->
+      <MenuItem Command="{Binding AddTemplateCommand}" CommandParameter="Summary">
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TemplateType_Summary}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TemplateType_Summary_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
       <!-- D068 amendment 1: only with a training. -->
       <MenuItem Command="{Binding AddTemplateCommand}" CommandParameter="HeartRate" IsVisible="{Binding HasTraining}">
         <MenuItem.Header>

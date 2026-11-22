@@ -29,7 +29,8 @@ namespace AiVideoEditor.Project.Persistence;
 public static class ProjectSerializer
 {
     public const string FormatId = "AiVideoEditor.Project";
-    /// <summary>26 since Phase 50 (D069): the main track's magnet and a video clip's colour correction.
+    /// <summary>27 since Phase 54 (D073): «Итоги» (a template kind), FLASH (a status), a template's language and «Боулдер»'s stated attempts.
+    /// 26 since Phase 50 (D069): the main track's magnet and a video clip's colour correction.
     /// 20 since Phase 42 (D061): a video clip's Follow and its outlines hidden behind people. 19 since Phase 38: a video clip's blurred background.
     /// 14 since R2 → E (K3): a hold markup's "Follow the camera" off. 13 since Phase 35.5: the heart-rate overlay (a template kind with its look and corner). 12 since Phase 37
     /// (D051): the FIT marks and the declined climbs. 11 since Phase 35 (D049): the COROS training. 10 since D048: the route
@@ -43,7 +44,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 26;
+    public const int CurrentFormatVersion = 27;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -142,6 +143,10 @@ public static class ProjectSerializer
 
     /// <summary>The first version with the main track's magnet and a video clip's colour correction (D069 §6, §7).</summary>
     private const int Phase50Version = 26;
+
+    /// <summary>The first version with «Итоги», FLASH, a template's language and the stated attempts (D073). A v26 file has none
+    /// (its templates' words are Russian) and is saved as v27.</summary>
+    private const int SummaryVersion = 27;
 
     /// <summary>Whether a template of <paramref name="kind"/> in a file of <paramref name="formatVersion"/> carries the
     /// heart-rate look and corner: the overlay (v13), a «Боулдер» from v16 (D055 §5).</summary>
@@ -658,7 +663,10 @@ public static class ProjectSerializer
                 Corner = p.Kind is TemplateKind.HeartRate or TemplateKind.Boulder ? p.Corner : null,
                 ShowHeartRate = p.Kind == TemplateKind.Boulder ? p.ShowHeartRate : null,
                 HeartColorHex = p.Kind == TemplateKind.Boulder ? p.HeartHex : null,
-                PlateCorner = p.Kind == TemplateKind.Boulder && p.PlateCorner != OverlayCorner.BottomLeft ? p.PlateCorner : null
+                PlateCorner = p.Kind == TemplateKind.Boulder && p.PlateCorner != OverlayCorner.BottomLeft ? p.PlateCorner : null,
+                Attempts = p.Kind == TemplateKind.Boulder ? p.Attempts : null,
+                Language = p.Kind is TemplateKind.Boulder or TemplateKind.Summary ? p.Language : null,
+                OwnBackground = p.Kind == TemplateKind.Summary && p.OwnBackground ? true : null
             },
             _ => throw new NotSupportedException($"Clip type {clip.GetType().Name} can't be saved.")
         };
@@ -1210,13 +1218,15 @@ public static class ProjectSerializer
             TemplateClipDto p when formatVersion >= TemplatesVersion => new TemplateClip
             {
                 Id = p.Id,
-                Kind = p.Template is { } kind && Enum.IsDefined(kind) && (kind != TemplateKind.HeartRate || formatVersion >= HeartRateOverlayVersion)
+                Kind = p.Template is { } kind && Enum.IsDefined(kind) && (kind != TemplateKind.HeartRate || formatVersion >= HeartRateOverlayVersion) &&
+                       (kind != TemplateKind.Summary || formatVersion >= SummaryVersion)
                     ? kind : throw Damaged("unknown template"),
                 CounterStart = p.CounterStartTicks >= 0 ? new MediaTime(p.CounterStartTicks) : throw Damaged("a template's counter is negative"),
                 Date = p.Date ?? throw Damaged("a template field is missing"),
                 Route = p.Route ?? throw Damaged("a template field is missing"),
                 Grade = p.Grade ?? throw Damaged("a template field is missing"),
-                Status = p.Status is { } status && Enum.IsDefined(status) ? status : throw Damaged("unknown template status"),
+                Status = p.Status is { } status && Enum.IsDefined(status) && (status != BoulderStatus.Flash || formatVersion >= SummaryVersion)
+                    ? status : throw Damaged("unknown template status"),
                 AccentHex = p.AccentHex ?? throw Damaged("a template field is missing"),
                 Title = p.Title ?? throw Damaged("a template field is missing"),
                 Subtitle = p.Subtitle ?? throw Damaged("a template field is missing"),
@@ -1240,7 +1250,13 @@ public static class ProjectSerializer
                     : p.HeartColorHex ?? throw Damaged("a route area's heart colour is missing"),
                 // D063 §C: absent — bottom left (an older file's plate, and the default).
                 PlateCorner = p.Template != TemplateKind.Boulder || formatVersion < KeyframesVersion || p.PlateCorner is null ? OverlayCorner.BottomLeft
-                    : Enum.IsDefined(p.PlateCorner.Value) ? p.PlateCorner.Value : throw Damaged("unknown route plate corner")
+                    : Enum.IsDefined(p.PlateCorner.Value) ? p.PlateCorner.Value : throw Damaged("unknown route plate corner"),
+                // D073 (v27): absent — Russian words (an older file), counted attempts, over the video.
+                Language = formatVersion < SummaryVersion || p.Language is null ? TemplateLanguage.Russian
+                    : Enum.IsDefined(p.Language.Value) ? p.Language.Value : throw Damaged("unknown template language"),
+                Attempts = formatVersion < SummaryVersion || p.Template != TemplateKind.Boulder || p.Attempts is null ? null
+                    : p.Attempts is >= TemplateRules.MinAttempts and <= TemplateRules.MaxAttempts ? p.Attempts : throw Damaged("a route's attempts out of range"),
+                OwnBackground = formatVersion >= SummaryVersion && p.Template == TemplateKind.Summary && p.OwnBackground == true
             },
             _ => throw Damaged("unknown clip type")
         };

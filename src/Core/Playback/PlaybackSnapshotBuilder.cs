@@ -92,6 +92,11 @@ public static class PlaybackSnapshotBuilder
                                     project.Training is not null && videoClips.TryGetValue(anchorId, out var anchor)
                             ? new TemplateHeartRate(anchor.Id, anchor.MediaAssetId, anchor.TimelineStart, anchor.SourceIn, anchor.Speed,
                                 assets.TryGetValue(anchor.MediaAssetId, out var anchorAsset) ? HeartRateOf(training, anchorAsset, heartRateDisplayOffset) : null)
+                            : null,
+                        // D073: «Итоги»'s rows from the routes before it (Preview = export: computed once, here).
+                        Summary = template.Kind == TemplateKind.Summary
+                            ? Composition.SummaryBoard.Of(sequence, template.TimelineStart, rate,
+                                assetId => assets.TryGetValue(assetId, out var summaryAsset) ? HeartRateOf(training, summaryAsset, heartRateDisplayOffset) : null)
                             : null
                     });
                     continue;

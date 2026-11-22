@@ -122,6 +122,14 @@ Domain types (`src/Core/Entities`):
   before the remaining operations; a plan without such a template is painted exactly as before. UI: «Шаблон» in the
   timeline header (`TemplateMenu` → `AddTemplateCommand(kind)`), the Inspector's TEMPLATE section
   (`InspectorViewModel.Template.cs`: the kind's own fields; a status and a route colour one step each).
+  **«Итоги» (Phase 54, D073; format v27):** `TemplateKind.Summary` — its rows are not stored: `PlaybackSnapshotBuilder` computes
+  `SummaryBoard.Of` (Core, `Composition/SummaryBoard.cs`: the «Боулдер» routes started before it and after the previous «Итоги»,
+  attempts grouped by number + grade, the climb time `S − Ae` in the anchored clip's source time via `RouteOverlays.OrangeEndOf`,
+  the heart rate of the FIT samples in that window through the video's `HeartRateBinding`, the totals) into
+  `TemplateSpan.Summary` → `TemplateDraw.Summary` → `SummaryPainter` (UI, the same immutable-brush / text / rectangle rules,
+  with clips for the scroll) — so the Preview and the export draw the same board. `TemplateClip.Language` (the drawn words,
+  `TemplateWords`), `Attempts` («Боулдер»'s stated attempts), `OwnBackground` («Итоги» as a full-frame card) and
+  `BoulderStatus.Flash` (drawn by `TemplatePainter.FlashBlock`) are v27 fields.
 - `MediaTime`
 
 New projects get tracks V1 and A1. Clips are created only by `ITimelineEditService`.

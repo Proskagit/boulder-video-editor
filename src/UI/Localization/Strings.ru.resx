@@ -4036,4 +4036,46 @@
   <data name="Holds_RouteProposalCount" xml:space="preserve">
     <value>Предложено: {0}</value>
   </data>
+  <data name="TemplateType_Summary" xml:space="preserve">
+    <value>Итоги</value>
+  </data>
+  <data name="TemplateType_Summary_Desc" xml:space="preserve">
+    <value>Табло трасс перед ним: результаты, время, пульс</value>
+  </data>
+  <data name="TemplateStatus_Flash" xml:space="preserve">
+    <value>Флеш</value>
+  </data>
+  <data name="Inspector_TemplateAttempts" xml:space="preserve">
+    <value>Попыток</value>
+  </data>
+  <data name="Inspector_TemplateAttemptsHint" xml:space="preserve">
+    <value>по видео</value>
+  </data>
+  <data name="Inspector_TemplateAttemptsTip" xml:space="preserve">
+    <value>Пусто — по видео (трассы с этим номером и сложностью). Укажите число, если попытки не вошли в монтаж. У флеша всегда одна попытка.</value>
+  </data>
+  <data name="Inspector_TemplateLanguage" xml:space="preserve">
+    <value>Надписи на кадре</value>
+  </data>
+  <data name="TemplateLanguage_Russian" xml:space="preserve">
+    <value>Русский</value>
+  </data>
+  <data name="TemplateLanguage_English" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Inspector_SummaryTitle" xml:space="preserve">
+    <value>Заголовок</value>
+  </data>
+  <data name="Inspector_SummaryDate" xml:space="preserve">
+    <value>Дата</value>
+  </data>
+  <data name="Inspector_SummaryOwnBackground" xml:space="preserve">
+    <value>Свой фон (полноэкранная карточка)</value>
+  </data>
+  <data name="Inspector_SummaryOwnBackgroundTip" xml:space="preserve">
+    <value>Включено — табло на своём фоне закрывает видео под ним. Выключено — табло поверх затемнённого видео.</value>
+  </data>
+  <data name="Inspector_SummaryHint" xml:space="preserve">
+    <value>Показывает трассы, начавшиеся до этого шаблона (после предыдущих «Итогов»). Строку меняют в «Боулдере» трассы.</value>
+  </data>
 </root>

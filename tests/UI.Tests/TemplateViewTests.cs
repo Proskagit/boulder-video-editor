@@ -62,7 +62,7 @@ public sealed class TemplateViewTests
         Assert.Equal(("7", "7A"), (clip.Route, clip.Grade));
 
         var statuses = Named<ItemsControl>(view, "TemplateStatusButtons");
-        Assert.Equal(3, statuses.ItemCount);
+        Assert.Equal(4, statuses.ItemCount);   // none, TOP, ПОПЫТКА, FLASH (D073)
         var inspector = (InspectorViewModel)view.DataContext!;
         Assert.False(Shown(Named<Button>(view, "TemplateStatusAtButton")));    // D045 §17: no status, no moment
         inspector.SetTemplateStatusCommand.Execute(((TemplateStatusOption)statuses.Items[1]!).Status);

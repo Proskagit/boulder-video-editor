@@ -16,10 +16,19 @@ public readonly record struct TemplateProperties(
     /// <summary>D063 §C: «Боулдер»'s route plate corner (bottom left by default, as before).</summary>
     public OverlayCorner PlateCorner { get; init; } = OverlayCorner.BottomLeft;
 
+    /// <summary>D073: «Боулдер»'s stated attempts (null: counted from the video).</summary>
+    public int? Attempts { get; init; }
+
+    /// <summary>D073: the language of the drawn words («Боулдер», «Итоги»).</summary>
+    public TemplateLanguage Language { get; init; } = TemplateLanguage.Russian;
+
+    /// <summary>D073: «Итоги» on its own full-frame background.</summary>
+    public bool OwnBackground { get; init; }
+
     /// <summary>The clip's current values, or null for clips that aren't templates.</summary>
     public static TemplateProperties? Of(Clip clip) => clip is TemplateClip t
         ? new TemplateProperties(t.Date, t.Route, t.Grade, t.Status, t.AccentHex, t.Title, t.Subtitle, t.StatusAt, t.Look, t.Corner,
-            t.ShowHeartRate, t.HeartHex) { PlateCorner = t.PlateCorner }
+            t.ShowHeartRate, t.HeartHex) { PlateCorner = t.PlateCorner, Attempts = t.Attempts, Language = t.Language, OwnBackground = t.OwnBackground }
         : null;
 
     /// <summary>The heart's colour as drawn: the overlay's accent, a «Боулдер»'s own heart colour (D055 §5).</summary>
@@ -65,10 +74,24 @@ public static class TemplateRules
     public const string TopWord = "TOP";
     public const string AttemptWord = "ПОПЫТКА";
 
+    /// <summary>D073: the Flash's word — English in every language (the product owner, 2026-11-22).</summary>
+    public const string FlashWord = "FLASH";
+
+    /// <summary>D073: the Flash block — white with navy text, a yellow bolt and a yellow glow (never TOP's yellow block).</summary>
+    public const string FlashHex = "#FFFFFF";
+
+    /// <summary>D073: the stated attempts' bounds.</summary>
+    public const int MinAttempts = 1;
+    public const int MaxAttempts = 99;
+
+    /// <summary>D073: a new template's language — the interface's: Russian for a Russian interface, English otherwise (the neutral resources are English).</summary>
+    public static TemplateLanguage InterfaceLanguage() =>
+        System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ru" ? TemplateLanguage.Russian : TemplateLanguage.English;
+
     /// <summary>The length of a new template.</summary>
     public static MediaTime DefaultDuration(TemplateKind kind) => MediaTime.FromSeconds(kind switch
     {
-        TemplateKind.Rec or TemplateKind.Vhs or TemplateKind.HeartRate => 10,
+        TemplateKind.Rec or TemplateKind.Vhs or TemplateKind.HeartRate or TemplateKind.Summary => 10,
         TemplateKind.Boulder => 8,
         _ => 3
     });
@@ -81,6 +104,7 @@ public static class TemplateRules
         TemplateKind.Vhs => (0, 0),
         TemplateKind.Boulder => (0.35, 0.3),
         TemplateKind.HeartRate => (0.3, 0.3),
+        TemplateKind.Summary => (0.4, 0.4),
         _ => (0.6, 0.3)
     };
 
@@ -89,9 +113,18 @@ public static class TemplateRules
 
     /// <summary>The fields of a new template of <paramref name="kind"/>: «Хайлайт» gets its default title, the heart-rate
     /// overlay its red heart.</summary>
-    public static TemplateProperties Defaults(TemplateKind kind) => new(string.Empty, string.Empty, string.Empty, BoulderStatus.None,
-        kind == TemplateKind.HeartRate ? HeartRateAccentHex : DefaultAccentHex,
-        kind == TemplateKind.Highlight ? Messages.Template_DefaultTitle : string.Empty, string.Empty, MediaTime.Zero);
+    public static TemplateProperties Defaults(TemplateKind kind)
+    {
+        var language = InterfaceLanguage();
+        return new(string.Empty, string.Empty, string.Empty, BoulderStatus.None,
+            kind == TemplateKind.HeartRate ? HeartRateAccentHex : DefaultAccentHex,
+            kind switch
+            {
+                TemplateKind.Highlight => Messages.Template_DefaultTitle,
+                TemplateKind.Summary => TemplateWords.Of(language).SummaryTitle,
+                _ => string.Empty
+            }, string.Empty, MediaTime.Zero) { Language = language };
+    }
 
     /// <summary>A short user-facing reason the fields can't be stored, or null.</summary>
     public static string? Validate(TemplateProperties p)
@@ -104,6 +137,9 @@ public static class TemplateRules
         if (new[] { p.Date, p.Route, p.Grade, p.Title, p.Subtitle }.Any(s => s.Any(char.IsControl)))
             return Messages.Template_OneLine;
         if (!Enum.IsDefined(p.Status)) return Messages.Template_UnknownStatus;
+        if (!Enum.IsDefined(p.Language)) return Messages.Template_UnknownLanguage;
+        if (p.Attempts is { } attempts && (attempts < MinAttempts || attempts > MaxAttempts))
+            return string.Format(Messages.Template_AttemptsRange, MinAttempts, MaxAttempts);
         if (!Enum.IsDefined(p.Look) || !Enum.IsDefined(p.Corner)) return Messages.Template_UnknownLook;
         if (p.StatusAt < MediaTime.Zero) return Messages.Template_StatusAtNegative;
         if (!ClipPropertyValidator.IsHexColor(p.AccentHex)) return Messages.Prop_ColorFormat;
@@ -112,4 +148,37 @@ public static class TemplateRules
 
         static string? Too(string value, int max) => value.Length > max ? string.Format(Messages.Template_FieldLength, max) : null;
     }
+}
+
+/// <summary>
+/// D073: the words «Боулдер» and «Итоги» draw, in the template's language (part of the look, not interface text). «FLASH» is
+/// English in both languages (the product owner, 2026-11-22).
+/// </summary>
+public sealed record TemplateWords(
+    string Route, string Top, string Attempt, string SummaryTitle,
+    string Number, string RouteColumn, string Result, string AttemptsColumn, string Time, string Grade, string AverageHr, string MaxHr,
+    string Tops, string Flashes, string OnRoutes, string Bpm)
+{
+    public string Flash => TemplateRules.FlashWord;
+
+    public static readonly TemplateWords Russian = new(
+        TemplateRules.RouteWord, TemplateRules.TopWord, TemplateRules.AttemptWord, "Итоги дня",
+        "#", "ТРАССА", "РЕЗУЛЬТАТ", "ПОПЫТКИ", "ВРЕМЯ", "СЛОЖН.", "ПУЛЬС СР", "ПУЛЬС МАКС",
+        "ТОПЫ", "ФЛЕШИ", "НА ТРАССАХ", "уд/мин");
+
+    public static readonly TemplateWords English = new(
+        "ROUTE", "TOP", "ATTEMPT", "Day summary",
+        "#", "ROUTE", "RESULT", "ATTEMPTS", "TIME", "GRADE", "AVG HR", "MAX HR",
+        "TOPS", "FLASHES", "ON ROUTES", "bpm");
+
+    public static TemplateWords Of(TemplateLanguage language) => language == TemplateLanguage.English ? English : Russian;
+
+    /// <summary>The status's word (empty for none).</summary>
+    public string StatusWord(BoulderStatus status) => status switch
+    {
+        BoulderStatus.Top => Top,
+        BoulderStatus.Attempt => Attempt,
+        BoulderStatus.Flash => Flash,
+        _ => string.Empty
+    };
 }

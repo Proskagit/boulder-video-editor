@@ -31,17 +31,18 @@ public static class TemplatePainter
                 break;
             case TemplateKind.Highlight: Highlight(context, op); break;
             case TemplateKind.HeartRate: HeartRate(context, op); break;
+            case TemplateKind.Summary: SummaryPainter.Draw(context, op); break;
         }
     }
 
     private static double Unit(TemplateDraw op) => Math.Min(op.Canvas.Width, op.Canvas.Height) / 1080.0;
 
-    private static IImmutableBrush Brush(string hex, double opacity = 1) => new ImmutableSolidColorBrush(Color.Parse(hex), opacity);
+    internal static IImmutableBrush Brush(string hex, double opacity = 1) => new ImmutableSolidColorBrush(Color.Parse(hex), opacity);
 
     private static FormattedText Text(string text, string family, FontWeight weight, double size, IBrush brush) =>
         new(text, Russian, FlowDirection.LeftToRight, new Typeface(family, FontStyle.Normal, weight), size, brush);
 
-    private static double OutCubic(double x) { x = Math.Clamp(x, 0, 1); return 1 - Math.Pow(1 - x, 3); }
+    internal static double OutCubic(double x) { x = Math.Clamp(x, 0, 1); return 1 - Math.Pow(1 - x, 3); }
     private static double InCubic(double x) { x = Math.Clamp(x, 0, 1); return x * x * x; }
 
     private static double OutBack(double x)
@@ -83,7 +84,7 @@ public static class TemplatePainter
     }
 
     /// <summary>Draws <paramref name="text"/> with its ink centred on <paramref name="centre"/>.</summary>
-    private static void Centred(DrawingContext context, FormattedText text, TextInk ink, Point centre) =>
+    internal static void Centred(DrawingContext context, FormattedText text, TextInk ink, Point centre) =>
         context.DrawText(text, ink.OriginFor(centre));
 
     /// <summary>Text with a soft shadow offset by <paramref name="offset"/> (down-right).</summary>
@@ -195,12 +196,12 @@ public static class TemplatePainter
     // --- «Боулдер» -----------------------------------------------------------------------------------------------------
 
     /// <summary>A laid-out text with its ink (<see cref="InkOf"/>).</summary>
-    private readonly record struct Inked(FormattedText Text, TextInk Ink)
+    internal readonly record struct Inked(FormattedText Text, TextInk Ink)
     {
         public double InkWidth => Ink.Right - Ink.Left;
     }
 
-    private static Inked Lay(string content, FontWeight weight, double size, IImmutableBrush brush)
+    internal static Inked Lay(string content, FontWeight weight, double size, IImmutableBrush brush)
     {
         var text = Text(content, Sport, weight, size, brush);
         return new Inked(text, InkOf(text, content, Sport, weight, size));
@@ -239,7 +240,7 @@ public static class TemplatePainter
         var grade = fields.Grade.Trim();
         if (route.Length > 0)
         {
-            parts.Add(Lay(TemplateRules.RouteWord, FontWeight.SemiBold, 20 * u, grey));
+            parts.Add(Lay(TemplateWords.Of(fields.Language).Route, FontWeight.SemiBold, 20 * u, grey));
             parts.Add(Lay(route, FontWeight.Bold, 36 * u, Brushes.White));
         }
         if (grade.Length > 0)
@@ -269,18 +270,73 @@ public static class TemplatePainter
         if (fields.Status == BoulderStatus.None) return;
         var shown = StatusAppear(clock);
         if (shown <= 0) return;
+        var flash = fields.Status == BoulderStatus.Flash;
         var top = fields.Status == BoulderStatus.Top;
-        var label = Lay(top ? TemplateRules.TopWord : TemplateRules.AttemptWord, FontWeight.Bold, 32 * u,
-            top ? Brush(TemplateRules.PlateHex) : Brushes.White);
-        var blockWidth = label.InkWidth + 2 * padX;
+        var label = Lay(TemplateWords.Of(fields.Language).StatusWord(fields.Status), FontWeight.Bold, 32 * u,
+            top || flash ? Brush(TemplateRules.PlateHex) : Brushes.White);
+        var bolt = flash ? height * 0.5 : 0;
+        var blockWidth = label.InkWidth + 2 * padX + (flash ? bolt + 8 * u : 0);
         var blockX = left
             ? (parts.Count > 0 ? plate.Right + 12 * u : outerX)
             : (parts.Count > 0 ? plate.X - 12 * u - blockWidth : outerX - blockWidth);
         var block = new Rect(blockX, y0, blockWidth, height);
         using var fade = context.PushOpacity(shown);
         using var rise = context.PushTransform(Matrix.CreateTranslation(side * (1 - shown) * 16 * u, 0));
+        if (flash)
+        {
+            FlashBlock(context, block, label, u, clock.SinceStatus, clock.Elapsed);
+            return;
+        }
         context.DrawRectangle(Brush(top ? TemplateRules.TopHex : TemplateRules.AttemptHex, top ? 1 : 0.95), null, block);
         Centred(context, label.Text, label.Ink, block.Center);
+    }
+
+    /// <summary>
+    /// D073: the FLASH block — never TOP's yellow block: white with navy «FLASH», a yellow lightning bolt before the word, a
+    /// yellow glow around it that breathes slowly, and one light sweep across it when it appears (<paramref name="since"/>:
+    /// seconds since it started appearing). Rectangles, lines and a clip only (no geometry objects, as the rest of the painter).
+    /// </summary>
+    internal static void FlashBlock(DrawingContext context, Rect block, Inked label, double u, double since, double elapsed)
+    {
+        // The glow: rings of yellow fading outwards, breathing (±25 %) once every 1.6 s.
+        var breath = 0.75 + 0.25 * Math.Sin(elapsed * Math.PI * 2 / 1.6);
+        for (var i = 4; i >= 1; i--)
+        {
+            var g = i * 3 * u;
+            context.DrawRectangle(Brush(TemplateRules.TopHex, 0.16 * breath), null, block.Inflate(g), 4 * u + g, 4 * u + g);
+        }
+        context.DrawRectangle(Brush(TemplateRules.FlashHex), null, block, 4 * u, 4 * u);
+        context.DrawRectangle(null, new ImmutablePen(Brush(TemplateRules.TopHex), 3 * u), block.Deflate(1.5 * u), 4 * u, 4 * u);
+
+        var bolt = block.Height * 0.5;
+        var padX = (block.Width - label.InkWidth - bolt - 8 * u) / 2;
+        Bolt(context, new Rect(block.X + padX, block.Center.Y - bolt * 0.68, bolt, bolt * 1.36), TemplateRules.TopHex, TemplateRules.PlateHex, u);
+        Centred(context, label.Text, label.Ink, new Point(block.X + padX + bolt + 8 * u + label.InkWidth / 2, block.Center.Y));
+
+        // One sweep of light over 0.6 s after the block starts appearing.
+        var sweep = since / 0.6;
+        if (sweep is > 0 and < 1)
+        {
+            using var clip = context.PushClip(block);
+            var x = block.X - block.Height + sweep * (block.Width + 2 * block.Height);
+            using var skew = context.PushTransform(Matrix.CreateTranslation(-x, -block.Y) * new Matrix(1, 0, -0.5, 1, 0, 0) *
+                                                   Matrix.CreateTranslation(x, block.Y));
+            context.DrawRectangle(Brush("#FFF6B0", 0.75 * Math.Sin(Math.PI * sweep)), null, new Rect(x, block.Y, block.Height * 0.45, block.Height));
+        }
+    }
+
+    /// <summary>A lightning bolt in <paramref name="box"/>: a zigzag of thick round-capped lines, outlined in
+    /// <paramref name="outlineHex"/> under the <paramref name="fillHex"/> stroke.</summary>
+    internal static void Bolt(DrawingContext context, Rect box, string fillHex, string outlineHex, double u)
+    {
+        Point P(double x, double y) => new(box.X + x * box.Width, box.Y + y * box.Height);
+        var points = new[] { P(0.72, 0.0), P(0.22, 0.56), P(0.74, 0.46), P(0.28, 1.0) };
+        var width = box.Width * 0.36;
+        var outline = new ImmutablePen(Brush(outlineHex), width + 3 * u, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+        var fill = new ImmutablePen(Brush(fillHex), width, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+        foreach (var pen in new[] { outline, fill })
+            for (var i = 0; i < points.Length - 1; i++)
+                context.DrawLine(pen, points[i], points[i + 1]);
     }
 
     /// <summary>0 → 1 over the status block's appearance: <see cref="TemplateRules.StatusAppearSeconds"/> from the status

@@ -524,6 +524,9 @@ src/Project/Persistence/ProjectSerializer.cs	a route area's heart colour is miss
 src/Project/Persistence/ProjectSerializer.cs	a FIT area's layout is invalid
 src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Show Heart Rate
 src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Hide Heart Rate
+src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Summary Own Background
+src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Summary Over Video
+src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Change Template Language
 src/Project/Persistence/UserJsonFile.cs	not an object
 src/Project/Persistence/UserJsonFile.cs	another format
 src/Project/Persistence/UserJsonFile.cs	no format version
@@ -554,3 +557,12 @@ src/Project/Persistence/ProjectSerializer.cs	a Follow target outside the frame
 src/Project/Persistence/ProjectSerializer.cs	a Follow part that ends before it starts
 src/Project/Persistence/ProjectSerializer.cs	Follow parts that overlap or are out of order
 src/Project/Persistence/ProjectSerializer.cs	a Follow offset out of range
+src/Project/Persistence/ProjectSerializer.cs	unknown template language
+src/Project/Persistence/ProjectSerializer.cs	a route's attempts out of range
+
+# D073 — the English words a «Боулдер» / «Итоги» draws on the frame when the template's own language is English (part of the
+# template's look, chosen per template and kept with it, never the interface's text — like the Russian words of TemplateRules).
+src/Core/Entities/TemplateRules.cs	Day summary
+src/Core/Entities/TemplateRules.cs	AVG HR
+src/Core/Entities/TemplateRules.cs	MAX HR
+src/Core/Entities/TemplateRules.cs	ON ROUTES

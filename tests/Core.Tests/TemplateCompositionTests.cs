@@ -80,7 +80,27 @@ public class TemplateCompositionTests
         Assert.Equal(Messages.Template_OneLine, TemplateRules.Validate(ok with { Subtitle = "a\tb" }));
         Assert.Equal(Messages.Template_FieldMissing, TemplateRules.Validate(ok with { Grade = null! }));
         Assert.Equal(Messages.Prop_ColorFormat, TemplateRules.Validate(ok with { AccentHex = "#FFF" }));
-        Assert.Equal(Messages.Template_UnknownStatus, TemplateRules.Validate(ok with { Status = (BoulderStatus)3 }));
+        Assert.Equal(Messages.Template_UnknownStatus, TemplateRules.Validate(ok with { Status = (BoulderStatus)4 }));   // 3 is Flash since D073
+        // D073: the stated attempts 1 … 99, a known language.
+        Assert.Null(TemplateRules.Validate(ok with { Status = BoulderStatus.Flash, Attempts = 99 }));
+        Assert.Equal(string.Format(Messages.Template_AttemptsRange, 1, 99), TemplateRules.Validate(ok with { Attempts = 0 }));
+        Assert.Equal(string.Format(Messages.Template_AttemptsRange, 1, 99), TemplateRules.Validate(ok with { Attempts = 100 }));
+        Assert.Equal(Messages.Template_UnknownLanguage, TemplateRules.Validate(ok with { Language = (TemplateLanguage)2 }));
+    }
+
+    [Fact]
+    public void A_summary_gets_its_board_in_the_snapshot_and_the_other_kinds_none()
+    {
+        Template(TemplateKind.Boulder, 0, 60);
+        Template(TemplateKind.Summary, 60, 360);
+        var snapshot = PlaybackSnapshotBuilder.Build(_project, 1);
+        var spans = snapshot.VideoLayers.SelectMany(t => t.Templates).ToList();
+        Assert.Null(spans.Single(s => s.Kind == TemplateKind.Boulder).Summary);
+        var board = spans.Single(s => s.Kind == TemplateKind.Summary).Summary;
+        Assert.NotNull(board);
+        Assert.Single(board!.Rows);   // the free «Боулдер» before it
+        Assert.Equal(10, TemplateRules.DefaultDuration(TemplateKind.Summary).TotalSeconds);
+        Assert.Equal((0.4, 0.4), TemplateRules.Animation(TemplateKind.Summary));
     }
 
     // --- the composition ------------------------------------------------------------------------------------------------

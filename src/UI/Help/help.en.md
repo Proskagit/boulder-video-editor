@@ -12,7 +12,7 @@ A bouldering video in ten steps.
 - **6. Colour.** The «COLOUR» section → «Auto enhance», then adjust the sliders if you like.
 - **7. Follow.** When the climber is well visible and the frame has room (a vertical video from a horizontal one, a zoom), switch on «Follow the climber»: the frame follows the climber and the hold outlines hide behind people («Hide outlines behind people»).
 - **8. Sound.** Music on a sound track; ducking under speech, «Noise reduction» and «Voice enhancement» when people talk.
-- **9. Design.** Text, templates («Boulder», «Heart rate», «Highlight», REC, VHS).
+- **9. Design.** Text, templates («Boulder», «Summary», «Heart rate», «Highlight», REC, VHS).
 - **10. Export.** «Export» (Ctrl+E): the resolution and the folder; with an NVIDIA card it is fast through NVENC, in the background — you can keep working. The YouTube timestamps are there too.
 
 # Getting started
@@ -111,7 +111,8 @@ The Inspector's **«Follow and people»** section.
 # Text, templates and transitions
 
 - **Text** — the «Add a text clip» button above the timeline. The font, colour, outline, background and its entrance animation are in the Inspector.
-- **Templates** — ready-made plates: «Boulder» (the route, grade, status TOP or attempt), «Heart rate» (in the menu once a training is imported), «Highlight», REC, VHS. The template's fields are in the Inspector's «Template» section; «Status appears» sets when the result shows.
+- **Templates** — ready-made plates: «Boulder» (the route, grade, status TOP, FLASH or attempt), «Summary», «Heart rate» (in the menu once a training is imported), «Highlight», REC, VHS. The template's fields are in the Inspector's «Template» section; «Status appears» sets when the result shows. A «Boulder» takes «Attempts» when not every attempt is in the edit, and the language of its words (Русский or English; FLASH is always English).
+- **Summary** — a board of the routes before the template (after the previous «Summary»): number, result, attempts, climb time (from the orange area's end to the lilac's start), grade, average and maximum heart rate; at the bottom the tops, flashes, heart rate and time on routes. Attempts of one route (the same number and grade) are one row. The rows come in one by one and scroll past 10; lengthen the template if some don't make it. «Own background» turns the board into a full-frame card.
 - **A transition** — the «Transition» button above the timeline: for two selected neighbouring clips, for one clip (its cut nearest the playhead) or, with nothing selected, for the cut under the playhead (a click on the ruler near a cut puts the playhead exactly on it): the menu has 13 transitions with a diagram and a line each — dissolve, dip to black, flash, zoom, push, blur, wipe, circle, doors, zoom out, spin, whip, glitch. Push, wipe and whip take a side in the Inspector. Up to 5 s long: in the Inspector or by dragging an edge of the transition's zone on the timeline. Where a clip has no media beyond the cut, its edge frame is held during the transition. On a sound track it is a cross-fade.
 - The **«Heart rate»** plate is added only where the training has a heart rate for that place of the video; otherwise the editor says so in a window.
 

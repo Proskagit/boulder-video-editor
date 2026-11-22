@@ -1231,6 +1231,15 @@
   <data name="Template_HeartRate" xml:space="preserve">
     <value>Пульс</value>
   </data>
+  <data name="Template_AttemptsRange" xml:space="preserve">
+    <value>Попыток — целое число от {0} до {1}.</value>
+  </data>
+  <data name="Template_Summary" xml:space="preserve">
+    <value>Итоги</value>
+  </data>
+  <data name="Template_UnknownLanguage" xml:space="preserve">
+    <value>Неизвестный язык надписей шаблона.</value>
+  </data>
   <data name="Template_UnknownLook" xml:space="preserve">
     <value>Неизвестный вид или положение накладки пульса.</value>
   </data>

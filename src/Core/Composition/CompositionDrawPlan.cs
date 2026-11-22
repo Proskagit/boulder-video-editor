@@ -75,6 +75,9 @@ public sealed record TemplateDraw(Guid ClipId, Affine2D Transform, double Opacit
     /// <summary>D063 §C: the corner of a «Боулдер» route plate shown in the heart-rate overlay's corner on this frame (the
     /// overlay stands beside it); null otherwise. A «Боулдер»'s own heart rate uses its <see cref="TemplateProperties.PlateCorner"/>.</summary>
     public OverlayCorner? PlateCorner { get; init; }
+
+    /// <summary>D073: «Итоги»'s board (null for the other kinds).</summary>
+    public SummaryBoard? Summary { get; init; }
 }
 
 /// <summary>
@@ -330,7 +333,8 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
                 return new TemplateDraw(template.ClipId, canvasToTarget, 1.0, canvas, template.Kind, template.Span.Fields, template.Clock)
                 {
                     HeartRate = template.HeartRate,
-                    PlateCorner = template.PlateCorner
+                    PlateCorner = template.PlateCorner,
+                    Summary = template.Span.Summary
                 };
 
             case PictureLayer picture:

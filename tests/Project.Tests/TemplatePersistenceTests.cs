@@ -83,7 +83,7 @@ public class TemplatePersistenceTests
     public void A_version_8_project_opens_unchanged_and_is_saved_again_differing_only_in_the_version()
     {
         var v9 = Save(Build(templates: false));
-        var v8 = v9.Replace("\"formatVersion\": 26", "\"formatVersion\": 8");
+        var v8 = v9.Replace("\"formatVersion\": 27", "\"formatVersion\": 8");
         Assert.NotEqual(v9, v8);
 
         Assert.Equal(v9, Save(Load(v8)));
@@ -124,7 +124,7 @@ public class TemplatePersistenceTests
             return root;
         }
         Rejected(With(c => c["template"] = "Wasted"));
-        Rejected(With(c => c["status"] = "Flash"));
+        Rejected(With(c => c["status"] = "Zone"));   // D073: no «zone» (Flash is a status since v27)
         Assert.Contains("counter is negative", Rejected(With(c => c["counterStartTicks"] = -1)).Message);
         Assert.Contains("status moment is negative", Rejected(With(c => c["statusAtTicks"] = -1)).Message);
         Assert.Contains("invalid property", Rejected(With(c => c["grade"] = new string('7', 13))).Message);

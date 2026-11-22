@@ -262,6 +262,26 @@ public sealed class TemplateClip : Clip
     /// older file's area — its route's Duration animation's end is <c>T</c> when it has one, see
     /// <see cref="RouteOverlays.RouteStartOf"/>).</summary>
     public MediaTime? RouteStart { get; set; }
+
+    /// <summary>D073 (format v27): «Боулдер»: the attempts the user states for the route (the attempts not in the edit
+    /// included), 1 … 99; null — counted from the video by «Итоги» (the routes of the same number and grade). A Flash is
+    /// always one attempt.</summary>
+    public int? Attempts { get; set; }
+
+    /// <summary>D073 (format v27): the language of the words «Боулдер» and «Итоги» draw (ТРАССА / ROUTE …); set from the
+    /// interface's language when the template is made and kept with it. «FLASH» is English in both.</summary>
+    public TemplateLanguage Language { get; set; } = TemplateLanguage.Russian;
+
+    /// <summary>D073 (format v27): «Итоги» on its own full-frame background (a card hiding the picture below) instead of
+    /// over the dimmed video.</summary>
+    public bool OwnBackground { get; set; }
+}
+
+/// <summary>D073: the language of a template's drawn words.</summary>
+public enum TemplateLanguage
+{
+    Russian,
+    English
 }
 
 /// <summary>D056 §2: how a route area made from the FIT was laid out — its first frame and its end as source times of its
@@ -276,7 +296,10 @@ public enum TemplateKind
     Vhs,
     Boulder,
     Highlight,
-    HeartRate
+    HeartRate,
+
+    /// <summary>D073: «Итоги» — the summary board of the routes before it.</summary>
+    Summary
 }
 
 /// <summary>The heart-rate overlay's look: on a dark plate, or the icon and the digits alone with a soft shadow.</summary>
@@ -295,12 +318,14 @@ public enum OverlayCorner
     BottomRight
 }
 
-/// <summary>«Боулдер»'s status (D045 §1.3): none, TOP (the route done) or ПОПЫТКА (an attempt's episode).</summary>
+/// <summary>«Боулдер»'s status (D045 §1.3): none, TOP (the route done) or ПОПЫТКА (an attempt's episode); D073: FLASH —
+/// the route done on its first attempt (set by hand only; a top in every count).</summary>
 public enum BoulderStatus
 {
     None,
     Top,
-    Attempt
+    Attempt,
+    Flash
 }
 
 public enum TextAlignment
