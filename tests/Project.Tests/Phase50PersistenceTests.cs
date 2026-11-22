@@ -75,7 +75,7 @@ public class Phase50PersistenceTests
         var app = new ProjectService(new UndoRedoService(), NullLogger<ProjectService>.Instance, applicationDefaultsInNewProjects: true);
         Assert.Equal(ExportEncoding.NewProject, app.Current.Settings.Export);
         Assert.Equal(ExportEncoding.NewProject, app.CreateNew("Next").Settings.Export);
-        Assert.Equal((ExportVideoCodec.Hevc, ExportVideoEncoder.Nvenc), (ExportEncoding.NewProject.Codec, ExportEncoding.NewProject.Encoder));   // D076 Q6: «Максимальный»
+        Assert.Equal((ExportVideoCodec.H264, ExportVideoEncoder.Nvenc), (ExportEncoding.NewProject.Codec, ExportEncoding.NewProject.Encoder));   // D076: «Максимальный»
         Assert.Equal(ExportEncoding.Default, new ProjectService(new UndoRedoService(), NullLogger<ProjectService>.Instance).Current.Settings.Export);
 
         // Saved and opened, it stays; a file without export settings is still the old default (nothing of a project changes).

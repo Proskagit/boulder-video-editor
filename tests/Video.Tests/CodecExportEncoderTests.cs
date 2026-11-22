@@ -55,8 +55,8 @@ public sealed class CodecExportEncoderTests : IDisposable
     {
         var hevc = ExportEncoding.Default with { Codec = ExportVideoCodec.Hevc };
         Assert.Contains($"-c:v libx265 -preset medium -profile:v main -crf {ExportVideoPlan.X265CrfOf(ExportQuality.High)} -x265-params log-level=error -tag:v hvc1", Line(hevc));
-        Assert.Contains($"-c:v hevc_nvenc -preset p7 -tune hq -profile:v main -rc vbr -cq {ExportVideoPlan.HevcNvencCqOf(ExportQuality.Maximum)} -b:v 0 -spatial-aq 1 -rc-lookahead 20 -bf 3 -g 250 -multipass qres -tag:v hvc1",
-            Line(ExportPresets.Maximum));
+        Assert.Contains($"-c:v hevc_nvenc -preset p7 -tune hq -profile:v main -tier high -rc vbr -cq {ExportVideoPlan.HevcNvencCqOf(ExportQuality.Maximum)} -b:v 0 -maxrate 160M -bufsize 160M -spatial-aq 1 -rc-lookahead 20 -bf 3 -g 250 -multipass qres -tag:v hvc1",
+            Line(ExportPresets.Maximum with { Codec = ExportVideoCodec.Hevc }));
         var av1 = ExportEncoding.Default with { Codec = ExportVideoCodec.Av1 };
         Assert.Contains($"-c:v libsvtav1 -preset 7 -g 250 -crf {ExportVideoPlan.SvtAv1CrfOf(ExportQuality.High)} -pix_fmt", Line(av1));
         Assert.Contains($"-c:v av1_nvenc -preset p5 -tune hq -rc vbr -cq {ExportVideoPlan.Av1NvencCqOf(ExportQuality.High)} -b:v 0", Line(av1 with { Encoder = ExportVideoEncoder.Nvenc }));

@@ -33,10 +33,10 @@ public sealed class ExportEncodingEditorTests
 
         Assert.Equal(new[] { "Fast", "Medium", "High", "Maximum", "Custom", "＋ Save preset…" }, editor.Presets.Select(p => p.Label));
         Assert.Equal(ExportPresetKind.Maximum, editor.SelectedPreset!.BuiltIn);
-        Assert.Equal((ExportVideoCodec.Hevc, ExportVideoEncoder.Nvenc, ExportResolution.Project, ExportQuality.Maximum, ExportSpeedPreset.Slow, 320),
+        Assert.Equal((ExportVideoCodec.H264, ExportVideoEncoder.Nvenc, ExportResolution.Project, ExportQuality.Maximum, ExportSpeedPreset.Slow, 320),
             (editor.SelectedCodec.Value, editor.SelectedEncoder.Value, editor.SelectedResolution.Value, editor.SelectedQuality.Value, editor.SelectedSpeed.Value, editor.SelectedBitrate.Value));
         Assert.Equal(ExportEncoding.NewProject, editor.Value);
-        Assert.StartsWith("Parameters: NVENC HEVC p7 CQ", editor.PlanText);
+        Assert.Equal("Parameters: NVENC p7 CQ 19", editor.PlanText);
         // Without the global settings nothing can be saved.
         Assert.DoesNotContain(new ExportEncodingEditorViewModel(ExportEncoding.NewProject, Nvenc, Uhd()).Presets, p => p.Kind == ExportPresetChoiceKind.SaveNew);
     }
@@ -53,7 +53,7 @@ public sealed class ExportEncodingEditorTests
         Assert.Equal("Parameters: NVENC p2 CQ 25", editor.PlanText);
 
         editor.SelectedPreset = Preset(editor, ExportPresetKind.Medium);
-        Assert.Equal((ExportVideoCodec.Hevc, ExportResolution.Qhd), (editor.SelectedCodec.Value, editor.SelectedResolution.Value));
+        Assert.Equal((ExportVideoCodec.Av1, ExportResolution.Qhd), (editor.SelectedCodec.Value, editor.SelectedResolution.Value));
         Assert.Equal(new FrameSize(2560, 1440), editor.OutputSize);
     }
 
@@ -122,13 +122,13 @@ public sealed class ExportEncodingEditorTests
         Assert.Equal(ExportEncoding.NewProject, editor.Value);
         Assert.Equal(ExportPresetKind.Maximum, editor.SelectedPreset!.BuiltIn);
         Assert.Contains("no NVIDIA graphics card", editor.UnavailableNote);
-        Assert.Contains("libx265", editor.UnavailableNote);
-        Assert.Contains("libx265", editor.PlanText);
+        Assert.Contains("libx264", editor.UnavailableNote);
+        Assert.Contains("libx264", editor.PlanText);
 
         editor.SetAvailability(Nvenc);   // the check finished later: NVENC is offered and used, the choice kept
         Assert.Null(editor.UnavailableNote);
         Assert.Equal(ExportEncoding.NewProject, editor.Value);
-        Assert.StartsWith("Parameters: NVENC HEVC", editor.PlanText);
+        Assert.StartsWith("Parameters: NVENC p7", editor.PlanText);
     }
 
     [Fact]

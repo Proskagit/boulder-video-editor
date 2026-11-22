@@ -4148,19 +4148,19 @@
     <value>Средний</value>
   </data>
   <data name="ExportPreset_MediumDetail" xml:space="preserve">
-    <value>2K · HEVC — хорошая картинка, небольшой файл</value>
+    <value>2K · AV1 — хорошая картинка, самый маленький файл</value>
   </data>
   <data name="ExportPreset_High" xml:space="preserve">
     <value>Высокий</value>
   </data>
   <data name="ExportPreset_HighDetail" xml:space="preserve">
-    <value>4K · HEVC — очень высокое качество</value>
+    <value>4K · H.264 — очень высокое качество</value>
   </data>
   <data name="ExportPreset_Maximum" xml:space="preserve">
     <value>Максимальный</value>
   </data>
   <data name="ExportPreset_MaximumDetail" xml:space="preserve">
-    <value>как в проекте · HEVC — наивысшее качество (новые проекты)</value>
+    <value>как в проекте · H.264 — наивысшее качество (новые проекты)</value>
   </data>
   <data name="ExportPreset_Custom" xml:space="preserve">
     <value>Пользовательский</value>
@@ -4248,5 +4248,19 @@
   </data>
   <data name="Speed_VeryFastDetail" xml:space="preserve">
     <value>быстрее всего, файл больше</value>
+  </data>
+  <data name="ExportGuide_Tip" xml:space="preserve">
+    <value>Какой кодек и кодировщик выбрать</value>
+  </data>
+  <data name="ExportGuide_Title" xml:space="preserve">
+    <value>Какой кодек и кодировщик выбрать — замерено на 4K-видео со скалодрома при одинаковой картинке (VMAF)</value>
+  </data>
+  <data name="ExportGuide_Text" xml:space="preserve">
+    <value>• Наивысшее и очень высокое качество («Максимальное», «Очень высокое»): H.264 на видеокарте NVIDIA (NVENC) — на таком качестве HEVC и AV1 файл не уменьшают; H.264 играет везде.
+• Высокое качество («Высокое», пресет «Средний»): AV1 на видеокарте — файл примерно на 30 % меньше, чем H.264 NVENC, и так же быстро; HEVC NVENC — примерно на 10 % меньше. Старые устройства AV1 могут не воспроизвести.
+• Пониже («Стандартное», «Компактное»): маленькие файлы у всех кодеков; самые маленькие — SVT-AV1 и libx264 на процессоре, но медленно.
+• Процессор (libx264 / libx265 / SVT-AV1) — когда нет видеокарты NVIDIA: в несколько раз медленнее. libx265 на высоком качестве не делает HEVC меньше, чем libx264.
+• NVENC: с H.264 и AV1 экспорт идёт с одной скоростью; HEVC на «Медленно» — примерно на 10 % медленнее.
+• Формат файла: MP4 — для всего; MOV — для монтажа на Apple; MKV — для плееров и архива. AV1 — только в MP4 или MKV.</value>
   </data>
 </root>

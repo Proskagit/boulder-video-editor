@@ -132,5 +132,6 @@ public sealed class ProjectSettingsViewBindingTests
         bitrate.SelectedItem = draft.Bitrates.Single(o => o.Value == 320);
         Assert.Equal((ExportQuality.Compact, 320), (draft.DraftExport.Quality, draft.DraftExport.AudioBitrateKbps));
         Assert.Same(ExportEncoding.Default, _projects.Current.Settings.Export);   // the view writes the draft only
+        Assert.NotNull(((Button)Named("CodecGuideButton")).Flyout);   // D076: «?» — which codec and encoder suit which quality
     }
 }

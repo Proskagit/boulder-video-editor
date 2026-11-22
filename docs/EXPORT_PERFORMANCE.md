@@ -156,3 +156,71 @@ size depends on the picture. An average bitrate («Пользовательск�
   uses the UI thread and the CPU the user's work needs; the export's numbers in §1 were measured with an idle editor.
 - **Source files** are held open read-only (sharing reads) for the export's duration — no copies, no cost.
 - **ffmpeg processes** are in a kill-on-close job object — no cost; no orphan ffmpeg even if the app is killed.
+
+## 8. Phase 57 (D076): HEVC and AV1 against libx264
+
+Measured 2026-11-22/23 on the target machine (RTX 4070 SUPER, driver 621.24) with the **new minimal FFmpeg 9.0.2** (x265 4.1,
+SVT-AV1 4.0.1, NVENC from nv-codec-headers 12.2.72.0; CI run 45066996109) for the encodings and gyan.dev 9.0.1 for VMAF
+(`calibrate --vmaf-ffmpeg`). References: lossless canvases of the export (`run --reference`, 300 frames each) — **A** `4k`
+(4K60 route), **B** `4k120` (a second 4K route), **C** `hevc-vert` (the vivo HLG clip through the HDR graph on 1080×1920),
+**D** `4k-1080` (1080p60), **E** `4k30` (a third route in a 30 fps project). VMAF of every third frame (`--vmaf-subsample 3`; the 4K
+model above 1080p). Results in `D:\aive-calibration-57\*.jsonl` (outside the repository).
+
+**The rule of D059 §5:** a quality level's value is the largest CRF / CQ whose VMAF is not below its libx264 counterpart on
+every reference — Maximum ↔ slow CRF 14, VeryHigh ↔ slow CRF 16, High ↔ medium CRF 18, Standard ↔ medium CRF 23, Compact ↔
+medium CRF 28, «Очень быстро» ↔ veryfast CRF 18. The grid was searched on A and E (the deciding ones in D059) and every chosen
+value then checked on all five.
+
+### 8.1 A finding on the way: NVENC HEVC's automatic level
+
+`hevc_nvenc` picks level 5.1 **Main tier** for 4K60, whose 40 Mbit/s buffer caps the stream at ~31 Mbit/s whatever the CQ (CQ 18,
+20 and 22 gave the same file, VMAF 97.9). The export now asks for **High tier** with a 160 Mbit/s peak (`-tier high -maxrate 160M
+-bufsize 160M`; level 5.1 High tier allows 160 Mbit/s — a conformant stream). Every HEVC NVENC value below is measured with it.
+
+### 8.2 The values (the plan's tables)
+
+| level (counterpart) | NVENC H.264 | NVENC HEVC | NVENC AV1 | libx264 | libx265 | SVT-AV1 |
+|---|---|---|---|---|---|---|
+| Максимальное (slow CRF 14) | p7 mp **CQ 19**¹ | p7 mp CQ 17 | CQ 20 | CRF 14 | CRF 13 | CRF 10 |
+| Очень высокое (slow CRF 16) | p7 mp CQ 20 | p7 mp CQ 19 | CQ 22 | CRF 16 | CRF 14 | CRF 11 |
+| Высокое (medium CRF 18) | p5 CQ 22 | p5 CQ 22 | CQ 28 | CRF 18 | CRF 15 | CRF 12 |
+| Стандартное (medium CRF 23) | CQ 27 | CQ 27 | CQ 32 | CRF 23 | CRF 20 | CRF 30 |
+| Компактное (medium CRF 28) | CQ 32 | CQ 33 | CQ 42 | CRF 28 | CRF 26 | CRF 40 |
+| «Очень быстро» (veryfast CRF 18) | p2 +3 (CQ 25) | p2 +3 (CQ 25) | p2 +4 (CQ 32) | veryfast | veryfast +2 | preset 11 +8 |
+
+The speeds: NVENC p2 / p3 / p5 / p7 (p7 with multipass); x264 / x265 by name; SVT-AV1 presets 11 / 9 / 7 / 5.
+¹ D074 §6's value (the owner's), calibrated then against medium CRF 14; against slow CRF 14 it is 0.02 VMAF below on D only (above
+on the other four) — kept. Three first choices fell 0.03–0.13 below on B and were lowered one step (x265 slow 14 → 13, medium 16 →
+15; SVT-AV1 14 → 12).
+
+### 8.3 What the codecs give — Mbit/s on A (4K60) at each level's value, and the encoder's own speed
+
+| level | x264 | NVENC H.264 | NVENC HEVC | NVENC AV1 | libx265 | SVT-AV1 |
+|---|---|---|---|---|---|---|
+| Максимальное | 54.0 | **71.8** | 94.8 | 91.6 | 70.3 | 78.3 |
+| Очень высокое | 42.1 | **62.2** | 69.7 | 71.5 | 60.3 | — |
+| Высокое | 32.2 | 48.9 | 44.4 | **34.5** | 44.4 | 43.7 |
+| Стандартное | 13.2 | 21.6 | 18.2 | 19.8 | 17.9 | 12.8 |
+| Компактное | 4.8 | 9.6 | 7.0 | 4.7 | 5.5 | 6.3 |
+| Очень быстро | 21.5 | 34.4 | 27.6 | 19.5 | 21.3 | 20.8 |
+| encoder alone, fps (4K60, medium / p5) | 41 | 60 | 85 | 90 | 17 | 31 |
+
+- **At the highest qualities HEVC and AV1 make no smaller file** than H.264 NVENC by VMAF (VMAF is near 99 there and every codec
+  needs many bits to hold it); libx264 stays the smallest. **At «Высокое» AV1 NVENC is ~30 % smaller than H.264 NVENC** (34.5
+  against 48.9) and HEVC NVENC ~10 %. Lower, every codec is small; SVT-AV1 and libx264 the smallest.
+- **libx265 makes HEVC no smaller than libx264** at high quality (and 2–3× slower); SVT-AV1 at preset 7 about as large as libx264
+  at «Высокое».
+- **The export's speed** (the real export, 4K60, 600 frames, 2 runs, p7 multipass): H.264 44.5–46.5 fps, AV1 46.1–46.7, HEVC 41.6 —
+  the pipeline, not the encoder, limits (§3); AV1 is as fast as H.264, HEVC at p7 ~10 % slower.
+- **The owner's decision (D076 §3, after these numbers):** «Максимальный», «Высокий», «Быстрый» — H.264 NVENC; «Средний» — AV1 NVENC;
+  HEVC and AV1 for any level by hand; the «?» in «Подробные настройки» sums this table up.
+
+### 8.4 The size estimate
+
+`ExportSizeEstimate` reads, per codec and encoder, the bits per pixel of A at a reference value (libx265 medium CRF 16 0.075, slow
+0.087, veryfast 0.061; NVENC HEVC p5 CQ 22 0.089; SVT-AV1 preset 7 CRF 14 0.074, preset 5 0.096, preset 11 0.073; NVENC AV1 p5 CQ 28
+0.069, p7 0.063, p2 0.068) and their halving (x265 / NVENC HEVC every 4 steps, SVT-AV1 every 10, NVENC AV1 every 4.5); the size and
+the rate scale as for H.264 (§6). The range stays 0.6–1.6× the median — «оценка».
+
+Limits: the same as §5 (climbing footage of one gym, a steady camera; one driver); the HEVC / AV1 values must be re-checked when the
+driver or FFmpeg changes (`calibrate`, the settings `x265:` / `svtav1:` / `hevcnvenc:` / `av1nvenc:`).

@@ -12075,15 +12075,20 @@ answers:** several file types of the export — the most popular three: **MP4, M
 refuses it; `Validate`). The pixel format (8-bit 4:2:0), BT.709 limited tags, AAC-LC 48 kHz stereo and the project's frame rate
 stay fixed for every codec and container.
 
+**The owner's amendment of Q3 (2026-11-23, after the calibration, §5):** at the highest qualities HEVC and AV1 make no smaller
+file than H.264 NVENC and no faster export (the export runs at ~45 fps with H.264 and AV1, HEVC ~10 % slower); at «Высокое» AV1 NVENC
+is ~30 % smaller. Hence: «Максимальный», «Высокий», «Быстрый» — **H.264**; «Средний» — **AV1**; HEVC and AV1 for any level by hand,
+and a «?» in «Подробные настройки» that sums up which codec and encoder suit which quality (the owner's request).
+
 **4.2 The built-in presets (`ExportPresets`).** Every preset prefers NVENC (the processor encodes the same codec where NVENC
 is not available).
 
 | preset | resolution (a ceiling) | codec | quality level | speed | audio |
 |---|---|---|---|---|---|
 | «Быстрый» | Full HD | H.264 | Высокое (↔ CRF 18) | Очень быстро (NVENC p2 / veryfast) | AAC 192 |
-| «Средний» | 2K (1440p) | HEVC | Высокое (↔ medium CRF 18) | Средне (p5 / medium) | AAC 192 |
-| «Высокий» | 4K | HEVC | Очень высокое (↔ slow CRF 16) | Медленно (p7 multipass / slow) | AAC 256 |
-| «Максимальный» | as the project | HEVC | Максимальное (↔ CRF 14) | Медленно (p7 multipass / slow) | AAC 320 |
+| «Средний» | 2K (1440p) | AV1 | Высокое (↔ medium CRF 18) | Средне (p5 / SVT-AV1 7) | AAC 192 |
+| «Высокий» | 4K | H.264 | Очень высокое (↔ slow CRF 16) | Медленно (p7 multipass / slow) | AAC 256 |
+| «Максимальный» | as the project | H.264 | Максимальное (↔ CRF 14) | Медленно (p7 multipass / slow) | AAC 320 |
 
 - **A ceiling (Q4 A):** a preset larger than the canvas (by the short side) exports the canvas's own size
   (`ExportResolutions.Ceiling`); a preset of exactly the canvas's size is stored as the canvas (D060 §3, as before). A new size
@@ -12135,7 +12140,11 @@ libavcodec's encoders). Run 45066996109, package SHA-256 `fdb6effe…`, sources 
 
 ### 5. The calibration
 
-(See `docs/EXPORT_PERFORMANCE.md` §8: the references, the measured values and the CRF / CQ chosen per encoder.)
+`docs/EXPORT_PERFORMANCE.md` §8: five lossless references of the owner's footage, the rule of D059 §5 per level and encoder, the
+values in `ExportVideoPlan` (NVENC HEVC p7 mp CQ 17 / 19, p5 22 / 27 / 33; NVENC AV1 CQ 20 / 22 / 28 / 32 / 42; libx265 CRF 13 / 14 /
+15 / 20 / 26; SVT-AV1 CRF 10 / 11 / 12 / 30 / 40; «Очень быстро» offsets per encoder) and the size estimate's bits per pixel. Found
+on the way: NVENC HEVC's automatic level 5.1 Main tier caps 4K60 at ~31 Mbit/s — the export asks for High tier with a 160 Mbit/s
+peak. The «Максимальный» of a new project is therefore D074 §6's encoding (NVENC p7 multipass CQ 19) with AAC 320.
 
 ### Out of scope
 

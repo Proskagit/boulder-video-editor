@@ -4144,19 +4144,19 @@ Everything else works without the models. They can also be installed later: «Se
     <value>Medium</value>
   </data>
   <data name="ExportPreset_MediumDetail" xml:space="preserve">
-    <value>2K · HEVC — good picture, small file</value>
+    <value>2K · AV1 — good picture, the smallest file</value>
   </data>
   <data name="ExportPreset_High" xml:space="preserve">
     <value>High</value>
   </data>
   <data name="ExportPreset_HighDetail" xml:space="preserve">
-    <value>4K · HEVC — very high quality</value>
+    <value>4K · H.264 — very high quality</value>
   </data>
   <data name="ExportPreset_Maximum" xml:space="preserve">
     <value>Maximum</value>
   </data>
   <data name="ExportPreset_MaximumDetail" xml:space="preserve">
-    <value>as the project · HEVC — the highest quality (new projects)</value>
+    <value>as the project · H.264 — the highest quality (new projects)</value>
   </data>
   <data name="ExportPreset_Custom" xml:space="preserve">
     <value>Custom</value>
@@ -4244,5 +4244,19 @@ Everything else works without the models. They can also be installed later: «Se
   </data>
   <data name="Speed_VeryFastDetail" xml:space="preserve">
     <value>the quickest, a larger file</value>
+  </data>
+  <data name="ExportGuide_Tip" xml:space="preserve">
+    <value>Which codec and encoder to choose</value>
+  </data>
+  <data name="ExportGuide_Title" xml:space="preserve">
+    <value>Which codec and encoder — measured on 4K climbing footage at the same picture quality (VMAF)</value>
+  </data>
+  <data name="ExportGuide_Text" xml:space="preserve">
+    <value>• The highest and very high quality («Максимальное», «Очень высокое»): H.264 on the NVIDIA card (NVENC) — at this quality HEVC and AV1 make no smaller file; H.264 plays everywhere.
+• High quality («Высокое», the «Medium» preset): AV1 on the NVIDIA card — about 30 % smaller than H.264 NVENC and as fast; HEVC NVENC about 10 % smaller. Older devices may not play AV1.
+• Lower quality («Стандартное», «Компактное»): every codec is small; SVT-AV1 and libx264 on the processor make the smallest files, but slowly.
+• The processor (libx264 / libx265 / SVT-AV1) — when there is no NVIDIA card: several times slower. libx265 makes HEVC no smaller than libx264 at high quality.
+• NVENC: the export runs at the same speed with H.264 and AV1; HEVC at «Медленно» is about 10 % slower.
+• The file type: MP4 — for everything; MOV — for Apple editors; MKV — for players and archives. AV1 only in MP4 or MKV.</value>
   </data>
 </root>

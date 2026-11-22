@@ -317,7 +317,7 @@ public class ExportEncodingPersistenceTests
     [Fact]
     public void The_codec_and_the_container_are_written_by_name_only_when_not_h264_mp4_and_no_profile_is_written()
     {
-        var export = Settings(Json(Sample(ExportPresets.Maximum with { Container = ExportContainer.Mkv })))["export"]!.AsObject();
+        var export = Settings(Json(Sample(ExportPresets.Maximum with { Codec = ExportVideoCodec.Hevc, Container = ExportContainer.Mkv })))["export"]!.AsObject();
         Assert.Equal(("Hevc", "Mkv", "Nvenc"), (export["codec"]!.GetValue<string>(), export["container"]!.GetValue<string>(), export["encoder"]!.GetValue<string>()));
         Assert.Equal(("Maximum", "Slow", 320), (export["quality"]!.GetValue<string>(), export["preset"]!.GetValue<string>(), export["audioBitrateKbps"]!.GetValue<int>()));
         Assert.False(export.ContainsKey("profile"));
@@ -351,7 +351,6 @@ public class ExportEncodingPersistenceTests
         Assert.Equal(new ExportEncoding(expectedQuality, expectedSpeed, Custom.AudioBitrateKbps) { Encoder = ExportVideoEncoder.Nvenc, RateControl = rate }, loaded);
         Assert.Equal(ExportVideoCodec.H264, loaded.Codec);
         Assert.Equal(ExportContainer.Mp4, loaded.Container);
-        Assert.Null(ExportPresets.Match(loaded, new Core.Composition.FrameSize(1920, 1080)));
     }
 
     [Fact]

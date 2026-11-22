@@ -396,7 +396,7 @@ public sealed class ExportWorkflowTests : IDisposable
         Assert.Equal(ExportOutcomeKind.Succeeded, outcome.Kind);
         var job = Assert.Single(_export.Jobs);
         Assert.Equal(Core.Export.ExportPresetKind.High, Core.Export.ExportPresets.Match(job.Encoding, job.Snapshot.Canvas));
-        Assert.Equal(ExportVideoCodec.Hevc, job.Encoding.Codec);
+        Assert.Equal(ExportVideoCodec.H264, job.Encoding.Codec);   // D076: «Высокий» is H.264
     }
 
     [Fact]

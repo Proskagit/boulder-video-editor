@@ -45,7 +45,7 @@ Download the installer (full or light web Setup) or the portable archive from
 7. **Follow** — «Follow the climber» when the frame has room: the frame follows the climber, the outlines hide behind people.
 8. **Sound** — music, ducking under speech, noise reduction, voice enhancement.
 9. **Design** — text and templates («Boulder», «Summary», «Heart rate», «Highlight»…).
-10. **Export** — Ctrl+E, a preset (HEVC «Maximum» by default); with NVIDIA — fast through NVENC, in the background; copy the YouTube timestamps.
+10. **Export** — Ctrl+E, a preset («Maximum» by default); with NVIDIA — fast through NVENC, in the background; copy the YouTube timestamps.
 
 Help on any step — F1 in the program.
 
@@ -121,7 +121,7 @@ dotnet test                      # AIVE_HEAVY_TESTS=1 adds the 4K export scenes
 7. **Follow** — «Следить за скалолазом», если у кадра есть запас: кадр ведёт скалолаза, контуры прячутся за людьми.
 8. **Звук** — музыка, приглушение под речь, шумоподавление, улучшение речи.
 9. **Оформление** — текст и шаблоны («Боулдер», «Итоги», «Пульс», «Хайлайт»…).
-10. **Экспорт** — Ctrl+E, пресет (по умолчанию HEVC «Максимальный»); с NVIDIA — быстро через NVENC, в фоне; скопируйте таймкоды для YouTube.
+10. **Экспорт** — Ctrl+E, пресет (по умолчанию «Максимальный»); с NVIDIA — быстро через NVENC, в фоне; скопируйте таймкоды для YouTube.
 
 Подсказка по любому шагу — F1 в программе.
 

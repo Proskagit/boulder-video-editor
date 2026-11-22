@@ -138,8 +138,19 @@ public sealed record ExportVideoPlan(ExportVideoEncoder Encoder, string Preset, 
     };
 
     /// <summary>At «Очень быстро» the counterpart is libx264 veryfast, whose VMAF is lower: NVENC p2 holds it at 3 CQ more
-    /// (measured at CRF 18: CQ 25 against p5's 22 — D059's «Быстрый»).</summary>
+    /// (measured at CRF 18: CQ 25 against p5's 22 — D059's «Быстрый»; HEVC the same, D076 §5).</summary>
     public const int NvencVeryFastCqOffset = 3;
+
+    /// <summary>D076 §5: the same for the other encoders, measured against libx264 veryfast CRF 18 — NVENC AV1 p2 +4 (CQ 32),
+    /// libx265 veryfast +2 (CRF 18), SVT-AV1 preset 11 +8 (CRF 22); libx264 is its own counterpart (0).</summary>
+    public static int VeryFastOffset(ExportVideoCodec codec, ExportVideoEncoder encoder) => (codec, encoder) switch
+    {
+        (ExportVideoCodec.Av1, ExportVideoEncoder.Nvenc) => 4,
+        (_, ExportVideoEncoder.Nvenc) => NvencVeryFastCqOffset,
+        (ExportVideoCodec.Hevc, _) => 2,
+        (ExportVideoCodec.Av1, _) => 8,
+        _ => 0
+    };
 
     /// <summary>The NVENC CQ of <paramref name="codec"/> at <paramref name="speed"/> and <paramref name="quality"/>.</summary>
     public static int NvencQuality(ExportVideoCodec codec, ExportSpeedPreset speed, ExportQuality quality)
@@ -151,27 +162,28 @@ public sealed record ExportVideoPlan(ExportVideoEncoder Encoder, string Preset, 
             ExportVideoCodec.Av1 => Av1NvencCqOf(quality),
             _ => throw new ArgumentOutOfRangeException(nameof(codec), codec, "Unknown export codec.")
         };
-        return level + (speed == ExportSpeedPreset.VeryFast ? NvencVeryFastCqOffset : 0);
+        return level + (speed == ExportSpeedPreset.VeryFast ? VeryFastOffset(codec, ExportVideoEncoder.Nvenc) : 0);
     }
 
-    /// <summary>D076 §5: NVENC HEVC's CQ of a quality level (the rule of D059 §5).</summary>
+    /// <summary>D076 §5: NVENC HEVC's CQ of a quality level (the rule of D059 §5): Maximum ↔ slow CRF 14 at p7 multipass,
+    /// VeryHigh ↔ slow CRF 16 at p7 multipass, High / Standard / Compact ↔ medium CRF 18 / 23 / 28 at p5.</summary>
     public static int HevcNvencCqOf(ExportQuality quality) => quality switch
     {
-        ExportQuality.Maximum => 21,
-        ExportQuality.VeryHigh => 22,
-        ExportQuality.High => 24,
-        ExportQuality.Standard => 29,
-        ExportQuality.Compact => 34,
+        ExportQuality.Maximum => 17,
+        ExportQuality.VeryHigh => 19,
+        ExportQuality.High => 22,
+        ExportQuality.Standard => 27,
+        ExportQuality.Compact => 33,
         _ => throw new ArgumentOutOfRangeException(nameof(quality), quality, "Unknown export quality.")
     };
 
-    /// <summary>D076 §5: NVENC AV1's CQ (0–63) of a quality level.</summary>
+    /// <summary>D076 §5: NVENC AV1's CQ (0–63) of a quality level (the counterparts as HEVC's).</summary>
     public static int Av1NvencCqOf(ExportQuality quality) => quality switch
     {
-        ExportQuality.Maximum => 24,
-        ExportQuality.VeryHigh => 27,
-        ExportQuality.High => 30,
-        ExportQuality.Standard => 36,
+        ExportQuality.Maximum => 20,
+        ExportQuality.VeryHigh => 22,
+        ExportQuality.High => 28,
+        ExportQuality.Standard => 32,
         ExportQuality.Compact => 42,
         _ => throw new ArgumentOutOfRangeException(nameof(quality), quality, "Unknown export quality.")
     };
@@ -196,27 +208,27 @@ public sealed record ExportVideoPlan(ExportVideoEncoder Encoder, string Preset, 
         ExportVideoCodec.Hevc => X265CrfOf(quality),
         ExportVideoCodec.Av1 => SvtAv1CrfOf(quality),
         _ => throw new ArgumentOutOfRangeException(nameof(codec), codec, "Unknown export codec.")
-    };
+    } + (speed == ExportSpeedPreset.VeryFast ? VeryFastOffset(codec, ExportVideoEncoder.Software) : 0);
 
-    /// <summary>D076 §5: libx265's CRF of a quality level.</summary>
+    /// <summary>D076 §5: libx265's CRF of a quality level (Maximum / VeryHigh at slow, the rest at medium, as HEVC NVENC's).</summary>
     public static int X265CrfOf(ExportQuality quality) => quality switch
     {
-        ExportQuality.Maximum => 16,
-        ExportQuality.VeryHigh => 18,
-        ExportQuality.High => 20,
-        ExportQuality.Standard => 25,
-        ExportQuality.Compact => 30,
+        ExportQuality.Maximum => 13,
+        ExportQuality.VeryHigh => 14,
+        ExportQuality.High => 15,
+        ExportQuality.Standard => 20,
+        ExportQuality.Compact => 26,
         _ => throw new ArgumentOutOfRangeException(nameof(quality), quality, "Unknown export quality.")
     };
 
-    /// <summary>D076 §5: SVT-AV1's CRF (0–63) of a quality level.</summary>
+    /// <summary>D076 §5: SVT-AV1's CRF (0–63) of a quality level (Maximum / VeryHigh at preset 5, the rest at preset 7).</summary>
     public static int SvtAv1CrfOf(ExportQuality quality) => quality switch
     {
-        ExportQuality.Maximum => 22,
-        ExportQuality.VeryHigh => 25,
-        ExportQuality.High => 28,
-        ExportQuality.Standard => 35,
-        ExportQuality.Compact => 42,
+        ExportQuality.Maximum => 10,
+        ExportQuality.VeryHigh => 11,
+        ExportQuality.High => 12,
+        ExportQuality.Standard => 30,
+        ExportQuality.Compact => 40,
         _ => throw new ArgumentOutOfRangeException(nameof(quality), quality, "Unknown export quality.")
     };
 

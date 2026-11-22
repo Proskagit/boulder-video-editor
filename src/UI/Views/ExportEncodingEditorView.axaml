@@ -42,6 +42,18 @@
     <Expander x:Name="MoreSettings" Header="{x:Static l:Strings.ExportDialog_More}" IsExpanded="False" HorizontalAlignment="Stretch"
               HorizontalContentAlignment="Stretch" Margin="0,2,0,4">
       <StackPanel Spacing="2">
+        <!-- D076 (the owner): «?» — which codec and encoder suit which quality, from the calibration (docs/EXPORT_PERFORMANCE.md §8). -->
+        <Button x:Name="CodecGuideButton" Content="?" HorizontalAlignment="Right" Padding="8,0" Margin="0,0,0,4"
+                ToolTip.Tip="{x:Static l:Strings.ExportGuide_Tip}">
+          <Button.Flyout>
+            <Flyout Placement="Left">
+              <StackPanel MaxWidth="520" Spacing="6">
+                <TextBlock Text="{x:Static l:Strings.ExportGuide_Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                <TextBlock x:Name="CodecGuideText" Text="{x:Static l:Strings.ExportGuide_Text}" TextWrapping="Wrap" FontSize="{DynamicResource FontSizeCaption}"/>
+              </StackPanel>
+            </Flyout>
+          </Button.Flyout>
+        </Button>
         <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
           <TextBlock Grid.Row="0" Text="{x:Static l:Strings.ExportContainer_Label}" VerticalAlignment="Center"/>
           <ComboBox x:Name="ContainerBox" Grid.Row="0" Grid.Column="1" Classes="choice"

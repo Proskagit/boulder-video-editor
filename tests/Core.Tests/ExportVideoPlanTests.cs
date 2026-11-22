@@ -128,11 +128,11 @@ public sealed class ExportVideoPlanTests
     {
         Assert.Equal((ExportVideoCodec.H264, ExportResolution.FullHd, ExportSpeedPreset.VeryFast, ExportQuality.High, 192),
             (ExportPresets.Fast.Codec, ExportPresets.Fast.Resolution, ExportPresets.Fast.Preset, ExportPresets.Fast.Quality, ExportPresets.Fast.AudioBitrateKbps));
-        Assert.Equal((ExportVideoCodec.Hevc, ExportResolution.Qhd, ExportSpeedPreset.Medium, ExportQuality.High),
+        Assert.Equal((ExportVideoCodec.Av1, ExportResolution.Qhd, ExportSpeedPreset.Medium, ExportQuality.High),
             (ExportPresets.Medium.Codec, ExportPresets.Medium.Resolution, ExportPresets.Medium.Preset, ExportPresets.Medium.Quality));
-        Assert.Equal((ExportVideoCodec.Hevc, ExportResolution.Uhd4K, ExportSpeedPreset.Slow, ExportQuality.VeryHigh, 256),
+        Assert.Equal((ExportVideoCodec.H264, ExportResolution.Uhd4K, ExportSpeedPreset.Slow, ExportQuality.VeryHigh, 256),
             (ExportPresets.High.Codec, ExportPresets.High.Resolution, ExportPresets.High.Preset, ExportPresets.High.Quality, ExportPresets.High.AudioBitrateKbps));
-        Assert.Equal((ExportVideoCodec.Hevc, ExportResolution.Project, ExportSpeedPreset.Slow, ExportQuality.Maximum, 320),
+        Assert.Equal((ExportVideoCodec.H264, ExportResolution.Project, ExportSpeedPreset.Slow, ExportQuality.Maximum, 320),
             (ExportPresets.Maximum.Codec, ExportPresets.Maximum.Resolution, ExportPresets.Maximum.Preset, ExportPresets.Maximum.Quality, ExportPresets.Maximum.AudioBitrateKbps));
         foreach (var kind in ExportPresets.All)
         {
@@ -141,7 +141,8 @@ public sealed class ExportVideoPlanTests
         }
         Assert.Equal(ExportPresets.Maximum, ExportEncoding.NewProject);
         var plan = ExportVideoPlan.For(ExportEncoding.NewProject, Uhd, WithNvenc);
-        Assert.Equal((ExportVideoEncoder.Nvenc, ExportVideoCodec.Hevc, "p7", true), (plan.Encoder, plan.Codec, plan.Preset, plan.Multipass));
+        // The owner (D076 §3, after the calibration): «Максимальный» is H.264 — D074 §6's «Высокое качество» with AAC 320.
+        Assert.Equal((ExportVideoEncoder.Nvenc, ExportVideoCodec.H264, "p7", 19, true), (plan.Encoder, plan.Codec, plan.Preset, plan.Quality, plan.Multipass));
     }
 
     [Fact]
@@ -218,13 +219,14 @@ public sealed class ExportVideoPlanTests
         Assert.True(Of(new ExportEncoding(ExportQuality.Compact, ExportSpeedPreset.Medium, 192), uhd).HighBytes < balanced.LowBytes * 2);
         Assert.True(Of(new ExportEncoding(ExportQuality.Maximum, ExportSpeedPreset.Medium, 192), uhd).LowBytes > balanced.LowBytes);
         Assert.NotEqual(balanced, Of(ExportEncoding.Default with { Encoder = ExportVideoEncoder.Nvenc }, uhd));   // switching updates it
-        // HEVC and AV1 hold the same picture in fewer bits than H.264 — on both encoders.
-        foreach (var encoder in Enum.GetValues<ExportVideoEncoder>())
-        {
-            var h264 = Of(ExportEncoding.Default with { Encoder = encoder }, uhd);
-            Assert.True(Of(ExportEncoding.Default with { Encoder = encoder, Codec = ExportVideoCodec.Hevc }, uhd).HighBytes < h264.HighBytes);
-            Assert.True(Of(ExportEncoding.Default with { Encoder = encoder, Codec = ExportVideoCodec.Av1 }, uhd).HighBytes < h264.HighBytes);
-        }
+        // D076 §5 (measured): on NVENC, HEVC and AV1 hold the same picture in fewer bits than H.264 at this level (AV1 ≈ 30 % fewer);
+        // the codec changes the estimate.
+        var h264 = Of(ExportEncoding.Default with { Encoder = ExportVideoEncoder.Nvenc }, uhd);
+        var hevc = Of(ExportEncoding.Default with { Encoder = ExportVideoEncoder.Nvenc, Codec = ExportVideoCodec.Hevc }, uhd);
+        var av1 = Of(ExportEncoding.Default with { Encoder = ExportVideoEncoder.Nvenc, Codec = ExportVideoCodec.Av1 }, uhd);
+        Assert.True(hevc.HighBytes < h264.HighBytes);
+        Assert.True(av1.HighBytes < hevc.HighBytes);
+        Assert.NotEqual(balanced, Of(ExportEncoding.Default with { Codec = ExportVideoCodec.Hevc }, uhd));
         // A 4K60 minute at the default lies in the tens to hundreds of MB (measured ~32 Mbit/s → ~240 MB).
         Assert.InRange(balanced.LowBytes, 50L << 20, 400L << 20);
         Assert.InRange(balanced.HighBytes, 150L << 20, 900L << 20);

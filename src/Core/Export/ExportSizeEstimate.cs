@@ -88,10 +88,14 @@ public sealed record ExportSizeEstimate(long LowBytes, long HighBytes, bool From
     /// per preset — measured by the calibration.</summary>
     public static double HevcAv1Bpp(ExportVideoPlan plan) => (plan.Encoder, plan.Codec) switch
     {
-        (ExportVideoEncoder.Software, ExportVideoCodec.Hevc) => plan.Preset switch { "veryfast" => 0.040, "fast" => 0.038, "slow" => 0.034, _ => 0.036 },
-        (ExportVideoEncoder.Nvenc, ExportVideoCodec.Hevc) => plan.Preset switch { "p2" => 0.070, "p3" => 0.066, "p7" => 0.058, _ => 0.062 },
-        (ExportVideoEncoder.Software, _) => plan.Preset switch { "11" => 0.036, "9" => 0.033, "5" => 0.028, _ => 0.030 },
-        _ => plan.Preset switch { "p2" => 0.060, "p3" => 0.056, "p7" => 0.050, _ => 0.053 }
+        // measured: x265 medium CRF 16 0.075, slow (from CRF 15) 0.087, veryfast (from 16) 0.061; fast between — not measured
+        (ExportVideoEncoder.Software, ExportVideoCodec.Hevc) => plan.Preset switch { "veryfast" or "faster" => 0.061, "fast" => 0.068, "slow" or "slower" => 0.087, _ => 0.075 },
+        // measured: hevc_nvenc p5 CQ 22 0.089, p7 multipass (from 21) 0.088, p2 (from 23) 0.095
+        (ExportVideoEncoder.Nvenc, ExportVideoCodec.Hevc) => plan.Preset switch { "p1" or "p2" => 0.095, "p3" or "p4" => 0.092, "p6" or "p7" => 0.088, _ => 0.089 },
+        // measured: SVT-AV1 preset 7 CRF 14 0.074, preset 5 0.096, preset 11 (from 22) 0.073; 9 between — not measured
+        (ExportVideoEncoder.Software, _) => plan.Preset switch { "11" => 0.073, "9" => 0.074, "5" => 0.096, _ => 0.074 },
+        // measured: av1_nvenc p5 CQ 28 0.069, p7 multipass (from 26) 0.063, p2 0.068
+        _ => plan.Preset switch { "p1" or "p2" => 0.068, "p3" or "p4" => 0.069, "p6" or "p7" => 0.063, _ => 0.069 }
     };
 
     /// <summary>The quality value each encoder's bpp is measured at, and how many steps halve the bits.</summary>
@@ -99,14 +103,15 @@ public sealed record ExportSizeEstimate(long LowBytes, long HighBytes, bool From
     {
         (ExportVideoEncoder.Software, ExportVideoCodec.H264) => (18, X264CrfHalving),
         (ExportVideoEncoder.Nvenc, ExportVideoCodec.H264) => (22, NvencCqHalving),
-        (ExportVideoEncoder.Software, ExportVideoCodec.Hevc) => (20, HevcCrfHalving),
-        (ExportVideoEncoder.Nvenc, ExportVideoCodec.Hevc) => (24, NvencCqHalving),
-        (ExportVideoEncoder.Software, _) => (28, Av1CrfHalving),
-        _ => (30, Av1CrfHalving)
+        (ExportVideoEncoder.Software, ExportVideoCodec.Hevc) => (16, HevcCrfHalving),
+        (ExportVideoEncoder.Nvenc, ExportVideoCodec.Hevc) => (22, HevcCqHalving),
+        (ExportVideoEncoder.Software, _) => (14, Av1CrfHalving),
+        _ => (28, NvencCqHalving)
     };
 
-    /// <summary>D076 §5: libx265 halves the bits about every 5 CRF steps; AV1 (0–63 scale) about every 8.</summary>
-    public const double HevcCrfHalving = 5.0, Av1CrfHalving = 8.0;
+    /// <summary>D076 §5 (measured on the 4K60 reference): libx265 and NVENC HEVC halve the bits about every 4 steps, SVT-AV1
+    /// about every 10 (its 0–63 scale), NVENC AV1 every 4.5 as NVENC H.264.</summary>
+    public const double HevcCrfHalving = 4.0, HevcCqHalving = 4.0, Av1CrfHalving = 10.0;
 
     /// <summary>The calibrated median bits per pixel and frame of <paramref name="plan"/> at the output's size and rate.</summary>
     public static double BitsPerPixel(ExportVideoPlan plan, ExportOutput output)

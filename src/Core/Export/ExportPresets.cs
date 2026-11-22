@@ -8,12 +8,13 @@ public enum ExportPresetKind
 {
     /// <summary>«Быстрый»: Full HD, H.264 (plays everywhere), NVENC p2 / libx264 veryfast at CRF 18's level, AAC 192.</summary>
     Fast,
-    /// <summary>«Средний»: 2K, HEVC, NVENC p5 / libx265 medium at libx264 medium CRF 18's quality, AAC 192.</summary>
+    /// <summary>«Средний»: 2K, AV1, NVENC p5 / SVT-AV1 at libx264 medium CRF 18's quality, AAC 192 (D076 §3: AV1 saves ~30 %
+    /// against H.264 NVENC at this quality).</summary>
     Medium,
-    /// <summary>«Высокий»: 4K, HEVC, NVENC p7 multipass / libx265 slow at libx264 slow CRF 16's quality, AAC 256.</summary>
+    /// <summary>«Высокий»: 4K, H.264, NVENC p7 multipass / libx264 slow at slow CRF 16's quality, AAC 256.</summary>
     High,
-    /// <summary>«Максимальный»: the project's own size, HEVC, NVENC p7 multipass / libx265 slow at CRF 14's quality, AAC 320 —
-    /// a new project's export (D074 §6, D076 Q6).</summary>
+    /// <summary>«Максимальный»: the project's own size, H.264, NVENC p7 multipass / libx264 slow at CRF 14's quality, AAC 320 — a
+    /// new project's export (D074 §6, D076 Q6; at the highest quality HEVC / AV1 make no smaller file and no faster export).</summary>
     Maximum
 }
 
@@ -32,17 +33,17 @@ public static class ExportPresets
 
     public static ExportEncoding Medium { get; } = new(ExportQuality.High, ExportSpeedPreset.Medium, 192)
     {
-        Codec = ExportVideoCodec.Hevc, Encoder = ExportVideoEncoder.Nvenc, Resolution = ExportResolution.Qhd
+        Codec = ExportVideoCodec.Av1, Encoder = ExportVideoEncoder.Nvenc, Resolution = ExportResolution.Qhd
     };
 
     public static ExportEncoding High { get; } = new(ExportQuality.VeryHigh, ExportSpeedPreset.Slow, 256)
     {
-        Codec = ExportVideoCodec.Hevc, Encoder = ExportVideoEncoder.Nvenc, Resolution = ExportResolution.Uhd4K
+        Codec = ExportVideoCodec.H264, Encoder = ExportVideoEncoder.Nvenc, Resolution = ExportResolution.Uhd4K
     };
 
     public static ExportEncoding Maximum { get; } = new(ExportQuality.Maximum, ExportSpeedPreset.Slow, 320)
     {
-        Codec = ExportVideoCodec.Hevc, Encoder = ExportVideoEncoder.Nvenc, Resolution = ExportResolution.Project
+        Codec = ExportVideoCodec.H264, Encoder = ExportVideoEncoder.Nvenc, Resolution = ExportResolution.Project
     };
 
     /// <summary>The built-in presets in the order offered.</summary>
