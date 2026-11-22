@@ -78,27 +78,30 @@ public sealed class CodecExportEncoderTests : IDisposable
         Assert.Equal((".mp4", ".mov", ".mkv"), (ExportFormat.ExtensionOf(ExportContainer.Mp4), ExportFormat.ExtensionOf(ExportContainer.Mov), ExportFormat.ExtensionOf(ExportContainer.Mkv)));
     }
 
-    public static TheoryData<ExportVideoCodec, ExportVideoEncoder, ExportContainer> Cases()
-    {
-        var data = new TheoryData<ExportVideoCodec, ExportVideoEncoder, ExportContainer>();
-        foreach (var codec in Enum.GetValues<ExportVideoCodec>())
-        foreach (var encoder in Enum.GetValues<ExportVideoEncoder>())
-        foreach (var container in Enum.GetValues<ExportContainer>())
-            if (ExportEncoding.Holds(container, codec)) data.Add(codec, encoder, container);
-        return data;
-    }
+    // One theory per codec and encoder, each skipped (with the reason) where this machine's ffmpeg has no such encoder.
 
-    [FfmpegTheory]
-    [MemberData(nameof(Cases))]
-    public async Task Every_codec_encoder_and_container_writes_every_frame_in_order_with_the_exact_audio(ExportVideoCodec codec, ExportVideoEncoder encoder,
-        ExportContainer container)
+    [FfmpegTheory, InlineData(ExportContainer.Mp4), InlineData(ExportContainer.Mov), InlineData(ExportContainer.Mkv)]
+    public Task H264_on_the_processor(ExportContainer container) => Encodes(ExportVideoCodec.H264, ExportVideoEncoder.Software, container);
+
+    [EncoderTheory(ExportVideoCodec.H264, ExportVideoEncoder.Nvenc), InlineData(ExportContainer.Mp4), InlineData(ExportContainer.Mov), InlineData(ExportContainer.Mkv)]
+    public Task H264_on_nvenc(ExportContainer container) => Encodes(ExportVideoCodec.H264, ExportVideoEncoder.Nvenc, container);
+
+    [EncoderTheory(ExportVideoCodec.Hevc, ExportVideoEncoder.Software), InlineData(ExportContainer.Mp4), InlineData(ExportContainer.Mov), InlineData(ExportContainer.Mkv)]
+    public Task Hevc_on_the_processor(ExportContainer container) => Encodes(ExportVideoCodec.Hevc, ExportVideoEncoder.Software, container);
+
+    [EncoderTheory(ExportVideoCodec.Hevc, ExportVideoEncoder.Nvenc), InlineData(ExportContainer.Mp4), InlineData(ExportContainer.Mov), InlineData(ExportContainer.Mkv)]
+    public Task Hevc_on_nvenc(ExportContainer container) => Encodes(ExportVideoCodec.Hevc, ExportVideoEncoder.Nvenc, container);
+
+    [EncoderTheory(ExportVideoCodec.Av1, ExportVideoEncoder.Software), InlineData(ExportContainer.Mp4), InlineData(ExportContainer.Mkv)]
+    public Task Av1_on_the_processor(ExportContainer container) => Encodes(ExportVideoCodec.Av1, ExportVideoEncoder.Software, container);
+
+    [EncoderTheory(ExportVideoCodec.Av1, ExportVideoEncoder.Nvenc), InlineData(ExportContainer.Mp4), InlineData(ExportContainer.Mkv)]
+    public Task Av1_on_nvenc(ExportContainer container) => Encodes(ExportVideoCodec.Av1, ExportVideoEncoder.Nvenc, container);
+
+    /// <summary>Every frame in order, the exact rate, the audio sample-exact, the tags, the codec and the container.</summary>
+    private async Task Encodes(ExportVideoCodec codec, ExportVideoEncoder encoder, ExportContainer container)
     {
         var available = NvencProbe.Value;
-        if (encoder == ExportVideoEncoder.Nvenc ? !available.NvencFor(codec) : !available.SoftwareFor(codec))
-        {
-            _log.WriteLine($"{codec} on {encoder}: not in this ffmpeg / machine — skipped.");
-            return;
-        }
         var settings = new ExportEncoding(ExportQuality.High, ExportSpeedPreset.Medium, 192) { Codec = codec, Encoder = encoder, Container = container };
         var path = Path.Combine(_dir, $"out{ExportFormat.ExtensionOf(container)}");
         var output = Output(320, 180, FrameRate.Ntsc30, 60);
@@ -148,7 +151,7 @@ public sealed class CodecExportEncoderTests : IDisposable
         var error = await Assert.ThrowsAsync<ExportException>(() =>
             encoder.StartAsync(Output(160, 90, FrameRate.Fps25, 25), ExportEncoding.Default with { Codec = ExportVideoCodec.Av1 }, path));
 
-        Assert.Equal(ExportFailure.EncoderUnavailable, error.Failure);
+        Assert.Equal(ExportFailure.CodecUnavailable, error.Failure);
         Assert.Contains("libsvtav1", error.Message);
         Assert.Empty(Directory.GetFiles(_dir));
     }
@@ -156,5 +159,18 @@ public sealed class CodecExportEncoderTests : IDisposable
     private sealed class Fixed(ExportEncoderAvailability value) : IExportEncoderCapabilities
     {
         public Task<ExportEncoderAvailability> GetAsync(CancellationToken ct = default) => Task.FromResult(value);
+    }
+}
+
+/// <summary>D076: skips (with the reason) unless this machine's ffmpeg encodes <c>codec</c> with <c>encoder</c> — the app's own
+/// check (<see cref="FfmpegEncoderCapabilities"/>).</summary>
+public sealed class EncoderTheoryAttribute : TheoryAttribute
+{
+    public EncoderTheoryAttribute(ExportVideoCodec codec, ExportVideoEncoder encoder)
+    {
+        if (FfmpegTools.SkipReason is { } none) { Skip = none; return; }
+        var available = NvencProbe.Value;
+        var can = encoder == ExportVideoEncoder.Nvenc ? available.NvencFor(codec) : available.SoftwareFor(codec);
+        if (!can) Skip = encoder == ExportVideoEncoder.Nvenc ? $"NVENC {codec} unavailable here" : $"this ffmpeg has no software {codec} encoder";
     }
 }

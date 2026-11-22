@@ -12090,8 +12090,10 @@ is not available).
   «2K» (short side 1440, 2560 × 1440 at 16:9) joins 4K / Full HD / HD / SD.
 - **The file type is not part of a built-in preset:** choosing «Быстрый» … keeps the chosen MP4 / MOV / MKV (AV1 out of MOV → MP4);
   matching a built-in preset ignores it. A **saved** preset states its file type too.
-- **Which preset the settings are** is computed, never stored: equal (on this canvas) to a built-in preset → that preset; else to a
-  saved one (with its file type) → that one; else «Пользовательский».
+- **Which preset the settings are** is computed, never stored: equal (on this canvas, by the size they really give — a size chosen
+  by hand above the canvas is no preset) to one of the user's saved presets (with its file type) → that one, under the user's name
+  (so it can be chosen and deleted even when it equals a built-in one); else to a built-in preset → that preset; else
+  «Пользовательский». With constant quality the bitrate field does not count.
 
 **4.3 The user's presets (Q5 A, as the text styles of D075).** `UserSettings.ExportPresets` — `SavedExportPreset(Name,
 Settings)`, the global settings (every project; `settings.json` keeps the format version 1 — a new optional member, enums by

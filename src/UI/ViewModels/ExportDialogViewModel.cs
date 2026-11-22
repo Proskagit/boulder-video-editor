@@ -81,6 +81,7 @@ public sealed partial class ExportDialogViewModel : ViewModelBase
     /// resolution.</summary>
     private void OnSettingsChanged(object? sender, EventArgs e)
     {
+        ExportCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(Info));
         var container = Settings.Value.Container;
         if (container == _container) return;
@@ -159,7 +160,8 @@ public sealed partial class ExportDialogViewModel : ViewModelBase
         if (await _browse(Folder, FileName) is { } chosen) SetPath(chosen);
     }
 
-    private bool CanExport() => OutputPath is not null;
+    /// <summary>A path, and a codec this computer can encode (D076).</summary>
+    private bool CanExport() => OutputPath is not null && Settings.CanEncode;
 
     [RelayCommand(CanExecute = nameof(CanExport))]
     private void Export()

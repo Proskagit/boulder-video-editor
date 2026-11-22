@@ -368,6 +368,7 @@ public sealed class ExportWorkflow
         ExportFailure.OutputFailed => Strings.Export_FailOutput,
         ExportFailure.RenderFailed => Strings.Export_FailRender,
         ExportFailure.TransitionSourceMissing => Strings.Export_FailTransitionSource,
+        ExportFailure.CodecUnavailable => "{0}",
         _ => Strings.Export_Fail
     }, ex.Message));
 
@@ -412,7 +413,14 @@ public sealed class ExportWorkflow
                 StartFolder = string.IsNullOrWhiteSpace(folder) ? request.StartFolder : folder,
                 SuggestedFileName = string.IsNullOrWhiteSpace(name) ? request.SuggestedFileName : name
             }), project.Settings.Export, await EncoderAvailability.GetAsync(_encoders), _settings);
-        return await _exportDialog.ShowAsync(dialog);
+        try
+        {
+            return await _exportDialog.ShowAsync(dialog);
+        }
+        finally
+        {
+            dialog.Settings.Detach();   // however the window closed (the title bar's ✕ too)
+        }
     }
 
     /// <summary>D067 §4: the name an export suggests — the local date and time it is chosen at, <c>yyyyMMdd_HHmm</c>.</summary>

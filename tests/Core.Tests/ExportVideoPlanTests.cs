@@ -174,6 +174,17 @@ public sealed class ExportVideoPlanTests
         Assert.Null(ExportPresets.Match(ExportEncoding.Default, Uhd));   // an old project's settings: «Пользовательский» (Q7 A)
     }
 
+    [Fact]
+    public void A_size_chosen_by_hand_above_the_canvas_is_no_preset_and_the_bitrate_field_does_not_count_at_constant_quality()
+    {
+        // A Full HD canvas, «Высокий»'s fields but 4K chosen by hand (D060 §3 allows it): it exports 3840 × 2160, «Высокий» here
+        // exports 1920 × 1080 — not the same output.
+        Assert.Null(ExportPresets.Match(ExportPresets.High, FullHd));
+        Assert.Equal(ExportPresetKind.High, ExportPresets.Match(ExportPresets.High with { Resolution = ExportResolution.Project }, FullHd));
+        Assert.Equal(ExportPresetKind.Maximum, ExportPresets.Match(ExportPresets.Maximum with { VideoBitrateMbps = 80 }, Uhd));
+        Assert.Null(ExportPresets.Match(ExportPresets.Maximum with { RateControl = ExportRateControl.Bitrate }, Uhd));
+    }
+
     // --- the size estimate ---------------------------------------------------------------------------------------------
 
     private static ExportOutput Output(int w, int h, int fps, double seconds)

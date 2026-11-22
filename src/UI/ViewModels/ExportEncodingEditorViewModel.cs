@@ -227,6 +227,9 @@ public sealed partial class ExportEncodingEditorViewModel : ObservableObject
     /// <summary>Why NVENC will not encode although chosen, or why the codec can't be encoded here; null otherwise.</summary>
     [ObservableProperty] private string? _unavailableNote;
 
+    /// <summary>D076: the chosen codec can be encoded here (NVENC or this FFmpeg's software encoder) — the export may start.</summary>
+    [ObservableProperty] private bool _canEncode = true;
+
     /// <summary>The settings are one of the user's saved presets (✕ deletes it).</summary>
     [ObservableProperty] private bool _isSavedPreset;
 
@@ -293,12 +296,13 @@ public sealed partial class ExportEncodingEditorViewModel : ObservableObject
         IsSavedPreset = SelectedPreset?.Kind == ExportPresetChoiceKind.Saved;
     }
 
-    /// <summary>The item the draft is: a built-in preset, else a saved one (its file type included), else «Пользовательский».</summary>
+    /// <summary>The item the draft is: one of the user's saved presets (its file type included — the user's own name first, so it
+    /// can be chosen and deleted even when it equals a built-in one), else a built-in preset, else «Пользовательский».</summary>
     private ExportPresetChoice Matching()
     {
         var value = Value;
-        return Presets.FirstOrDefault(p => p.Kind == ExportPresetChoiceKind.BuiltIn && ExportPresets.Matches(value, p.Settings!, _canvas))
-            ?? Presets.FirstOrDefault(p => p.Kind == ExportPresetChoiceKind.Saved && ExportPresets.Matches(value, p.Settings!, _canvas, compareContainer: true))
+        return Presets.FirstOrDefault(p => p.Kind == ExportPresetChoiceKind.Saved && ExportPresets.Matches(value, p.Settings!, _canvas, compareContainer: true))
+            ?? Presets.FirstOrDefault(p => p.Kind == ExportPresetChoiceKind.BuiltIn && ExportPresets.Matches(value, p.Settings!, _canvas))
             ?? Presets.First(p => p.Kind == ExportPresetChoiceKind.Custom);
     }
 
@@ -402,13 +406,7 @@ public sealed partial class ExportEncodingEditorViewModel : ObservableObject
         });
         IsSavingPreset = false;
         RebuildPresets();
-        // A saved preset equal to a built-in one shows as the built-in; the user's own name is chosen when it is the settings.
-        if (Presets.FirstOrDefault(p => p.Kind == ExportPresetChoiceKind.Saved && p.Label == name) is { } own && SelectedPreset?.Kind != ExportPresetChoiceKind.BuiltIn)
-        {
-            Sync(() => SelectedPreset = own);
-            _lastPreset = own;
-            IsSavedPreset = true;
-        }
+        // The rebuilt list shows the settings under the user's new name (a saved preset comes before the built-in ones).
     }
 
     [RelayCommand]
@@ -425,7 +423,8 @@ public sealed partial class ExportEncodingEditorViewModel : ObservableObject
 
     private void OnUserSettingsChanged(object? sender, EventArgs e)
     {
-        if (Presets.Count(p => p.Kind == ExportPresetChoiceKind.Saved) != Saved.Count) RebuildPresets();
+        var shown = Presets.Where(p => p.Kind == ExportPresetChoiceKind.Saved).Select(p => (p.Label, p.Settings)).ToList();
+        if (!shown.SequenceEqual(Saved.Select(p => (p.Name, (ExportEncoding?)p.Settings)))) RebuildPresets();
     }
 
     /// <summary>The suggested name of a new preset (Q5 A): the settings in short, unique among the saved ones —
@@ -474,6 +473,7 @@ public sealed partial class ExportEncodingEditorViewModel : ObservableObject
             ExportVideoCodec.Av1 => Strings.ExportCodec_Av1Note,
             _ => Strings.ExportCodec_H264Note
         };
+        CanEncode = !plan.Unavailable;
         UnavailableNote = plan.Unavailable
             ? string.Format(Strings.ExportCodec_Unavailable, SelectedCodec.Label, SoftwareName(value.Codec))
             : !plan.FellBack ? null

@@ -63,7 +63,7 @@ public sealed class FfmpegExportEncoder : IExportEncoder
             ? await _capabilities.GetAsync(ct) : ExportEncoderAvailability.SoftwareOnly;
         var plan = ExportVideoPlan.For(encoding, output.Size, available);
         if (plan.Unavailable)
-            throw new ExportException(ExportFailure.EncoderUnavailable, string.Format(Messages.Export_CodecUnavailable, CodecName(plan.Codec),
+            throw new ExportException(ExportFailure.CodecUnavailable, string.Format(Messages.Export_CodecUnavailable, CodecName(plan.Codec),
                 plan.Codec == ExportVideoCodec.Av1 ? "libsvtav1" : "libx265"));
         string? fallback = null;
         if (plan.FellBack)

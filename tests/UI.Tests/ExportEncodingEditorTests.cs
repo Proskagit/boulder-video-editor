@@ -137,6 +137,43 @@ public sealed class ExportEncodingEditorTests
         var editor = new ExportEncodingEditorViewModel(ExportEncoding.Default with { Codec = ExportVideoCodec.Av1 },
             ExportEncoderAvailability.SoftwareOnly with { SoftwareAv1 = false }, Uhd());
         Assert.Contains("SVT-AV1", editor.UnavailableNote);
+        Assert.False(editor.CanEncode);
+        editor.SelectedCodec = editor.Codecs.Single(c => c.Value == ExportVideoCodec.H264);
+        Assert.True(editor.CanEncode);
+    }
+
+    [Fact]
+    public void The_dialog_does_not_start_an_export_of_a_codec_this_computer_cannot_encode()
+    {
+        var rate = new FrameRate(30, 1);
+        var output = new ExportOutput(new FrameSize(1920, 1080), rate, 300, MediaTime.FromFrame(300, rate), 480_000);
+        var dialog = new ExportDialogViewModel(new Sequence(), rate, output, @"C:\out\video.mp4", encoding: ExportEncoding.Default with { Codec = ExportVideoCodec.Av1 },
+            encoders: ExportEncoderAvailability.SoftwareOnly with { SoftwareAv1 = false });
+        Assert.False(dialog.ExportCommand.CanExecute(null));
+        dialog.Settings.SelectedCodec = dialog.Settings.Codecs.Single(c => c.Value == ExportVideoCodec.Hevc);
+        Assert.True(dialog.ExportCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void A_codec_failure_message_names_the_codec_not_a_missing_ffmpeg()
+    {
+        var message = AiVideoEditor.UI.Services.ExportWorkflow.FailureMessage(new ExportException(ExportFailure.CodecUnavailable, "AV1 can't be encoded: no libsvtav1"));
+        Assert.Contains("no libsvtav1", message);
+        Assert.DoesNotContain("ffmpeg could not be found", message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void A_saved_preset_changed_in_another_window_is_seen()
+    {
+        var settings = new InMemoryUserSettings();
+        var editor = new ExportEncodingEditorViewModel(ExportEncoding.Default, Nvenc, Uhd(), userSettings: settings);
+        settings.Update(s => s with { ExportPresets = new[] { new SavedExportPreset("A", ExportPresets.Fast) } });
+        Assert.Equal(ExportPresets.Fast, editor.Presets.Single(p => p.Label == "A").Settings);
+        settings.Update(s => s with { ExportPresets = new[] { new SavedExportPreset("A", ExportPresets.Medium) } });
+        Assert.Equal(ExportPresets.Medium, editor.Presets.Single(p => p.Label == "A").Settings);
+        editor.Detach();
+        settings.Update(s => s with { ExportPresets = Array.Empty<SavedExportPreset>() });
+        Assert.Contains(editor.Presets, p => p.Label == "A");   // detached: no longer follows
     }
 
     [Fact]
@@ -206,6 +243,18 @@ public sealed class ExportEncodingEditorTests
         Assert.DoesNotContain(other.Presets, p => p.Kind == ExportPresetChoiceKind.Saved);
         editor.Detach();
         other.Detach();
+    }
+
+    [Fact]
+    public void A_saved_preset_equal_to_a_built_in_one_shows_under_its_own_name_and_can_be_deleted()
+    {
+        var settings = new InMemoryUserSettings(new UserSettings { ExportPresets = new[] { new SavedExportPreset("Мой максимум", ExportPresets.Maximum) } });
+        var editor = new ExportEncodingEditorViewModel(ExportEncoding.NewProject, Nvenc, Uhd(), userSettings: settings);
+        Assert.Equal("Мой максимум", editor.SelectedPreset!.Label);
+        Assert.True(editor.IsSavedPreset);
+        editor.DeletePresetCommand.Execute(null);
+        Assert.Equal(ExportPresetKind.Maximum, editor.SelectedPreset!.BuiltIn);
+        editor.Detach();
     }
 
     [Fact]

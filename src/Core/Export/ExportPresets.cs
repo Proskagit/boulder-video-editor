@@ -69,16 +69,21 @@ public static class ExportPresets
         return ExportEncoding.Holds(applied.Container, applied.Codec) ? applied : applied with { Container = ExportContainer.Mp4 };
     }
 
-    /// <summary>Whether <paramref name="settings"/> are <paramref name="preset"/> on <paramref name="canvas"/> — the same output
-    /// (resolutions compared by the size they give; the container is the file's type and not part of a built-in preset).</summary>
+    /// <summary>Whether <paramref name="settings"/> are <paramref name="preset"/> on <paramref name="canvas"/> — the same output:
+    /// the preset applied with its ceiling, the settings by the size they really give (a size chosen by hand above the canvas is
+    /// no preset); the container is the file's type and not part of a built-in preset; with constant quality the bitrate field
+    /// does not count.</summary>
     public static bool Matches(ExportEncoding settings, ExportEncoding preset, FrameSize canvas, bool compareContainer = false)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(preset);
-        var a = ExportResolutions.Ceiling(settings, canvas);
-        var b = ExportResolutions.Ceiling(preset, canvas) with { Container = compareContainer ? preset.Container : a.Container };
+        var a = Comparable(ExportResolutions.Normalize(settings, canvas));
+        var b = Comparable(ExportResolutions.Ceiling(preset, canvas)) with { Container = compareContainer ? preset.Container : a.Container };
         return a == b;
     }
+
+    private static ExportEncoding Comparable(ExportEncoding e) =>
+        e.RateControl == ExportRateControl.ConstantQuality ? e with { VideoBitrateMbps = ExportEncoding.DefaultVideoBitrateMbps } : e;
 
     /// <summary>The built-in preset <paramref name="settings"/> are on <paramref name="canvas"/>, or null («Пользовательский»,
     /// or one of the user's own).</summary>

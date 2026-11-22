@@ -186,3 +186,31 @@ public sealed record ExportEncoding(ExportQuality Quality, ExportSpeedPreset Pre
 /// audio); applying it never changes the project's canvas or frame rate.
 /// </summary>
 public sealed record SavedExportPreset(string Name, ExportEncoding Settings);
+
+/// <summary>D076 §4.3: reads the saved presets one by one — a preset that can't be read (a name of a newer version, a value
+/// edited by hand) is dropped alone; the rest of the global settings stay.</summary>
+public sealed class SavedExportPresetListConverter : JsonConverter<IReadOnlyList<SavedExportPreset>>
+{
+    public override IReadOnlyList<SavedExportPreset> Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+    {
+        var list = new List<SavedExportPreset>();
+        if (reader.TokenType == System.Text.Json.JsonTokenType.Null) return list;
+        using var doc = System.Text.Json.JsonDocument.ParseValue(ref reader);
+        if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Array) return list;
+        foreach (var item in doc.RootElement.EnumerateArray())
+        {
+            try
+            {
+                if (System.Text.Json.JsonSerializer.Deserialize<SavedExportPreset>(item, options) is { Settings: not null } preset && preset.Settings.Validate() is null) list.Add(preset);
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                // dropped: not a preset this version can read
+            }
+        }
+        return list;
+    }
+
+    public override void Write(System.Text.Json.Utf8JsonWriter writer, IReadOnlyList<SavedExportPreset> value, System.Text.Json.JsonSerializerOptions options) =>
+        System.Text.Json.JsonSerializer.Serialize(writer, value.ToArray(), options);
+}

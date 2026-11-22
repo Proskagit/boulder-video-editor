@@ -51,6 +51,7 @@ public sealed record UserSettings
     public IReadOnlyList<Entities.SavedTextStyle> TextStyles { get; init; } = Array.Empty<Entities.SavedTextStyle>();
 
     /// <summary>D076: the user's saved export presets, in the order saved (offered in every project).</summary>
+    [System.Text.Json.Serialization.JsonConverter(typeof(Entities.SavedExportPresetListConverter))]
     public IReadOnlyList<Entities.SavedExportPreset> ExportPresets { get; init; } = Array.Empty<Entities.SavedExportPreset>();
 
     /// <summary>D063 §B: the Preview's magnetic snap of a picture's edges to the canvas edges — its threshold in screen
