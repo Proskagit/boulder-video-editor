@@ -29,7 +29,9 @@ Release + `AIVE_HEAVY_TESTS=1`: Vision 37, Project 782, Core 2 005, Export 142, 
 `-b:v 0k -maxrate 0k -bufsize 0k` (measured bit-identical streams with and without them, so the calibration stands) — fixed, the
 exact D059 encoder part pinned by tests; notes taken (the «Очень быстро» offsets x265 +3 / SVT-AV1 +10 from the lowered values, the
 English guide's level names). Gates after the fix: the same — 0 / 0, 6 496 passed, 2 skips.
-**Not done:** the final re-review, the owner's manual check (`docs/PHASE57_MANUAL_TEST_PLAN.md`), the merge.
+**Final re-review: PASS WITH NOTES** (its note taken: a test of the «Очень быстро» values per encoder — Core 2 011, so 6 502 in all). Portable
+`artifacts/portable/BoulderVideoEditor-1.10.0-win-x64` (the new minimal FFmpeg in `ffmpegin` with its notices).
+**Not done:** the owner's manual check (`docs/PHASE57_MANUAL_TEST_PLAN.md`), the merge.
 
 **Phase 56 amendment 1 (D075, 2026-11-22) — text styles, technical debt, the repository's page** (the owner added them to the
 phase; codecs → Phase 57). **Done:** italic, `TextShadow`, line spacing, block width (Preview side handles —

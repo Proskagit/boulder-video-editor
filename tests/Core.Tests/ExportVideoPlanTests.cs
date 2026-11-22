@@ -96,6 +96,17 @@ public sealed class ExportVideoPlanTests
         Assert.Equal(new[] { "11", "9", "7", "5" }, Enum.GetValues<ExportSpeedPreset>().Select(s => ExportVideoPlan.SoftwarePreset(ExportVideoCodec.Av1, s)));
     }
 
+    [Theory]   // D076 §5: «Очень быстро» at «Высокое» — the values measured against libx264 veryfast CRF 18 on all five references
+    [InlineData(ExportVideoCodec.H264, ExportVideoEncoder.Software, 18)]
+    [InlineData(ExportVideoCodec.Hevc, ExportVideoEncoder.Software, 18)]
+    [InlineData(ExportVideoCodec.Av1, ExportVideoEncoder.Software, 22)]
+    [InlineData(ExportVideoCodec.H264, ExportVideoEncoder.Nvenc, 25)]
+    [InlineData(ExportVideoCodec.Hevc, ExportVideoEncoder.Nvenc, 25)]
+    [InlineData(ExportVideoCodec.Av1, ExportVideoEncoder.Nvenc, 32)]
+    public void Very_fast_uses_the_measured_value_of_each_encoder(ExportVideoCodec codec, ExportVideoEncoder encoder, int value) =>
+        Assert.Equal(value, ExportVideoPlan.For(new ExportEncoding(ExportQuality.High, ExportSpeedPreset.VeryFast, 192) { Codec = codec, Encoder = encoder },
+            Uhd, WithNvenc).Quality);
+
     [Fact]
     public void The_bitrate_mode_works_with_every_codec()
     {
