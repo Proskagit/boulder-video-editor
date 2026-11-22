@@ -41,7 +41,20 @@ public sealed partial class TimelineEditService
         var orangeHandle = IsOrangeHandle(handle);
         var description = orangeHandle ? "Edit Hold Animation" : "Edit Route Overlay";
         // Its own step: a lone property command would merge with an earlier Inspector edit of the template (D017).
-        var command = new CompositeCommand(description, new[] { plan.BuildCommand(description) });
+        var commands = new List<IUndoableCommand> { plan.BuildCommand(description) };
+        // D074 amendment 1 (the owner): the route's start T is the orange's end — a stored T follows the orange's end when the
+        // gesture moves it (the FIT calibration learns from T, D056 §4).
+        if (handle is OverlayStripHandle.OrangeEnd or OverlayStripHandle.OrangeBody && planned.Strip?.Orange is { } newOrange &&
+            MarkupClip(videoClipId, out var video) is null && StripRoute(video, routeId) is { } route)
+        {
+            var rate = plan.Rate;
+            var routeStart = HoldAnimationRule.SourceTimeAt(video.TimelineStart, video.SourceIn, video.Speed, newOrange.End, rate);
+            var starts = RouteTemplates(plan, video, route)
+                .Where(template => template.RouteStart is { } start && start != routeStart)
+                .Select(template => (template, template.RouteStart, (MediaTime?)routeStart)).ToList();
+            if (starts.Count > 0) commands.Add(new SetRouteStartsCommand(starts));
+        }
+        var command = new CompositeCommand(description, commands);
         ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(planned.TemplateId is { } t && !orangeHandle ? new[] { videoClipId, t } : new[] { videoClipId });
     }

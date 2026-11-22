@@ -13,6 +13,11 @@ public sealed record SummaryRow(string Route, string Grade, string AccentHex, Bo
 
 /// <summary>The totals of «Итоги» (D073 §2, Q8): the rows, the tops (flashes included), the flashes, the climb time of every
 /// attempt, the heart rate over every attempt's climb.</summary>
+/// <summary>D074 amendment 1: a row of «Итоги» as its Inspector edits it — the route, its result, the attempts shown, whether a
+/// plate states them, and the route's plates (each attempt's first part, in order; the last one takes a stated value).</summary>
+public sealed record SummaryAttemptRow(string Route, string Grade, BoulderStatus Result, int Attempts, int Counted, bool Stated,
+    IReadOnlyList<Guid> Plates);
+
 public sealed record SummaryTotals(int Routes, int Tops, int Flashes, MediaTime? OnRoutes, int? AverageHeartRate, int? MaxHeartRate);
 
 /// <summary>
@@ -38,27 +43,11 @@ public sealed record SummaryBoard(ImmutableArray<SummaryRow> Rows, SummaryTotals
     /// </summary>
     public static SummaryBoard Of(Sequence sequence, MediaTime summaryStart, FrameRate rate, Func<Guid, HeartRateBinding?> bindingOf)
     {
-        var clips = sequence.VideoTracks.SelectMany(t => t.Clips).ToList();
-        var previous = clips.OfType<TemplateClip>()
-            .Where(t => t.Kind == TemplateKind.Summary && t.TimelineStart < summaryStart)
-            .Select(t => (MediaTime?)t.TimelineStart).Max() ?? new MediaTime(long.MinValue);
-        var videos = clips.OfType<VideoClip>().ToDictionary(c => c.Id);
-
-        var attempts = Routes(clips, videos)
-            .Where(parts => parts[0].TimelineStart < summaryStart && parts[0].TimelineStart >= previous)
-            .OrderBy(parts => parts[0].TimelineStart)
-            .Select(parts => AttemptOf(parts, videos, rate, bindingOf))
-            .ToList();
-
+        var attempts = Attempts(sequence, summaryStart, rate, bindingOf);
         var rows = new List<SummaryRow>();
-        foreach (var group in attempts.GroupBy(a => a.Key))
+        foreach (var list in attempts.GroupBy(a => a.Key).Select(g => g.ToList()))
         {
-            var list = group.ToList();
-            var chosen = list.FirstOrDefault(a => a.Status is BoulderStatus.Top or BoulderStatus.Flash) ?? list[^1];
-            var result = chosen.Status is BoulderStatus.Top or BoulderStatus.Flash ? chosen.Status
-                : list.Any(a => a.Status == BoulderStatus.Attempt) ? BoulderStatus.Attempt
-                : BoulderStatus.None;
-            var count = result == BoulderStatus.Flash ? 1 : list.LastOrDefault(a => a.Stated is not null)?.Stated ?? list.Count;
+            var (chosen, result, count) = Row(list);
             var bpm = chosen.HeartRate;
             rows.Add(new SummaryRow(chosen.Route, chosen.Grade, chosen.Accent, result, count, chosen.Time,
                 bpm.Count > 0 ? (int)Math.Round(bpm.Average(), MidpointRounding.AwayFromZero) : null, bpm.Count > 0 ? bpm.Max() : null));
@@ -75,9 +64,47 @@ public sealed record SummaryBoard(ImmutableArray<SummaryRow> Rows, SummaryTotals
         return new SummaryBoard(rows.ToImmutableArray(), totals);
     }
 
-    /// <summary>One attempt: a route area's fields, its result, its climb time and the heart-rate samples of the climb.</summary>
+    /// <summary>D074 amendment 1: the rows of the «Итоги» at <paramref name="summaryStart"/> for its Inspector — the same routes
+    /// and attempts as <see cref="Of"/>, with the plates a stated number of attempts is written to.</summary>
+    public static IReadOnlyList<SummaryAttemptRow> AttemptRows(Sequence sequence, MediaTime summaryStart, FrameRate rate) =>
+        Attempts(sequence, summaryStart, rate, _ => null).GroupBy(a => a.Key).Select(g => g.ToList()).Select(list =>
+        {
+            var (chosen, result, count) = Row(list);
+            return new SummaryAttemptRow(chosen.Route, chosen.Grade, result, count, list.Count, list.Any(a => a.Stated is not null),
+                list.Select(a => a.Plate).ToList());
+        }).ToList();
+
+    /// <summary>The attempts the board lists, in the order they started.</summary>
+    private static List<Attempt> Attempts(Sequence sequence, MediaTime summaryStart, FrameRate rate, Func<Guid, HeartRateBinding?> bindingOf)
+    {
+        var clips = sequence.VideoTracks.SelectMany(t => t.Clips).ToList();
+        var previous = clips.OfType<TemplateClip>()
+            .Where(t => t.Kind == TemplateKind.Summary && t.TimelineStart < summaryStart)
+            .Select(t => (MediaTime?)t.TimelineStart).Max() ?? new MediaTime(long.MinValue);
+        var videos = clips.OfType<VideoClip>().ToDictionary(c => c.Id);
+        return Routes(clips, videos)
+            .Where(parts => parts[0].TimelineStart < summaryStart && parts[0].TimelineStart >= previous)
+            .OrderBy(parts => parts[0].TimelineStart)
+            .Select(parts => AttemptOf(parts, videos, rate, bindingOf))
+            .ToList();
+    }
+
+    /// <summary>A route's row from its attempts: the chosen attempt (the first top / flash, else the last), the best result and
+    /// the attempts (a flash 1, else the last stated value, else the attempts counted).</summary>
+    private static (Attempt Chosen, BoulderStatus Result, int Count) Row(List<Attempt> list)
+    {
+        var chosen = list.FirstOrDefault(a => a.Status is BoulderStatus.Top or BoulderStatus.Flash) ?? list[^1];
+        var result = chosen.Status is BoulderStatus.Top or BoulderStatus.Flash ? chosen.Status
+            : list.Any(a => a.Status == BoulderStatus.Attempt) ? BoulderStatus.Attempt
+            : BoulderStatus.None;
+        var count = result == BoulderStatus.Flash ? 1 : list.LastOrDefault(a => a.Stated is not null)?.Stated ?? list.Count;
+        return (chosen, result, count);
+    }
+
+    /// <summary>One attempt: a route area's fields, its result, its climb time, the heart-rate samples of the climb, and its
+    /// plate (the area's first part — where its stated attempts live).</summary>
     private sealed record Attempt(object Key, string Route, string Grade, string Accent, BoulderStatus Status, int? Stated, MediaTime? Time,
-        IReadOnlyList<int> HeartRate);
+        IReadOnlyList<int> HeartRate, Guid Plate);
 
     /// <summary>
     /// The routes of the «Боулдер» areas, each its parts by start. An anchored area's route is its route id (the stored
@@ -142,7 +169,7 @@ public sealed record SummaryBoard(ImmutableArray<SummaryRow> Rows, SummaryTotals
                 if (bindingOf(clip.MediaAssetId) is { } binding) heartRate = Samples(binding, ae, sSource);
             }
         }
-        return new Attempt(key, route, grade, first.AccentHex, status, first.Attempts, time, heartRate);
+        return new Attempt(key, route, grade, first.AccentHex, status, first.Attempts, time, heartRate, first.Id);
     }
 
     /// <summary><c>Ae</c>: the route's orange end on whichever part's clip holds the orange (a split leaves it on one side; the

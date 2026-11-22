@@ -59,6 +59,33 @@ public class MagneticMainTrackTests
     }
 
     [Fact]
+    public void A_summary_after_the_last_clip_moves_with_the_clips_before_it()   // D074 amendment 1
+    {
+        var (f, c) = Layout(true, (0, 100), (100, 200), (200, 300));
+        var top = new Track { Type = TrackType.Video, Name = "V2", Order = 1 };
+        f.Project.Timeline.VideoTracks.Add(top);
+        var summary = new TemplateClip { Kind = TemplateKind.Summary, TimelineStart = F(300), Duration = F(250) };
+        var gap = new TemplateClip { Kind = TemplateKind.Summary, TimelineStart = F(320), Duration = F(10) };   // further on: the same shift
+        top.Clips.Add(summary);
+        var title = new TextClip { Text = "T", TimelineStart = F(400), Duration = F(10) };                     // not «Итоги»: stays
+        var titles = new Track { Type = TrackType.Video, Name = "V3", Order = 2 };
+        titles.Clips.Add(gap);                                           // the track's clips in time order, as the editor keeps them
+        titles.Clips.Add(title);
+        f.Project.Timeline.VideoTracks.Add(titles);
+        var before = f.Snapshot();
+
+        Ok(f.Service.DeleteClips(new[] { c[0].Id }));                    // the first clip goes: everything moves 100 left
+
+        Assert.Equal((200L, 450L), Span(summary));
+        Assert.Equal((220L, 230L), Span(gap));
+        Assert.Equal((400L, 410L), Span(title));
+        AssertOneStep(f, before);
+
+        Ok(f.Service.DeleteClips(new[] { c[2].Id }));                    // the last one goes: «Итоги» after the one before it
+        Assert.Equal((100L, 350L), Span(summary));
+    }
+
+    [Fact]
     public void Without_the_magnet_a_deletion_leaves_the_gap()
     {
         var (f, c) = Layout(false, (0, 10), (10, 20), (20, 30));

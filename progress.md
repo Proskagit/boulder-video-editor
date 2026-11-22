@@ -23,6 +23,13 @@ written into D074; manual rows 14–16.
 Release `-warnaserror` 0 / 0, ModelTests build, `git diff --check` clean; Release + `AIVE_HEAVY_TESTS=1` with `--blame-hang`: Vision 37,
 Project 765, Core 1 994, Export 142, Rendering 281, UI 1 335, Timeline 1 258, Video 418 (+1 skip), ExportEndToEnd 189 = 6 419.
 Portable `BoulderVideoEditor-1.7.0-win-x64`. **Not done:** the owner's manual check, the merge.
+**Amendment 1 (2026-11-22, the owner on 1.7.0):** a tail trim keeps the lilac's start (`PlanBoundsOverlays`, D048 §3.8's
+shift replaced); a stored `T` follows the orange's end dragged on the strip (`EditOverlayStrip` + `SetRouteStartsCommand`);
+«Итоги» edits each route's attempts (`SummaryBoard.AttemptRows`, `SetRouteAttempts`, the Inspector's «Попытки по трассам»);
+«Итоги» outside the main clips follows the magnet (`CarryOtherVideoTracks`); «Пользовательский» after a profile starts from it
+(`ExportEncoding.CustomOf`, `NewProject` Maximum / Slow). Tests: the lilac cut (2 rewritten), `T` with the orange's end, the
+attempt rows, the Inspector's attempts, the magnet's «Итоги», the custom seed. Gates: 0 / 0; Vision 37, Project 765, Core 1 995,
+Export 142, Rendering 281, UI 1 337, Timeline 1 260, Video 418 (+1 skip), ExportEndToEnd 189 = 6 424. Portable 1.7.1.
 
 **Phase 54 — the «Итоги» template (D073, 2026-11-20 … 22) — on `feat/phase-54-summary-template`** (from `origin/main` `4c1314e`).
 The third of the owner's queue after 1.3.0 (backlog 36.3 `PassId`, 36.4 the heart rate in the summary). **Step 0:** Phase 53

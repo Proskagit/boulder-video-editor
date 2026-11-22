@@ -371,6 +371,9 @@ public sealed record TimelineClipSelection(Clip Clip, string Name, MediaAsset? A
 
     public Guid? AnchorRouteId { get; init; }
 
+    /// <summary>D074 amendment 1: the sequence the selection is in (the routes «Итоги» lists in its Inspector).</summary>
+    public Sequence? Sequence { get; init; }
+
     /// <summary>The orange of a route is selected, not a clip.</summary>
     public bool IsOrange => OrangeRouteId is not null;
 }

@@ -1631,7 +1631,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
                 FindAsset = FindAsset,
                 Anchor = primary.Clip is TemplateClip { AnchorClipId: { } anchorId } && _clipViewModels.TryGetValue(anchorId, out var anchor)
                     ? anchor.Clip as VideoClip : null,
-                AnchorRouteId = (primary.Clip as TemplateClip)?.AnchorRouteId
+                AnchorRouteId = (primary.Clip as TemplateClip)?.AnchorRouteId,
+                Sequence = Sequence
             });
         }
         else if (SelectedOrangeClipId is { } orangeClip && _selectedOrangeRouteId is { } orangeRoute &&

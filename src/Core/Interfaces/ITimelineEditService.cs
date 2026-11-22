@@ -323,6 +323,12 @@ public interface ITimelineEditService
     /// properties of the same clip are merged into one Undo step.</summary>
     TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change);
 
+    /// <summary>D074 amendment 1: the attempts of a route of «Итоги» (<paramref name="plateIds"/> — its attempts' «Боулдер»
+    /// plates in order, <see cref="Composition.SummaryAttemptRow.Plates"/>): the last plate states <paramref name="attempts"/>,
+    /// the others are cleared; null clears them all (the attempts counted from the video). One undo step; refused out of
+    /// <see cref="TemplateRules.MinAttempts"/>…<see cref="TemplateRules.MaxAttempts"/> or on a locked track.</summary>
+    TimelineEditResult SetRouteAttempts(IReadOnlyList<Guid> plateIds, int? attempts);
+
     /// <summary>"Fill frame" / "Fit in frame" (D041 §2): writes the Scale at which the video or image clip's picture, centred,
     /// covers the canvas (<see cref="ClipFraming.Fill"/>) or is wholly visible on it (<see cref="ClipFraming.Fit"/>) —
     /// <c>CompositionMath.FillScale</c> / <c>FitScale</c> from the asset's display size, the crop and the rotation. Only

@@ -295,17 +295,12 @@ public sealed partial class TimelineEditService
                 ps = vs2;
             }
 
-            // Tail: the lilac keeps its length and shifts left with the end; a conflict deletes only the lilac.
+            // Tail — D074 amendment 1 (the owner, replacing D048 §3.8's shift): the lilac's start S — the moment of the result,
+            // set by the user — stays on its frame and the lilac is cut by the new end; less than its two frames left deletes only
+            // the lilac.
             if (ve2 < pe)
             {
-                if (lilac && ve2 >= s)
-                {
-                    var shifted = s - (pe - ve2);
-                    var conflict = shifted < ps + 1 || (orange is { } kept && shifted < kept.End);
-                    if (conflict) status = BoulderStatus.None;
-                    else s = shifted;
-                }
-                else if (lilac) status = BoulderStatus.None;   // the new end before the lilac's start
+                if (lilac && ve2 - s < MinStatusFrames) status = BoulderStatus.None;
                 pe = ve2;
             }
 

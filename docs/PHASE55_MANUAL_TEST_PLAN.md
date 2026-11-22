@@ -25,3 +25,13 @@ Mark each row PASS / FAIL / note.
 | 14 | An anchored «Боулдер» with Follow on its clip: move the playhead into a followed part. | «Удалить часть» is there and works (the clip's part goes). |
 | 15 | The timeline bar in a 1024 px and a 1440 px wide window. | Every button visible, the two new ones too; nothing overlaps. |
 | 16 | (If you have a PC without NVIDIA) a new project → export. | The window notes NVENC is unavailable; the export runs with libx264 «Высокое качество» (CRF 14). |
+
+**Amendment 1 (1.7.1):**
+
+| # | Steps | Expected |
+|---|---|---|
+| 17 | A route with TOP: trim its clip from the right into the lilac («Обрезать справа» / W). | The lilac ends at the new end; its start — the TOP moment — stays where you put it. Trimmed to its last frame — the status goes. |
+| 18 | Drag the orange's end to the right (and its body). | The blue route start mark moves with the orange's end. Ctrl+Z — both back. |
+| 19 | Select «Итоги»: «Попытки по трассам». | Each route with its result; the field shows the attempts (or «по видео: N»). Type 6 — the board shows 6 for that route; empty — the count from the video; a FLASH row is not editable. |
+| 20 | Magnet on, «Итоги» after the last clip: delete the first clip (or trim one before «Итоги»). | «Итоги» moves left with the clips, keeping its place after the last one. |
+| 21 | New project → export → «Подробные настройки» → «Пользовательский». | «Максимальное» (CRF 14), «Медленно»; from «Сбалансированный» — «Высокое» (CRF 18), «Средне». |

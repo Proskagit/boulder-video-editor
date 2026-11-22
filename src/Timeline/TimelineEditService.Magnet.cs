@@ -117,14 +117,26 @@ public sealed partial class TimelineEditService
     {
         var rate = plan.Rate;
         var moves = new List<(long Start, long End, long Delta)>();
+        var ends = new List<(long End, long? PlannedEnd)>();   // every main clip's end now and after the plan (null: removed)
         foreach (var clip in main.Clips)
         {
-            if (plan.Removes(clip) || plan.PlannedState(clip) is not { } after) continue;
             long start = clip.TimelineStart.ToNearestFrame(rate), end = clip.TimelineEnd.ToNearestFrame(rate);
+            if (plan.Removes(clip)) { ends.Add((end, null)); continue; }
+            if (plan.PlannedState(clip) is not { } after) { ends.Add((end, end)); continue; }
             long afterStart = after.Start.ToNearestFrame(rate), afterEnd = after.End.ToNearestFrame(rate);
+            ends.Add((end, afterEnd));
             if (afterStart != start && afterEnd - afterStart == end - start) moves.Add((start, end, afterStart - start));
         }
-        if (moves.Count == 0) return;
+
+        // D074 amendment 1 (the owner): «Итоги» outside every main clip — after the last one, in a gap — keeps its distance
+        // from the main track's content before it: it moves by as many frames as that content's end does (a clip removed
+        // or shortened before it, the clips before it closing up).
+        long SummaryDelta(long start)
+        {
+            var before = ends.Where(e => e.End <= start).ToList();
+            if (before.Count == 0) return 0;
+            return before.Select(e => e.PlannedEnd ?? 0).DefaultIfEmpty(0).Max() - before.Max(e => e.End);
+        }
 
         foreach (var track in Sequence.VideoTracks.Where(t => t != main && !t.IsLocked))
         {
@@ -134,8 +146,13 @@ public sealed partial class TimelineEditService
                 if (clip is TemplateClip { AnchorClipId: not null }) continue;
                 if (plan.Changes(clip) && !plan.MagnetCarried.Contains(clip)) continue;
                 var start = clip.TimelineStart.ToNearestFrame(rate);
-                if (moves.FirstOrDefault(m => m.Start <= start && start < m.End) is not { Delta: not 0 } move) continue;
-                var (after, error) = ShiftedState(clip, move.Delta, rate);
+                long delta;
+                if (moves.FirstOrDefault(m => m.Start <= start && start < m.End) is { Delta: not 0 } move) delta = move.Delta;
+                else if (clip is TemplateClip { Kind: TemplateKind.Summary } &&
+                         !ends.Zip(main.Clips).Any(p => p.Second.TimelineStart.ToNearestFrame(rate) <= start && start < p.First.End) &&
+                         SummaryDelta(start) is var summaryDelta and not 0) delta = summaryDelta;
+                else continue;
+                var (after, error) = ShiftedState(clip, delta, rate);
                 if (error is not null) continue;
                 plan.Update(clip, track, after);
                 plan.MagnetCarried.Add(clip);

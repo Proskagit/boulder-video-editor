@@ -103,6 +103,30 @@ public sealed class RouteStartTests
     }
 
     [Fact]
+    public void Dragging_the_oranges_end_moves_T_with_it_in_the_same_step()   // D074 amendment 1
+    {
+        var route = Guid.NewGuid();
+        Assert.True(_f.Service.AddHolds(_clip.Id, new[] { NewHold() }, route).Success);
+        Assert.True(_f.Service.LayOutIntroAndFinal(_clip.Id, F(1000), route).Success);
+        var green = Assert.Single(Greens());
+        Assert.Equal(F(1000), green.RouteStart);
+        var before = _f.UndoRedo.NextUndo;
+
+        Assert.True(_f.Service.EditOverlayStrip(_clip.Id, OverlayStripHandle.OrangeEnd, 50, route).Success);
+        Assert.Equal(F(1050), green.RouteStart);
+        Assert.Equal(F(1050), RouteOverlays.RouteStartOf(green, _clip, Rate));
+        Assert.True(_f.Service.EditOverlayStrip(_clip.Id, OverlayStripHandle.OrangeBody, -20, route).Success);   // the body moves the end too
+        Assert.Equal(F(1030), green.RouteStart);
+
+        _f.UndoRedo.Undo();
+        _f.UndoRedo.Undo();
+        Assert.Equal(F(1000), green.RouteStart);
+        Assert.Same(before, _f.UndoRedo.NextUndo);
+        Assert.True(_f.Service.EditOverlayStrip(_clip.Id, OverlayStripHandle.OrangeStart, -20, route).Success);   // its start: T stays
+        Assert.Equal(F(1000), green.RouteStart);
+    }
+
+    [Fact]
     public void An_older_area_without_T_shows_the_end_of_its_routes_animation()
     {
         var route = Guid.NewGuid();

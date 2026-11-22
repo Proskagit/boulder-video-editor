@@ -4087,7 +4087,16 @@
   <data name="Inspector_SummaryOwnBackgroundTip" xml:space="preserve">
     <value>Включено — табло на своём фоне закрывает видео под ним. Выключено — табло поверх затемнённого видео.</value>
   </data>
+  <data name="Inspector_SummaryAttempts" xml:space="preserve">
+    <value>Попытки по трассам</value>
+  </data>
+  <data name="Inspector_SummaryAttemptsCounted" xml:space="preserve">
+    <value>по видео: {0}</value>
+  </data>
+  <data name="Inspector_SummaryAttemptsTip" xml:space="preserve">
+    <value>Попыток было больше, чем в монтаже, — впишите их число (1–99). Пусто — считаются по видео. Флеш — всегда одна попытка. Хранится в «Боулдере» трассы.</value>
+  </data>
   <data name="Inspector_SummaryHint" xml:space="preserve">
-    <value>Показывает трассы, начавшиеся до этого шаблона (после предыдущих «Итогов»). Строку меняют в «Боулдере» трассы.</value>
+    <value>Показывает трассы, начавшиеся до этого шаблона (после предыдущих «Итогов»). Строку меняют в «Боулдере» трассы; попытки — и здесь, ниже.</value>
   </data>
 </root>

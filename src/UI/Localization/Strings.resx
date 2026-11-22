@@ -4083,7 +4083,16 @@ Everything else works without the models. They can also be installed later: «Se
   <data name="Inspector_SummaryOwnBackgroundTip" xml:space="preserve">
     <value>On: the board on its own background hides the video below it. Off: the board over the dimmed video.</value>
   </data>
+  <data name="Inspector_SummaryAttempts" xml:space="preserve">
+    <value>Attempts by route</value>
+  </data>
+  <data name="Inspector_SummaryAttemptsCounted" xml:space="preserve">
+    <value>from the video: {0}</value>
+  </data>
+  <data name="Inspector_SummaryAttemptsTip" xml:space="preserve">
+    <value>More attempts than the edit shows: type their number (1–99). Empty — counted from the video. A flash is always one attempt. Kept on the route's «Boulder».</value>
+  </data>
   <data name="Inspector_SummaryHint" xml:space="preserve">
-    <value>Lists the routes that start before this template (after the previous «Summary»). Edit a route's «Boulder» to change its row.</value>
+    <value>Lists the routes that start before this template (after the previous «Summary»). Edit a route's «Boulder» to change its row; the attempts — also below.</value>
   </data>
 </root>

@@ -834,6 +834,22 @@
                             IsChecked="{Binding TemplateOwnBackground, Mode=TwoWay}" ToolTip.Tip="{x:Static l:Strings.Inspector_SummaryOwnBackgroundTip}"/>
                   <TextBlock Text="{x:Static l:Strings.Inspector_SummaryHint}" Foreground="{DynamicResource TextMutedBrush}"
                              FontSize="{DynamicResource FontSizeCaption}" TextWrapping="Wrap"/>
+                  <!-- D074 amendment 1: the attempts of each route, stated here (on the route's «Боулдер»). -->
+                  <TextBlock Text="{x:Static l:Strings.Inspector_SummaryAttempts}" Classes="label" IsVisible="{Binding HasSummaryAttempts}" Margin="0,6,0,0"
+                             ToolTip.Tip="{x:Static l:Strings.Inspector_SummaryAttemptsTip}"/>
+                  <ItemsControl x:Name="SummaryAttemptsList" ItemsSource="{Binding SummaryAttempts}" IsVisible="{Binding HasSummaryAttempts}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Grid ColumnDefinitions="*,Auto,64" Margin="0,0,0,4">
+                          <TextBlock Text="{Binding Label}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                          <TextBlock Grid.Column="1" Text="{Binding ResultText}" Foreground="{DynamicResource TextMutedBrush}" FontSize="{DynamicResource FontSizeCaption}"
+                                     VerticalAlignment="Center" Margin="8,0"/>
+                          <TextBox Grid.Column="2" Text="{Binding AttemptsText, Mode=TwoWay}" Watermark="{Binding Counted}" IsEnabled="{Binding IsEditable}"
+                                   MaxLength="2" ToolTip.Tip="{x:Static l:Strings.Inspector_SummaryAttemptsTip}"/>
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
                 </StackPanel>
                 <!-- D073: the language of the words drawn by «Боулдер» and «Итоги». -->
                 <Grid ColumnDefinitions="144,*" IsVisible="{Binding ShowsTemplateLanguage}">

@@ -75,6 +75,20 @@ public class SummaryBoardTests
     private SummaryBoard Board(double summarySeconds) => SummaryBoard.Of(_sequence, S(summarySeconds), Rate, id => id == _asset ? _binding : null);
 
     [Fact]
+    public void The_attempt_rows_name_each_routes_plates_in_order()   // D074 amendment 1
+    {
+        var a1 = Route(0, "7", "6B", BoulderStatus.Attempt, attempts: 4);
+        var a2 = Route(30, "7", "6B", BoulderStatus.Top);
+        var b = Route(60, "", "", BoulderStatus.Flash);
+        var rows = SummaryBoard.AttemptRows(_sequence, S(200), Rate);
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(new[] { a1.Id, a2.Id }, rows[0].Plates);
+        Assert.Equal((BoulderStatus.Top, 4, 2, true), (rows[0].Result, rows[0].Attempts, rows[0].Counted, rows[0].Stated));
+        Assert.Equal((BoulderStatus.Flash, 1, false), (rows[1].Result, rows[1].Attempts, rows[1].Stated));
+        Assert.Equal(new[] { b.Id }, rows[1].Plates);
+    }
+
+    [Fact]
     public void The_climb_time_runs_from_the_oranges_end_to_the_lilacs_start_with_its_heart_rate()
     {
         Training();

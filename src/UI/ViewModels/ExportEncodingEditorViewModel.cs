@@ -169,6 +169,19 @@ public sealed partial class ExportEncodingEditorViewModel : ObservableObject
         Refresh();
     }
 
+    /// <summary>D074 amendment 1: «Пользовательский» chosen after a profile starts from that profile's level and speed
+    /// («Высокое качество» → «Максимальное» CRF 14, «Медленно»), not from whatever the fields held.</summary>
+    partial void OnSelectedProfileChanged(ExportChoice<ExportProfile>? oldValue, ExportChoice<ExportProfile> newValue)
+    {
+        if (_syncing || newValue.Value != ExportProfile.Custom || oldValue is null || oldValue.Value == ExportProfile.Custom) return;
+        var (quality, speed) = ExportEncoding.CustomOf(oldValue.Value);
+        _syncing = true;
+        SelectedQuality = Qualities.Single(o => o.Value == quality);
+        SelectedSpeed = Speeds.Single(o => o.Value == speed);
+        _syncing = false;
+        Refresh();
+    }
+
     partial void OnSelectedEncoderChanged(ExportChoice<ExportVideoEncoder> value) { if (!_syncing) Refresh(); }
     partial void OnSelectedBitrateChanged(ExportChoice<int> value) { if (!_syncing) Refresh(); }
     partial void OnSelectedQualityChanged(ExportChoice<ExportQuality> value) => CustomFieldChanged();

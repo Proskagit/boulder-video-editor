@@ -11887,6 +11887,24 @@ CQ 20 ↔ slow CRF 16) and libx264 slow **CRF 14** (was 16). **The application's
 Also: the «Сбалансированный» / «Высокое качество» details no longer call «Сбалансированный» the default («хорошая картинка, файл
 меньше» / «лучшая картинка (по умолчанию в новом проекте), экспорт дольше»).
 
+### Amendment 1 (2026-11-22) — the owner on 1.7.0
+
+1. **A tail trim keeps the lilac's start** (replaces D048 §3.8's «the lilac keeps its length and shifts left»): trimming a
+   route's clip from the right (W, «Обрезать справа», an edge drag) cuts the lilac at the new end — its start `S`, the moment of
+   the result the user set, stays on its frame; less than two frames left deletes only the lilac (the status).
+2. **The route's start `T` follows the orange's end:** dragging the orange's end (or its body) on the strip moves a stored `T`
+   to the new end in the same step — the FIT calibration learns from `T` (D056 §4). The orange's start never moves `T`.
+3. **«Итоги» edits the attempts:** its Inspector lists its routes («Попытки по трассам»: the route, its result, a field with the
+   attempts counted from the video as the hint); a number (1–99) is stated on the route's last attempt's «Боулдер» plate, the
+   earlier plates cleared, one undo step (`ITimelineEditService.SetRouteAttempts`, `SummaryBoard.AttemptRows`); empty — counted
+   from the video again; a flash is one attempt, not editable.
+4. **«Итоги» follows the magnet:** outside every main-track clip (after the last one, in a gap) it keeps its distance from the
+   main track's content before it — a removal or a trim before it moves it by the same frames (inside a clip it already moved
+   with the clip, D069 §0). Other free clips there stay, as before.
+5. **«Пользовательский» after «Высокое качество» starts at CRF 14, «Медленно»** (was the fields' CRF 18): choosing it after a
+   profile takes that profile's level and speed (`ExportEncoding.CustomOf`); a new project's own custom fields are «Максимальное»
+   / «Медленно» too.
+
 ### Review (phase-reviewer, 2026-11-22): FAIL → fixed
 
 (1) For an anchored plate «Удалить часть» of Follow vanished after any playhead move (`OnPlayheadMoved` still read `_clip`) — now
