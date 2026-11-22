@@ -21,7 +21,8 @@ were listed), Timeline 1 261, Video 418 (+1 skip), ExportEndToEnd 189 = 6 445. P
 **Amendment 2 (2026-11-22, the owner on 1.9.0):** a text / template over a busy top track goes on a new track
 (`TrackForNewOverlay`, nothing pushed); Delete / Ripple delete remove the video tracks they empty (`RemoveEmptiedVideoTracks`);
 the styles as one list (`StyleChoices`: «По умолчанию», saved, «＋ Сохранить новый стиль…» with a descriptive unique name; ✕ for
-the chosen). Tests: 4 rewritten to the new track rule, +1 deletion removes the track, +1 the styles list. Portable 1.9.1.
+the chosen). Tests: 4 rewritten to the new track rule, +1 deletion removes the track, +1 the styles list. Gates: 0 / 0; 6 447 green
+(Video 1 skip). Checked on a copy of the owner's project: «+ Текст» over a plate on V2 adds V3 with the text. Portable 1.9.1.
 
 **Phase 56 — the holds' contour (D075, 2026-11-22) — on `feat/phase-56-holds-contour`** (from `origin/main` `13500cf`).
 **Step 0:** Phase 55 accepted (PR #85 merged) — D074 «Acceptance», DEVELOPMENT_PLAN, ROADMAP. **Measured and withdrawn:** the
