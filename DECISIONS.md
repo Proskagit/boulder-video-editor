@@ -10065,6 +10065,86 @@ the indicator's cancel after the export's end and on missing gate evidence — b
 re-checked, tests added; this record); its notes taken too (the failure message's names from the start, no result dialog while
 closing, a weak test removed, a manual row for outlined text + Save As).
 
+## D076 — Phase 57: codecs and export presets *(set by the owner on 2026-11-22, FU-EX.1 — the last item of his queue after 1.3.0)*
+
+**Status: pre-implementation — what exists, what was measured, the proposal and the owner's open questions.** Continues D059
+(profiles, NVENC, the calibration), D060 §3–§4 (the resolution; «Кодек и пресет» deferred there) and D074 §6 («Высокое качество» =
+the highest level; new projects with NVENC).
+
+### 0. Step 0 — Phase 56 accepted
+
+PR #86 merged (`b739142`) — D075 «Acceptance», DEVELOPMENT_PLAN, ROADMAP, progress.
+
+### 1. What exists (checked in the code, 2026-11-22)
+
+- `ExportEncoding` (Core): `Profile` (Fast / Balanced / HighQuality / Custom), `Encoder` (Libx264 / Nvenc), the Custom fields
+  (`Quality` CRF 14/18/23/28, `Preset` fast/medium/slow, `RateControl`, `VideoBitrateMbps` 8–100), `AudioBitrateKbps`
+  (128–320), `Resolution` (Project / Uhd4K / FullHd / Hd / Sd). The codec is fixed: H.264 (D023, `ExportFormat`).
+- `ExportVideoPlan.For` resolves the profile to the encoder actually used (NVENC only where available and ≤ 4096 px; else libx264
+  of the same profile, `FellBack`); the constants of D059 §5 / D074 §6 (Fast p2 CQ 25 / veryfast CRF 18; Balanced p5 CQ 22 /
+  medium CRF 18; High quality p7 multipass CQ 19 / slow CRF 14; Custom CQ 19 / 22 / 27 / 32).
+- `ExportSizeEstimate`: bits per pixel of x264 / NVENC H.264 per preset, scaled by CRF / CQ, size and rate; range 0.6–1.6×.
+- `FfmpegExportEncoder.CodecArguments` builds the libx264 / `h264_nvenc` options; `FfmpegEncoderCapabilities` checks
+  `h264_nvenc` once (listed in `-encoders` + a 10-frame trial).
+- `ExportEncodingEditorViewModel` / `ExportEncodingEditorView`: «Профиль» on top; «Подробные настройки» show the encoder and the
+  audio bitrate always, the quality / speed / rate control / bitrate **only for «Пользовательский»**; changing one of those
+  selects «Пользовательский». The resolution is a separate row of the export dialog (`ExportDialogViewModel`), not in the editor,
+  and not in «Параметры проекта».
+- Saved: `settings.export` (`project.json` v28) — profile, encoder, quality, preset, bitrate, rate control, video bitrate,
+  resolution, each only when not the default. New projects: `ExportEncoding.NewProject` (High quality + NVENC).
+- The saved text styles (D075 amendment 1–2) — the pattern to follow: `UserSettings.TextStyles` (global, every project),
+  one drop-down with the built-in look, the saved ones and «＋ Сохранить новый стиль…», ✕ deletes the chosen one.
+
+### 2. What the FFmpeg and the graphics card really support (measured 2026-11-22)
+
+- **The delivered minimal FFmpeg 9.0.2** (`9.0.2-aive-minimal`, portable 1.9.1): video encoders **`libx264` and `h264_nvenc`
+  only** — no `hevc_nvenc`, no `av1_nvenc`, no software HEVC / AV1. nv-codec-headers 12.2.72.0 are already in it (they cover
+  HEVC and AV1 NVENC); the `mov` muxer and the `hevc` / `av1` parsers are there. So **HEVC / AV1 need a rebuild of the minimal
+  FFmpeg** (`tools/ffmpeg-minimal`, the CI workflow `ffmpeg-minimal.yml`): `--enable-encoder=hevc_nvenc,av1_nvenc` cost nothing
+  (no new library); a software fallback needs new libraries — **libx265** (GPL-2.0-or-later, as libx264) and **SVT-AV1**
+  (`libsvtav1`, BSD-3-Clause-Clear + the AOMedia patent licence) — each a source in `sources.lock`, a static build in `build.sh`,
+  its licence in the notices.
+- **The development FFmpeg** (gyan.dev 9.0.1 essentials, the tests' one): `libx264`, `h264_nvenc`, `libx265`, `hevc_nvenc`,
+  `libaom-av1`, `av1_nvenc`, `libvmaf`; no `libsvtav1`.
+- **The owner's card** RTX 4070 SUPER (Ada, driver 621.24): `h264_nvenc`, `hevc_nvenc`, `av1_nvenc` all encode (1080p and
+  7680 × 4320 trials pass; H.264 NVENC stays ≤ 4096 px, HEVC / AV1 to 8192).
+- Encoder alone, 120 frames of a real 4K60 route (12×10), idle machine (indicative, the export shares the CPU with drawing):
+  libx264 medium CRF 18 56 fps · libx265 medium 24 · libx265 fast 41 · libaom-av1 cpu-used 8 10 · h264_nvenc p5 61 ·
+  hevc_nvenc p5 89 · av1_nvenc p5 90. So NVENC HEVC / AV1 are as fast as H.264 NVENC or faster; software HEVC is 2–3× slower than
+  libx264, libaom too slow to be a fallback (hence SVT-AV1).
+- Playback: H.264 — everywhere. HEVC — phones, TVs, YouTube, VLC, Telegram; Windows' own players need the «HEVC Video
+  Extensions» from the Store. AV1 — YouTube, browsers, recent phones; Windows with the free «AV1 Video Extension»; older devices
+  (before ~2020–2023) may not play it.
+
+### 3. The proposal (to be confirmed by the owner's answers)
+
+- **Codec** — a new field: H.264 / HEVC (H.265) / AV1; each with «Видеокарта NVIDIA (NVENC)» where the check confirmed that
+  codec's NVENC, and the processor as the fallback (libx264 / libx265 / SVT-AV1). A fallback never changes the codec. MP4, AAC,
+  8-bit 4:2:0 BT.709 limited for every codec (HEVC tagged `hvc1`). Capabilities checked per codec.
+- **Presets** replace the profiles: built-in ones that state every field (codec, encoder, resolution, quality, speed, rate
+  control, audio); «Подробные настройки» always show all the fields of the chosen preset; any change → «Пользовательский»;
+  «＋ Сохранить пресет…» keeps the shown settings in the global settings (every project), ✕ deletes a saved one; the
+  resolution moves into the preset (a «2K / 1440p» size added). Draft of the built-ins:
+
+  | preset | resolution | codec | quality (calibrated to libx264) | speed | audio |
+  |---|---|---|---|---|---|
+  | «Быстрый» | Full HD | H.264 | ↔ veryfast CRF 18 | NVENC p2 / veryfast | AAC 192 |
+  | «Средний» | 2K (1440p) | HEVC | ↔ medium CRF 18 | NVENC p5 / medium | AAC 192 |
+  | «Высокий» | 4K | HEVC | ↔ slow CRF 16 | NVENC p7 / slow | AAC 256 |
+  | «Максимальный» | as the project | HEVC | ↔ CRF 14 | NVENC p7 multipass / slow | AAC 320 |
+
+- **Calibration** of HEVC / AV1 NVENC and the software ones by D059 §5's rule (the largest CQ / CRF whose VMAF is not below the
+  libx264 counterpart on all five references), recorded in `docs/EXPORT_PERFORMANCE.md`; the size estimate gets bits per pixel
+  per codec and encoder.
+- **Format** `project.json` v29: `settings.export.codec` (absent = H.264), the preset's name; an older file keeps exactly its
+  output.
+
+### 4. Open questions to the owner (2026-11-22)
+
+Q1 the FFmpeg rebuild and the software fallbacks; Q2 the set of built-in presets; Q3 their codecs; Q4 a preset's resolution
+above the canvas; Q5 a saved preset's name; Q6 the new project's default; Q7 old projects' «Высокое качество» etc. — the answers
+are recorded here before the implementation.
+
 ## How to add a decision
 
 When a major architectural decision is made, add:
@@ -11995,6 +12075,10 @@ Text processing accepted («можно двигаться дальше») with t
    and «＋ Сохранить новый стиль…» (the shown look saved under a name that says what it is — «Segoe UI 54 · жирный · курсив»,
    unique); the list shows the style the text has; ✕ deletes the chosen saved style. The separate buttons and the name field
    are gone.
+
+### Acceptance (2026-11-22)
+
+The owner checked 1.9.1 («работает») and merged PR #86 (`b739142`, amendments 1–2 included). Phase 56 is accepted.
 
 ### Out of scope
 

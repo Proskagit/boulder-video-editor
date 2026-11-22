@@ -2,6 +2,11 @@
 
 ## Current phase
 
+**Phase 57 — codecs and export presets (D076, 2026-11-22) — on `feat/phase-57-codecs-presets`** (from `origin/main` `b739142`).
+**Step 0:** Phase 56 accepted (PR #86 merged) — D075 «Acceptance», DEVELOPMENT_PLAN, ROADMAP. **Pre-implementation:** D076 §1–§3
+(what exists; the minimal FFmpeg 9.0.2 has only libx264 / h264_nvenc — HEVC / AV1 need its rebuild; the RTX 4070 SUPER encodes
+H.264 / HEVC / AV1 NVENC); the owner's questions Q1–Q7 open. Nothing implemented yet.
+
 **Phase 56 amendment 1 (D075, 2026-11-22) — text styles, technical debt, the repository's page** (the owner added them to the
 phase; codecs → Phase 57). **Done:** italic, `TextShadow`, line spacing, block width (Preview side handles —
 `TransformGestureKind.TextWidth` — and the Inspector), saved styles (`SavedTextStyle`, `UserSettings.TextStyles`; `Normalized`

@@ -685,7 +685,7 @@ the orange area's end to the purple area's start, scrolling past ~10 rows — in
 6) technical debt (the split of `TimelineEditService` / `TimelineViewModel`); 7) the repository's page (its «Status» rewritten,
 the page restructured). Other ideas (Shorts per route, comparing attempts, beta notes …) wait until then.
 
-**Phase 56 (D075, 2026-11-22) — the holds' contour, text styles, technical debt, the README** on `feat/phase-56-holds-contour` (from `main` `13500cf`; amendment 1 — text styles with `project.json` v28, `TimelineEditService` / `TimelineViewModel` split by section, the README EN + RU with screenshots; **Phase 57 next — codecs and presets, FU-EX.1**): the smoothing that removes the teeth but
+**Phase 56 (D075, 2026-11-22) — the holds' contour, text styles, technical debt, the README — accepted by the owner 2026-11-22 (PR #86 merged, `b739142`)** on `feat/phase-56-holds-contour` (from `main` `13500cf`; amendment 1 — text styles with `project.json` v28, `TimelineEditService` / `TimelineViewModel` split by section, the README EN + RU with screenshots; **Phase 57 next — codecs and presets, FU-EX.1**): the smoothing that removes the teeth but
 keeps a corner standing alone (a triangle keeps its tips); a refinement of the mask on a close-up was measured on the owner's
 project and withdrawn by him (not worth a second model pass); saved holds untouched.
 
