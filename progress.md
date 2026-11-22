@@ -2,18 +2,15 @@
 
 ## Current phase
 
-**Phase 56 continued (2026-11-22, the owner: text styles, tech debt, README into this phase; codecs → Phase 57) — IN PROGRESS,
-WIP commit, NOT tested, NOT pushed.** Answers: Q1 A (italic, shadow, line spacing, block width, saved styles), Q2 A (shadow: on,
-colour, opacity, blur, offset), Q3 — the width dragged by side handles in the Preview, shown / typed in the Inspector, Q4 A (saved
-styles global), Q5 — README in English then Russian (a summary of what is done + the quick-start scenario), Q6 — screenshots from a
-copy of «Новый проект» (holds markup, «Итоги», the lilac, the help). **Done (builds 0 / 0):** `TextClip` / `TextProperties`
-Italic, `TextShadow`, LineSpacing, BoxWidth; validation + messages; `ClipPropertyFields` bits 52–55; clone; format **v28**
-(`TextStyle2Version`); `CompositionPainter.Layout` (italic, line height × the font's, MaxTextWidth = BoxWidth → word wrap),
-`DrawShadow` (ring copies), glyph key; `SavedTextStyle` + `UserSettings.TextStyles`; Inspector fields + saved styles
-(`InspectorViewModel.TextStyle2.cs`, view); Preview side handles (`TransformGestureKind.TextWidth`, `BeginTextWidth`,
-`WidthHandleAt`). **Left:** tests (persistence v28 + pinned 27 → 28, render, UI, Preview width gesture), the full gates, the
-visual check of the shadow, D075 amendment 1 + manual plan rows, the tech-debt split, README + screenshots, review, push to PR #86,
-portable.
+**Phase 56 amendment 1 (D075, 2026-11-22) — text styles, technical debt, the repository's page** (the owner added them to the
+phase; codecs → Phase 57). **Done:** italic, `TextShadow`, line spacing, block width (Preview side handles —
+`TransformGestureKind.TextWidth` — and the Inspector), saved styles (`SavedTextStyle`, `UserSettings.TextStyles`; `Normalized`
+keeps the same list when nothing is dropped so unchanged settings stay equal), format **v28**; `TimelineEditService` /
+`TimelineViewModel` split into partial files by section (no change); `README.md` English + Russian with four screenshots of a
+copy of the owner's project (`docs/images`; the copy and its recent-list entry removed after). **Tests:**
+`TextStyle2PersistenceTests` (3), `TextStyle2RenderTests` (7: Preview = export for each, wrap, spacing, shadow colour),
+`TextStyle2InspectorTests` (2), `PreviewTransformUiTests` (+1 the side handle); the pinned format versions 27 → 28; the
+Inspector's numeric field count 57 → 62; the localization allowlist.
 
 **Phase 56 — the holds' contour (D075, 2026-11-22) — on `feat/phase-56-holds-contour`** (from `origin/main` `13500cf`).
 **Step 0:** Phase 55 accepted (PR #85 merged) — D074 «Acceptance», DEVELOPMENT_PLAN, ROADMAP. **Measured and withdrawn:** the

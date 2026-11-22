@@ -11960,6 +11960,25 @@ every strength the corners stay. New holds only (Q2): a saved contour is never s
 A side is also at least 6 px (`MinCornerSidePixels`), and a hold under 30 px across has no corners (`MinCornerHoldPixels`): over a
 small hold's pixel steps the contour turns like corners everywhere, so a small hold is smoothed as before. A corner is not averaged; only the area's rescale (D065 §2) moves it by a fraction of a pixel.
 
+### Amendment 1 (2026-11-22) — text styles, technical debt, the repository's page (the owner added them to this phase)
+
+The codecs and presets (FU-EX.1) go to Phase 57. The owner's answers: Q1 A, Q2 A, Q3 — the width dragged in the Preview, shown and
+typed in the Inspector, Q4 A, Q5 — the page in English then Russian, Q6 — screenshots from a copy of his project.
+
+1. **Text styles** (format **v28**): italic; «Тень» — on / off, colour, opacity, softness and offset (× the font size; the
+   softness drawn as copies on two rings, no blur effect, so Preview = export); «Интервал» — the line height × the font's own
+   (1 — as before); «Ширина» — the block's width in canvas pixels, the lines wrapped by words (empty — no wrapping, as before),
+   dragged by the side handles of the text's frame in the Preview (the centre kept, one undo step, a cancel leaves none) and
+   typed in the Inspector; **saved styles** — «Сохранить стиль» under a name (empty — «Стиль N», a name taken is replaced), kept in
+   the global settings (`UserSettings.TextStyles`, every project), a click applies the font, size, colour, bold, italic,
+   alignment, spacing, outline, background and shadow (never the words, the place, the width or the timing), ✕ deletes. A text
+   without them is drawn and saved exactly as before.
+2. **Technical debt:** `TimelineEditService.cs` (2 821 lines) and `TimelineViewModel.cs` (2 034) split by their sections into
+   partial files (`.Add`, `.Move`, `.Trim`, `.Tracks`, `.Settings`, `.Dissolves`; `.Projection`, `.Navigation`, `.Commands`,
+   `.SelectionState`, `.Gestures`) — the code moved byte for byte, no change.
+3. **The repository's page:** `README.md` rewritten — English, then Russian: what the editor does, the quick start, four
+   screenshots of the owner's project copy (`docs/images`: the holds, «Итоги», the route's areas, the help), the developer notes.
+
 ### Out of scope
 
 The refinement on a close-up (§2, withdrawn); a notch that is in the model's mask itself (the blue hold of the owner's

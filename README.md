@@ -1,6 +1,6 @@
 # Boulder Video Editor
 
-![Boulder Video Editor — the route's holds marked on the video](docs/images/main.png)
+![Boulder Video Editor — the route's holds marked on the video](docs/images/main.jpg)
 
 **[English](#english) · [Русский](#русский)**
 
@@ -52,9 +52,9 @@ Help on any step — F1 in the program.
 
 | | |
 |---|---|
-| ![Holds markup](docs/images/holds.png) | ![The day's summary](docs/images/summary.png) |
+| ![Holds markup](docs/images/holds.jpg) | ![The day's summary](docs/images/summary.jpg) |
 | *A route's holds marked from its first hold* | *«Summary» — the board of the day* |
-| ![The route's result on the timeline](docs/images/lilac.png) | ![Help](docs/images/help.png) |
+| ![The route's result on the timeline](docs/images/lilac.jpg) | ![Help](docs/images/help.jpg) |
 | *The green / orange / lilac areas of a route and its result* | *In-app help (F1)* |
 
 ### For developers
@@ -127,9 +127,9 @@ dotnet test                      # AIVE_HEAVY_TESTS=1 adds the 4K export scenes
 
 | | |
 |---|---|
-| ![Разметка зацепок](docs/images/holds.png) | ![Итоги дня](docs/images/summary.png) |
+| ![Разметка зацепок](docs/images/holds.jpg) | ![Итоги дня](docs/images/summary.jpg) |
 | *Зацепки трассы, отмеченные по первой* | *«Итоги» — табло дня* |
-| ![Результат трассы на таймлайне](docs/images/lilac.png) | ![Справка](docs/images/help.png) |
+| ![Результат трассы на таймлайне](docs/images/lilac.jpg) | ![Справка](docs/images/help.jpg) |
 | *Зелёная / оранжевая / лиловая области трассы и её результат* | *Справка в программе (F1)* |
 
 ### Разработчикам
