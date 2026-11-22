@@ -145,7 +145,8 @@ public sealed partial class TimelineEditService
         {
             Kind = TemplateKind.Boulder, Date = defaults.Date, Route = defaults.Route, Grade = defaults.Grade,
             Status = pe - s < MinStatusFrames ? BoulderStatus.None : defaults.Status, AccentHex = defaults.AccentHex, Title = defaults.Title,
-            Subtitle = defaults.Subtitle, StatusAt = MediaTime.FromFrame(s - ps, rate), AnchorClipId = clipId, AnchorRouteId = routeId
+            Subtitle = defaults.Subtitle, StatusAt = MediaTime.FromFrame(s - ps, rate), AnchorClipId = clipId, AnchorRouteId = routeId,
+            Language = defaults.Language
         };
         ClipState.FromFrames(ps, pe, MediaTime.Zero, rate).ApplyTo(template);
         var (fadeIn, fadeOut) = TemplateRules.Animation(TemplateKind.Boulder);

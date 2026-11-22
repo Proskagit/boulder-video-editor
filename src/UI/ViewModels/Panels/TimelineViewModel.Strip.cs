@@ -118,13 +118,19 @@ public sealed partial class TimelineViewModel
     private List<StripSegment> Segments(TimelineClipViewModel vm, OverlayStripState strip, Guid route)
     {
         var segments = new List<StripSegment>(3);
+        // D073 amendment 2: the lilac carries its «Боулдер»'s status, in the words the plate draws.
+        var status = strip.TemplateId is { } id && _clipViewModels.TryGetValue(id, out var plate) &&
+                     plate.Clip is TemplateClip { Kind: TemplateKind.Boulder, Status: not BoulderStatus.None } boulder
+            ? TemplateWords.Of(boulder.Language).StatusWord(boulder.Status)
+            : string.Empty;
         void Add(FrameSpan? span, StripSegmentKind kind, string color, string tip)
         {
             if (span is not { Length: > 0 } s) return;
             var left = TimelineCoordinateMapper.TimeToX(MediaTime.FromFrame(s.Start, FrameRate) - vm.Clip.TimelineStart, PixelsPerSecond);
             var width = Math.Max(1, TimelineCoordinateMapper.TimeToX(MediaTime.FromFrame(s.Length, FrameRate), PixelsPerSecond));
             segments.Add(new StripSegment(left, width, color, string.Format(tip, Timecode(s.Start), Timecode(s.End)), kind, s.Start, s.End,
-                kind == StripSegmentKind.Orange && SelectedOrangeClipId == vm.Id && _selectedOrangeRouteId == route));
+                kind == StripSegmentKind.Orange && SelectedOrangeClipId == vm.Id && _selectedOrangeRouteId == route,
+                kind == StripSegmentKind.Lilac ? status : string.Empty));
         }
         Add(strip.Green, StripSegmentKind.Green, GreenHex, Strings.Strip_Green);
         Add(strip.Orange, StripSegmentKind.Orange, OrangeHex, Strings.Strip_Orange);

@@ -579,6 +579,18 @@ internal sealed class TemplateClipDto : ClipDto
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public long? RouteStartTicks { get; set; }
 
+    /// <summary>Format v27 (D073): «Боулдер»'s stated attempts; written only when set.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? Attempts { get; set; }
+
+    /// <summary>Format v27 (D073): the drawn words' language of a «Боулдер» or an «Итоги»; absent — Russian (an older file).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public TemplateLanguage? Language { get; set; }
+
+    /// <summary>Format v27 (D073): «Итоги» on its own background; written only when on.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? OwnBackground { get; set; }
+
     /// <summary>Format v13 (Phase 35.5): the heart-rate overlay's look and corner; written (and required) only on it.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public HeartRateLook? Look { get; set; }

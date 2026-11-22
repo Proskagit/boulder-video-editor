@@ -11,9 +11,11 @@ namespace AiVideoEditor.Core.Composition;
 /// <list type="bullet">
 /// <item>The first line is always at <c>00:00</c>: <c>00:00 Intro</c> when no route starts at 0.</item>
 /// <item>A line: <c>Трасса {номер} · {категория}</c> — a missing part drops with its « · » (<c>Трасса 7</c>,
-/// <c>Трасса · 7A</c>, <c>Трасса</c>); Top adds <c> 🟢</c>, Attempt <c> 🔴</c>, no status nothing.</item>
+/// <c>Трасса · 7A</c>, <c>Трасса</c>); Top adds <c> 🟢</c>, Flash <c> ⚡</c> (D073), Attempt <c> 🔴</c>, no status nothing.</item>
 /// <item>The parts of a split area are one route (its earliest part): an anchored area by its route, a free one by the part
 /// whose template clock starts at 0. Different routes are different lines, even at the same time or with the same name.</item>
+/// <item>D073 amendment 1: every «Итоги» is a line of its own at its start, its header as the title (an empty header — the
+/// default of its language); the parts of a split «Итоги» one line (the part whose clock starts at 0).</item>
 /// <item>With an exported range, the times are from its start; areas starting outside it are left out.</item>
 /// <item><c>mm:ss</c>, from an hour <c>h:mm:ss</c> (whole seconds, rounded down); the lines by time, then by track and place.</item>
 /// </list>
@@ -24,6 +26,7 @@ public static class YouTubeTimestamps
     public const string Intro = "Intro";
     public const string Top = "🟢";
     public const string Attempt = "🔴";
+    public const string Flash = "⚡";
 
     public static IReadOnlyList<(MediaTime Time, string Title)> Lines(Sequence sequence, FrameRate rate, MediaTime? rangeStart = null, MediaTime? rangeEnd = null)
     {
@@ -36,6 +39,9 @@ public static class YouTubeTimestamps
         foreach (var group in areas.Where(a => a.Template.AnchorRouteId is not null).GroupBy(a => a.Template.AnchorRouteId!.Value))
             routes.Add(group.OrderBy(a => a.Template.TimelineStart).First());
         routes.AddRange(areas.Where(a => a.Template.AnchorRouteId is null && a.Template.CounterStart == MediaTime.Zero));
+        routes.AddRange(sequence.VideoTracks
+            .SelectMany((track, index) => track.Clips.OfType<TemplateClip>()
+                .Where(t => t.Kind == TemplateKind.Summary && t.CounterStart == MediaTime.Zero).Select(t => (Template: t, Track: index))));
 
         var lines = routes
             .Where(r => r.Template.TimelineStart >= start && (rangeEnd is not { } end || r.Template.TimelineStart < end))
@@ -69,11 +75,14 @@ public static class YouTubeTimestamps
     /// <summary><c>Трасса {номер} · {категория}</c> and the status mark.</summary>
     public static string Title(TemplateClip area)
     {
+        if (area.Kind == TemplateKind.Summary)   // D073 amendment 1: the summary's own header
+            return area.Title.Trim() is { Length: > 0 } header ? header : TemplateWords.Of(area.Language).SummaryTitle;
         var (route, grade) = (area.Route.Trim(), area.Grade.Trim());
         var title = new StringBuilder(RouteWord);
         if (route.Length > 0) title.Append(' ').Append(route);
         if (grade.Length > 0) title.Append(" · ").Append(grade);
-        if (area.Status == BoulderStatus.Top) title.Append(' ').Append(Top);
+        if (area.Status == BoulderStatus.Flash) title.Append(' ').Append(Flash);   // D073
+        else if (area.Status == BoulderStatus.Top) title.Append(' ').Append(Top);
         else if (area.Status == BoulderStatus.Attempt) title.Append(' ').Append(Attempt);
         return title.ToString();
     }

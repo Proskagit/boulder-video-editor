@@ -168,6 +168,15 @@
           </StackPanel>
         </MenuItem.Header>
       </MenuItem>
+      <!-- D073: «Итоги» — the routes before it. -->
+      <MenuItem Command="{Binding AddTemplateCommand}" CommandParameter="Summary">
+        <MenuItem.Header>
+          <StackPanel Spacing="1">
+            <TextBlock Text="{x:Static l:Strings.TemplateType_Summary}" FontWeight="SemiBold"/>
+            <TextBlock Text="{x:Static l:Strings.TemplateType_Summary_Desc}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextMutedBrush}"/>
+          </StackPanel>
+        </MenuItem.Header>
+      </MenuItem>
       <!-- D068 amendment 1: only with a training. -->
       <MenuItem Command="{Binding AddTemplateCommand}" CommandParameter="HeartRate" IsVisible="{Binding HasTraining}">
         <MenuItem.Header>
@@ -591,8 +600,14 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                   <DataTemplate>
-                                    <Border Classes="templateSegment" Classes.selected="{Binding IsSelected}" Width="{Binding Width}" Height="36"
-                                            Background="{Binding ColorHex}"/>
+                                    <Panel Width="{Binding Width}" Height="36">
+                                      <Border Classes="templateSegment" Classes.selected="{Binding IsSelected}" Background="{Binding ColorHex}"/>
+                                      <!-- D073 amendment 2: the lilac's status written on it as the clip's name is on the green — centred
+                                           in height, on the same dark backing (outside the segment's translucency). -->
+                                      <TextBlock Classes="clipLabel onSegments" Text="{Binding Label}" IsVisible="{Binding HasLabel}"
+                                                 Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{DynamicResource FontSizeCaption}" Margin="2,0"
+                                                 VerticalAlignment="Center" HorizontalAlignment="Left" TextTrimming="CharacterEllipsis"/>
+                                    </Panel>
                                   </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                               </ItemsControl>

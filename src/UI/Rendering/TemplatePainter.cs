@@ -31,17 +31,18 @@ public static class TemplatePainter
                 break;
             case TemplateKind.Highlight: Highlight(context, op); break;
             case TemplateKind.HeartRate: HeartRate(context, op); break;
+            case TemplateKind.Summary: SummaryPainter.Draw(context, op); break;
         }
     }
 
     private static double Unit(TemplateDraw op) => Math.Min(op.Canvas.Width, op.Canvas.Height) / 1080.0;
 
-    private static IImmutableBrush Brush(string hex, double opacity = 1) => new ImmutableSolidColorBrush(Color.Parse(hex), opacity);
+    internal static IImmutableBrush Brush(string hex, double opacity = 1) => new ImmutableSolidColorBrush(Color.Parse(hex), opacity);
 
     private static FormattedText Text(string text, string family, FontWeight weight, double size, IBrush brush) =>
         new(text, Russian, FlowDirection.LeftToRight, new Typeface(family, FontStyle.Normal, weight), size, brush);
 
-    private static double OutCubic(double x) { x = Math.Clamp(x, 0, 1); return 1 - Math.Pow(1 - x, 3); }
+    internal static double OutCubic(double x) { x = Math.Clamp(x, 0, 1); return 1 - Math.Pow(1 - x, 3); }
     private static double InCubic(double x) { x = Math.Clamp(x, 0, 1); return x * x * x; }
 
     private static double OutBack(double x)
@@ -83,7 +84,7 @@ public static class TemplatePainter
     }
 
     /// <summary>Draws <paramref name="text"/> with its ink centred on <paramref name="centre"/>.</summary>
-    private static void Centred(DrawingContext context, FormattedText text, TextInk ink, Point centre) =>
+    internal static void Centred(DrawingContext context, FormattedText text, TextInk ink, Point centre) =>
         context.DrawText(text, ink.OriginFor(centre));
 
     /// <summary>Text with a soft shadow offset by <paramref name="offset"/> (down-right).</summary>
@@ -195,12 +196,12 @@ public static class TemplatePainter
     // --- «Боулдер» -----------------------------------------------------------------------------------------------------
 
     /// <summary>A laid-out text with its ink (<see cref="InkOf"/>).</summary>
-    private readonly record struct Inked(FormattedText Text, TextInk Ink)
+    internal readonly record struct Inked(FormattedText Text, TextInk Ink)
     {
         public double InkWidth => Ink.Right - Ink.Left;
     }
 
-    private static Inked Lay(string content, FontWeight weight, double size, IImmutableBrush brush)
+    internal static Inked Lay(string content, FontWeight weight, double size, IImmutableBrush brush)
     {
         var text = Text(content, Sport, weight, size, brush);
         return new Inked(text, InkOf(text, content, Sport, weight, size));
@@ -239,7 +240,7 @@ public static class TemplatePainter
         var grade = fields.Grade.Trim();
         if (route.Length > 0)
         {
-            parts.Add(Lay(TemplateRules.RouteWord, FontWeight.SemiBold, 20 * u, grey));
+            parts.Add(Lay(TemplateWords.Of(fields.Language).Route, FontWeight.SemiBold, 20 * u, grey));
             parts.Add(Lay(route, FontWeight.Bold, 36 * u, Brushes.White));
         }
         if (grade.Length > 0)
@@ -269,18 +270,81 @@ public static class TemplatePainter
         if (fields.Status == BoulderStatus.None) return;
         var shown = StatusAppear(clock);
         if (shown <= 0) return;
+        var flash = fields.Status == BoulderStatus.Flash;
         var top = fields.Status == BoulderStatus.Top;
-        var label = Lay(top ? TemplateRules.TopWord : TemplateRules.AttemptWord, FontWeight.Bold, 32 * u,
-            top ? Brush(TemplateRules.PlateHex) : Brushes.White);
-        var blockWidth = label.InkWidth + 2 * padX;
+        var label = Lay(TemplateWords.Of(fields.Language).StatusWord(fields.Status), FontWeight.Bold, 32 * u,
+            top || flash ? Brush(TemplateRules.PlateHex) : Brushes.White);
+        var blockWidth = label.InkWidth + 2 * padX + (flash ? FlashExtra(height) : 0);
         var blockX = left
             ? (parts.Count > 0 ? plate.Right + 12 * u : outerX)
             : (parts.Count > 0 ? plate.X - 12 * u - blockWidth : outerX - blockWidth);
         var block = new Rect(blockX, y0, blockWidth, height);
         using var fade = context.PushOpacity(shown);
         using var rise = context.PushTransform(Matrix.CreateTranslation(side * (1 - shown) * 16 * u, 0));
+        if (flash)
+        {
+            FlashBlock(context, block, label, u, clock.SinceStatus);
+            return;
+        }
         context.DrawRectangle(Brush(top ? TemplateRules.TopHex : TemplateRules.AttemptHex, top ? 1 : 0.95), null, block);
         Centred(context, label.Text, label.Ink, block.Center);
+    }
+
+    /// <summary>D073 amendment 2: the slant of the FLASH block's edges — the horizontal shift per unit of height.</summary>
+    internal const double FlashSlant = 1.0 / 3;
+
+    /// <summary>D073 amendment 3: the FLASH sweep's crossing and its period (the crossing and a short pause).</summary>
+    internal const double FlashSweepSeconds = 0.6, FlashSweepPeriod = 0.9;
+
+    /// <summary>The italic of «Flash» — a skew of 12°.</summary>
+    private const double FlashItalic = 0.2126;
+
+    /// <summary>The width the FLASH block adds to its word and padding: the yellow slash and its gap before the block, and the
+    /// slant of both ends (the slanted shapes stay inside the block's rectangle).</summary>
+    internal static double FlashExtra(double height) => height * (0.34 + FlashSlant);
+
+    /// <summary>
+    /// D073 amendment 2 (the owner's pick B1, 2026-11-22): the FLASH block — a yellow slash, then a slanted orange block with
+    /// navy italic «Flash»; a light sweep crosses the block over <see cref="FlashSweepSeconds"/>, again after a short pause
+    /// (<see cref="FlashSweepPeriod"/>, the owner's acceptance of 1.6.2), from the moment it starts appearing
+    /// (<paramref name="since"/>, seconds). Rectangles under a skew transform (no geometry objects, as the rest of the painter).
+    /// </summary>
+    internal static void FlashBlock(DrawingContext context, Rect block, Inked label, double u, double since)
+    {
+        var h = block.Height;
+        var slash = h * 0.22;
+        var x0 = block.X + FlashSlant * h / 2;                          // the slanted ends inside the block
+        var body = new Rect(x0 + h * 0.34, block.Y, block.Right - FlashSlant * h / 2 - (x0 + h * 0.34), h);
+        using (context.PushTransform(SkewAbout(block.Center.Y, FlashSlant)))
+        {
+            context.DrawRectangle(Brush(TemplateRules.TopHex), null, new Rect(x0, block.Y, slash, h));
+            context.DrawRectangle(Brush(TemplateRules.FlashHex), null, body);
+
+            // The sweep of light: 0.6 s across, then a short pause, repeated while the block is shown.
+            var sweep = since < 0 ? 0 : since % FlashSweepPeriod / FlashSweepSeconds;
+            if (sweep is > 0 and < 1)
+            {
+                using var clip = context.PushClip(body);
+                var x = body.X - h * 0.5 + sweep * (body.Width + h * 0.5);
+                context.DrawRectangle(Brush("#FFE0B2", 0.7 * Math.Sin(Math.PI * sweep)), null, new Rect(x, body.Y, h * 0.4, h));
+            }
+        }
+        var centre = body.Center;
+        using (context.PushTransform(Matrix.CreateTranslation(-centre.X, -centre.Y) * SkewAbout(0, FlashItalic) * Matrix.CreateTranslation(centre.X, centre.Y)))
+            Centred(context, label.Text, label.Ink, centre);
+    }
+
+    /// <summary>A skew leaning right (the top ahead of the bottom) by <paramref name="slant"/>, about the line y =
+    /// <paramref name="y"/>: x' = x − slant · (y − <paramref name="y"/>).</summary>
+    internal static Matrix SkewAbout(double y, double slant) => new(1, 0, -slant, 1, slant * y, 0);
+
+    /// <summary>D073 amendment 2: the FLASH mark of «Итоги»' card — the block's yellow slash and orange slant, small.</summary>
+    internal static void FlashMark(DrawingContext context, Rect box)
+    {
+        using var skew = context.PushTransform(SkewAbout(box.Center.Y, FlashSlant));
+        var slash = box.Width * 0.28;
+        context.DrawRectangle(Brush(TemplateRules.TopHex), null, new Rect(box.X, box.Y, slash, box.Height));
+        context.DrawRectangle(Brush(TemplateRules.FlashHex), null, new Rect(box.X + slash * 1.45, box.Y, box.Width - slash * 1.45, box.Height));
     }
 
     /// <summary>0 → 1 over the status block's appearance: <see cref="TemplateRules.StatusAppearSeconds"/> from the status

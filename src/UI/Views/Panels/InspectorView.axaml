@@ -772,6 +772,12 @@
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
                   </Grid>
+                  <!-- D073: the stated attempts (empty: counted from the video). -->
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{x:Static l:Strings.Inspector_TemplateAttempts}" Classes="label"/>
+                    <TextBox x:Name="TemplateAttemptsField" Text="{Binding TemplateAttemptsText, Mode=TwoWay}" MaxLength="2" Width="110"
+                             Watermark="{x:Static l:Strings.Inspector_TemplateAttemptsHint}" ToolTip.Tip="{x:Static l:Strings.Inspector_TemplateAttemptsTip}"/>
+                  </StackPanel>
                   <!-- D045 §17: the moment the status appears — set from the playhead. -->
                   <Grid ColumnDefinitions="144,*" RowDefinitions="Auto,Auto" IsVisible="{Binding ShowsTemplateStatusAt}">
                     <TextBlock Text="{x:Static l:Strings.TemplateStatusAt_Label}" Classes="label" VerticalAlignment="Center"/>
@@ -814,6 +820,34 @@
                   <CheckBox x:Name="TemplateShowHeartRateBox" Content="{x:Static l:Strings.Inspector_AreaShowHeartRate}"
                             IsChecked="{Binding TemplateShowHeartRate, Mode=TwoWay}" ToolTip.Tip="{x:Static l:Strings.Inspector_AreaShowHeartRateTip}"/>
                 </StackPanel>
+                <!-- D073: «Итоги» — the header, the date, its own background. -->
+                <StackPanel Spacing="6" IsVisible="{Binding ShowsTemplateSummary}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{x:Static l:Strings.Inspector_SummaryTitle}" Classes="label"/>
+                    <TextBox x:Name="SummaryTitleField" Text="{Binding TemplateTitle, Mode=TwoWay}" MaxLength="{Binding MaxTemplateTitleLength}" Width="180"/>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{x:Static l:Strings.Inspector_SummaryDate}" Classes="label"/>
+                    <TextBox x:Name="SummaryDateField" Text="{Binding TemplateSubtitle, Mode=TwoWay}" MaxLength="{Binding MaxTemplateSubtitleLength}" Width="180"/>
+                  </StackPanel>
+                  <CheckBox x:Name="SummaryOwnBackgroundBox" Content="{x:Static l:Strings.Inspector_SummaryOwnBackground}"
+                            IsChecked="{Binding TemplateOwnBackground, Mode=TwoWay}" ToolTip.Tip="{x:Static l:Strings.Inspector_SummaryOwnBackgroundTip}"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_SummaryHint}" Foreground="{DynamicResource TextMutedBrush}"
+                             FontSize="{DynamicResource FontSizeCaption}" TextWrapping="Wrap"/>
+                </StackPanel>
+                <!-- D073: the language of the words drawn by «Боулдер» and «Итоги». -->
+                <Grid ColumnDefinitions="144,*" IsVisible="{Binding ShowsTemplateLanguage}">
+                  <TextBlock Text="{x:Static l:Strings.Inspector_TemplateLanguage}" Classes="label" VerticalAlignment="Top" Margin="0,4,0,0"/>
+                  <ItemsControl x:Name="TemplateLanguageButtons" Grid.Column="1" ItemsSource="{Binding TemplateLanguages}">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <ToggleButton Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=TwoWay}" CommandParameter="{Binding Value}"
+                                      FontSize="{DynamicResource FontSizeCaption}" Margin="0,0,4,4" Command="{Binding $parent[UserControl].DataContext.SetTemplateLanguageCommand}"/>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Grid>
                 <StackPanel Spacing="6" IsVisible="{Binding ShowsTemplateHighlight}">
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Inspector_TemplateTitle}" Classes="label"/>

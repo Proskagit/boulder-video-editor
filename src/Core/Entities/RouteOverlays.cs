@@ -57,10 +57,14 @@ public static class RouteOverlays
     /// anchored <paramref name="clip"/> — the stored one, else (an older file) the end of its route's Duration animation
     /// (D048 §3.4: the orange ends at <c>T</c>); null when neither is known.
     /// </summary>
-    public static MediaTime? RouteStartOf(TemplateClip template, VideoClip clip, FrameRate rate)
+    public static MediaTime? RouteStartOf(TemplateClip template, VideoClip clip, FrameRate rate) =>
+        template.RouteStart ?? (RouteIdOf(template, clip) is { } id ? OrangeEndOf(clip, id, rate) : null);
+
+    /// <summary>D073: the end <c>Ae</c> of route <paramref name="routeId"/>'s orange (its Duration animation) on
+    /// <paramref name="clip"/>, as a source time of the clip; null without one.</summary>
+    public static MediaTime? OrangeEndOf(VideoClip clip, Guid routeId, FrameRate rate)
     {
-        if (template.RouteStart is { } stored) return stored;
-        if (RouteOf(template, clip)?.Animation is not { Mode: HoldAnimationMode.Duration } animation) return null;
+        if (Find(clip, routeId)?.Animation is not { Mode: HoldAnimationMode.Duration } animation) return null;
         var start = HoldAnimationRule.StartFrame(clip.TimelineStart, clip.SourceIn, clip.Speed, animation.StartSourceTime, rate);
         return HoldAnimationRule.SourceTimeAt(clip.TimelineStart, clip.SourceIn, clip.Speed, start + HoldAnimationRule.DurationFrames(animation, rate), rate);
     }

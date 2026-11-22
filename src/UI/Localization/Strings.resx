@@ -4032,4 +4032,46 @@ Everything else works without the models. They can also be installed later: «Se
   <data name="Holds_RouteProposalCount" xml:space="preserve">
     <value>Proposed: {0}</value>
   </data>
+  <data name="TemplateType_Summary" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="TemplateType_Summary_Desc" xml:space="preserve">
+    <value>A board of the routes before it: results, times, heart rate</value>
+  </data>
+  <data name="TemplateStatus_Flash" xml:space="preserve">
+    <value>Flash</value>
+  </data>
+  <data name="Inspector_TemplateAttempts" xml:space="preserve">
+    <value>Attempts</value>
+  </data>
+  <data name="Inspector_TemplateAttemptsHint" xml:space="preserve">
+    <value>by the video</value>
+  </data>
+  <data name="Inspector_TemplateAttemptsTip" xml:space="preserve">
+    <value>Empty: counted from the video (the routes with this number and grade). Enter a number when attempts are not in the edit. A Flash is always one attempt.</value>
+  </data>
+  <data name="Inspector_TemplateLanguage" xml:space="preserve">
+    <value>Words on the frame</value>
+  </data>
+  <data name="TemplateLanguage_Russian" xml:space="preserve">
+    <value>Русский</value>
+  </data>
+  <data name="TemplateLanguage_English" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Inspector_SummaryTitle" xml:space="preserve">
+    <value>Header</value>
+  </data>
+  <data name="Inspector_SummaryDate" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Inspector_SummaryOwnBackground" xml:space="preserve">
+    <value>Own background (a full-frame card)</value>
+  </data>
+  <data name="Inspector_SummaryOwnBackgroundTip" xml:space="preserve">
+    <value>On: the board on its own background hides the video below it. Off: the board over the dimmed video.</value>
+  </data>
+  <data name="Inspector_SummaryHint" xml:space="preserve">
+    <value>Lists the routes that start before this template (after the previous «Summary»). Edit a route's «Boulder» to change its row.</value>
+  </data>
 </root>

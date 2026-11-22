@@ -41,6 +41,8 @@ public sealed partial class InspectorViewModel
     [NotifyPropertyChangedFor(nameof(ShowsTemplateHighlight))]
     [NotifyPropertyChangedFor(nameof(ShowsTemplateHeartRate))]
     [NotifyPropertyChangedFor(nameof(ShowsHeartRateSettings))]
+    [NotifyPropertyChangedFor(nameof(ShowsTemplateSummary))]
+    [NotifyPropertyChangedFor(nameof(ShowsTemplateLanguage))]
     private TemplateKind? _templateKind;
 
     public bool HasTemplate => TemplateKind is not null;
@@ -48,6 +50,25 @@ public sealed partial class InspectorViewModel
     public bool ShowsTemplateBoulder => TemplateKind == Core.Entities.TemplateKind.Boulder;
     public bool ShowsTemplateHighlight => TemplateKind == Core.Entities.TemplateKind.Highlight;
     public bool ShowsTemplateHeartRate => TemplateKind == Core.Entities.TemplateKind.HeartRate;
+
+    /// <summary>D073: «Итоги»'s fields — the header, the date, its own background.</summary>
+    public bool ShowsTemplateSummary => TemplateKind == Core.Entities.TemplateKind.Summary;
+
+    /// <summary>D073: the language of the drawn words — «Боулдер» and «Итоги».</summary>
+    public bool ShowsTemplateLanguage => TemplateKind is Core.Entities.TemplateKind.Boulder or Core.Entities.TemplateKind.Summary;
+
+    /// <summary>D073: the languages of the drawn words (one click, one undo step).</summary>
+    public IReadOnlyList<TemplateChoiceOption<TemplateLanguage>> TemplateLanguages { get; } = new TemplateChoiceOption<TemplateLanguage>[]
+    {
+        new(TemplateLanguage.Russian, Strings.TemplateLanguage_Russian), new(TemplateLanguage.English, Strings.TemplateLanguage_English)
+    };
+
+    /// <summary>D073: «Боулдер»'s stated attempts as typed (empty: counted from the video). A value outside 1 … 99 or not a
+    /// number is not applied.</summary>
+    [ObservableProperty] private string _templateAttemptsText = string.Empty;
+
+    /// <summary>D073: «Итоги» on its own background (one click, one undo step).</summary>
+    [ObservableProperty] private bool _templateOwnBackground;
 
     /// <summary>D055 §5: the heart-rate settings (look, corner, heart's colour, hint) — the overlay's, and a green route area's
     /// while it shows the heart rate.</summary>
@@ -116,7 +137,7 @@ public sealed partial class InspectorViewModel
     public IReadOnlyList<TemplateStatusOption> TemplateStatuses { get; } = new TemplateStatusOption[]
     {
         new(BoulderStatus.None, Strings.TemplateStatus_None), new(BoulderStatus.Top, Strings.TemplateStatus_Top),
-        new(BoulderStatus.Attempt, Strings.TemplateStatus_Attempt)
+        new(BoulderStatus.Attempt, Strings.TemplateStatus_Attempt), new(BoulderStatus.Flash, Strings.TemplateStatus_Flash)
     };
 
     partial void OnTemplateKindChanged(TemplateKind? value) => OnPropertyChanged(nameof(HasTemplate));
@@ -126,6 +147,27 @@ public sealed partial class InspectorViewModel
     partial void OnTemplateGradeChanged(string value) => EditTemplate(p => p with { Grade = value }, null);
     partial void OnTemplateTitleChanged(string value) => EditTemplate(p => p with { Title = value }, null);
     partial void OnTemplateSubtitleChanged(string value) => EditTemplate(p => p with { Subtitle = value }, null);
+    partial void OnTemplateOwnBackgroundChanged(bool value) =>
+        EditTemplate(p => p with { OwnBackground = value }, value ? "Summary Own Background" : "Summary Over Video");
+
+    partial void OnTemplateAttemptsTextChanged(string value)
+    {
+        var text = value.Trim();
+        if (text.Length == 0) EditTemplate(p => p with { Attempts = null }, null);
+        else if (int.TryParse(text, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var n) &&
+                 n is >= TemplateRules.MinAttempts and <= TemplateRules.MaxAttempts)
+            EditTemplate(p => p with { Attempts = n }, null);
+    }
+
+    /// <summary>D073: the drawn words' language; «Итоги»'s header, while it is the other language's default, follows it.</summary>
+    [RelayCommand]
+    private void SetTemplateLanguage(TemplateLanguage language) => EditTemplate(p => p with
+    {
+        Language = language,
+        Title = TemplateKind == Core.Entities.TemplateKind.Summary && p.Title == TemplateWords.Of(p.Language).SummaryTitle
+            ? TemplateWords.Of(language).SummaryTitle : p.Title
+    }, "Change Template Language");
+
     partial void OnTemplateShowHeartRateChanged(bool value)
     {
         EditTemplate(p => p with { ShowHeartRate = value }, value ? "Show Heart Rate" : "Hide Heart Rate");
@@ -240,6 +282,10 @@ public sealed partial class InspectorViewModel
             TemplateShowHeartRate = template.ShowHeartRate;
             TemplateHeartHex = template.Kind == Core.Entities.TemplateKind.HeartRate ? template.AccentHex : template.HeartHex;
             TemplateStatusAtText = StatusAtText(template);
+            TemplateOwnBackground = template.OwnBackground;
+            var attempts = template.Attempts?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+            if (!string.Equals(TemplateAttemptsText.Trim(), attempts, StringComparison.Ordinal)) TemplateAttemptsText = attempts;
+            foreach (var option in TemplateLanguages) option.IsSelected = option.Value == template.Language;
             foreach (var option in TemplateStatuses) option.IsSelected = option.Status == template.Status;
             foreach (var option in HeartRateLooks) option.IsSelected = option.Value == template.Look;
             foreach (var option in HeartRateCorners) option.IsSelected = option.Value == template.Corner;

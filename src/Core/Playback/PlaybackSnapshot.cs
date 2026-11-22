@@ -214,6 +214,9 @@ public sealed record TemplateSpan(Guid ClipId, MediaTime TimelineStart, MediaTim
     /// <summary>D055 §4: a green route area's heart-rate source — set for a «Боулдер» anchored to a video clip that shows
     /// the heart rate while the project has a training; null otherwise.</summary>
     public TemplateHeartRate? HeartRate { get; init; }
+
+    /// <summary>D073: «Итоги»'s board, computed from the project when the snapshot is built; null for the other kinds.</summary>
+    public Composition.SummaryBoard? Summary { get; init; }
 }
 
 /// <summary>

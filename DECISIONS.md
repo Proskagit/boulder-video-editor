@@ -11650,3 +11650,187 @@ Everything is fine except the group's reach: at 7 … 12 % of the long side the 
 were left out. **The link is one fixed 20 % of the frame's long side** (`RouteHoldGrouping.Link` = 0.20; the spacing-based link of
 amendments 1–2 — the median gap × 2.5 within bounds — removed as pointless with one threshold): 200 px joins, a
 hold 460 px (≈ 30 %) away does not. On the owner's word committed without a new build or test run (the PR's CI runs the suites).
+
+### Acceptance (2026-11-19)
+
+The owner checked the 1.5.3 build («всё ок») and **accepted Phase 53**; he merged PR #83 (`4c1314e`, 2026-11-19). Recorded in
+Step 0 of Phase 54 (D073 §0).
+
+## D073 — Phase 54: the «Итоги» template *(set by the owner on 2026-11-20)*
+
+Date: 2026-11-20. **Status: the scope set by the product owner on 2026-11-20** (the third of the owner's queue after 1.3.0;
+the backlog's Steps 36.3 `PassId` and 36.4 the heart rate in the summary; the owner's concept
+`docs/SUMMARY_TEMPLATE_CONCEPT.md`) and his answers in §3. Manual plan: `docs/PHASE54_MANUAL_TEST_PLAN.md`. Branch `feat/phase-54-summary-template` from
+`origin/main` `4c1314e`. A `project.json` format change is expected (v27: a new template kind).
+
+### 0. Step 0 — Phase 53 accepted
+
+Phase 53 (D072) accepted by the owner after his check of 1.5.3 («всё ок»); PR #83 merged by him (`4c1314e`, 2026-11-19). Recorded
+in D072 «Acceptance», DEVELOPMENT_PLAN, ROADMAP and progress.
+
+### 1. What exists
+
+- **Templates (D045, Phase 29):** `TemplateClip` on a video track — REC, VHS, «Боулдер», «Хайлайт», «Пульс» (`TemplateKind`);
+  added by «Шаблон ▾» at the playhead on the topmost video track (`AddTemplateCommand`), free or anchored to a video clip
+  (`AnchorClipId`, D048 §3.5); its fades are its appearance / disappearance (`TemplateRules.Animation`); drawn by
+  `TemplatePainter` from the snapshot's `TemplateSpan` — the Preview and the export draw the same operation (`CompositionDrawPlan`
+  → `TemplateDraw`), so Preview = export holds for anything computed into the snapshot. `TemplateClip` already has the free text
+  fields `Title` / `Subtitle` («Хайлайт»).
+- **«Боулдер» = a route's areas (D048 §4, D053):** a «Боулдер» anchored to a clip's route (`AnchorRouteId`) is the route's
+  **green** `[Ps, S)` and **lilac** `[S, Pe)`; `S` = `Ps` + `StatusAt` exists only with a status (`Status` ≠ None). Its fields:
+  `Route` (the number, ≤ 12 chars, may be empty), `Grade` (may be empty), `Status` (None / TOP / ПОПЫТКА — set by hand or from the
+  FIT, never detected), `AccentHex` (the route's colour). The **orange** `[As, Ae)` is the route's Duration hold animation; `Ae` =
+  `T`, the route's start (`RouteStart`, D056 §4; `RouteOverlays.RouteStartOf` — the stored `T`, else the orange's end). The strip's
+  frames: `TimelineEditService.OverlayStripOf`. A green split in parts is one route (same `AnchorRouteId`); a free «Боулдер»
+  (no anchor) is its own route by its part whose clock starts at 0 (`YouTubeTimestamps`, D057 §3.9 — the same grouping).
+- **Look of «Боулдер» (`TemplatePainter.Boulder`, `TemplateRules`):** a navy plate `#0D1B2E` with white text «ТРАССА 7 · 7A», the
+  route's colour as its left edge, slides in; TOP a yellow `#FFD400` block with navy text, ПОПЫТКА muted blue `#46648C` with white
+  text; text centred by its ink; sizes in 1080-units, larger on a portrait canvas (`CornerOverlayLayout`).
+- **FIT (D050–D062):** the training's climbs (`WorkoutSegment`) with `ClimbRoute` (grade, result, `Falls`, send) when the watch
+  wrote them; route areas made from the FIT get `Grade`, `Status`, `T` and `FitClimb` (its climb's number). The heart rate:
+  `HeartRateBinding` (the file's time, never `Z`; `ClockCorrection` the only global adjustment; the display offset per maker,
+  D057 §3.8) — per instant, the latest sample ≤ the hold old (`WorkoutTimeline.HeartRateAt`), never interpolated. A «Боулдер»
+  shows its anchored clip's heart rate (`TemplateHeartRate`). The workout's own `AverageHeartRate` / `MaxHeartRate` are of the
+  whole training.
+- **Passes:** no `PassId` exists. The YouTube timestamps group a route's parts, nothing groups attempts of one physical route
+  across clips.
+
+### 2. The model
+
+- A new kind **«Итоги»** (`TemplateKind.Summary`, **format v27**; a v26 file never holds it), default length **10 s**, its fades
+  0.4 s; free (never anchored); added by hand — «Шаблон ▾ → Итоги» at the playhead on the topmost video track, like every
+  template. Its fields: `Title` — the header, **«Итоги дня»** («Day summary» in English) for a new one, drawn upper-case, the
+  user may change it; `Subtitle` — the date line, the training's **local** date (`dd.MM.yyyy`) for a new one when the project has
+  a training, else empty; `OwnBackground` (Q9) — off: the board over the video dimmed to 55 %; on: a **full-frame card** on its
+  own navy background with a lighter slanted band and three yellow stripes (it hides the picture below, a 10 s «clip»). The rows
+  are computed, never stored (an edit of a route changes the summary).
+- **The language of the drawn words (Q10)** — `TemplateClip.Language` (Russian / English) on «Боулдер» and «Итоги», set from the
+  interface's language when the template is made (Russian for a Russian interface, else English) and kept with it, so the video
+  does not change with the application's language; switching it in the Inspector also switches «Итоги»'s header while it is the
+  other language's default. A v26 file's templates read as Russian. **«FLASH» is English in both** (the owner, 2026-11-22).
+- **FLASH (Q12, Q13)** — a new status `BoulderStatus.Flash` in «Боулдер»'s lilac, set by hand only (the FIT never sets it, D062:
+  «completed without falls» is not «on the first attempt»); a top in every count, one attempt. Its block is **not TOP's yellow
+  block**: white with navy «FLASH», a yellow lightning bolt before the word, a yellow outline and a yellow glow that breathes
+  slowly (±25 % every 1.6 s), one light sweep across it when it appears. The YouTube timestamps mark it « ⚡».
+- **The stated attempts (Q11)** — `TemplateClip.Attempts` on a «Боулдер» (1 … 99; empty = counted from the video): the
+  Inspector's «Попыток» field; a value outside the range or not a number is not applied.
+- **The routes listed:** the «Боулдер» areas whose route **started** (its first part's green start) **before the template's start**
+  and **not before the previous «Итоги»'s start** (several summaries in one video each list their own part). A route = an
+  anchored area's route id (`AnchorRouteId`, else its clip's single markup) with **its parts of a split together — of the area
+  or of its video clip**: a part whose template clock continues (`CounterStart` > 0, at or after the earlier part's clock end)
+  joins the route of that id that started before it; a part whose clock starts at 0 — a new area, or a copy / paste of a whole
+  clip, which keeps the route id — is a route (an attempt) of its own. A free area is a route by its part whose clock starts at
+  0 (the YouTube timestamps' grouping, D057 §3.9). `S` is turned into source time by the clip of the part it falls in; `Ae` is
+  taken from whichever part's clip holds the orange (a split leaves it on one side), else the stored `T`.
+  (The YouTube timestamps still join every area of one route id into one line, a copy included — a chapter per route there, an
+  attempt per copy here; areas of files before D053 with no route id whose right part lost its clip's markup count by the left
+  part only.)
+- **Attempts of one boulder (`PassId`, Q3):** routes with the same **number and grade** (both trimmed, case ignored; the number not
+  empty) are one row; its result the best (the first TOP / FLASH attempt's, else ПОПЫТКА if any attempt has it, else none); its
+  time, heart rate and colour those of the **first TOP / FLASH attempt**, else of the **last** attempt; its attempts the last
+  stated value among its areas, else their count; a FLASH row is always 1. A route without a number is always a row of its own.
+  No `PassId` field is stored — the number and the grade are the key.
+- **The climb time** `S − Ae`: `Ae` the end of the route's orange (its Duration animation, `RouteOverlays.OrangeEndOf`), without
+  an orange the route's `T` (`RouteStart`); `S` the lilac's start (only with a status, inside the part it falls in). Measured as
+  the anchored clip's **source** time (a slowed clip does not lengthen the climb). No `S`, no `Ae` / `T`, a free area (no clip) or
+  `S ≤ Ae`: «—». Shown as **`m:ss`** (`0:42`, `1:18`), from an hour `h:mm:ss`, rounded to the nearest second — no hundredths (the
+  areas' bounds are frames placed by hand).
+- **The heart rate** (D055 / D062: the file's time, never `Z`, CC; the maker's display offset as the plate shows it): the FIT
+  samples whose watch time lies in the window of `[Ae, S)`, inside the recording, outside the timer's pauses — the average
+  (rounded) and the maximum; no samples — «—». Without a training, or when no row has a heart rate, the two columns are not drawn
+  (Q7).
+- **The board's look** (after «Боулдер» and the owner's reference screenshots, no foreign graphics, fonts, brands or logos): the
+  header — a yellow bar, the title in white upper case, the date in grey under it, a yellow line to the right edge ending in three
+  slanted yellow stripes; a navy table panel with rounded corners and column captions in grey («#, ТРАССА, РЕЗУЛЬТАТ, ПОПЫТКИ,
+  ВРЕМЯ, СЛОЖН., ПУЛЬС СР, ПУЛЬС МАКС» / «#, ROUTE, RESULT, ATTEMPTS, TIME, GRADE, AVG HR, MAX HR»); rows in two alternating navy
+  shades, the route's colour as the left edge, the result chip — TOP yellow, ПОПЫТКА / ATTEMPT muted blue, FLASH the FLASH
+  block, none a grey «—»; **the totals row (Q8)** fixed at the bottom as a row of lighter cards — «ТОПЫ N / M» (N in yellow),
+  «ФЛЕШИ» with a bolt, «ПУЛЬС СР» and «ПУЛЬС МАКС» with a small «уд/мин» / «bpm» (when there is a heart rate), «НА ТРАССАХ»
+  outlined in yellow; a figure too wide for its card is shrunk. 1560 1080-units wide on a landscape canvas, 1180 on a portrait
+  one (scaled down to 92 % of a narrower canvas), centred vertically. Preview = export (computed into the snapshot, drawn by
+  `SummaryPainter`).
+- **Totals:** N rows, M rows with TOP or FLASH, the flashes, the sum of the climb times of **every attempt** that has one, the
+  average and the maximum over the samples of every attempt's window; a part without data is «—».
+- **The animation (Q5; to be checked by eye):** the header slides down and fades in (0.45 s); the table panel unrolls under it
+  (from 0.3 s, 0.35 s); the rows come in one by one (a slide from the left with a fade, 0.3 s each), from 0.45 s, at a pace that
+  brings the last row in by 70 % of the length — not faster than 0.25 s and not slower than 0.6 s per row; at most **10 rows**
+  visible: each next one moves the list up by a row (0.3 s) and the first goes under the header (clipped at the panel's top);
+  the totals fade in after the last row; the whole fades out over the clip's fade. Rows that would come after the template's end
+  are not shown; the user lengthens the template to see them.
+- **No routes:** the header, an empty panel and the totals «0 / 0».
+
+### 3. The owner's answers (2026-11-20)
+
+1. **Header:** one variant, «Итоги дня», which the user may change.
+2. **Routes:** A — before the template's position, after the previous «Итоги».
+3. **Attempts:** A — one row per number + grade, the best result, the first TOP's (else the last attempt's) time and heart rate, «×N».
+4. **No number:** A — the row shown with «—» for the number.
+5. **Length / scroll:** A — the user's length (10 s by default), the pace adapting (≥ 0.25 s per row, all in by ≈ 70 %), 10 rows
+   visible then scrolling; the owner will check the speed of the rows and the unrolling by eye.
+6. **Placement:** A — added by hand at the playhead, like the other templates.
+7. **Without FIT:** A — the heart-rate column hidden when no row has it, «—» in a row without data.
+8. **Totals:** A — the totals line as **the bottom row, fixed, its background slightly different** from the routes' rows.
+   The FIT's `Falls` are not shown (a fall is not an attempt).
+
+The owner offered screenshots of championship summaries; the look is to be adjusted by his check if needed.
+
+**Additions (the owner, 2026-11-22, with two reference screenshots of a «session summary» board):** the board like the
+references, adapted to «Боулдер»'s style (a table with captions, the totals as cards); it may be a full-frame 10 s card; the drawn
+words in Russian and English; the attempts editable; no «zone» (only top or attempt); a new status FLASH — in the lilac too — with a
+distinctive look. Variants A (over the video) and B (a full-frame card) shown on 2026-11-22. **The answers:**
+
+9. **The insertion:** A — one board, «Свой фон» in the Inspector (off by default: over the dimmed video; on: a full-frame card).
+10. **The language:** A — per template, «Русский / English», from the interface's language when made, kept with the template; for
+    «Итоги» and «Боулдер».
+11. **The attempts:** A — «Попыток» on a «Боулдер», empty = counted from the video, the last stated value wins in a group, a Flash
+    is always 1.
+12. **FLASH:** A — a new status set by hand only (the FIT never sets it); a top in «ТОПЫ», counted again in «ФЛЕШИ»; one attempt.
+13. **FLASH's look:** the shown variant looked too much like TOP — it must be clearly different from TOP's yellow block; **the word
+    is always English «FLASH»**. Done: a white block with a yellow bolt, outline, glow and a sweep (§2); the owner checks it by eye.
+
+### Amendment 1 (2026-11-22) — the owner on 1.6.0's plan
+
+1. **«Итоги» is a YouTube timestamp of its own.** Every «Итоги» adds a line at its start (D057 §3.9's rules: by time, the
+   exported range's start as 00:00, outside the range left out), its title = its header (`Итоги дня`, or what the user typed;
+   an empty header — the default of its language, «Day summary» in English); no status mark. The parts of a split «Итоги» are one
+   line (the part whose clock starts at 0, as a free area). `YouTubeTimestamps` (+1 test).
+2. **No «Итоги» on vertical videos** — the owner does not put them there. The portrait layout stays as built (no extra work, not
+   removed); the manual check's B10 is dropped; the smaller portrait board is no longer an open point.
+
+### Amendment 2 (2026-11-22) — the owner on 1.6.1: open, the answers Q14–Q20
+
+On this branch: (1) **FLASH redrawn** — the white block with the bolt «looks drawn in Paint»; round 1 of mock-ups: B «Скос»
+liked but white on orange does not read; round 2 (B1 orange slanted with navy text, B2 navy slanted with orange, D1 / D2 cyan
+with a yellow bolt, lowercase «Flash» / «flash») — **the owner's pick: B1 in lower case** — a yellow slash, a slanted orange
+block (`#FF6D00`), navy italic «Flash» (skewed rectangles and text, no geometry), one sweep, no glow; the same block as «Итоги»'
+chip, the totals card's mark the small slash + slant; no bolt anywhere on the frame (the YouTube « ⚡» stays).
+(2) **«Итоги»' pace:** every row in during the first half (5 s of 10), the totals held the second half. (3) **The status written
+on the lilac strip of the timeline** (Q18 A: «TOP», «ПОПЫТКА», «FLASH»).
+Next phases (Q19, agreed): **Phase 55 — editing comfort:** two buttons «обрезать слева / справа» on the timeline bar (Q16 A; Q / W
+exist); the defaults: **the magnet stays the project's own** (the owner revised Q15: turning it on when opening would move a
+project's clips) — on in a new project, as saved when opening (as now); «Предлагать трассу» off and the timeline's snapping on in
+a new project and when opening one (these carried over from project to project within one run); the export window grows / scrolls
+when its «Подробные настройки» and «Таймкоды» are opened (now its bottom is out of reach without resizing it); the export's
+default quality the highest — NVENC at its best quality (CQ 14) also under the «Высокое» profile (to be checked against the
+export's presets, D068 / FU-EX.1); «Скрывать
+за людьми» on with every new route, the people's analysis in the background (Q17 A); the Inspector's «Люди» / «Зацепки» for a
+plate anchored to a clip (its clip edited). **Phase 56 — the holds' contour:** the jagged edges (the 256 × 256 mask stretched),
+the triangles' corners lost to the smoothing, notches — a crop refinement of the mask and a corner-keeping smoothing, measured on
+a copy of the owner's project «Новый проект» (Desktop, 27 September; Q20).
+
+### Amendment 3 (2026-11-22) — the owner on 1.6.2
+
+The pace of «Итоги» and the FLASH block accepted («сочно»). (1) **The lilac's status on the timeline** is written as the clip's
+name on the green: centred in height, the same dark backing and light text (not at the segment's bottom in purple). (2) **The FLASH
+sweep repeats** while the block is shown: 0.6 s across, then a 0.3 s pause (`TemplatePainter.FlashSweepPeriod` 0.9 s).
+
+### Amendment 4 (2026-11-22) — the owner on 1.6.3
+
+All the corrections accepted. The FLASH chips of one «Итоги» sweep **together**: each on the board's clock (from the template's
+start), not on its row's entrance. No other change; the owner asked to move on to the next phase.
+
+### Out of scope
+
+A stored `PassId` or a user grouping of attempts; the list of routes chosen by hand; ranks, points or zones; the FIT's falls; FLASH
+from the FIT; the template's length changed automatically; other layouts (columns chosen by the user, a vertical-only layout); a
+summary of several projects; hundredths of a second.
