@@ -293,6 +293,9 @@ public static class TemplatePainter
     /// <summary>D073 amendment 2: the slant of the FLASH block's edges — the horizontal shift per unit of height.</summary>
     internal const double FlashSlant = 1.0 / 3;
 
+    /// <summary>D073 amendment 3: the FLASH sweep's crossing and its period (the crossing and a short pause).</summary>
+    internal const double FlashSweepSeconds = 0.6, FlashSweepPeriod = 0.9;
+
     /// <summary>The italic of «Flash» — a skew of 12°.</summary>
     private const double FlashItalic = 0.2126;
 
@@ -302,8 +305,9 @@ public static class TemplatePainter
 
     /// <summary>
     /// D073 amendment 2 (the owner's pick B1, 2026-11-22): the FLASH block — a yellow slash, then a slanted orange block with
-    /// navy italic «Flash»; one light sweep across the block when it appears (<paramref name="since"/>: seconds since it started
-    /// appearing). Rectangles under a skew transform (no geometry objects, as the rest of the painter).
+    /// navy italic «Flash»; a light sweep crosses the block over <see cref="FlashSweepSeconds"/>, again after a short pause
+    /// (<see cref="FlashSweepPeriod"/>, the owner's acceptance of 1.6.2), from the moment it starts appearing
+    /// (<paramref name="since"/>, seconds). Rectangles under a skew transform (no geometry objects, as the rest of the painter).
     /// </summary>
     internal static void FlashBlock(DrawingContext context, Rect block, Inked label, double u, double since)
     {
@@ -316,8 +320,8 @@ public static class TemplatePainter
             context.DrawRectangle(Brush(TemplateRules.TopHex), null, new Rect(x0, block.Y, slash, h));
             context.DrawRectangle(Brush(TemplateRules.FlashHex), null, body);
 
-            // One sweep of light over 0.6 s after the block starts appearing.
-            var sweep = since / 0.6;
+            // The sweep of light: 0.6 s across, then a short pause, repeated while the block is shown.
+            var sweep = since < 0 ? 0 : since % FlashSweepPeriod / FlashSweepSeconds;
             if (sweep is > 0 and < 1)
             {
                 using var clip = context.PushClip(body);

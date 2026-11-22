@@ -37,6 +37,11 @@ length, the totals held the second half (`SummaryPainter.LastRowShare` 0.5, fast
 writes its status in the plate's words (`StripSegment.Label`); tests: the FLASH block orange (not TOP's yellow), the pace, the
 lilac's label (×4). Phases 55 (editing comfort, the export window's scroll and its default quality) and 56 (the holds' contour)
 recorded in D073 amendment 2.
+**Amendment 3 (2026-11-22, the owner on 1.6.2):** the pace and FLASH accepted; the lilac's label like the green's clip name
+(centred, dark backing); the FLASH sweep repeats (0.6 s + 0.3 s pause; +1 rendering test). Gates: Debug / Release 0 / 0; Vision 37,
+Project 764, Core 1 993, Export 142, Rendering 281, UI 1 329, Timeline 1 255, Video 418 (+1 skip), ExportEndToEnd 189. **Known
+flake:** one UI.Tests run hung in `ProjectSettingsUiTests.A_refusal_by_the_service_is_shown_in_the_open_dialog_and_changes_nothing`
+(untouched by this change; `--blame-hang` dump at 10 min); three reruns green (1 329).
 **Re-review: PASS WITH NOTES** (taken: the YouTube timestamps' grouping of copies recorded in D073; noted: the split test builds
 the state by hand, pre-D053 areas without a route id).
 **Gates (2026-11-22, the final code):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `Vision.ModelTests` builds;
@@ -44,7 +49,7 @@ the state by hand, pre-D053 areas without a route id).
 Rendering 280, UI 1 325, Timeline 1 255, Video 418 (+1 environment-gated skip), ExportEndToEnd 189 — all green (6 402). The first
 run failed on pinned format versions 26 in UI / Timeline tests, the localization guard (the new undo names, damaged-file reasons,
 English drawn words, «English») and the status buttons' count — fixed.
-**Not done:** the owner's manual check (`docs/PHASE54_MANUAL_TEST_PLAN.md`), the merge. Portable `BoulderVideoEditor-1.6.2-win-x64` (amendment 2).
+**Not done:** the owner's manual check (`docs/PHASE54_MANUAL_TEST_PLAN.md`), the merge. Portable `BoulderVideoEditor-1.6.3-win-x64` (amendment 3).
 
 **Phase 53 amendment 3 (D072, the owner's check of 1.5.2, 2026-11-19):** the group's link raised to 20 % of the long side
 (was 7 … 12 %), then simplified to one constant `RouteHoldGrouping.Link` (the spacing-based link removed — the owner: one threshold

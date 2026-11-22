@@ -51,8 +51,8 @@ Mark each row PASS / FAIL / note.
 
 | # | Steps | Expected |
 |---|---|---|
-| D1 | On a «Боулдер», status «Флеш». | In the lilac a yellow slash and a **slanted orange block** with navy italic «Flash» (lower case, your pick B1); one light sweep crosses it when it appears; no bolt, no glow. «Flash» stays English in a Russian project. |
-| D1a | On the timeline, a «Боулдер» with TOP / ПОПЫТКА / Флеш. | Its lilac part reads «TOP» / «ПОПЫТКА» / «Flash» at its bottom (the plate's language). Change the status — the word follows. |
+| D1 | On a «Боулдер», status «Флеш». | In the lilac a yellow slash and a **slanted orange block** with navy italic «Flash» (lower case, your pick B1); a light sweep crosses it, again and again with a very short pause between; no bolt, no glow. «Flash» stays English in a Russian project. |
+| D1a | On the timeline, a «Боулдер» with TOP / ПОПЫТКА / Флеш. | Its lilac part reads «TOP» / «ПОПЫТКА» / «Flash» — centred in height, on a dark backing with light text like the clip's name on the green (the plate's language). Change the status — the word follows. |
 | D2 | The same route in «Итоги». | The same orange «Flash» chip in «РЕЗУЛЬТАТ», «ПОПЫТКИ» 1; it counts in «ТОПЫ» and in «ФЛЕШИ» (the card's mark: the small slash and orange slant, no bolt). |
 | D3 | On a «Боулдер», «Попыток» = 5 (the attempts not in the edit). | «Итоги»: «ПОПЫТКИ» 5 for that route. Empty the field — the count from the video again. 0 or a letter is not taken. |
 | D4 | Export the project with «Итоги» and a FLASH. | The exported video shows the same board and the same FLASH block as the Preview. YouTube timestamps: the FLASH route ends with « ⚡»; «Итоги» is a line of its own at its start with its header («00:00 …» style, e.g. «12:40 Итоги дня»). |

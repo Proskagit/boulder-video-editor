@@ -11818,6 +11818,12 @@ plate anchored to a clip (its clip edited). **Phase 56 — the holds' contour:**
 the triangles' corners lost to the smoothing, notches — a crop refinement of the mask and a corner-keeping smoothing, measured on
 a copy of the owner's project «Новый проект» (Desktop, 27 September; Q20).
 
+### Amendment 3 (2026-11-22) — the owner on 1.6.2
+
+The pace of «Итоги» and the FLASH block accepted («сочно»). (1) **The lilac's status on the timeline** is written as the clip's
+name on the green: centred in height, the same dark backing and light text (not at the segment's bottom in purple). (2) **The FLASH
+sweep repeats** while the block is shown: 0.6 s across, then a 0.3 s pause (`TemplatePainter.FlashSweepPeriod` 0.9 s).
+
 ### Out of scope
 
 A stored `PassId` or a user grouping of attempts; the list of routes chosen by hand; ranks, points or zones; the FIT's falls; FLASH

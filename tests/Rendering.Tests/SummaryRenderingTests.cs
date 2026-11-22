@@ -107,6 +107,20 @@ public sealed class SummaryRenderingTests
         Assert.True(Orange(flash) > Orange(top) + 200);   // D073 amendment 2: the FLASH block is orange and slanted, TOP's yellow
     }
 
+    [Fact]
+    public void The_flash_sweep_repeats_after_a_short_pause()   // D073 amendment 3 (the owner on 1.6.2)
+    {
+        var canvas = new FrameSize(640, 360);
+        Image At(double since) => Render.Export(Rendering.Tests.Scene.Plan(canvas, Scene(canvas, new TemplateLayer(Guid.NewGuid(),
+            new TemplateSpan(Guid.NewGuid(), MediaTime.Zero, MediaTime.FromSeconds(8), TemplateKind.Boulder,
+                TemplateRules.Defaults(TemplateKind.Boulder) with { Route = "7", Status = BoulderStatus.Flash, ShowHeartRate = false }, MediaTime.Zero),
+            new TemplateClock(3, 5, 0.35, 0.3, 3, 75, since)))));
+        var period = TemplatePainter.FlashSweepPeriod;
+        Assert.Equal(At(1 + 0.3).Pixels, At(1 + period + 0.3).Pixels);                       // the same moment of the next sweep
+        Assert.NotEqual(At(1 + period + 0.3).Pixels, At(1 + period + 0.75).Pixels);          // crossing vs. the pause
+        Assert.Equal(At(1 + period + 0.7).Pixels, At(1 + period + 0.8).Pixels);              // the pause: no sweep
+    }
+
     [Theory]
     [InlineData(42.4, "0:42")]
     [InlineData(42.5, "0:43")]
