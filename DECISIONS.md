@@ -11905,6 +11905,10 @@ Also: the «Сбалансированный» / «Высокое качеств
    profile takes that profile's level and speed (`ExportEncoding.CustomOf`); a new project's own custom fields are «Максимальное»
    / «Медленно» too.
 
+### Acceptance (2026-11-22)
+
+The owner checked 1.7.1 («приёмка завершена») and merged PR #85 (`13500cf`, amendment 1 included). Phase 55 is accepted.
+
 ### Review (phase-reviewer, 2026-11-22): FAIL → fixed
 
 (1) For an anchored plate «Удалить часть» of Follow vanished after any playhead move (`OnPlayheadMoved` still read `_clip`) — now
@@ -11917,3 +11921,47 @@ for a machine without NVENC and for the bar at 1024 / 1440 px.
 
 The holds' contour (Phase 56); a project-level switch for «Предлагать трассу»; trimming the plates or the text under the playhead
 without a selection.
+
+## D075 — Phase 56: the holds' contour *(set by the owner on 2026-11-22, D073 amendment 2)*
+
+The owner's notes on 1.6.0: a hold's outline is jagged («ребристость, зубчики»), a triangle hold loses its tips, and a blue
+hold shows a notch that is not there.
+
+### 0. Step 0 — Phase 55 accepted
+
+PR #85 merged (`13500cf`) — D074 «Acceptance», DEVELOPMENT_PLAN, ROADMAP, progress.
+
+### 1. Why (what exists)
+
+SAM 2.1 Large sees the whole frame squeezed to 1024 × 1024 (16:9 stretched to a square) and answers on a 256 × 256 grid, bilinearly
+upsampled to the frame (`SamImageProcessing.Upsample`); `MaskContour` traces the binary mask's pixel boundary and
+`ContourSmoothing` (D065 §2) smooths it with a Gaussian — which removes the steps but also rounds every corner. A hold of 60–100 px
+is some 10–15 grid cells: the steps, the lost tips and the notches all come from that grid.
+
+### 2. Measured: the refinement on a close-up — withdrawn by the owner
+
+Tried first: a hold's mask refined on a close-up (a square around the first mask, bounds + 50 % a side, encoded on its own and
+prompted with the same points; the agreeing refined mask pasted back). Measured on a copy of the owner's project «Новый проект»
+(7 routes, 79 holds): ≈ 290 ms more a hold on the GPU, median IoU 0.946 with the saved outlines; four comparison sheets sent to
+the owner. **The owner (2026-11-22):** the new outline sometimes takes in areas that are not the hold, sometimes the old one is
+better, sometimes the new one has finer detail — not worth a second model pass and the time; **only the smoothing**. The
+refinement is not in the product (the code removed; this paragraph is its record).
+
+### 3. The model — the smoothing keeps the corners (the owner's rule)
+
+Clusters of close vertices — the teeth — are smoothed; a vertex that stands alone is not. On the contour simplified at 4 % of
+the hold's diameter (at least 1.5 px), a vertex is a corner when both its sides are at least 15 % of the diameter and the
+contour turns at least 60° between its points a side's length before and after it (a bump of a round hold turns little there; a
+circle simplified at 4 % turns about 46° a vertex, never a corner); the Gaussian never averages across a corner
+(`ContourSmoothing.Corners`). The slider «Сглаживание» stays (Q3 A) — its strength scales the smoothing between corners; at
+every strength the corners stay. New holds only (Q2): a saved contour is never smoothed again (D065 §2, unchanged). Q1 / Q4
+(when to refine) fall with the refinement.
+
+A side is also at least 6 px (`MinCornerSidePixels`), and a hold under 30 px across has no corners (`MinCornerHoldPixels`): over a
+small hold's pixel steps the contour turns like corners everywhere, so a small hold is smoothed as before. A corner is not averaged; only the area's rescale (D065 §2) moves it by a fraction of a pixel.
+
+### Out of scope
+
+The refinement on a close-up (§2, withdrawn); a notch that is in the model's mask itself (the blue hold of the owner's
+screenshot) — the smoothing does not fill a real dent of the mask: such an outline is corrected by a Shift+click or by hand
+(D034); re-smoothing saved holds; another model; the people's masks.

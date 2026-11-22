@@ -187,4 +187,63 @@ public class ContourSmoothingTests
         Assert.Equal(100, new UserSettings { HoldContourSmoothing = 500 }.Normalized().HoldContourSmoothing);
         Assert.Equal(0, new UserSettings { HoldContourSmoothing = -3 }.Normalized().HoldContourSmoothing);
     }
+
+    /// <summary>A triangle mask (tips at the given points) whose sides are jagged by ±2 px every few pixels.</summary>
+    private static byte[] JaggedTriangle((double X, double Y) a, (double X, double Y) b, (double X, double Y) c, int seed = 3)
+    {
+        var random = new Random(seed);
+        var noise = Enumerable.Range(0, Size * Size / 16).Select(_ => random.Next(-2, 3)).ToArray();
+        static double Side((double X, double Y) p, (double X, double Y) q, double x, double y) =>
+            ((q.X - p.X) * (y - p.Y) - (q.Y - p.Y) * (x - p.X)) / Math.Sqrt((q.X - p.X) * (q.X - p.X) + (q.Y - p.Y) * (q.Y - p.Y));
+        var mask = new byte[Size * Size];
+        for (var y = 0; y < Size; y++)
+            for (var x = 0; x < Size; x++)
+            {
+                var jitter = noise[(y / 4) * (Size / 4) + x / 4];
+                double s1 = Side(a, b, x, y), s2 = Side(b, c, x, y), s3 = Side(c, a, x, y);
+                if (s1 >= jitter && s2 >= jitter && s3 >= jitter) mask[y * Size + x] = 1;
+            }
+        return mask;
+    }
+
+    [Fact]
+    public void A_triangle_keeps_its_tips_while_its_teeth_are_smoothed()   // D075 §2 (the owner)
+    {
+        (double X, double Y) a = (30, 170), b = (100, 30), c = (170, 170);
+        var mask = JaggedTriangle(a, b, c);
+        var (component, _) = MaskContour.LargestComponent(mask, Size, Size);
+        var raw = MaskContour.Outer(component, Size, Size);
+        var smoothed = ContourSmoothing.Smooth(raw, Size, Size, ContourSmoothing.MaxStrength);
+        var points = smoothed.Select(p => (X: p.X * Size, Y: p.Y * Size)).ToList();
+        double Nearest((double X, double Y) tip) => points.Min(p => Math.Sqrt((p.X - tip.X) * (p.X - tip.X) + (p.Y - tip.Y) * (p.Y - tip.Y)));
+        foreach (var tip in new[] { a, b, c })
+            Assert.True(Nearest(tip) < 6, $"tip ({tip.X},{tip.Y}) cut: nearest outline point {Nearest(tip):F1} px away");
+        Assert.True(points.Count < raw.Length, "the teeth are not smoothed");
+    }
+
+    [Theory]   // D075 §2: a small hold's pixel staircase is never a corner (a side ≥ 6 px): it is smoothed
+    [InlineData(5)]
+    [InlineData(8)]
+    [InlineData(12)]
+    [InlineData(18)]
+    public void A_small_round_hold_has_no_corners_and_is_smoothed(int radius)
+    {
+        var mask = new byte[Size * Size];
+        for (var y = 0; y < Size; y++)
+            for (var x = 0; x < Size; x++)
+                if ((x - 100) * (x - 100) + (y - 100) * (y - 100) <= radius * radius) mask[y * Size + x] = 1;
+        var raw = MaskContour.Outer(mask, Size, Size);
+        var ring = raw.Select(p => (X: p.X * Size, Y: p.Y * Size)).ToList();
+        Assert.Empty(ContourSmoothing.Corners(ring, 2 * radius));
+        Assert.NotEqual(raw, ContourSmoothing.Smooth(raw, Size, Size, ContourSmoothing.MaxStrength));
+    }
+
+    [Fact]
+    public void A_round_hold_has_no_corners()   // D075 §2: a circle simplified at 4 % never reads as corners
+    {
+        var (component, _) = MaskContour.LargestComponent(HedgehogMask(), Size, Size);
+        var raw = MaskContour.Outer(component, Size, Size);
+        var ring = raw.Select(p => (X: p.X * Size, Y: p.Y * Size)).ToList();
+        Assert.Empty(ContourSmoothing.Corners(ring, 80));
+    }
 }

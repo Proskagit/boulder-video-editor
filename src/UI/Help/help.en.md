@@ -87,7 +87,7 @@ A local neural network draws a hold's outline from one click.
 - **Colour, width, keyline** — how the outlines look. The keyline makes the line visible on a busy wall.
 - **«Animation»** — the holds appear one by one, then the whole route shows and fades out. «Order» — bottom to top, left to right and so on; «Set to playhead» — start the animation at the current frame.
 - **«Follow the camera»** — the outlines stick to the wall and stay on the holds when the camera moves. Where the camera's position is unreliable, they are hidden.
-- **Smoothing** of new outlines is in «Settings…».
+- **Smoothing** of new outlines is in «Settings…». It removes the teeth along the edge but never cuts a lone sharp corner (a triangle hold's tips). Saved holds never change.
 
 # FIT trainings and routes
 

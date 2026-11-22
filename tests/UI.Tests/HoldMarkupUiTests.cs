@@ -383,27 +383,47 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task The_smoothing_slider_reshapes_the_shown_candidate_and_the_shown_contour_is_confirmed()
+    public async Task The_smoothing_slider_keeps_a_squares_corners_and_the_shown_contour_is_confirmed()
     {
-        // D065 §2–§3: the candidate is smoothed while it is shown; 0 gives the mask's own boundary (the 18 × 18 square's four
-        // corners); the slider re-smooths it at once; Enter confirms what is shown; the setting is the user's, global.
+        // D065 §2–§3 / D075 §2: the candidate is smoothed while it is shown — and a corner that stands alone is kept at every
+        // strength: a 40 × 40 square stays its four corners; Enter confirms what is shown; the setting is the user's, global.
+        // (The slider reshaping a round candidate: the next test; the smoothing of teeth itself: ContourSmoothingTests.)
+        _model.BigSquare = true;
         var clip = await StartOnClip();
         Assert.Equal(ContourSmoothing.DefaultStrength, Markup.ContourSmoothing);
         await Markup.OnClickAsync(new NormalizedPoint(0.5, 0.5), additive: false);
-        var smoothed = Markup.CandidateContour.ToArray();
-        Assert.True(smoothed.Length > 4);                              // the square's corners rounded
+        Assert.Equal(4, Markup.CandidateContour.Length);
 
         Markup.ContourSmoothing = 0;
         Assert.Equal(4, Markup.CandidateContour.Length);               // the mask's own square
         Markup.ContourSmoothing = 100;
         var strongest = Markup.CandidateContour.ToArray();
-        Assert.NotEqual(smoothed, strongest);
-        Assert.All(strongest, p => Assert.InRange(p.X * W, 88, 112)); // still on the hold
+        Assert.Equal(4, strongest.Length);                             // the corners kept at the strongest too
+        Assert.All(strongest, p => Assert.InRange(p.X * W, 78, 122)); // still on the hold
 
         await Markup.ConfirmCommand.ExecuteAsync(null);
         var hold = Assert.Single(clip.HoldMarkup!.Holds);
         Assert.Equal(strongest, hold.Points.ToArray());
         Markup.ContourSmoothing = 0;                                   // a confirmed hold never changes
+        Assert.Equal(strongest, clip.HoldMarkup!.Holds[0].Points.ToArray());
+    }
+
+    [Fact]
+    public async Task The_smoothing_slider_reshapes_a_round_candidate_and_a_confirmed_hold_keeps_its_shape()
+    {
+        // D065 §3: the slider re-smooths the shown candidate at once; a confirmed hold never changes after.
+        _model.Round = true;
+        var clip = await StartOnClip();
+        await Markup.OnClickAsync(new NormalizedPoint(0.5, 0.5), additive: false);
+        Markup.ContourSmoothing = 0;
+        var own = Markup.CandidateContour.ToArray();                   // the disc's pixel steps
+        Markup.ContourSmoothing = 100;
+        var strongest = Markup.CandidateContour.ToArray();
+        Assert.NotEqual(own, strongest);                               // the steps smoothed away
+
+        await Markup.ConfirmCommand.ExecuteAsync(null);
+        Assert.Equal(strongest, Assert.Single(clip.HoldMarkup!.Holds).Points.ToArray());
+        Markup.ContourSmoothing = 0;                                   // would give `own` for a new candidate
         Assert.Equal(strongest, clip.HoldMarkup!.Holds[0].Points.ToArray());
     }
 
@@ -1073,6 +1093,12 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
         public HoldModelStatus Status { get; set; } = new(HoldModelState.Ready, null);
         public InferenceDevice Device { get; set; } = InferenceDevice.Gpu;
         public bool OnlyWalls { get; set; }
+
+        /// <summary>The first mask a disc of radius 20 instead of the square (a contour the slider reshapes, D075).</summary>
+        public bool Round { get; set; }
+
+        /// <summary>The first mask a 40 × 40 square instead of the 18 × 18 one (corners large enough to keep, D075).</summary>
+        public bool BigSquare { get; set; }
         public IReadOnlyList<PointD>? LastPoints { get; private set; }
         public int FramesDisposed { get; private set; }
         public TaskCompletionSource? Gate { get; set; }
@@ -1088,6 +1114,15 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
 
         public Task<IHoldFrame> PrepareFrameAsync(DecodedFrame frame, CancellationToken cancellationToken = default) =>
             Task.FromResult<IHoldFrame>(new Frame(this, frame.Width, frame.Height));
+
+        private static HoldMask Disc(PointD c, int radius, double score)
+        {
+            var p = new byte[W * H];
+            for (var y = 0; y < H; y++)
+            for (var x = 0; x < W; x++)
+                if ((x - (int)c.X) * (x - (int)c.X) + (y - (int)c.Y) * (y - (int)c.Y) <= radius * radius) p[y * W + x] = 1;
+            return new HoldMask(W, H, p, score);
+        }
 
         private static HoldMask Square(PointD c, int half, double score)
         {
@@ -1110,7 +1145,7 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
                 var all = new HoldMask(W, H, Enumerable.Repeat((byte)1, W * H).ToArray(), 0.95);
                 var masks = owner.OnlyWalls
                     ? ImmutableArray.Create(all, all, all)
-                    : ImmutableArray.Create(Square(points[0], 9, 0.9), all, Square(points[0], 3, 0.5 + 0.1 * (points.Count - 1)));
+                    : ImmutableArray.Create(owner.Round ? Disc(points[0], 20, 0.9) : Square(points[0], owner.BigSquare ? 20 : 9, 0.9), all, Square(points[0], 3, 0.5 + 0.1 * (points.Count - 1)));
                 return new HoldMaskSet(masks);
             }
 

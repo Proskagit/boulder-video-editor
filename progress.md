@@ -2,6 +2,22 @@
 
 ## Current phase
 
+**Phase 56 — the holds' contour (D075, 2026-11-22) — on `feat/phase-56-holds-contour`** (from `origin/main` `13500cf`).
+**Step 0:** Phase 55 accepted (PR #85 merged) — D074 «Acceptance», DEVELOPMENT_PLAN, ROADMAP. **Measured and withdrawn:** the
+mask refined on a close-up (79 holds of a copy of the owner's project, ≈ 290 ms a hold, sheets sent) — the owner: sometimes extra
+areas, sometimes better detail, not worth the second pass → only the smoothing (D075 §2); its code removed. **Done:** the
+owner's rule in `ContourSmoothing` — teeth smoothed, a corner standing alone kept (`Corners`: 4 % / 15 % / 60°, the turn measured a
+side's length along the contour; the Gaussian never averages across a corner); the slider stays. **Tests:** `ContourSmoothingTests`
+(+6: a jagged triangle keeps its tips — 8.7 px cut without the rule —, a round hold has no corners, small discs r 5–18 px no
+corners and smoothed), `HoldMarkupUiTests` (a 40 × 40 square keeps its corners at every strength; the slider reshapes a round
+candidate and a confirmed hold keeps its shape). Small holds: a side ≥ 6 px, no corners under 30 px across. **Review
+(phase-reviewer): FAIL** — the rewritten UI test no longer covered the slider → the round-candidate test added; notes taken (small
+holds, the doc comment on the rescale, the help in «Разметка зацепок», the notch written out of scope, ROADMAP's base). Manual plan
+`docs/PHASE56_MANUAL_TEST_PLAN.md`. **Re-review: PASS WITH NOTES.** Gates: Debug / Release `-warnaserror` 0 / 0, ModelTests build,
+`git diff --check` clean; Release + `AIVE_HEAVY_TESTS=1`: Vision 37, Project 765, Core 2 001, Export 142, Rendering 281, UI 1 338,
+Timeline 1 260, Video 418 (+1 skip), ExportEndToEnd 189 = 6 431. Portable `BoulderVideoEditor-1.8.0-win-x64`. **Not done:** the
+owner's manual check, the merge.
+
 **Phase 55 — editing comfort (D074, 2026-11-22) — on `feat/phase-55-editing-comfort`** (from `origin/main` `fc765fe` — Phase 54
 accepted, PR #84 merged). The owner's notes on 1.6.x (D073 amendment 2, Q15–Q19). **Done:** §1 «Обрезать слева / справа» buttons
 (`TimelineView` bar, `Icons.TrimStart` / `TrimEnd`), Q / W without a selection take the video under the playhead with its linked
