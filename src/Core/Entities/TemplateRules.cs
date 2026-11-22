@@ -74,11 +74,13 @@ public static class TemplateRules
     public const string TopWord = "TOP";
     public const string AttemptWord = "ПОПЫТКА";
 
-    /// <summary>D073: the Flash's word — English in every language (the product owner, 2026-11-22).</summary>
-    public const string FlashWord = "FLASH";
+    /// <summary>D073: the Flash's word — English in every language (the product owner, 2026-11-22), in lower case «Flash»
+    /// (amendment 2, his pick B1).</summary>
+    public const string FlashWord = "Flash";
 
-    /// <summary>D073: the Flash block — white with navy text, a yellow bolt and a yellow glow (never TOP's yellow block).</summary>
-    public const string FlashHex = "#FFFFFF";
+    /// <summary>D073 amendment 2 (B1): the Flash block — a slanted orange block after a yellow slash, navy italic «Flash»
+    /// (never TOP's straight yellow block).</summary>
+    public const string FlashHex = "#FF6D00";
 
     /// <summary>D073: the stated attempts' bounds.</summary>
     public const int MinAttempts = 1;

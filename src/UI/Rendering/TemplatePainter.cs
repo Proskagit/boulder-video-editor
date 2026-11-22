@@ -274,8 +274,7 @@ public static class TemplatePainter
         var top = fields.Status == BoulderStatus.Top;
         var label = Lay(TemplateWords.Of(fields.Language).StatusWord(fields.Status), FontWeight.Bold, 32 * u,
             top || flash ? Brush(TemplateRules.PlateHex) : Brushes.White);
-        var bolt = flash ? height * 0.5 : 0;
-        var blockWidth = label.InkWidth + 2 * padX + (flash ? bolt + 8 * u : 0);
+        var blockWidth = label.InkWidth + 2 * padX + (flash ? FlashExtra(height) : 0);
         var blockX = left
             ? (parts.Count > 0 ? plate.Right + 12 * u : outerX)
             : (parts.Count > 0 ? plate.X - 12 * u - blockWidth : outerX - blockWidth);
@@ -284,59 +283,64 @@ public static class TemplatePainter
         using var rise = context.PushTransform(Matrix.CreateTranslation(side * (1 - shown) * 16 * u, 0));
         if (flash)
         {
-            FlashBlock(context, block, label, u, clock.SinceStatus, clock.Elapsed);
+            FlashBlock(context, block, label, u, clock.SinceStatus);
             return;
         }
         context.DrawRectangle(Brush(top ? TemplateRules.TopHex : TemplateRules.AttemptHex, top ? 1 : 0.95), null, block);
         Centred(context, label.Text, label.Ink, block.Center);
     }
 
+    /// <summary>D073 amendment 2: the slant of the FLASH block's edges — the horizontal shift per unit of height.</summary>
+    internal const double FlashSlant = 1.0 / 3;
+
+    /// <summary>The italic of «Flash» — a skew of 12°.</summary>
+    private const double FlashItalic = 0.2126;
+
+    /// <summary>The width the FLASH block adds to its word and padding: the yellow slash and its gap before the block, and the
+    /// slant of both ends (the slanted shapes stay inside the block's rectangle).</summary>
+    internal static double FlashExtra(double height) => height * (0.34 + FlashSlant);
+
     /// <summary>
-    /// D073: the FLASH block — never TOP's yellow block: white with navy «FLASH», a yellow lightning bolt before the word, a
-    /// yellow glow around it that breathes slowly, and one light sweep across it when it appears (<paramref name="since"/>:
-    /// seconds since it started appearing). Rectangles, lines and a clip only (no geometry objects, as the rest of the painter).
+    /// D073 amendment 2 (the owner's pick B1, 2026-11-22): the FLASH block — a yellow slash, then a slanted orange block with
+    /// navy italic «Flash»; one light sweep across the block when it appears (<paramref name="since"/>: seconds since it started
+    /// appearing). Rectangles under a skew transform (no geometry objects, as the rest of the painter).
     /// </summary>
-    internal static void FlashBlock(DrawingContext context, Rect block, Inked label, double u, double since, double elapsed)
+    internal static void FlashBlock(DrawingContext context, Rect block, Inked label, double u, double since)
     {
-        // The glow: rings of yellow fading outwards, breathing (±25 %) once every 1.6 s.
-        var breath = 0.75 + 0.25 * Math.Sin(elapsed * Math.PI * 2 / 1.6);
-        for (var i = 4; i >= 1; i--)
+        var h = block.Height;
+        var slash = h * 0.22;
+        var x0 = block.X + FlashSlant * h / 2;                          // the slanted ends inside the block
+        var body = new Rect(x0 + h * 0.34, block.Y, block.Right - FlashSlant * h / 2 - (x0 + h * 0.34), h);
+        using (context.PushTransform(SkewAbout(block.Center.Y, FlashSlant)))
         {
-            var g = i * 3 * u;
-            context.DrawRectangle(Brush(TemplateRules.TopHex, 0.16 * breath), null, block.Inflate(g), 4 * u + g, 4 * u + g);
-        }
-        context.DrawRectangle(Brush(TemplateRules.FlashHex), null, block, 4 * u, 4 * u);
-        context.DrawRectangle(null, new ImmutablePen(Brush(TemplateRules.TopHex), 3 * u), block.Deflate(1.5 * u), 4 * u, 4 * u);
+            context.DrawRectangle(Brush(TemplateRules.TopHex), null, new Rect(x0, block.Y, slash, h));
+            context.DrawRectangle(Brush(TemplateRules.FlashHex), null, body);
 
-        var bolt = block.Height * 0.5;
-        var padX = (block.Width - label.InkWidth - bolt - 8 * u) / 2;
-        Bolt(context, new Rect(block.X + padX, block.Center.Y - bolt * 0.68, bolt, bolt * 1.36), TemplateRules.TopHex, TemplateRules.PlateHex, u);
-        Centred(context, label.Text, label.Ink, new Point(block.X + padX + bolt + 8 * u + label.InkWidth / 2, block.Center.Y));
-
-        // One sweep of light over 0.6 s after the block starts appearing.
-        var sweep = since / 0.6;
-        if (sweep is > 0 and < 1)
-        {
-            using var clip = context.PushClip(block);
-            var x = block.X - block.Height + sweep * (block.Width + 2 * block.Height);
-            using var skew = context.PushTransform(Matrix.CreateTranslation(-x, -block.Y) * new Matrix(1, 0, -0.5, 1, 0, 0) *
-                                                   Matrix.CreateTranslation(x, block.Y));
-            context.DrawRectangle(Brush("#FFF6B0", 0.75 * Math.Sin(Math.PI * sweep)), null, new Rect(x, block.Y, block.Height * 0.45, block.Height));
+            // One sweep of light over 0.6 s after the block starts appearing.
+            var sweep = since / 0.6;
+            if (sweep is > 0 and < 1)
+            {
+                using var clip = context.PushClip(body);
+                var x = body.X - h * 0.5 + sweep * (body.Width + h * 0.5);
+                context.DrawRectangle(Brush("#FFE0B2", 0.7 * Math.Sin(Math.PI * sweep)), null, new Rect(x, body.Y, h * 0.4, h));
+            }
         }
+        var centre = body.Center;
+        using (context.PushTransform(Matrix.CreateTranslation(-centre.X, -centre.Y) * SkewAbout(0, FlashItalic) * Matrix.CreateTranslation(centre.X, centre.Y)))
+            Centred(context, label.Text, label.Ink, centre);
     }
 
-    /// <summary>A lightning bolt in <paramref name="box"/>: a zigzag of thick round-capped lines, outlined in
-    /// <paramref name="outlineHex"/> under the <paramref name="fillHex"/> stroke.</summary>
-    internal static void Bolt(DrawingContext context, Rect box, string fillHex, string outlineHex, double u)
+    /// <summary>A skew leaning right (the top ahead of the bottom) by <paramref name="slant"/>, about the line y =
+    /// <paramref name="y"/>: x' = x − slant · (y − <paramref name="y"/>).</summary>
+    internal static Matrix SkewAbout(double y, double slant) => new(1, 0, -slant, 1, slant * y, 0);
+
+    /// <summary>D073 amendment 2: the FLASH mark of «Итоги»' card — the block's yellow slash and orange slant, small.</summary>
+    internal static void FlashMark(DrawingContext context, Rect box)
     {
-        Point P(double x, double y) => new(box.X + x * box.Width, box.Y + y * box.Height);
-        var points = new[] { P(0.72, 0.0), P(0.22, 0.56), P(0.74, 0.46), P(0.28, 1.0) };
-        var width = box.Width * 0.36;
-        var outline = new ImmutablePen(Brush(outlineHex), width + 3 * u, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
-        var fill = new ImmutablePen(Brush(fillHex), width, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
-        foreach (var pen in new[] { outline, fill })
-            for (var i = 0; i < points.Length - 1; i++)
-                context.DrawLine(pen, points[i], points[i + 1]);
+        using var skew = context.PushTransform(SkewAbout(box.Center.Y, FlashSlant));
+        var slash = box.Width * 0.28;
+        context.DrawRectangle(Brush(TemplateRules.TopHex), null, new Rect(box.X, box.Y, slash, box.Height));
+        context.DrawRectangle(Brush(TemplateRules.FlashHex), null, new Rect(box.X + slash * 1.45, box.Y, box.Width - slash * 1.45, box.Height));
     }
 
     /// <summary>0 → 1 over the status block's appearance: <see cref="TemplateRules.StatusAppearSeconds"/> from the status

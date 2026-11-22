@@ -75,7 +75,8 @@ public sealed class SummaryRenderingTests
     public void The_rows_scroll_once_past_ten_and_the_board_changes_while_they_scroll()
     {
         var pace = SummaryPainter.Pace(14, 10);
-        Assert.Equal((0.7 * 10 - 0.45) / 14, pace, 9);
+        Assert.Equal((0.5 * 10 - 0.45) / 14, pace, 9);
+        Assert.Equal(5, SummaryPainter.FirstRow + 14 * pace, 9);   // D073 amendment 2: every row in by 5 s of 10, the totals held after
         Assert.Equal(SummaryPainter.FastestPace, SummaryPainter.Pace(40, 10));
         Assert.Equal(SummaryPainter.SlowestPace, SummaryPainter.Pace(2, 10));
         Assert.Equal(0, SummaryPainter.ScrollAt(SummaryPainter.FirstRow + 9.5 * pace, 14, pace));
@@ -98,9 +99,12 @@ public sealed class SummaryRenderingTests
         var top = Render.Export(Rendering.Tests.Scene.Plan(canvas, Scene(canvas, Boulder(BoulderStatus.Top))));
         var flash = Render.Export(Rendering.Tests.Scene.Plan(canvas, Scene(canvas, Boulder(BoulderStatus.Flash))));
         Assert.NotEqual(top.Pixels, flash.Pixels);
-        int White(Image image) => Enumerable.Range(0, image.Width * image.Height)
-            .Count(i => image.Pixels[i * 4] > 245 && image.Pixels[i * 4 + 1] > 245 && image.Pixels[i * 4 + 2] > 245);
-        Assert.True(White(flash) > White(top) + 200);   // the FLASH block is white, TOP's is yellow
+        int Orange(Image image) => Enumerable.Range(0, image.Width * image.Height).Count(i =>
+        {
+            var c = new[] { image.Pixels[i * 4], image.Pixels[i * 4 + 1], image.Pixels[i * 4 + 2] }.Order().ToArray();
+            return c[2] > 240 && c[0] < 30 && c[1] is > 80 and < 140;   // #FF6D00 in either channel order; TOP's #FFD400 is not
+        });
+        Assert.True(Orange(flash) > Orange(top) + 200);   // D073 amendment 2: the FLASH block is orange and slanted, TOP's yellow
     }
 
     [Theory]

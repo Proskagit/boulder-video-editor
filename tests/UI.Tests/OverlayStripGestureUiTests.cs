@@ -355,6 +355,21 @@ public sealed class OverlayStripGestureUiTests
         Assert.True(Vm(t, clip).ShowsStripLane);
     }
 
+    [Theory]   // D073 amendment 2: the lilac writes its status in the plate's words; the green and the orange write nothing
+    [InlineData(BoulderStatus.Top, TemplateLanguage.Russian, "TOP")]
+    [InlineData(BoulderStatus.Attempt, TemplateLanguage.Russian, "ПОПЫТКА")]
+    [InlineData(BoulderStatus.Attempt, TemplateLanguage.English, "ATTEMPT")]
+    [InlineData(BoulderStatus.Flash, TemplateLanguage.Russian, "Flash")]
+    public void The_lilac_carries_its_status(BoulderStatus status, TemplateLanguage language, string word)
+    {
+        var (t, _, template) = VariantB(status);
+        Assert.True(_edit.SetClipProperties(template.Id,
+            new ClipPropertyChange { Template = TemplateProperties.Of(template)!.Value with { Language = language } }).Success);
+        var segments = Vm(t, template).TemplateSegments;
+        Assert.Equal(word, segments.Single(s => s.Kind == StripSegmentKind.Lilac).Label);
+        Assert.All(segments.Where(s => s.Kind != StripSegmentKind.Lilac), s => Assert.False(s.HasLabel));
+    }
+
     [Fact]
     public void Variant_B_hit_testing_gives_the_plates_edges_the_inner_boundaries_and_the_orange_to_the_strip_the_rest_to_the_template()
     {

@@ -196,6 +196,14 @@
       <Setter Property="Padding" Value="3,0"/>
     </Style>
     <!-- Variant B: a segment inside the plate — translucent, a dark line at its start marks the boundary. -->
+    <Style Selector="TextBlock.segmentStatus">
+      <Setter Property="FontSize" Value="10"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="Foreground" Value="#2A1450"/>
+      <Setter Property="VerticalAlignment" Value="Bottom"/>
+      <Setter Property="Margin" Value="4,0,2,2"/>
+      <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+    </Style>
     <Style Selector="Border.templateSegment">
       <Setter Property="Opacity" Value="0.7"/>
       <Setter Property="BorderBrush" Value="#C0000000"/>
@@ -601,7 +609,10 @@
                                 <ItemsControl.ItemTemplate>
                                   <DataTemplate>
                                     <Border Classes="templateSegment" Classes.selected="{Binding IsSelected}" Width="{Binding Width}" Height="36"
-                                            Background="{Binding ColorHex}"/>
+                                            Background="{Binding ColorHex}">
+                                      <!-- D073 amendment 2: the lilac's status written on it, at its bottom (the clip's name is at the top). -->
+                                      <TextBlock Classes="segmentStatus" Text="{Binding Label}" IsVisible="{Binding HasLabel}"/>
+                                    </Border>
                                   </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                               </ItemsControl>

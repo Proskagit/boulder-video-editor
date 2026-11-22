@@ -23,8 +23,8 @@ internal static class SummaryPainter
     public const int VisibleRows = 10;
 
     /// <summary>The rows' timing (seconds): the first row's start, the slowest and the fastest pace, one row's entrance, the
-    /// share of the length by which the last row is in.</summary>
-    public const double FirstRow = 0.45, SlowestPace = 0.6, FastestPace = 0.25, RowIn = 0.3, LastRowShare = 0.7;
+    /// share of the length by which the last row is in — the first half, the totals held the second (D073 amendment 2).</summary>
+    public const double FirstRow = 0.45, SlowestPace = 0.6, FastestPace = 0.15, RowIn = 0.3, LastRowShare = 0.5;
 
     /// <summary>The board's width in 1080-units: wide on a landscape canvas, narrower (denser columns) on a portrait one.</summary>
     private const double LandscapeWidth = 1560, PortraitWidth = 1180;
@@ -34,7 +34,7 @@ internal static class SummaryPainter
     private const string Grey = "#A9BACB", RowA = "#0F1F33", RowB = "#16283F", Card = "#1B3150", NoResult = "#2A3B52";
 
     /// <summary>The seconds between two rows' entrances for <paramref name="rows"/> rows in a template of
-    /// <paramref name="length"/> seconds: the last row in by 70 % of the length, within 0.25 … 0.6 s.</summary>
+    /// <paramref name="length"/> seconds: the totals in by half the length (5 s of 10), within 0.15 … 0.6 s.</summary>
     public static double Pace(int rows, double length) =>
         rows <= 0 ? SlowestPace : Math.Clamp((LastRowShare * length - FirstRow) / rows, FastestPace, SlowestPace);
 
@@ -217,11 +217,11 @@ internal static class SummaryPainter
             _ => (NoResult, Grey)
         };
         var label = Lay(result == BoulderStatus.None ? "—" : words.StatusWord(result), FontWeight.Bold, 26 * v, Brush(ink));
-        var chipWidth = Math.Max(160 * v, label.InkWidth + 36 * v + (flash ? 34 * v : 0));
+        var chipWidth = Math.Max(160 * v, label.InkWidth + 36 * v + (flash ? FlashExtra(42 * v) : 0));
         var chip = new Rect(centre.X - chipWidth / 2, centre.Y - 21 * v, chipWidth, 42 * v);
         if (flash)
         {
-            FlashBlock(context, chip, label, v, since, t);
+            FlashBlock(context, chip, label, v, since);
             return;
         }
         context.DrawRectangle(Brush(fill), null, chip, 6 * v, 6 * v);
@@ -230,7 +230,7 @@ internal static class SummaryPainter
 
     private static void Totals(DrawingContext context, SummaryTotals totals, TemplateWords words, bool heart, Rect area, double v)
     {
-        var cards = new List<(string Label, string? Lead, string Value, string? Unit, bool Bolt, bool Accent)>
+        var cards = new List<(string Label, string? Lead, string Value, string? Unit, bool Mark, bool Accent)>
         {
             (words.Tops, totals.Tops.ToString(CultureInfo.InvariantCulture), $"/ {totals.Routes}", null, false, false),
             (words.Flashes, null, totals.Flashes.ToString(CultureInfo.InvariantCulture), null, true, false)
@@ -246,7 +246,7 @@ internal static class SummaryPainter
         var cardWidth = (area.Width - gap * (cards.Count - 1)) / cards.Count;
         for (var i = 0; i < cards.Count; i++)
         {
-            var (label, lead, value, unit, bolt, accent) = cards[i];
+            var (label, lead, value, unit, mark, accent) = cards[i];
             var card = new Rect(area.X + i * (cardWidth + gap), area.Y, cardWidth, area.Height);
             context.DrawRectangle(Brush(Card, 0.96), null, card, 12 * v, 12 * v);
             if (accent)
@@ -254,18 +254,18 @@ internal static class SummaryPainter
             var caption = Lay(label, FontWeight.SemiBold, 22 * v, Brush(Grey));
             Centred(context, caption.Text, caption.Ink, new Point(card.X + 22 * v + caption.InkWidth / 2, card.Y + 30 * v));
 
-            // The figure: [bolt] [lead in yellow] value [unit, smaller] — shrunk to the card's width when it would not fit.
-            double Width(double s) => (bolt ? 42 * s : 0) + (lead is null ? 0 : Lay(lead, FontWeight.Bold, 50 * s, Brushes.White).InkWidth + 12 * s) +
+            // The figure: [the FLASH mark] [lead in yellow] value [unit, smaller] — shrunk to the card's width when it would not fit.
+            double Width(double s) => (mark ? 54 * s : 0) + (lead is null ? 0 : Lay(lead, FontWeight.Bold, 50 * s, Brushes.White).InkWidth + 12 * s) +
                                       Lay(value, FontWeight.Bold, 50 * s, Brushes.White).InkWidth +
                                       (unit is null ? 0 : 8 * s + Lay(unit, FontWeight.SemiBold, 24 * s, Brushes.White).InkWidth);
             var room = card.Width - 44 * v;
             var f = Math.Min(v, v * room / Math.Max(1e-6, Width(v)));
             var x = card.X + 22 * v;
             var y = card.Y + 80 * v;
-            if (bolt)
+            if (mark)
             {
-                Bolt(context, new Rect(x, y - 24 * f, 30 * f, 46 * f), TemplateRules.TopHex, TemplateRules.PlateHex, f);
-                x += 42 * f;
+                FlashMark(context, new Rect(x + 4 * f, y - 18 * f, 30 * f, 36 * f));
+                x += 54 * f;
             }
             if (lead is not null)
             {

@@ -11801,12 +11801,18 @@ distinctive look. Variants A (over the video) and B (a full-frame card) shown on
 
 On this branch: (1) **FLASH redrawn** — the white block with the bolt «looks drawn in Paint»; round 1 of mock-ups: B «Скос»
 liked but white on orange does not read; round 2 (B1 orange slanted with navy text, B2 navy slanted with orange, D1 / D2 cyan
-with a yellow bolt, lowercase «Flash» / «flash») — **the owner's pick pending (Q14)**; the bolt goes from «Итоги» too.
+with a yellow bolt, lowercase «Flash» / «flash») — **the owner's pick: B1 in lower case** — a yellow slash, a slanted orange
+block (`#FF6D00`), navy italic «Flash» (skewed rectangles and text, no geometry), one sweep, no glow; the same block as «Итоги»'
+chip, the totals card's mark the small slash + slant; no bolt anywhere on the frame (the YouTube « ⚡» stays).
 (2) **«Итоги»' pace:** every row in during the first half (5 s of 10), the totals held the second half. (3) **The status written
 on the lilac strip of the timeline** (Q18 A: «TOP», «ПОПЫТКА», «FLASH»).
 Next phases (Q19, agreed): **Phase 55 — editing comfort:** two buttons «обрезать слева / справа» on the timeline bar (Q16 A; Q / W
-exist); a new project — and an opened one — starts with the defaults: the magnet on (Q15 A, also when opening), «Предлагать
-трассу» off and the timeline's snapping on (the owner: these carried over from project to project within one run); «Скрывать
+exist); the defaults: **the magnet stays the project's own** (the owner revised Q15: turning it on when opening would move a
+project's clips) — on in a new project, as saved when opening (as now); «Предлагать трассу» off and the timeline's snapping on in
+a new project and when opening one (these carried over from project to project within one run); the export window grows / scrolls
+when its «Подробные настройки» and «Таймкоды» are opened (now its bottom is out of reach without resizing it); the export's
+default quality the highest — NVENC at its best quality (CQ 14) also under the «Высокое» profile (to be checked against the
+export's presets, D068 / FU-EX.1); «Скрывать
 за людьми» on with every new route, the people's analysis in the background (Q17 A); the Inspector's «Люди» / «Зацепки» for a
 plate anchored to a clip (its clip edited). **Phase 56 — the holds' contour:** the jagged edges (the 256 × 256 mask stretched),
 the triangles' corners lost to the smoothing, notches — a crop refinement of the mask and a corner-keeping smoothing, measured on

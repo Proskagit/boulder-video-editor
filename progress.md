@@ -31,6 +31,12 @@ split with / without a number, a copy, a status beyond the area with a free area
 language, the time rounded on ticks, an undo-step test, manual rows B11–B12).
 **Amendment 1 (2026-11-22, the owner):** «Итоги» is a YouTube timestamp of its own (its header; the parts of a split one line;
 `YouTubeTimestampsTests` +1); no «Итоги» on vertical videos — the portrait layout kept, manual B10 dropped.
+**Amendment 2 (2026-11-22, the owner on 1.6.1):** FLASH redrawn as his pick B1 in lower case (a yellow slash, a slanted orange
+block, navy italic «Flash»; `TemplatePainter.FlashBlock` / `FlashMark`, no bolt, no glow); «Итоги»' rows all in by half the
+length, the totals held the second half (`SummaryPainter.LastRowShare` 0.5, fastest pace 0.15 s); the lilac strip on the timeline
+writes its status in the plate's words (`StripSegment.Label`); tests: the FLASH block orange (not TOP's yellow), the pace, the
+lilac's label (×4). Phases 55 (editing comfort, the export window's scroll and its default quality) and 56 (the holds' contour)
+recorded in D073 amendment 2.
 **Re-review: PASS WITH NOTES** (taken: the YouTube timestamps' grouping of copies recorded in D073; noted: the split test builds
 the state by hand, pre-D053 areas without a route id).
 **Gates (2026-11-22, the final code):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `Vision.ModelTests` builds;
@@ -38,7 +44,7 @@ the state by hand, pre-D053 areas without a route id).
 Rendering 280, UI 1 325, Timeline 1 255, Video 418 (+1 environment-gated skip), ExportEndToEnd 189 — all green (6 402). The first
 run failed on pinned format versions 26 in UI / Timeline tests, the localization guard (the new undo names, damaged-file reasons,
 English drawn words, «English») and the status buttons' count — fixed.
-**Not done:** the owner's manual check (`docs/PHASE54_MANUAL_TEST_PLAN.md`), the merge. Portable `BoulderVideoEditor-1.6.1-win-x64` (amendment 1).
+**Not done:** the owner's manual check (`docs/PHASE54_MANUAL_TEST_PLAN.md`), the merge. Portable `BoulderVideoEditor-1.6.2-win-x64` (amendment 2).
 
 **Phase 53 amendment 3 (D072, the owner's check of 1.5.2, 2026-11-19):** the group's link raised to 20 % of the long side
 (was 7 … 12 %), then simplified to one constant `RouteHoldGrouping.Link` (the spacing-based link removed — the owner: one threshold

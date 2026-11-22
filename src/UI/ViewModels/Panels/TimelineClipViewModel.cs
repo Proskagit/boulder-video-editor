@@ -211,9 +211,13 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
 public enum StripSegmentKind { Green, Orange, Lilac }
 
 /// <summary>One segment of a clip's overlay strip (D048 §4.1): where it lies on the clip (pixels), its colour and tooltip,
-/// its timeline frames <c>[Start, End)</c>, and whether it is the selected orange (§3.9).</summary>
+/// its timeline frames <c>[Start, End)</c>, whether it is the selected orange (§3.9), and the lilac's written status (D073
+/// amendment 2: the word its «Боулдер» draws — «TOP», «ПОПЫТКА», «Flash»; empty otherwise).</summary>
 public sealed record StripSegment(double Left, double Width, string ColorHex, string Tip, StripSegmentKind Kind, long Start, long End,
-    bool IsSelected = false);
+    bool IsSelected = false, string Label = "")
+{
+    public bool HasLabel => Label.Length > 0;
+}
 
 /// <summary>One horizontal track lane.</summary>
 public sealed partial class TimelineTrackViewModel : ViewModelBase
