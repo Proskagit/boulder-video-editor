@@ -124,9 +124,10 @@ public sealed class TextGlyphCache
 }
 
 /// <summary>What shapes a text's glyphs and their place in its box (D043 condition 2).</summary>
-public readonly record struct TextGlyphKey(string Text, string FontFamily, double FontSize, bool Bold, Core.Entities.TextAlignment Alignment)
+public readonly record struct TextGlyphKey(string Text, string FontFamily, double FontSize, bool Bold, Core.Entities.TextAlignment Alignment,
+    bool Italic = false, double LineSpacing = 1.0, double? BoxWidth = null)
 {
-    public static TextGlyphKey Of(TextProperties t) => new(t.Text, t.FontFamily, t.FontSize, t.Bold, t.Alignment);
+    public static TextGlyphKey Of(TextProperties t) => new(t.Text, t.FontFamily, t.FontSize, t.Bold, t.Alignment, t.Italic, t.LineSpacing, t.BoxWidth);
 }
 
 /// <summary>The UI thread as <see cref="TextGlyphCache"/> needs it (a seam for the shutdown and timeout tests).</summary>

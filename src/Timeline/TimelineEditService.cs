@@ -2789,7 +2789,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 Text = t.Text, FontFamily = t.FontFamily, FontSize = t.FontSize, ColorHex = t.ColorHex, Alignment = t.Alignment,
                 PositionX = t.PositionX, PositionY = t.PositionY, Scale = t.Scale, RotationDegrees = t.RotationDegrees, Opacity = t.Opacity,
                 // D043: the style and both motions go with the copy (a split's parts keep them; their fades follow D025).
-                Bold = t.Bold, Outline = t.Outline, Background = t.Background, MotionIn = t.MotionIn, MotionOut = t.MotionOut
+                Bold = t.Bold, Outline = t.Outline, Background = t.Background, MotionIn = t.MotionIn, MotionOut = t.MotionOut,
+                Italic = t.Italic, Shadow = t.Shadow, LineSpacing = t.LineSpacing, BoxWidth = t.BoxWidth
             },
             TemplateClip p => new TemplateClip
             {

@@ -712,6 +712,15 @@
   <data name="Prop_Opacity" xml:space="preserve">
     <value>Opacity must be between {0} and {1}.</value>
   </data>
+  <data name="Prop_TextShadow" xml:space="preserve">
+    <value>The shadow's opacity, softness or offset is out of range.</value>
+  </data>
+  <data name="Prop_LineSpacing" xml:space="preserve">
+    <value>The line spacing must be from {0} to {1}.</value>
+  </data>
+  <data name="Prop_BoxWidth" xml:space="preserve">
+    <value>The text block's width must be from {0} to {1} px.</value>
+  </data>
   <data name="Prop_OutlineThickness" xml:space="preserve">
     <value>The outline's thickness must be from {0} to {1} of the font size.</value>
   </data>

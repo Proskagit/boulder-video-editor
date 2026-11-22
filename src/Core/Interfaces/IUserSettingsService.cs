@@ -47,6 +47,9 @@ public sealed record UserSettings
     /// <summary>D058 §1: the timeline turns its page with the playhead while playing; on by default.</summary>
     public bool TimelineFollowsPlayhead { get; init; } = true;
 
+    /// <summary>D075 amendment 1: the user's saved text styles, in the order saved (offered in every project).</summary>
+    public IReadOnlyList<Entities.SavedTextStyle> TextStyles { get; init; } = Array.Empty<Entities.SavedTextStyle>();
+
     /// <summary>D063 §B: the Preview's magnetic snap of a picture's edges to the canvas edges — its threshold in screen
     /// pixels (0: off).</summary>
     public double CanvasSnapPixels { get; init; } = Composition.CanvasSnap.DefaultThresholdPixels;
@@ -97,7 +100,9 @@ public sealed record UserSettings
         PreviewQuality = Enum.IsDefined(PreviewQuality) ? PreviewQuality : Playback.PreviewDecoding.DefaultQuality,
         Language = string.IsNullOrWhiteSpace(Language) ? null : Language.Trim(),
         FfmpegPath = string.IsNullOrWhiteSpace(FfmpegPath) ? null : FfmpegPath.Trim(),
-        FfprobePath = string.IsNullOrWhiteSpace(FfprobePath) ? null : FfprobePath.Trim()
+        FfprobePath = string.IsNullOrWhiteSpace(FfprobePath) ? null : FfprobePath.Trim(),
+        TextStyles = (TextStyles ?? Array.Empty<Entities.SavedTextStyle>())
+            .Where(s => s is not null && !string.IsNullOrWhiteSpace(s.Name) && !string.IsNullOrWhiteSpace(s.FontFamily)).ToList()
     };
 }
 

@@ -63,8 +63,10 @@ public sealed partial class InspectorViewModel : ViewModelBase
     /// <param name="dialogs">Asks before a frame is matched to a climb other than the one at the playhead (D056 §1);
     /// without it the match is done without asking.</param>
     public InspectorViewModel(ITimelineEditService edit, StatusService status, IFontCatalog? fonts = null, EditingLock? editingLock = null,
-        ITextBoxMeasurer? textBoxes = null, IDialogService? dialogs = null, IClipFrameSampler? colorFrames = null)
+        ITextBoxMeasurer? textBoxes = null, IDialogService? dialogs = null, IClipFrameSampler? colorFrames = null,
+        IUserSettingsService? settings = null)
     {
+        Settings = settings;   // D075 amendment 1: the saved text styles
         ColorFrames = colorFrames;   // D069 §7: «Автоулучшение»
         Group = new ClipGroupViewModel(edit, status, () => editingLock?.IsLocked == true, id => _findAsset?.Invoke(id));
         Group.PropertyChanged += (_, e) =>

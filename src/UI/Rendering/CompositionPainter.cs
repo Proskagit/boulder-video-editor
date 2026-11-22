@@ -170,12 +170,23 @@ public static class CompositionPainter
     /// transform scales it), no wrapping, box as wide as the widest line incl. trailing spaces, lines aligned
     /// inside the box, box centred on the local origin. A font that isn't installed falls back to Avalonia's
     /// default family.</summary>
-    public static FormattedText Layout(TextProperties text)
+    public static FormattedText Layout(TextProperties text) => Layout(text, text.ColorHex);
+
+    /// <summary>The layout in <paramref name="colorHex"/> (the shadow's copy, D075 amendment 1). Italic, the line spacing (× the
+    /// font's own line height) and the block's width (the lines wrapped by words) — none of them set: exactly as before.</summary>
+    public static FormattedText Layout(TextProperties text, string colorHex)
     {
-        var typeface = text.Bold ? new Typeface(text.FontFamily, FontStyle.Normal, FontWeight.Bold) : new Typeface(text.FontFamily);
+        var typeface = text.Bold || text.Italic
+            ? new Typeface(text.FontFamily, text.Italic ? FontStyle.Italic : FontStyle.Normal, text.Bold ? FontWeight.Bold : FontWeight.Normal)
+            : new Typeface(text.FontFamily);
         var formatted = new FormattedText(text.Text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
-            typeface, text.FontSize, new ImmutableSolidColorBrush(Color.Parse(text.ColorHex)));
-        formatted.MaxTextWidth = Math.Max(formatted.WidthIncludingTrailingWhitespace, 1);
+            typeface, text.FontSize, new ImmutableSolidColorBrush(Color.Parse(colorHex)));
+        if (text.LineSpacing != 1.0)
+        {
+            var line = new FormattedText("Ag", CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, typeface, text.FontSize, Brushes.White);
+            formatted.LineHeight = line.Height * text.LineSpacing;
+        }
+        formatted.MaxTextWidth = text.BoxWidth is { } width ? Math.Max(width, 1) : Math.Max(formatted.WidthIncludingTrailingWhitespace, 1);
         formatted.TextAlignment = text.Alignment switch
         {
             Core.Entities.TextAlignment.Left => Avalonia.Media.TextAlignment.Left,
@@ -212,6 +223,8 @@ public static class CompositionPainter
             context.DrawRectangle(new ImmutableSolidColorBrush(Color.Parse(background.ColorHex), background.Opacity), null, box, radius, radius);
         }
 
+        if (text.Shadow.IsEnabled) DrawShadow(context, text, origin);
+
         if (!text.Outline.IsEnabled)
         {
             context.DrawText(layout, origin);
@@ -226,6 +239,35 @@ public static class CompositionPainter
             lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
         context.DrawGeometry(null, pen, geometry);
         context.DrawGeometry(new ImmutableSolidColorBrush(Color.Parse(text.ColorHex)), null, geometry);
+    }
+
+    /// <summary>D075 amendment 1: «Тень» — the text in the shadow's colour, shifted by its offset; its softness drawn as copies
+    /// on a small ring around the offset, each at a share of the opacity (no blur effect: off the UI thread, Preview = export).</summary>
+    private static void DrawShadow(DrawingContext context, TextProperties text, Point origin)
+    {
+        var shadow = text.Shadow;
+        var layout = Layout(text, shadow.ColorHex);
+        var offset = new Vector(shadow.OffsetX * text.FontSize, shadow.OffsetY * text.FontSize);
+        var blur = shadow.Blur * text.FontSize;
+        if (blur < 0.5)
+        {
+            using (context.PushOpacity(shadow.Opacity))
+                context.DrawText(layout, origin + offset);
+            return;
+        }
+        const int Ring = 8;
+        // Two rings (half and full softness) and the centre: the copies overlap toward the middle, fading outward.
+        var copies = new List<Vector> { offset };
+        foreach (var radius in new[] { blur * 0.5, blur })
+            for (var k = 0; k < Ring; k++)
+            {
+                var angle = 2 * Math.PI * k / Ring;
+                copies.Add(offset + new Vector(Math.Cos(angle) * radius, Math.Sin(angle) * radius));
+            }
+        var each = 1 - Math.Pow(1 - shadow.Opacity, 1.0 / copies.Count * 2.2);
+        foreach (var at in copies)
+            using (context.PushOpacity(each))
+                context.DrawText(layout, origin + at);
     }
 
     private static void DrawText(DrawingContext context, TextProperties text)

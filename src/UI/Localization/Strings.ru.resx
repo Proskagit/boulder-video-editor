@@ -678,6 +678,63 @@
   <data name="Inspector_BackgroundOpacity" xml:space="preserve">
     <value>Непрозрачность</value>
   </data>
+  <data name="Inspector_Italic" xml:space="preserve">
+    <value>Курсив</value>
+  </data>
+  <data name="Inspector_LineSpacing" xml:space="preserve">
+    <value>Интервал</value>
+  </data>
+  <data name="Inspector_LineSpacingTip" xml:space="preserve">
+    <value>Расстояние между строками, × собственное расстояние шрифта (1 — как раньше).</value>
+  </data>
+  <data name="Inspector_BoxWidth" xml:space="preserve">
+    <value>Ширина</value>
+  </data>
+  <data name="Inspector_BoxWidthTip" xml:space="preserve">
+    <value>Ширина блока текста в пикселях; строки переносятся по словам. Пусто — без переноса. Можно тянуть и за боковые ручки рамки текста в Preview.</value>
+  </data>
+  <data name="Inspector_BoxWidthAuto" xml:space="preserve">
+    <value>авто</value>
+  </data>
+  <data name="Inspector_Shadow" xml:space="preserve">
+    <value>Тень</value>
+  </data>
+  <data name="Inspector_ShadowOpacity" xml:space="preserve">
+    <value>Прозрачность</value>
+  </data>
+  <data name="Inspector_ShadowBlur" xml:space="preserve">
+    <value>Размытие</value>
+  </data>
+  <data name="Inspector_ShadowOffset" xml:space="preserve">
+    <value>Смещение X / Y</value>
+  </data>
+  <data name="Inspector_ShadowOffsetTip" xml:space="preserve">
+    <value>Сдвиг тени, % размера шрифта (плюс — вправо / вниз).</value>
+  </data>
+  <data name="Inspector_TextStyles" xml:space="preserve">
+    <value>Стили</value>
+  </data>
+  <data name="Inspector_TextStylesTip" xml:space="preserve">
+    <value>Ваши сохранённые стили, во всех проектах: щелчок применяет шрифт, размер, цвет, жирный, курсив, выравнивание, интервал, обводку, подложку и тень.</value>
+  </data>
+  <data name="Inspector_TextStyleName" xml:space="preserve">
+    <value>Название стиля</value>
+  </data>
+  <data name="Inspector_SaveTextStyle" xml:space="preserve">
+    <value>Сохранить стиль</value>
+  </data>
+  <data name="Inspector_DeleteTextStyle" xml:space="preserve">
+    <value>Удалить стиль</value>
+  </data>
+  <data name="TextStyle_DefaultName" xml:space="preserve">
+    <value>Стиль {0}</value>
+  </data>
+  <data name="TextStyle_Saved" xml:space="preserve">
+    <value>Стиль «{0}» сохранён</value>
+  </data>
+  <data name="Preview_TextWidth" xml:space="preserve">
+    <value>Ширина текста: {0:0} px</value>
+  </data>
   <data name="Inspector_Bold" xml:space="preserve">
     <value>Жирный</value>
   </data>

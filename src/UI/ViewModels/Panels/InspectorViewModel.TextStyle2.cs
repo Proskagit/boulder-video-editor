@@ -1,0 +1,146 @@
+using System.Collections.ObjectModel;
+using System.Globalization;
+using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.UI.Localization;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+
+namespace AiVideoEditor.UI.ViewModels.Panels;
+
+/// <summary>
+/// D075 amendment 1 — the text's italic, «Тень», «Интервал», «Ширина» (its block's width, also dragged in the Preview) and the
+/// saved styles (the user's own, global, in <see cref="UserSettings.TextStyles"/>). A switch, a swatch or a style applied is an
+/// undo step of its own; a typed or dragged value merges with the next change of the same value (D017).
+/// </summary>
+public sealed partial class InspectorViewModel
+{
+    [ObservableProperty] private bool _isItalic;
+    [ObservableProperty] private decimal? _lineSpacing;
+    [ObservableProperty] private string _boxWidthText = "";
+    [ObservableProperty] private bool _isShadowOn;
+    [ObservableProperty] private string _shadowColorSwatch = "#000000";
+    [ObservableProperty] private decimal? _shadowOpacityPercent;
+    [ObservableProperty] private decimal? _shadowBlurPercent;
+    [ObservableProperty] private decimal? _shadowOffsetXPercent;
+    [ObservableProperty] private decimal? _shadowOffsetYPercent;
+
+    public decimal MinLineSpacing => (decimal)ClipPropertyLimits.MinLineSpacing;
+    public decimal MaxLineSpacing => (decimal)ClipPropertyLimits.MaxLineSpacing;
+    public decimal MaxShadowBlurPercent => (decimal)ClipPropertyLimits.MaxShadowBlur * 100;
+    public decimal MaxShadowOffsetPercent => (decimal)ClipPropertyLimits.MaxShadowOffset * 100;
+    public decimal MinShadowOffsetPercent => -(decimal)ClipPropertyLimits.MaxShadowOffset * 100;
+
+    partial void OnIsItalicChanged(bool value) => EditStyle(t => t with { Italic = value }, "Change Italic");
+    partial void OnIsShadowOnChanged(bool value) => EditStyle(t => t with { Shadow = t.Shadow with { IsEnabled = value } }, "Change Shadow");
+
+    partial void OnLineSpacingChanged(decimal? value)
+    {
+        if (_syncing || value is not { } spacing) return;
+        EditStyle(t => t with { LineSpacing = (double)Math.Round(spacing, 2) }, gesture: null);
+    }
+
+    /// <summary>«Ширина» typed: canvas pixels; empty — no wrapping (as wide as the longest line).</summary>
+    partial void OnBoxWidthTextChanged(string value)
+    {
+        if (_syncing) return;
+        var text = value.Trim();
+        if (text.Length == 0) EditStyle(t => t with { BoxWidth = null }, gesture: null);
+        else if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var width) ||
+                 double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out width))
+            EditStyle(t => t with { BoxWidth = Math.Round(width) }, gesture: null);
+    }
+
+    partial void OnShadowOpacityPercentChanged(decimal? value) => EditShadow(value, (s, v) => s with { Opacity = v });
+    partial void OnShadowBlurPercentChanged(decimal? value) => EditShadow(value, (s, v) => s with { Blur = v });
+    partial void OnShadowOffsetXPercentChanged(decimal? value) => EditShadow(value, (s, v) => s with { OffsetX = v });
+    partial void OnShadowOffsetYPercentChanged(decimal? value) => EditShadow(value, (s, v) => s with { OffsetY = v });
+
+    private void EditShadow(decimal? percent, Func<TextShadow, double, TextShadow> set)
+    {
+        if (_syncing || percent is not { } p) return;
+        var whole = WholePercent(p);
+        EditStyle(t => t with { Shadow = set(t.Shadow, (double)(whole / 100m)) }, gesture: null);
+        if (whole != p) ShowModelAfterRejection();
+    }
+
+    [RelayCommand] private void SetShadowColor(string hex) => EditStyle(t => t with { Shadow = t.Shadow with { ColorHex = hex } }, "Change Shadow");
+
+    /// <summary>Fills the D075 fields from <paramref name="text"/> (under the sync guard of the caller).</summary>
+    private void SyncTextStyle2(TextProperties text)
+    {
+        IsItalic = text.Italic;
+        LineSpacing = (decimal)text.LineSpacing;
+        BoxWidthText = text.BoxWidth is { } width ? width.ToString("0", CultureInfo.InvariantCulture) : "";
+        IsShadowOn = text.Shadow.IsEnabled;
+        ShadowColorSwatch = text.Shadow.ColorHex;
+        ShadowOpacityPercent = Math.Round((decimal)text.Shadow.Opacity * 100m);
+        ShadowBlurPercent = Math.Round((decimal)text.Shadow.Blur * 100m);
+        ShadowOffsetXPercent = Math.Round((decimal)text.Shadow.OffsetX * 100m);
+        ShadowOffsetYPercent = Math.Round((decimal)text.Shadow.OffsetY * 100m);
+    }
+
+    // --- the saved styles ----------------------------------------------------------------------------------------------
+
+    private IUserSettingsService? _settings;
+
+    /// <summary>The global settings that keep the saved styles (set by the shell; null — no saved styles).</summary>
+    public IUserSettingsService? Settings
+    {
+        get => _settings;
+        set
+        {
+            if (_settings is not null) _settings.Changed -= OnSettingsChanged;
+            _settings = value;
+            if (_settings is not null) _settings.Changed += OnSettingsChanged;
+            RefreshSavedStyles();
+            OnPropertyChanged(nameof(HasSavedStyleStore));
+        }
+    }
+
+    public bool HasSavedStyleStore => _settings is not null;
+
+    public ObservableCollection<SavedTextStyle> SavedTextStyles { get; } = new();
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SaveTextStyleCommand))]
+    private string _newTextStyleName = "";
+
+    private void OnSettingsChanged(object? sender, EventArgs e) => RefreshSavedStyles();
+
+    private void RefreshSavedStyles()
+    {
+        SavedTextStyles.Clear();
+        foreach (var style in _settings?.Current.TextStyles ?? Array.Empty<SavedTextStyle>()) SavedTextStyles.Add(style);
+    }
+
+    private bool CanSaveTextStyle() => _settings is not null;
+
+    /// <summary>«Сохранить стиль»: the shown text's look under the typed name (empty — «Стиль N»); a name taken is replaced.</summary>
+    [RelayCommand(CanExecute = nameof(CanSaveTextStyle))]
+    private void SaveTextStyle()
+    {
+        if (_settings is null || _clip is null || TextProperties.Of(_clip) is not { } text) return;
+        var name = NewTextStyleName.Trim();
+        if (name.Length == 0) name = string.Format(Strings.TextStyle_DefaultName, _settings.Current.TextStyles.Count + 1);
+        var style = SavedTextStyle.Of(name, text);
+        _settings.Update(s => s with { TextStyles = s.TextStyles.Where(x => x.Name != name).Append(style).ToList() });
+        NewTextStyleName = "";
+        _status.Report(string.Format(Strings.TextStyle_Saved, name));
+    }
+
+    /// <summary>A saved style applied to the shown text — its look only (the words, the place and the timing stay); one step.</summary>
+    [RelayCommand]
+    private void ApplyTextStyle(SavedTextStyle? style)
+    {
+        if (style is null) return;
+        EditStyle(t => style.ApplyTo(t), "Apply Text Style");
+    }
+
+    [RelayCommand]
+    private void DeleteTextStyle(SavedTextStyle? style)
+    {
+        if (style is null || _settings is null) return;
+        _settings.Update(s => s with { TextStyles = s.TextStyles.Where(x => x.Name != style.Name).ToList() });
+    }
+}

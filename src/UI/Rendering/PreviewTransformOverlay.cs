@@ -57,7 +57,7 @@ public sealed class PreviewTransformOverlay : Control, ICustomHitTest
     // A press: what it grabbed, where, and the viewport at that moment (kept for the gesture).
     private Press? _press;
 
-    private enum PressKind { Move, Scale, Crop, None }
+    private enum PressKind { Move, Scale, Crop, TextWidth, None }
 
     private sealed record Press(PressKind Kind, CropEdges Handle, Point At, Affine2D Viewport)
     {
@@ -144,6 +144,20 @@ public sealed class PreviewTransformOverlay : Control, ICustomHitTest
         return best;
     }
 
+    /// <summary>D075 amendment 1: the side handle (Left / Right) of a text's frame within reach of <paramref name="p"/> (view).</summary>
+    public static CropEdges WidthHandleAt(Affine2D viewport, TransformFrame frame, Point p)
+    {
+        var best = CropEdges.None;
+        var bestDistance = HandleReach;
+        foreach (var handle in PreviewTransformViewModel.WidthHandles)
+        {
+            var v = ToView(viewport, frame.HandlePoint(handle));
+            var d = Math.Max(Math.Abs(v.X - p.X), Math.Abs(v.Y - p.Y));
+            if (d <= bestDistance) (best, bestDistance) = (handle, d);
+        }
+        return best;
+    }
+
     /// <summary>The topmost layer of <paramref name="layers"/> (bottom to top) whose picture or text box contains the
     /// canvas point; layers of unknown size are skipped (D038 §2).</summary>
     public static Guid? LayerAt(FrameSize canvas, IReadOnlyList<LayerPicture> layers, PointD canvasPoint)
@@ -198,6 +212,8 @@ public sealed class PreviewTransformOverlay : Control, ICustomHitTest
         {
             if (t.HasScaleHandles && HandleAt(viewport, target.Frame, point.Position, cornersOnly: true) is var corner and not CropEdges.None)
                 (kind, handle) = (PressKind.Scale, corner);
+            else if (t.HasWidthHandles && WidthHandleAt(viewport, target.Frame, point.Position) is var side and not CropEdges.None)
+                (kind, handle) = (PressKind.TextWidth, side);
             else if (t.HasCropHandles && HandleAt(viewport, target.Frame, point.Position, cornersOnly: false) is var crop and not CropEdges.None)
                 (kind, handle) = (PressKind.Crop, crop);
             else if (target.Frame.Contains(canvasPoint))
@@ -238,6 +254,7 @@ public sealed class PreviewTransformOverlay : Control, ICustomHitTest
                 {
                     PressKind.Move => t.BeginMove(at),
                     PressKind.Scale => t.BeginScale(press.Handle, at),
+                    PressKind.TextWidth => t.BeginTextWidth(press.Handle, at),
                     PressKind.Crop => t.BeginCrop(press.Handle, at),
                     _ => false
                 };
@@ -314,9 +331,10 @@ public sealed class PreviewTransformOverlay : Control, ICustomHitTest
         }
         var viewport = _press?.Viewport ?? ViewportIn(t.Canvas, Bounds.Size);
         CropEdges handle;
-        if (_press is { Kind: PressKind.Scale or PressKind.Crop } press) handle = press.Handle;
+        if (_press is { Kind: PressKind.Scale or PressKind.Crop or PressKind.TextWidth } press) handle = press.Handle;
         else if (_press is { Kind: PressKind.Move }) handle = CropEdges.None;
-        else if (t.Target is { } target && t.HasScaleHandles) handle = HandleAt(viewport, target.Frame, p, cornersOnly: true);
+        else if (t.Target is { } target && t.HasScaleHandles && HandleAt(viewport, target.Frame, p, cornersOnly: true) is var c and not CropEdges.None) handle = c;
+        else if (t.Target is { } textTarget && t.HasWidthHandles) handle = WidthHandleAt(viewport, textTarget.Frame, p);
         else if (t.Target is { } cropTarget && t.HasCropHandles) handle = HandleAt(viewport, cropTarget.Frame, p, cornersOnly: false);
         else handle = CropEdges.None;
 
@@ -373,6 +391,9 @@ public sealed class PreviewTransformOverlay : Control, ICustomHitTest
             : _pointer is { } q && t.HasCropHandles ? HandleAt(viewport, target.Frame, q, cornersOnly: false)
             : CropEdges.None;
         if (t.HasScaleHandles) DrawHandles(context, viewport, target.Frame, TransformFrame.Corners, active);
+        if (t.HasWidthHandles)   // D075 amendment 1: the side handles of a text — its block's width
+            DrawHandles(context, viewport, target.Frame, PreviewTransformViewModel.WidthHandles,
+                _press is { Kind: PressKind.TextWidth } widthPress ? widthPress.Handle : _pointer is { } w ? WidthHandleAt(viewport, target.Frame, w) : CropEdges.None);
         else if (t.HasCropHandles) DrawHandles(context, viewport, target.Frame, TransformFrame.Handles, active);
         DrawSnappedEdges(context, viewport, t.Canvas, t.SnappedEdges);
     }

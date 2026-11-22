@@ -119,6 +119,16 @@ public static class ClipPropertyValidator
             return string.Format(Messages.Prop_BackgroundOpacity, Pct(MinBackgroundOpacity), Pct(MaxBackgroundOpacity));
         if (!IsMotion(t.MotionIn) || !IsMotion(t.MotionOut)) return Messages.Prop_UnknownMotion;
 
+        // D075 amendment 1: the shadow (checked on or off), the line spacing, the block's width.
+        if (!IsHexColor(t.Shadow.ColorHex)) return Messages.Prop_ColorFormat;
+        if (!InRange(t.Shadow.Opacity, 0, 1) || !InRange(t.Shadow.Blur, 0, MaxShadowBlur) ||
+            !InRange(t.Shadow.OffsetX, -MaxShadowOffset, MaxShadowOffset) || !InRange(t.Shadow.OffsetY, -MaxShadowOffset, MaxShadowOffset))
+            return Messages.Prop_TextShadow;
+        if (!InRange(t.LineSpacing, MinLineSpacing, MaxLineSpacing))
+            return string.Format(Messages.Prop_LineSpacing, Num(MinLineSpacing), Num(MaxLineSpacing));
+        if (t.BoxWidth is { } width && !InRange(width, MinBoxWidth, MaxBoxWidth))
+            return string.Format(Messages.Prop_BoxWidth, Num(MinBoxWidth), Num(MaxBoxWidth));
+
         return null;
     }
 
