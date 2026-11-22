@@ -38,7 +38,7 @@ the state by hand, pre-D053 areas without a route id).
 Rendering 280, UI 1 325, Timeline 1 255, Video 418 (+1 environment-gated skip), ExportEndToEnd 189 — all green (6 402). The first
 run failed on pinned format versions 26 in UI / Timeline tests, the localization guard (the new undo names, damaged-file reasons,
 English drawn words, «English») and the status buttons' count — fixed.
-**Not done:** the owner's manual check (`docs/PHASE54_MANUAL_TEST_PLAN.md`), the merge. Portable `BoulderVideoEditor-1.6.0-win-x64`.
+**Not done:** the owner's manual check (`docs/PHASE54_MANUAL_TEST_PLAN.md`), the merge. Portable `BoulderVideoEditor-1.6.1-win-x64` (amendment 1).
 
 **Phase 53 amendment 3 (D072, the owner's check of 1.5.2, 2026-11-19):** the group's link raised to 20 % of the long side
 (was 7 … 12 %), then simplified to one constant `RouteHoldGrouping.Link` (the spacing-based link removed — the owner: one threshold
