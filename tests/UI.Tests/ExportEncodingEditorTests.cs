@@ -114,4 +114,19 @@ public sealed class ExportEncodingEditorTests
         Assert.Equal("350 MB", ExportEncodingEditorViewModel.Size(350L << 20));
         Assert.Equal("2.5 GB", ExportEncodingEditorViewModel.Size((5L << 30) / 2).Replace(',', '.'));
     }
+
+    [Fact]
+    public void Custom_after_high_quality_starts_at_crf_14_and_slow()   // D074 amendment 1 (the owner)
+    {
+        var editor = new ExportEncodingEditorViewModel(ExportEncoding.NewProject, Nvenc, Uhd());
+        Assert.Equal(ExportProfile.HighQuality, editor.SelectedProfile.Value);
+        editor.SelectedProfile = ExportEncodingEditorViewModel.ProfileOptions.Single(o => o.Value == ExportProfile.Custom);
+        Assert.Equal((ExportQuality.Maximum, ExportSpeedPreset.Slow), (editor.SelectedQuality.Value, editor.SelectedSpeed.Value));
+        Assert.Equal(14, editor.Value.Crf);
+
+        var balanced = new ExportEncodingEditorViewModel(ExportEncoding.Default, Nvenc, Uhd());
+        balanced.SelectedProfile = ExportEncodingEditorViewModel.ProfileOptions.Single(o => o.Value == ExportProfile.Custom);
+        Assert.Equal((ExportQuality.High, ExportSpeedPreset.Medium), (balanced.SelectedQuality.Value, balanced.SelectedSpeed.Value));
+        Assert.Equal((ExportQuality.Maximum, ExportSpeedPreset.Slow), (ExportEncoding.NewProject.Quality, ExportEncoding.NewProject.Preset));
+    }
 }

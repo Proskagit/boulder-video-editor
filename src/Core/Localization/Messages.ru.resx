@@ -232,8 +232,8 @@
   <data name="Edit_RateUnknownFallback" xml:space="preserve">
     <value>Частота кадров файла {0} неизвестна — для проекта установлено {1} к/с (по умолчанию, а не настоящая частота файла).</value>
   </data>
-  <data name="Edit_SelectClipToTrim" xml:space="preserve">
-    <value>Выберите клип для обрезки: указатель должен быть внутри него.</value>
+  <data name="Edit_NoVideoToTrim" xml:space="preserve">
+    <value>Под указателем нет видео для обрезки: поставьте указатель внутрь клипа или выберите клип.</value>
   </data>
   <data name="Edit_SelectedClipGone" xml:space="preserve">
     <value>Выбранного клипа больше нет.</value>

@@ -19,6 +19,12 @@ public sealed partial class InspectorViewModel
 {
     private PeopleAnalysisCoordinator? _people;
 
+    /// <summary>D074 §5: the video clip of a selected «Боулдер» anchored to it (null for any other selection).</summary>
+    private VideoClip? _anchor;
+
+    /// <summary>The clip «Слежение и люди» works on: the selected video clip, or the clip a selected plate is anchored to.</summary>
+    private VideoClip? PeopleClip => _clip as VideoClip ?? (_clip is TemplateClip ? _anchor : null);
+
     /// <summary>The people analyses (set by the main window); null: no people section.</summary>
     public PeopleAnalysisCoordinator? People
     {
@@ -84,7 +90,7 @@ public sealed partial class InspectorViewModel
 
     private void EditFollowOffset(decimal? value, Func<FollowPart, double, FollowPart> with)
     {
-        if (_syncing || value is not { } v || _clip is not VideoClip { Follow: { } follow } clip || RejectWhileLocked()) return;
+        if (_syncing || value is not { } v || PeopleClip is not VideoClip { Follow: { } follow } clip || RejectWhileLocked()) return;
         var index = FollowOffsetPart(clip);
         if (index < 0) return;
         // D063 §4: a part with framing keyframes — the keyframe on the playhead's frame (or a new one there).
@@ -105,7 +111,7 @@ public sealed partial class InspectorViewModel
     /// <summary>The offset fields from the model (also when the playhead moves to another part).</summary>
     private void RefreshFollowOffset()
     {
-        var clip = _clip as VideoClip;
+        var clip = PeopleClip;
         var index = clip is null ? -1 : FollowOffsetPart(clip);
         var wasSyncing = _syncing;
         _syncing = true;
@@ -153,7 +159,7 @@ public sealed partial class InspectorViewModel
 
     partial void OnFollowEnabledChanged(bool value)
     {
-        if (_syncing || _clip is not VideoClip clip || RejectWhileLocked()) return;
+        if (_syncing || PeopleClip is not VideoClip clip || RejectWhileLocked()) return;
         if (value == clip.Follow is not null) return;
         Apply(_edit.SetClipFollow(clip.Id, value ? FollowSettings.Whole(SmoothnessAt(FollowSmoothnessIndex)) : null,
             hideOutlinesBehindPeople: value ? true : null));
@@ -161,13 +167,13 @@ public sealed partial class InspectorViewModel
 
     partial void OnFollowSmoothnessIndexChanged(int value)
     {
-        if (_syncing || _clip is not VideoClip { Follow: { } follow } clip || RejectWhileLocked()) return;
+        if (_syncing || PeopleClip is not VideoClip { Follow: { } follow } clip || RejectWhileLocked()) return;
         Apply(_edit.SetClipFollow(clip.Id, follow with { Smoothness = SmoothnessAt(value) }));
     }
 
     partial void OnHidesOutlinesBehindPeopleChanged(bool value)
     {
-        if (_syncing || _clip is not VideoClip clip || RejectWhileLocked()) return;
+        if (_syncing || PeopleClip is not VideoClip clip || RejectWhileLocked()) return;
         Apply(_edit.SetClipHidesOutlinesBehindPeople(clip.Id, value));
     }
 
@@ -195,7 +201,7 @@ public sealed partial class InspectorViewModel
     [RelayCommand]
     private void FollowFromHere()
     {
-        if (_clip is not VideoClip clip || RejectWhileLocked()) return;
+        if (PeopleClip is not VideoClip clip || RejectWhileLocked()) return;
         if (PlayheadSourceTime(clip) is not { } at)
         {
             _status.ReportWarning(Strings.Follow_PlayheadOutside);
@@ -234,7 +240,7 @@ public sealed partial class InspectorViewModel
     [RelayCommand(CanExecute = nameof(IsRecordingFollow))]
     private void StopFollowHere()
     {
-        var clip = _clip as VideoClip;
+        var clip = PeopleClip;
         var recordedFrom = _followRecordingFrom;
         IsRecordingFollow = false;
         _followRecordingClipId = null;
@@ -259,7 +265,7 @@ public sealed partial class InspectorViewModel
     [RelayCommand(CanExecute = nameof(HasFollowRange))]
     private void FollowWholeClip()
     {
-        if (_clip is not VideoClip { Follow: { } follow } clip || RejectWhileLocked()) return;
+        if (PeopleClip is not VideoClip { Follow: { } follow } clip || RejectWhileLocked()) return;
         // The person of the part under the playhead, else of the first part shown in the clip.
         var here = PlayheadSourceTime(clip) is { } at ? follow.IndexAt(at) : -1;
         var first = here >= 0 ? follow.Parts[here]
@@ -271,7 +277,7 @@ public sealed partial class InspectorViewModel
     [RelayCommand(CanExecute = nameof(HasFollowPartHere))]
     private void DeleteFollowPart()
     {
-        if (_clip is not VideoClip { Follow: { } follow } clip || RejectWhileLocked() || PlayheadSourceTime(clip) is not { } at) return;
+        if (PeopleClip is not VideoClip { Follow: { } follow } clip || RejectWhileLocked() || PlayheadSourceTime(clip) is not { } at) return;
         var index = follow.IndexAt(at);
         if (index < 0) return;
         Apply(_edit.SetClipFollow(clip.Id, follow.WithPart(index, null)));
@@ -291,7 +297,7 @@ public sealed partial class InspectorViewModel
     [RelayCommand(CanExecute = nameof(CanPickPerson))]
     private void PickPerson()
     {
-        if (_clip is not VideoClip clip) return;
+        if (PeopleClip is not VideoClip clip) return;
         IsPickingPerson = true;
         PersonPickRequested?.Invoke(this, clip.Id);
     }
@@ -307,7 +313,7 @@ public sealed partial class InspectorViewModel
     public void OnPersonPicked(Guid clipId, MediaTime sourceTime, NormalizedPoint point)
     {
         IsPickingPerson = false;
-        var clip = _clip as VideoClip;
+        var clip = PeopleClip;
         if (clip is null || clip.Id != clipId || RejectWhileLocked()) return;
         FollowSettings follow;
         if (clip.Follow is not { } existing)
@@ -329,19 +335,19 @@ public sealed partial class InspectorViewModel
     [RelayCommand]
     private void CancelPeopleAnalysis()
     {
-        if (_clip is VideoClip clip) _people?.Cancel(clip.MediaAssetId);
+        if (PeopleClip is VideoClip clip) _people?.Cancel(clip.MediaAssetId);
     }
 
     [RelayCommand]
     private void RetryPeopleAnalysis()
     {
-        if (_clip is VideoClip clip) _people?.Retry(clip.MediaAssetId);
+        if (PeopleClip is VideoClip clip) _people?.Retry(clip.MediaAssetId);
     }
 
     /// <summary>Fills the section from the clip and the analysis (also after every timeline change and analysis event).</summary>
     private void RefreshPeople()
     {
-        var clip = _clip as VideoClip;
+        var clip = PeopleClip;
         HasPeopleSection = clip is not null && _people is not null;
         if (_followRecordingClipId is { } recording &&
             (clip?.Id != recording || clip.Follow is not { } follow || !follow.Parts.Any(p => p.From == _followRecordingFrom)))

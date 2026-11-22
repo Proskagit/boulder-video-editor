@@ -329,14 +329,20 @@ public class RouteTimingEditTests
     }
 
     [Fact]
-    public void A_tail_trim_into_the_orange_deletes_the_markup_and_a_trim_into_the_lilac_shifts_it_keeping_its_length()
+    public void A_tail_trim_into_the_orange_deletes_the_markup_and_a_trim_into_the_lilac_cuts_it_keeping_its_start()
     {
         var f = WithMarkedVideo(out var clip);
         var template = LaidOut(f, clip, 250);
         Assert.True(f.Service.TrimClip(clip.Id, ClipEdge.End, Frame(450)).Success);
         Assert.Equal((125, 250), Orange(clip));                       // not reached: kept
         Assert.Equal(450, F(template.TimelineEnd));
-        Assert.Equal(325, Status(template));                          // [375, 500) → [325, 450)
+        Assert.Equal(375, Status(template));                          // D074 amendment 1: [375, 500) → [375, 450), S kept
+        Assert.Equal(BoulderStatus.Top, template.Status);
+
+        Assert.True(f.Service.TrimClip(clip.Id, ClipEdge.End, Frame(376)).Success);   // one frame of the lilac left: it goes
+        Assert.Equal(BoulderStatus.None, template.Status);
+        f.UndoRedo.Undo();
+        Assert.Equal((375L, 450L), (Status(template), F(template.TimelineEnd)));
         Assert.Equal(BoulderStatus.Top, template.Status);
 
         Assert.True(f.Service.TrimClip(clip.Id, ClipEdge.End, Frame(225)).Success);
@@ -350,13 +356,14 @@ public class RouteTimingEditTests
     }
 
     [Fact]
-    public void A_shifted_lilac_that_would_overlap_the_orange_is_deleted_alone()
+    public void A_tail_trim_into_the_lilac_never_moves_it_onto_the_orange()   // D074 amendment 1: no shift any more
     {
         var f = WithMarkedVideo(out var clip);
         var template = LaidOut(f, clip, 400);                         // orange [275, 400), lilac [400, 500)
-        Assert.True(f.Service.TrimClip(clip.Id, ClipEdge.End, Frame(450)).Success);   // shifted to [350, 450): over the orange
+        Assert.True(f.Service.TrimClip(clip.Id, ClipEdge.End, Frame(450)).Success);   // cut to [400, 450), the result kept
         Assert.Equal((275, 400), Orange(clip));
-        Assert.Equal(BoulderStatus.None, template.Status);
+        Assert.Equal(BoulderStatus.Top, template.Status);
+        Assert.Equal(400, Status(template));
         Assert.Equal((225L, 450L), (F(template.TimelineStart), F(template.TimelineEnd)));   // T − 7 s = 225
     }
 

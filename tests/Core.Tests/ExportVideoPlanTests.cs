@@ -27,11 +27,20 @@ public sealed class ExportVideoPlanTests
     [Theory]
     [InlineData(ExportProfile.Fast, "veryfast", 18)]
     [InlineData(ExportProfile.Balanced, "medium", 18)]
-    [InlineData(ExportProfile.HighQuality, "slow", 16)]
+    [InlineData(ExportProfile.HighQuality, "slow", 14)]   // D074 §6: the highest quality level
     public void The_libx264_profiles(ExportProfile profile, string preset, int crf)
     {
         var plan = ExportVideoPlan.For(ExportEncoding.Default with { Profile = profile }, Uhd, WithNvenc);
         Assert.Equal((ExportVideoEncoder.Libx264, preset, crf), (plan.Encoder, plan.Preset, plan.Quality));
+    }
+
+    [Fact]
+    public void High_quality_with_nvenc_is_the_highest_level()   // D074 §6: CQ 19, calibrated against CRF 14
+    {
+        var plan = ExportVideoPlan.For(ExportEncoding.NewProject, Uhd, WithNvenc);
+        Assert.Equal((ExportVideoEncoder.Nvenc, "p7", 19, true), (plan.Encoder, plan.Preset, plan.Quality, plan.Multipass));
+        Assert.Equal(ExportVideoPlan.NvencCqOf(ExportQuality.Maximum), plan.Quality);
+        Assert.Equal(ExportEncoding.CrfOf(ExportQuality.Maximum), ExportVideoPlan.For(ExportEncoding.NewProject, Uhd, ExportEncoderAvailability.SoftwareOnly).Quality);
     }
 
     [Theory]

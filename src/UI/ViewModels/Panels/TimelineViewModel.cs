@@ -873,7 +873,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         Report(_edit.Split(EditPlayhead, _selection.Count > 0 ? _selection.ToList() : null));
 
     // --- Trim to the playhead (D030 §5): Q / W plain, Shift+Q / Shift+W ripple ----------------------------
-    // Only the selected clips with the playhead inside them (Q1); every rule is the edit service's. After a ripple trim
+    // The selected clips with the playhead inside them (Q1) — with none selected, the video under the playhead (D074 §1);
+    // every rule is the edit service's. After a ripple trim
     // of the start the playhead goes to the clip's start (Q5) — session state, not part of the undo step.
 
     [RelayCommand(CanExecute = nameof(CanEdit))] private void TrimStartToPlayhead() => TrimToPlayhead(ClipEdge.Start, ripple: false);
@@ -883,7 +884,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private void TrimToPlayhead(ClipEdge edge, bool ripple)
     {
-        var result = _edit.TrimToPlayhead(_selection.ToList(), edge, EditPlayhead, ripple);
+        var result = _edit.TrimToPlayhead(_selection.ToList(), edge, EditPlayhead, ripple);   // none selected: the video under the playhead (D074 §1)
         if (result is { Success: true, Playhead: { } playhead }) SetPlayhead(playhead);
         var count = result.ClipIds.Count;
         var (one, many) = (ripple, edge == ClipEdge.Start) switch
@@ -1627,7 +1628,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
                 _selection.Count, new FrameSize(settings.FrameWidth, settings.FrameHeight))
             {
                 Selected = _selection.Where(_clipViewModels.ContainsKey).Select(id => _clipViewModels[id].Clip).ToList(),
-                FindAsset = FindAsset
+                FindAsset = FindAsset,
+                Anchor = primary.Clip is TemplateClip { AnchorClipId: { } anchorId } && _clipViewModels.TryGetValue(anchorId, out var anchor)
+                    ? anchor.Clip as VideoClip : null,
+                AnchorRouteId = (primary.Clip as TemplateClip)?.AnchorRouteId,
+                Sequence = Sequence
             });
         }
         else if (SelectedOrangeClipId is { } orangeClip && _selectedOrangeRouteId is { } orangeRoute &&

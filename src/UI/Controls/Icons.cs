@@ -38,6 +38,9 @@ public static class Icons
     public const string Mixer = "M3.5,2 V14 M8,2 V14 M12.5,2 V14 M1.5,10 H5.5 M6,5 H10 M10.5,8 H14.5";
 
     public const string Split = "M3,12 A2,2 0 1 0 7,12 A2,2 0 1 0 3,12 Z M9,12 A2,2 0 1 0 13,12 A2,2 0 1 0 9,12 Z M6.3,10.4 L12,2 M9.7,10.4 L4,2";
+    /// <summary>D074 §1: «Обрезать слева» — the left part crossed out at the playhead, the right part kept; «справа» mirrored.</summary>
+    public const string TrimStart = "M8,1.5 V14.5 M9.5,4.5 H14.5 V11.5 H9.5 M2,5.5 L6,10.5 M6,5.5 L2,10.5";
+    public const string TrimEnd = "M8,1.5 V14.5 M6.5,4.5 H1.5 V11.5 H6.5 M10,5.5 L14,10.5 M14,5.5 L10,10.5";
     public const string Delete = "M2.5,4 H13.5 M6,4 V2.5 H10 V4 M4,4 L4.8,14 H11.2 L12,4 M6.8,6.5 V11.5 M9.2,6.5 V11.5";
     public const string Snap = "M3,2.5 V8 A5,5 0 0 0 13,8 V2.5 H10 V8 A2,2 0 0 1 6,8 V2.5 Z M3,5.5 H6 M10,5.5 H13";
     public const string Move = "M8,1.5 V14.5 M1.5,8 H14.5 M6,3.5 L8,1.5 L10,3.5 M6,12.5 L8,14.5 L10,12.5 M3.5,6 L1.5,8 L3.5,10 M12.5,6 L14.5,8 L12.5,10";

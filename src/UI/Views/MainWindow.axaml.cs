@@ -321,6 +321,7 @@ public partial class MainWindow : Window
         public TimelineEditResult RemoveMedia(Guid mediaAssetId) => Nothing;
         public TimelineEditResult RemoveMediaMany(IReadOnlyList<Guid> mediaAssetIds) => Nothing;
         public TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change) => Nothing;
+        public TimelineEditResult SetRouteAttempts(IReadOnlyList<Guid> plateIds, int? attempts) => Nothing;
         public TimelineEditResult AddHold(Guid clipId, Hold hold, Guid? routeId = null) => Nothing;
         public TimelineEditResult AddHolds(Guid clipId, IEnumerable<Hold> holds, Guid? routeId = null) => Nothing;
         public TimelineEditResult RemoveHold(Guid clipId, Guid holdId, Guid? routeId = null) => Nothing;

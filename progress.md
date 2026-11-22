@@ -2,6 +2,35 @@
 
 ## Current phase
 
+**Phase 55 — editing comfort (D074, 2026-11-22) — on `feat/phase-55-editing-comfort`** (from `origin/main` `fc765fe` — Phase 54
+accepted, PR #84 merged). The owner's notes on 1.6.x (D073 amendment 2, Q15–Q19). **Done:** §1 «Обрезать слева / справа» buttons
+(`TimelineView` bar, `Icons.TrimStart` / `TrimEnd`), Q / W without a selection take the video under the playhead with its linked
+sound (`TimelineViewModel.VideoClipsUnderPlayhead`); §2 «Предлагать трассу» off on every `ProjectChanged` (`HoldMarkupViewModel`),
+the magnet kept per project; §3 the export window's `ScrollViewer` (buttons outside, timestamps ≤ 260 px, 600 px high); §4 a
+route's first holds switch the clip's Occlusion on in the same step (`TimelineEditService.HoldMarkup.Apply`, a `CompositeCommand`);
+§5 `TimelineClipSelection.Anchor` / `AnchorRouteId` → the Inspector's `PeopleClip`, the holds category, the markup panel on the
+anchor; §6 «Высокое качество» = NVENC CQ 19 / libx264 CRF 14, `ExportEncoding.NewProject` (NVENC «Высокое качество») for the
+application's new projects (`ProjectService` flag renamed `applicationDefaultsInNewProjects`). **Tests:** trim without a selection,
+route proposals after New / Open, first hold → occlusion (one step), anchored plate → people / holds (×2), export dialog scroll,
+NVENC CQ 19 / new project export (×2); the libx264 profile 16 → 14, the bar's icon count 9 → 11. Manual plan
+`docs/PHASE55_MANUAL_TEST_PLAN.md`.
+**Review (phase-reviewer): FAIL** — (1) an anchored plate's «Удалить часть» lost after a playhead move (`OnPlayheadMoved` read
+`_clip`), (2) the no-selection trim rule in the view model. Fixed: `PeopleClip` there; the rule in `TimelineEditService.TrimToPlayhead`
+(empty list → the video under the playhead on unlocked tracks, its own message `Edit_NoVideoToTrim`); +3 tests (the plate's follow
+part, the locked track / text, `AddHolds` + a style edit); the Balanced detail reworded; §2's startup rule and §4's several routes
+written into D074; manual rows 14–16.
+**Re-review: PASS WITH NOTES** (notes taken: a stale test comment, the unused `Edit_SelectClipToTrim` removed). Gates: Debug /
+Release `-warnaserror` 0 / 0, ModelTests build, `git diff --check` clean; Release + `AIVE_HEAVY_TESTS=1` with `--blame-hang`: Vision 37,
+Project 765, Core 1 994, Export 142, Rendering 281, UI 1 335, Timeline 1 258, Video 418 (+1 skip), ExportEndToEnd 189 = 6 419.
+Portable `BoulderVideoEditor-1.7.0-win-x64`. **Not done:** the owner's manual check, the merge.
+**Amendment 1 (2026-11-22, the owner on 1.7.0):** a tail trim keeps the lilac's start (`PlanBoundsOverlays`, D048 §3.8's
+shift replaced); a stored `T` follows the orange's end dragged on the strip (`EditOverlayStrip` + `SetRouteStartsCommand`);
+«Итоги» edits each route's attempts (`SummaryBoard.AttemptRows`, `SetRouteAttempts`, the Inspector's «Попытки по трассам»);
+«Итоги» outside the main clips follows the magnet (`CarryOtherVideoTracks`); «Пользовательский» after a profile starts from it
+(`ExportEncoding.CustomOf`, `NewProject` Maximum / Slow). Tests: the lilac cut (2 rewritten), `T` with the orange's end, the
+attempt rows, the Inspector's attempts, the magnet's «Итоги», the custom seed. Gates: 0 / 0; Vision 37, Project 765, Core 1 995,
+Export 142, Rendering 281, UI 1 337, Timeline 1 260, Video 418 (+1 skip), ExportEndToEnd 189 = 6 424. Portable 1.7.1.
+
 **Phase 54 — the «Итоги» template (D073, 2026-11-20 … 22) — on `feat/phase-54-summary-template`** (from `origin/main` `4c1314e`).
 The third of the owner's queue after 1.3.0 (backlog 36.3 `PassId`, 36.4 the heart rate in the summary). **Step 0:** Phase 53
 accepted by the owner (PR #83 merged, `4c1314e`) — D072 «Acceptance», DEVELOPMENT_PLAN, ROADMAP. **The owner's answers:** Q1–Q8

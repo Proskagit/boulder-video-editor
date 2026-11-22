@@ -685,7 +685,15 @@ the orange area's end to the purple area's start, scrolling past ~10 rows — in
 6) technical debt (the split of `TimelineEditService` / `TimelineViewModel`); 7) the repository's page (its «Status» rewritten,
 the page restructured). Other ideas (Shorts per route, comparing attempts, beta notes …) wait until then.
 
-**Phase 54 (D073, 2026-11-22) — the «Итоги» template** on `feat/phase-54-summary-template` (`project.json` v27): «Шаблон ▾ →
+**Phase 55 (D074, 2026-11-22) — editing comfort** on `feat/phase-55-editing-comfort` (from `main` `fc765fe`): «Обрезать слева /
+справа» on the timeline's bar (Q / W without a selection — the video under the playhead); «Предлагать трассу» off with every new /
+opened project (the magnet stays the project's own); the export window scrolls; a route's first holds switch «Скрывать за людьми»
+on; «Люди» / «Зацепки» for an anchored plate; «Высокое качество» the highest level (NVENC CQ 19 / libx264 CRF 14) and new
+projects at it with NVENC. Manual plan: `docs/PHASE55_MANUAL_TEST_PLAN.md`. **Next — Phase 56:** the holds' contour (jagged
+edges, the triangles' corners, notches; D073 amendment 2).
+
+**Phase 54 (D073, 2026-11-22) — the «Итоги» template — accepted by the owner 2026-11-22 (PR #84 merged, `fc765fe`, amendments
+1–4: the YouTube timestamp, FLASH as his B1 «Flash», the 5 + 5 s pace, the lilac's status on the timeline, the sweeps)** on `feat/phase-54-summary-template` (`project.json` v27): «Шаблон ▾ →
 Итоги» — an animated board of the routes before it (after the previous «Итоги»): the header «Итоги дня» with the date, a table
 (number, result, attempts, the climb time from the orange's end to the lilac's start, grade, average / maximum heart rate of the
 climb), the totals as cards; attempts of one boulder (number + grade) one row; 10 rows visible, then scrolling; over the dimmed

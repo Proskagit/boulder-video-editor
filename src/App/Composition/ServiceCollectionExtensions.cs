@@ -39,9 +39,9 @@ public static class ServiceCollectionExtensions
     {
         // --- Core / subsystem services -----------------------------------------
         services.AddSingleton<IUndoRedoService, UndoRedoService>();
-        // D069 §6: the application's new projects have the main track's magnet on.
+        // D069 §6 / D074 §6: the application's new projects — the main track's magnet on, the export at the highest quality.
         services.AddSingleton<IProjectService>(sp => new ProjectService(sp.GetRequiredService<IUndoRedoService>(),
-            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ProjectService>>(), magneticMainTrackInNewProjects: true));
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ProjectService>>(), applicationDefaultsInNewProjects: true));
         services.AddSingleton<IMediaImportService, MediaImportService>();
         services.AddSingleton<ITrainingImportService, TrainingImportService>();   // Phase Coros C1: the FIT training
         services.AddSingleton<IFfprobeLocator, FfprobeLocator>();

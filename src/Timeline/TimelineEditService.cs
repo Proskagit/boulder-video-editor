@@ -1063,13 +1063,19 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     public TimelineEditResult TrimToPlayhead(IReadOnlyCollection<Guid> clipIds, ClipEdge edge, MediaTime playhead, bool ripple)
     {
-        if (clipIds.Count == 0)
-            return TimelineEditResult.Fail(Messages.Edit_SelectClipToTrim);
-
         var plan = new EditPlan(Sequence, Settings);
-        if (Resolve(plan, clipIds, out var selected) is { } resolveError) return TimelineEditResult.Fail(resolveError);
         var rate = plan.Rate;
         var at = playhead.ToNearestFrame(rate);
+        List<Clip> selected;
+        if (clipIds.Count == 0)
+        {
+            // D074 §1: nothing selected — the video clips the playhead is inside on the unlocked tracks (their linked sound
+            // joins below, as for a selection; their anchored plates follow them as with any trim).
+            selected = plan.AllTracks.Where(t => !t.IsLocked).SelectMany(t => t.Clips).OfType<VideoClip>()
+                .Where(c => c.TimelineStart.ToNearestFrame(rate) < at && at < c.TimelineEnd.ToNearestFrame(rate)).Cast<Clip>().ToList();
+            if (selected.Count == 0) return TimelineEditResult.Fail(Messages.Edit_NoVideoToTrim);
+        }
+        else if (Resolve(plan, clipIds, out selected) is { } resolveError) return TimelineEditResult.Fail(resolveError);
 
         // Q1: only selected clips with the playhead's frame strictly inside; the others are left as they are (as Split).
         var eligible = WithPartnersCovering(plan, selected

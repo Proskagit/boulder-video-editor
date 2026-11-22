@@ -112,6 +112,8 @@ The rule: the largest CQ whose VMAF is not below the libx264 counterpart's on **
 - «Быстрый» (↔ veryfast CRF 18): p2 **CQ 25** (CQ 28 falls below on A).
 - «Сбалансированный» (↔ medium CRF 18): p5 **CQ 22** (CQ 24 falls below on E, the 30 fps clip).
 - «Высокое качество» (↔ slow CRF 16): p7 multipass **CQ 20** (CQ 23 falls below on A).
+  **D074 §6 (2026-11-22, the owner):** «Высокое качество» raised to the highest level — p7 multipass **CQ 19** (the CQ held
+  against CRF 14 at p5; p7 multipass only adds quality) and libx264 slow **CRF 14**.
 - «Пользовательский» (↔ medium CRF 14 / 18 / 23 / 28): p5 **CQ 19 / 22 / 27 / 32** (each the largest CQ measured to hold
   on every reference; CQ 18–33 measured).
 

@@ -112,7 +112,7 @@ public sealed class TimelineTrimToPlayheadUiTests
         timeline.SetPlayhead(F(50));
 
         timeline.TrimStartToPlayheadCommand.Execute(null);                              // nothing selected
-        Assert.Equal("Select the clip to trim: the playhead must be inside it.", _status.Message);
+        Assert.Equal("No video under the playhead to trim: put the playhead inside a clip, or select the clip.", _status.Message);   // a text is not taken
 
         Select(timeline, a);
         timeline.SetPlayhead(F(100));
@@ -122,6 +122,39 @@ public sealed class TimelineTrimToPlayheadUiTests
         Assert.Equal((0L, 100L), Frames(a));
         Assert.False(_undo.CanUndo);
         Assert.False(_projects.Current.IsDirty);
+    }
+
+    [Fact]
+    public void Without_a_selection_the_buttons_trim_the_video_under_the_playhead_with_its_linked_sound()   // D074 §1
+    {
+        var asset = new MediaAsset
+        {
+            FilePath = "C:/v.mp4", Kind = MediaKind.Video,
+            Metadata = new MediaMetadata { Duration = MediaTime.FromSeconds(60), Width = 1920, Height = 1080, VideoCodec = "h264", AudioCodec = "aac" }
+        };
+        _projects.AddMediaAssets(new[] { asset });
+        var link = Guid.NewGuid();
+        var video = new VideoClip { MediaAssetId = asset.Id, TimelineStart = F(0), Duration = F(100), LinkId = link };
+        var sound = new AudioClip { MediaAssetId = asset.Id, TimelineStart = F(0), Duration = F(100), LinkId = link };
+        V1.Clips.Add(video);
+        _projects.Current.Timeline.AudioTracks[0].Clips.Add(sound);
+        var title = new Track { Type = TrackType.Video, Name = "V2", Order = 1 };
+        _projects.Current.Timeline.VideoTracks.Add(title);
+        var text = Text(title, 0, 100);
+        var timeline = Timeline();
+
+        timeline.SetPlayhead(F(30));
+        timeline.TrimStartToPlayheadCommand.Execute(null);                              // nothing selected
+        Assert.Equal((30L, 100L), Frames(video));
+        Assert.Equal((30L, 100L), Frames(sound));
+        Assert.Equal((0L, 100L), Frames(text));                                         // only the video and its sound
+
+        timeline.SetPlayhead(F(70));
+        timeline.TrimEndToPlayheadCommand.Execute(null);
+        Assert.Equal((30L, 70L), Frames(video));
+        Assert.Equal((30L, 70L), Frames(sound));
+        _undo.Undo();
+        Assert.Equal((30L, 100L), Frames(video));                                       // one undo step each
     }
 
     [Fact]

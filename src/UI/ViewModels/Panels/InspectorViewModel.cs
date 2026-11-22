@@ -588,7 +588,9 @@ public sealed partial class InspectorViewModel : ViewModelBase
         Group.Show(selection.Selected ?? new[] { selection.Clip });
         var clip = selection.Clip;
         _clip = clip;
+        _anchor = selection.Anchor;
         _transition = null;
+        RefreshSummaryAttempts(selection);
         // A video file without an audio stream has nothing to mix; unknown metadata still shows it.
         // D032 R12: a video clip whose sound was unlinked has no sound of its own.
         HasAudioProperties = clip is AudioClip
@@ -804,6 +806,9 @@ public sealed partial class InspectorViewModel : ViewModelBase
     private void ForgetClip()
     {
         _clip = null;
+        _anchor = null;
+        SummaryAttempts.Clear();
+        HasSummaryAttempts = false;
         HideTraining();
         RefreshPeople();
         _transition = null;

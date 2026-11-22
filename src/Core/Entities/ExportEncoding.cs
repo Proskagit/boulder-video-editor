@@ -97,6 +97,23 @@ public sealed record ExportEncoding(ExportQuality Quality, ExportSpeedPreset Pre
     /// <summary>Today's output (D023, D028): «Сбалансированный», libx264 — CRF 18, preset medium, AAC 192 kbps.</summary>
     public static ExportEncoding Default { get; } = new(ExportQuality.High, ExportSpeedPreset.Medium, 192) { Profile = ExportProfile.Balanced };
 
+    /// <summary>D074 §6 (the owner): a new project's export — «Высокое качество» with NVENC (libx264 of the same profile where
+    /// NVENC is unavailable). <see cref="Default"/> stays the meaning of a file without export settings.</summary>
+    public static ExportEncoding NewProject { get; } = new(ExportQuality.Maximum, ExportSpeedPreset.Slow, 192)
+    {
+        Profile = ExportProfile.HighQuality, Encoder = ExportVideoEncoder.Nvenc
+    };
+
+    /// <summary>D074 amendment 1: the «Пользовательский» level and speed a profile corresponds to — what «Пользовательский»
+    /// starts from when chosen after it («Высокое качество» → «Максимальное», CRF 14, «Медленно»).</summary>
+    public static (ExportQuality Quality, ExportSpeedPreset Speed) CustomOf(ExportProfile profile) => profile switch
+    {
+        ExportProfile.Fast => (ExportQuality.High, ExportSpeedPreset.Fast),
+        ExportProfile.Balanced => (ExportQuality.High, ExportSpeedPreset.Medium),
+        ExportProfile.HighQuality => (ExportQuality.Maximum, ExportSpeedPreset.Slow),
+        _ => throw new ArgumentOutOfRangeException(nameof(profile), profile, "«Пользовательский» has no counterpart.")
+    };
+
     /// <summary>The AAC bitrates offered, in kbps.</summary>
     public static IReadOnlyList<int> AudioBitratesKbps { get; } = new[] { 128, 160, 192, 256, 320 };
 

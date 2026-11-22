@@ -290,6 +290,7 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult RemoveMedia(Guid mediaAssetId) => No;
         public TimelineEditResult RemoveMediaMany(IReadOnlyList<Guid> mediaAssetIds) => No;
         public TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change) => No;
+        public TimelineEditResult SetRouteAttempts(IReadOnlyList<Guid> plateIds, int? attempts) => No;
         public TimelineEditResult AddHold(Guid clipId, Hold hold, Guid? routeId = null) => No;
         public TimelineEditResult AddHolds(Guid clipId, IEnumerable<Hold> holds, Guid? routeId = null) => No;
         public TimelineEditResult RemoveHold(Guid clipId, Guid holdId, Guid? routeId = null) => No;

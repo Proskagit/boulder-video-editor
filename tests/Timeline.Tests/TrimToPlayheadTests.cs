@@ -118,11 +118,37 @@ public class TrimToPlayheadTests
             {
                 Assert.Equal("The playhead is not inside the selected clip(s).", Trim(f, edge, start, ripple, a).Message);
                 Assert.Equal("The playhead is not inside the selected clip(s).", Trim(f, edge, end, ripple, a).Message);
-                Assert.Equal("Select the clip to trim: the playhead must be inside it.",
-                    f.Service.TrimToPlayhead(Array.Empty<Guid>(), edge, F(f, start + 5), ripple).Message);
+                Assert.Equal("No video under the playhead to trim: put the playhead inside a clip, or select the clip.",
+                    f.Service.TrimToPlayhead(Array.Empty<Guid>(), edge, F(f, end + 100_000), ripple).Message);   // D074 §1: nothing there
             }
         Assert.Equal(before, f.Snapshot());
         Assert.Same(top, f.UndoRedo.CurrentPosition);
+    }
+
+    [Fact]
+    public void Nothing_selected_trims_the_video_under_the_playhead_and_skips_a_locked_track()   // D074 §1
+    {
+        var f = new TimelineFixture();
+        var video = f.Video(20, FrameRate.Fps25);
+        Ok(f.Service.AddClip(video.Id));
+        var a = f.V1.Clips[0];
+        var v2 = new Track { Type = TrackType.Video, Name = "V2", Order = 1 };
+        f.Project.Timeline.VideoTracks.Add(v2);
+        var locked = new VideoClip { MediaAssetId = video.Id, TimelineStart = a.TimelineStart, Duration = a.Duration };
+        v2.Clips.Add(locked);
+        v2.IsLocked = true;
+        var text = new TextClip { Text = "T", TimelineStart = a.TimelineStart, Duration = a.Duration };
+        var v3 = new Track { Type = TrackType.Video, Name = "V3", Order = 2 };
+        v3.Clips.Add(text);
+        f.Project.Timeline.VideoTracks.Add(v3);
+        var (start, end) = Frames(f, a);
+
+        Ok(f.Service.TrimToPlayhead(Array.Empty<Guid>(), ClipEdge.Start, F(f, start + 30), ripple: false));
+        Assert.Equal(start + 30, Frame(f, a.TimelineStart));
+        Assert.Equal((start, end), Frames(f, locked));                      // the locked track's video stays
+        Assert.Equal((start, end), Frames(f, text));                        // not a video: stays
+        f.UndoRedo.Undo();
+        Assert.Equal(start, Frame(f, a.TimelineStart));
     }
 
     [Fact]

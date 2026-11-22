@@ -22,7 +22,7 @@ public sealed class TimelineSessionStateTests : IDisposable
     public TimelineSessionStateTests()
     {
         Directory.CreateDirectory(_root);
-        _projects = new ProjectService(_undo, NullLogger<ProjectService>.Instance, magneticMainTrackInNewProjects: true);
+        _projects = new ProjectService(_undo, NullLogger<ProjectService>.Instance, applicationDefaultsInNewProjects: true);
         var edit = new TimelineEditService(_projects, _undo, NullLogger<TimelineEditService>.Instance);
         _timeline = new TimelineViewModel(_projects, edit, new StatusService(), NullLogger<TimelineViewModel>.Instance);
     }

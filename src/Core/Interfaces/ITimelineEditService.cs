@@ -98,7 +98,8 @@ public interface ITimelineEditService
     /// its track moves left by the trimmed frames (other tracks and markers stay; after a ripple trim of the start the
     /// result names the new playhead, <see cref="TimelineEditResult.Playhead"/>, Q5). Dissolves are never removed
     /// (Q4 / Q6): a plain trim does not trim an edge that is a dissolve's cut, and a trim stops where a dissolve needs
-    /// the clip's frames, with a message. One undo step for all the clips; refused — nothing changes — when no selected
+    /// the clip's frames, with a message. D074 §1: an empty <paramref name="clipIds"/> takes the video clips the playhead is inside on the
+    /// unlocked tracks (and their linked sound). One undo step for all the clips; refused — nothing changes — when no selected
     /// clip contains the playhead, a trimmed clip's track is locked, or no trim is possible because of dissolves.</summary>
     TimelineEditResult TrimToPlayhead(IReadOnlyCollection<Guid> clipIds, ClipEdge edge, MediaTime playhead, bool ripple);
 
@@ -321,6 +322,12 @@ public interface ITimelineEditService
     /// nothing is <see cref="TimelineEditResult.NoChange"/>. Consecutive changes of the same
     /// properties of the same clip are merged into one Undo step.</summary>
     TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change);
+
+    /// <summary>D074 amendment 1: the attempts of a route of «Итоги» (<paramref name="plateIds"/> — its attempts' «Боулдер»
+    /// plates in order, <see cref="Composition.SummaryAttemptRow.Plates"/>): the last plate states <paramref name="attempts"/>,
+    /// the others are cleared; null clears them all (the attempts counted from the video). One undo step; refused out of
+    /// <see cref="TemplateRules.MinAttempts"/>…<see cref="TemplateRules.MaxAttempts"/> or on a locked track.</summary>
+    TimelineEditResult SetRouteAttempts(IReadOnlyList<Guid> plateIds, int? attempts);
 
     /// <summary>"Fill frame" / "Fit in frame" (D041 §2): writes the Scale at which the video or image clip's picture, centred,
     /// covers the canvas (<see cref="ClipFraming.Fill"/>) or is wholly visible on it (<see cref="ClipFraming.Fit"/>) —

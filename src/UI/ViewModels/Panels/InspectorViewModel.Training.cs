@@ -90,7 +90,7 @@ public sealed partial class InspectorViewModel
     /// <summary>The playhead moved: the readout and the climb chosen for it follow it.</summary>
     public void OnPlayheadMoved()
     {
-        HasFollowPartHere = _clip is VideoClip { Follow: { } follow } clip && PlayheadSourceTime(clip) is { } now && follow.IndexAt(now) >= 0;
+        HasFollowPartHere = PeopleClip is { Follow: { } follow } clip && PlayheadSourceTime(clip) is { } now && follow.IndexAt(now) >= 0;   // D074 §5
         RefreshFollowOffset();
         RefreshKeyframes();
         UpdateTrainingReadout();

@@ -7,7 +7,14 @@
   <!-- Phase 38 acceptance (2026-11-10): the export's output file, a line about the output and the YouTube timestamps of what
        is exported, to copy. D059 §4: the export settings — profile, encoder, «Пользовательский» fields, the expected size. -->
   <DockPanel Margin="16">
-    <StackPanel DockPanel.Dock="Top" Spacing="6">
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,12,0,0">
+      <Button x:Name="ExportButton" Classes="accent" Content="{x:Static l:Strings.ExportDialog_Export}" Command="{Binding ExportCommand}" IsDefault="True"/>
+      <Button Content="{x:Static l:Strings.Common_Cancel}" Command="{Binding CancelCommand}" IsCancel="True"/>
+    </StackPanel>
+    <!-- D074 §3: everything above the buttons scrolls — the opened «Подробные настройки» and «Таймкоды» are reachable without
+         resizing the window; the buttons stay in view. -->
+    <ScrollViewer x:Name="SettingsScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="0,0,12,0">
+    <StackPanel Spacing="6">
       <TextBlock Text="{x:Static l:Strings.ExportDialog_Folder}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}"/>
       <Grid ColumnDefinitions="*,Auto">
         <TextBox x:Name="FolderBox" Text="{Binding Folder, Mode=TwoWay}"/>
@@ -33,11 +40,6 @@
       </Grid>
       <TextBlock x:Name="InfoText" Text="{Binding Info}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
       <views:ExportEncodingEditorView x:Name="SettingsEditor" DataContext="{Binding Settings}" Margin="0,0,0,8"/>
-    </StackPanel>
-    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,12,0,0">
-      <Button x:Name="ExportButton" Classes="accent" Content="{x:Static l:Strings.ExportDialog_Export}" Command="{Binding ExportCommand}" IsDefault="True"/>
-      <Button Content="{x:Static l:Strings.Common_Cancel}" Command="{Binding CancelCommand}" IsCancel="True"/>
-    </StackPanel>
     <!-- D068 item 13: the YouTube timestamps stay one click away, folded. -->
     <Expander x:Name="TimestampsExpander" Header="{x:Static l:Strings.ExportDialog_Timestamps}" IsExpanded="False"
               HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Top">
@@ -45,9 +47,11 @@
         <Button DockPanel.Dock="Top" HorizontalAlignment="Right" x:Name="CopyButton" Content="{x:Static l:Strings.YouTube_Copy}" Command="{Binding CopyCommand}"
                 Padding="8,2" FontSize="{DynamicResource FontSizeCaption}" Margin="0,0,0,4"/>
         <TextBox x:Name="TimestampsBox" Text="{Binding Timestamps, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
-                 FontFamily="Consolas, Cascadia Mono, monospace" FontSize="{DynamicResource FontSizeCaption}" MinHeight="90"
+                 FontFamily="Consolas, Cascadia Mono, monospace" FontSize="{DynamicResource FontSizeCaption}" MinHeight="90" MaxHeight="260"
                  ToolTip.Tip="{x:Static l:Strings.YouTube_Hint}"/>
       </DockPanel>
     </Expander>
+    </StackPanel>
+    </ScrollViewer>
   </DockPanel>
 </UserControl>

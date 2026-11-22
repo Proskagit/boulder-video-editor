@@ -251,12 +251,14 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         _ui = SynchronizationContext.Current;
 
         _projects.TimelineChanged += (_, _) => OnTimelineChanged();
-        _projects.ProjectChanged += (_, _) => { Exit(); SetClip(null); };
+        // D074 §2: a new or an opened project starts with «Предлагать трассу» off (it no longer carries over from the last one).
+        _projects.ProjectChanged += (_, _) => { Exit(); SetClip(null); IsRouteProposalEnabled = false; };
         _lock.PropertyChanged += (_, _) => { if (_lock.IsLocked) Exit(); RefreshCommands(); };
         if (_segmentation is not null)
             _segmentation.DeviceChanged += (_, _) => OnUi(() => _status.ReportWarning(CpuMessage));
 
-        // D072 §3: «Предлагать трассу», on by default; the user's choice is kept across restarts.
+        // D072 §3: «Предлагать трассу» (off by default, amendment 2); D074 §2: off again with every new / opened project — the
+        // run's first project keeps the saved value.
         IsRouteProposalEnabled = _settings.Current.RouteProposalsEnabled;
         ContourSmoothing = _settings.Current.HoldContourSmoothing;
         InitTracking(cameraMotion);
