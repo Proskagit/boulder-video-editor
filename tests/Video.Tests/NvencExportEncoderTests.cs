@@ -64,6 +64,10 @@ public sealed class NvencExportEncoderTests : IDisposable
         Assert.EndsWith("-pix_fmt yuv420p -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv -c:a copy -movflags +faststart -f mp4 v.mp4", line);
         Assert.Contains($"-c:v h264_nvenc -preset p5 -tune hq -profile:v high -rc vbr -cq {ExportVideoPlan.NvencCqOf(ExportQuality.High)} -b:v 0", line);
         Assert.Contains("-spatial-aq 1 -rc-lookahead 20 -bf 3 -g 250", line);
+        // D059's exact encoder part (D076 Q7 A): nothing between the CQ and the AQ — no peak, no buffer.
+        Assert.Contains($"-rc vbr -cq {ExportVideoPlan.NvencCqOf(ExportQuality.High)} -b:v 0 -spatial-aq 1 -rc-lookahead 20 -bf 3 -g 250 -pix_fmt", line);
+        Assert.DoesNotContain("-maxrate", line);
+        Assert.DoesNotContain("-bufsize", line);
         Assert.DoesNotContain("libx264", line);
         Assert.DoesNotContain("-crf", line);
         Assert.DoesNotContain("-multipass", line);

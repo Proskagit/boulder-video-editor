@@ -186,12 +186,13 @@ value then checked on all five.
 | Высокое (medium CRF 18) | p5 CQ 22 | p5 CQ 22 | CQ 28 | CRF 18 | CRF 15 | CRF 12 |
 | Стандартное (medium CRF 23) | CQ 27 | CQ 27 | CQ 32 | CRF 23 | CRF 20 | CRF 30 |
 | Компактное (medium CRF 28) | CQ 32 | CQ 33 | CQ 42 | CRF 28 | CRF 26 | CRF 40 |
-| «Очень быстро» (veryfast CRF 18) | p2 +3 (CQ 25) | p2 +3 (CQ 25) | p2 +4 (CQ 32) | veryfast | veryfast +2 | preset 11 +8 |
+| «Очень быстро» (veryfast CRF 18) | p2 +3 (CQ 25) | p2 +3 (CQ 25) | p2 +4 (CQ 32) | veryfast | veryfast +3 (CRF 18) | preset 11 +10 (CRF 22) |
 
 The speeds: NVENC p2 / p3 / p5 / p7 (p7 with multipass); x264 / x265 by name; SVT-AV1 presets 11 / 9 / 7 / 5.
 ¹ D074 §6's value (the owner's), calibrated then against medium CRF 14; against slow CRF 14 it is 0.02 VMAF below on D only (above
 on the other four) — kept. Three first choices fell 0.03–0.13 below on B and were lowered one step (x265 slow 14 → 13, medium 16 →
-15; SVT-AV1 14 → 12).
+15; SVT-AV1 14 → 12; the «Очень быстро» offsets are counted from the lowered values). The software AV1 tests are skipped on
+the dev FFmpeg (gyan.dev 9.0.1 has no SVT-AV1) and run on the minimal build.
 
 ### 8.3 What the codecs give — Mbit/s on A (4K60) at each level's value, and the encoder's own speed
 

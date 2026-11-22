@@ -61,6 +61,10 @@ public sealed class CodecExportEncoderTests : IDisposable
         Assert.Contains($"-c:v libsvtav1 -preset 7 -g 250 -crf {ExportVideoPlan.SvtAv1CrfOf(ExportQuality.High)} -pix_fmt", Line(av1));
         Assert.Contains($"-c:v av1_nvenc -preset p5 -tune hq -rc vbr -cq {ExportVideoPlan.Av1NvencCqOf(ExportQuality.High)} -b:v 0", Line(av1 with { Encoder = ExportVideoEncoder.Nvenc }));
         Assert.DoesNotContain("hvc1", Line(av1));
+        // Only HEVC NVENC has a peak at constant quality (its High tier); H.264 and AV1 NVENC exactly D059's -cq N -b:v 0.
+        Assert.Contains($"-cq {ExportVideoPlan.Av1NvencCqOf(ExportQuality.High)} -b:v 0 -spatial-aq 1 -rc-lookahead 20 -bf 3 -g 250 -pix_fmt", Line(av1 with { Encoder = ExportVideoEncoder.Nvenc }));
+        Assert.DoesNotContain("-maxrate", Line(av1 with { Encoder = ExportVideoEncoder.Nvenc }));
+        Assert.DoesNotContain("-maxrate", Line(ExportPresets.Maximum));
         Assert.DoesNotContain("hvc1", Line(ExportEncoding.Default));
         Assert.Contains("-c:v libsvtav1 -preset 7 -g 250 -b:v 20000k -pix_fmt", Line(av1 with { RateControl = ExportRateControl.Bitrate, VideoBitrateMbps = 20 }));
         Assert.DoesNotContain("-crf", Line(hevc with { RateControl = ExportRateControl.Bitrate, VideoBitrateMbps = 20 }));

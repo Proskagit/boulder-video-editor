@@ -190,8 +190,11 @@ public sealed class FfmpegExportEncoder : IExportEncoder
             ExportVideoCodec.Av1 => new List<string> { "-c:v", "av1_nvenc", "-preset", plan.Preset, "-tune", "hq", "-rc", "vbr" },
             _ => new List<string> { "-c:v", "h264_nvenc", "-preset", plan.Preset, "-tune", "hq", "-profile:v", "high", "-rc", "vbr" }
         };
-        if (plan.RateControl == ExportRateControl.ConstantQuality) nvenc.AddRange(new[] { "-cq", Invariant(plan.Quality), "-b:v", "0" });
-        if (plan.RateControl == ExportRateControl.ConstantQuality && plan.Codec == ExportVideoCodec.Hevc) nvenc.AddRange(new[] { "-maxrate", "160M", "-bufsize", "160M" });
+        if (plan.RateControl == ExportRateControl.ConstantQuality)
+        {
+            nvenc.AddRange(new[] { "-cq", Invariant(plan.Quality), "-b:v", "0" });
+            if (plan.Codec == ExportVideoCodec.Hevc) nvenc.AddRange(new[] { "-maxrate", "160M", "-bufsize", "160M" });   // the High tier's peak
+        }
         else nvenc.AddRange(BitrateArguments(plan.VideoBitrateKbps));
         if (plan.SpatialAq) nvenc.AddRange(new[] { "-spatial-aq", "1" });
         nvenc.AddRange(new[] { "-rc-lookahead", "20", "-bf", "3", "-g", "250" });

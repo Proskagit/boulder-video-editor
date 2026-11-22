@@ -141,14 +141,14 @@ public sealed record ExportVideoPlan(ExportVideoEncoder Encoder, string Preset, 
     /// (measured at CRF 18: CQ 25 against p5's 22 — D059's «Быстрый»; HEVC the same, D076 §5).</summary>
     public const int NvencVeryFastCqOffset = 3;
 
-    /// <summary>D076 §5: the same for the other encoders, measured against libx264 veryfast CRF 18 — NVENC AV1 p2 +4 (CQ 32),
-    /// libx265 veryfast +2 (CRF 18), SVT-AV1 preset 11 +8 (CRF 22); libx264 is its own counterpart (0).</summary>
+    /// <summary>D076 §5: the same for the other encoders, measured against libx264 veryfast CRF 18 on all five references —
+    /// NVENC AV1 p2 +4 (CQ 32), libx265 veryfast +3 (CRF 18), SVT-AV1 preset 11 +10 (CRF 22); libx264 is its own counterpart (0).</summary>
     public static int VeryFastOffset(ExportVideoCodec codec, ExportVideoEncoder encoder) => (codec, encoder) switch
     {
         (ExportVideoCodec.Av1, ExportVideoEncoder.Nvenc) => 4,
         (_, ExportVideoEncoder.Nvenc) => NvencVeryFastCqOffset,
-        (ExportVideoCodec.Hevc, _) => 2,
-        (ExportVideoCodec.Av1, _) => 8,
+        (ExportVideoCodec.Hevc, _) => 3,
+        (ExportVideoCodec.Av1, _) => 10,
         _ => 0
     };
 
