@@ -35,7 +35,7 @@ Mark each row PASS / FAIL / note.
 | B7 | More than 10 routes (or a copy with many). | At most 10 rows visible; each next one moves the list up, the first goes under the header. If not every row comes in before the end — lengthen the template, they come in. |
 | B8 | The totals cards. | «ТОПЫ N / M» (N yellow), «ФЛЕШИ», «ПУЛЬС СР / МАКС», «НА ТРАССАХ» (the sum of every attempt's time, yellow outline). |
 | B9 | Put a second «Итоги» later, after more routes. | The second lists only the routes after the first one. |
-| B10 | A vertical (9:16) project. | The board fits the width, readable; the cards' figures fit. |
+| B10 | ~~A vertical (9:16) project.~~ | Dropped (D073 amendment 1: no «Итоги» on vertical videos). |
 | B11 | Split a route's video clip (S) after its orange, before its lilac. | «Итоги» still shows the route once, with the same time and heart rate as before the split. A copy (Ctrl+C / Ctrl+V) of a route's clip is another attempt. |
 | B12 | The Inspector of «Итоги» and of a «Боулдер» in a 1024 px and a 1440 px wide window. | «Попыток», «Надписи на кадре», «Заголовок», «Дата», «Свой фон» readable, nothing cut off. |
 
@@ -54,7 +54,7 @@ Mark each row PASS / FAIL / note.
 | D1 | On a «Боулдер», status «Флеш». | In the lilac a **white** block «FLASH» with a yellow bolt, a yellow outline and a soft glow; a light sweep crosses it when it appears. **Clearly different from TOP?** «FLASH» stays English in a Russian project. |
 | D2 | The same route in «Итоги». | The FLASH chip in «РЕЗУЛЬТАТ», «ПОПЫТКИ» 1; it counts in «ТОПЫ» and in «ФЛЕШИ». |
 | D3 | On a «Боулдер», «Попыток» = 5 (the attempts not in the edit). | «Итоги»: «ПОПЫТКИ» 5 for that route. Empty the field — the count from the video again. 0 or a letter is not taken. |
-| D4 | Export the project with «Итоги» and a FLASH. | The exported video shows the same board and the same FLASH block as the Preview. YouTube timestamps: the FLASH route ends with « ⚡». |
+| D4 | Export the project with «Итоги» and a FLASH. | The exported video shows the same board and the same FLASH block as the Preview. YouTube timestamps: the FLASH route ends with « ⚡»; «Итоги» is a line of its own at its start with its header («00:00 …» style, e.g. «12:40 Итоги дня»). |
 
 ## E. Files
 

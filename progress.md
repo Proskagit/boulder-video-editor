@@ -29,6 +29,8 @@ attempts doubled; the grouping keyed by clip + route), and progress.md was stale
 continuing template clock (copies — clock 0 — stay apart), `S` by its part's clip, `Ae` from the clip with the orange (+3 tests:
 split with / without a number, a copy, a status beyond the area with a free area); notes taken (its own message for an unknown
 language, the time rounded on ticks, an undo-step test, manual rows B11–B12).
+**Amendment 1 (2026-11-22, the owner):** «Итоги» is a YouTube timestamp of its own (its header; the parts of a split one line;
+`YouTubeTimestampsTests` +1); no «Итоги» on vertical videos — the portrait layout kept, manual B10 dropped.
 **Re-review: PASS WITH NOTES** (taken: the YouTube timestamps' grouping of copies recorded in D073; noted: the split test builds
 the state by hand, pre-D053 areas without a route id).
 **Gates (2026-11-22, the final code):** Debug and Release `--no-incremental -warnaserror` 0 / 0; `Vision.ModelTests` builds;

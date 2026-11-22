@@ -45,6 +45,26 @@ public class YouTubeTimestampsTests
     }
 
     [Fact]
+    public void A_summary_is_a_line_of_its_own_with_its_header()   // D073 amendment 1
+    {
+        Area(0, "1", "6A", BoulderStatus.Top, Guid.NewGuid());
+        Summary(30, "Итоги дня");
+        Area(60, "2", "6B", BoulderStatus.Attempt, Guid.NewGuid());
+        Summary(90, "  ");                                                     // an empty header: the default of its language
+        Summary(95, "", TemplateLanguage.English);
+        Summary(100, "Итоги дня", counterStart: 10);                           // a split summary's second part: no line
+        Assert.Equal("00:00 Трасса 1 · 6A 🟢\n00:30 Итоги дня\n01:00 Трасса 2 · 6B 🔴\n01:30 Итоги дня\n01:35 Day summary", Text());
+        Assert.Equal("00:00 Intro\n00:10 Итоги дня", Text(MediaTime.FromSeconds(20), MediaTime.FromSeconds(60)));
+    }
+
+    private void Summary(double startSeconds, string title, TemplateLanguage language = TemplateLanguage.Russian, double counterStart = 0) =>
+        _v2.Clips.Add(new TemplateClip
+        {
+            Kind = TemplateKind.Summary, TimelineStart = MediaTime.FromSeconds(startSeconds), Duration = MediaTime.FromSeconds(10),
+            Title = title, Language = language, CounterStart = MediaTime.FromSeconds(counterStart)
+        });
+
+    [Fact]
     public void The_owners_example()
     {
         Area(42, "1", "6A", BoulderStatus.Top, Guid.NewGuid());

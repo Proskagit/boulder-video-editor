@@ -11788,6 +11788,15 @@ distinctive look. Variants A (over the video) and B (a full-frame card) shown on
 13. **FLASH's look:** the shown variant looked too much like TOP — it must be clearly different from TOP's yellow block; **the word
     is always English «FLASH»**. Done: a white block with a yellow bolt, outline, glow and a sweep (§2); the owner checks it by eye.
 
+### Amendment 1 (2026-11-22) — the owner on 1.6.0's plan
+
+1. **«Итоги» is a YouTube timestamp of its own.** Every «Итоги» adds a line at its start (D057 §3.9's rules: by time, the
+   exported range's start as 00:00, outside the range left out), its title = its header (`Итоги дня`, or what the user typed;
+   an empty header — the default of its language, «Day summary» in English); no status mark. The parts of a split «Итоги» are one
+   line (the part whose clock starts at 0, as a free area). `YouTubeTimestamps` (+1 test).
+2. **No «Итоги» on vertical videos** — the owner does not put them there. The portrait layout stays as built (no extra work, not
+   removed); the manual check's B10 is dropped; the smaller portrait board is no longer an open point.
+
 ### Out of scope
 
 A stored `PassId` or a user grouping of attempts; the list of routes chosen by hand; ranks, points or zones; the FIT's falls; FLASH
