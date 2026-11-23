@@ -4,6 +4,7 @@ using AiVideoEditor.UI.ViewModels.Panels;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
@@ -20,6 +21,8 @@ public partial class InspectorView : UserControl
         // shows the model's value again. Fields holding the model value are not touched.
         AddHandler(LostFocusEvent, OnFieldLostFocus, RoutingStrategies.Bubble, handledEventsToo: true);
 
+        HideEmptyCategoryPanels(this);
+
         // D057 §3.1: the scroll position per kind of item, kept in the user's layout (the same store as the sections).
         _scroll = new InspectorScrollMemory(InspectorSectionStates.Store);
         InspectorScroll.ScrollChanged += (_, _) =>
@@ -27,6 +30,23 @@ public partial class InspectorView : UserControl
             _scroll.Scrolled(InspectorScroll.Offset.Y);
             NoteCategoryAtTop();
         };
+    }
+
+    /// <summary>
+    /// D079 amendment 1: a <c>Panel.category</c> (a section's anchor for the rail) is shown only while a section in it is — a
+    /// panel left visible around a hidden section is empty but still takes the list's spacing (16 px each), which left blank
+    /// gaps between the sections (the owner's screenshots of 1.13.0: above «Клип», between «Клип» and «Слежение и люди»).
+    /// </summary>
+    internal static void HideEmptyCategoryPanels(Control root)
+    {
+        foreach (var panel in root.GetLogicalDescendants().OfType<Panel>().Where(p => p.Classes.Contains("category")).ToList())
+        {
+            var children = panel.Children.ToList();
+            void Update() => panel.IsVisible = children.Any(c => c.IsVisible);
+            foreach (var child in children)
+                child.PropertyChanged += (_, e) => { if (e.Property == IsVisibleProperty) Update(); };
+            Update();
+        }
     }
 
     /// <summary>D068 amendment 1: the first shown section of a group (a <c>Panel.category</c> whose Tag is its name).</summary>

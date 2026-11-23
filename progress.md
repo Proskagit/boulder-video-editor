@@ -22,6 +22,14 @@ ExportEndToEnd 191 = 6 562. Flaky while the graphics card was at 99 % with a gam
 worktree run alone) — Video 439 / 439 in a clean rerun. The first gate run found a real one: the raised portrait plate's bottom at
 a fraction of a pixel moved its measured text centre 1.5 px (`TemplateTextAlignmentTests`) → `PlateRow` keeps the row's outer edge on a whole
 pixel (as the margins alone did).
+**Amendment 1 (the owner's check of 1.13.0, 2026-11-24):** blank gaps between the Inspector's sections — an empty
+`Panel.category` around a hidden section kept the list's 16 px spacing → shown only while its section is
+(`InspectorView.HideEmptyCategoryPanels`), tests `InspectorCategoryGapTests` (2); checked in the running app (video clip: «Клип» →
+«Слежение и люди» evenly spaced). Nothing else found by the owner. **Gates:** builds 0 / 0; Vision 38, Project 783, Core 2 017,
+Export 153, Rendering 290, UI 1 376, Timeline 1 277, Video 439 (+2 skips), ExportEndToEnd 191 = 6 564 (UI and Export each had one timing
+test time out in the whole-solution run — `PreviewLayersTests.While_scrubbing_…`, `ExportServiceTests.A_rasterizer_failure_…` — and
+pass whole alone). CI of `ca542eb`: every suite green, the run aborted by «testhost process failed to connect to datacollector» (the
+runner, not a test). Portable `artifacts/portable/BoulderVideoEditor-1.13.1-win-x64`.
 **Review (phase-reviewer): PASS WITH NOTES** — taken: the training clock's correction (frames, unbounded) `.wide`; the
 16–20 px buttons (track M / S / lock, ▲▼✕, markers, mixer states, swatches, placement grid) keep a small radius
 (`SmallControlCornerRadius` 3); the wider button padding withdrawn (it wrapped the toolbar more); the manual plan's ComboBox focus

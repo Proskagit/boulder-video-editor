@@ -12464,3 +12464,10 @@ Checked in the running application at 1024 and 1440 px window widths (the Inspec
 
 Dragging a number on its label («hot text» — `ScrubLabel` already does it for some fields); the timeline's own drawing; Phase 61
 (Follow at a scale).
+
+### D079 amendment 1 — the owner's check of 1.13.0 (2026-11-24)
+
+**Blank gaps between the Inspector's sections** (above «Клип» on a «Боулдер», between «Клип» and «Слежение и люди» on a video):
+every section stands in a `Panel.category` (the rail's anchor, D068 amendment 1); a hidden section left its panel visible — empty,
+but still taking the list's 16 px spacing, one per hidden section. A category panel is now shown only while a section in it is
+(`InspectorView.HideEmptyCategoryPanels`); tests `InspectorCategoryGapTests`. The owner found nothing else in 1.13.0.
