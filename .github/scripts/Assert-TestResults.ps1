@@ -8,7 +8,7 @@
   - any test did not pass and was not skipped (failed, error, timeout, aborted, ...),
   - any test was skipped other than the known heavy scenes of ExportEndToEnd (the two 4K scenes and the long parallel
     export of D059) and the local scrubbing benchmark of Video.Tests (Phase 38, it needs a real file) with the reason
-    "Heavy scenario", and the real NVENC encoding of D059 with the reason "NVENC unavailable" (the CI runner has no
+    "Heavy scenario", and the real NVENC encoding of D059 with the reason "NVENC unavailable" and D076's codec theories without their encoder (the CI runner has no
     NVIDIA GPU; its trial encoding fails cleanly — the fallback the app relies on)
     (a skip because ffmpeg / ffprobe was not found is always an error).
   Prints passed / skipped / failed and every skip with its reason.
@@ -25,12 +25,22 @@ $allowedSkips = @(
     'AiVideoEditor.ExportEndToEnd.Tests.ExportParityScaledTests.Source_4K_scaled_rotated_and_cropped',
     'AiVideoEditor.Video.Tests.ScrubBenchmarkTests.Scrub_a_real_file',
     'AiVideoEditor.ExportEndToEnd.Tests.ExportPipelineParityEndToEndTests.A_long_parallel_export_stays_equal_and_its_memory_stays_bounded',
-    'AiVideoEditor.Video.Tests.NvencExportEncoderTests.Nvenc_encodes_a_valid_mp4_with_every_frame_in_order_and_the_D023_tags'
+    'AiVideoEditor.Video.Tests.NvencExportEncoderTests.Nvenc_encodes_a_valid_mp4_with_every_frame_in_order_and_the_D023_tags',
+    'AiVideoEditor.Video.Tests.CodecExportEncoderTests.H264_on_nvenc',
+    'AiVideoEditor.Video.Tests.CodecExportEncoderTests.Hevc_on_nvenc',
+    'AiVideoEditor.Video.Tests.CodecExportEncoderTests.Av1_on_nvenc',
+    'AiVideoEditor.Video.Tests.CodecExportEncoderTests.Av1_on_the_processor'
 )
 $allowedReasonPrefix = 'Heavy scenario:'
 # D059: the NVENC test is skipped on a machine without NVENC (the CI runner), with its own reason.
 $allowedReasonPrefixes = @{
     'AiVideoEditor.Video.Tests.NvencExportEncoderTests.Nvenc_encodes_a_valid_mp4_with_every_frame_in_order_and_the_D023_tags' = 'NVENC unavailable:'
+    # D076: the codec × encoder theories skip where the runner lacks the encoder — no NVIDIA card, and the pinned gyan.dev
+    # 9.0.1 has no SVT-AV1 (the minimal build's own CI check encodes software AV1).
+    'AiVideoEditor.Video.Tests.CodecExportEncoderTests.H264_on_nvenc' = 'NVENC H264 unavailable'
+    'AiVideoEditor.Video.Tests.CodecExportEncoderTests.Hevc_on_nvenc' = 'NVENC Hevc unavailable'
+    'AiVideoEditor.Video.Tests.CodecExportEncoderTests.Av1_on_nvenc' = 'NVENC Av1 unavailable'
+    'AiVideoEditor.Video.Tests.CodecExportEncoderTests.Av1_on_the_processor' = 'this ffmpeg has no software Av1 encoder'
 }
 
 $files = @(Get-ChildItem -Path $ResultsDirectory -Filter *.trx -Recurse -File)
