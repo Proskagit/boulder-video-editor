@@ -147,6 +147,26 @@ public sealed class KeyframeSnapRenderTests
         }
     }
 
+    [Theory]
+    [InlineData(960, 540)]
+    [InlineData(540, 960)]
+    public void A_bottom_plate_is_drawn_one_plate_height_above_its_margin_with_the_heart_rate_above_it(int width, int height)
+    {
+        // D079: YouTube's description covers the bottom of the picture — the plate (and the heart rate with it) one plate higher.
+        var canvas = new FrameSize(width, height);
+        foreach (var corner in new[] { OverlayCorner.BottomLeft, OverlayCorner.BottomRight })
+        {
+            var image = DrawBoulder(canvas, corner, corner);
+            var navy = Box(image, (r, g, b) => r < 30 && g < 45 && b > 30 && b < 70)!.Value;
+            var heart = Box(image, (r, g, b) => r > 200 && g < 80 && b < 110 && b > 30)!.Value;
+            var (_, top, plateHeight) = CornerOverlayLayout.PlateRow(canvas, corner);
+            Assert.InRange(navy.Bottom, top + plateHeight - 3, top + plateHeight + 2);
+            var margin = height - (top + plateHeight);
+            Assert.InRange(margin, 1.9 * plateHeight, 3.3 * plateHeight);    // margin + one plate (64 + 62 landscape, 176 + 84 portrait)
+            Assert.True(heart.Bottom < navy.Top, $"{corner}: the heart rate is not above the plate");
+        }
+    }
+
     [Fact]
     public void A_portrait_plate_is_larger_than_the_landscape_one_relative_to_the_short_side_and_the_landscape_heart_rate_smaller()
     {

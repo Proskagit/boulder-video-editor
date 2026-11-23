@@ -54,6 +54,41 @@
     <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPointerOver" Color="#4CAF50"/>
     <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPressed" Color="#388E3C"/>
 
+    <!-- D079 §2 (the owner's choice «C», as CapCut): soft corners, filled fields without a frame, the focus as a green ring
+         round the whole field; a numeric field's up / down arrows small, stacked inside it and shown on hover or focus. -->
+    <CornerRadius x:Key="ControlCornerRadius">8</CornerRadius>
+    <Color x:Key="FieldColor">#2A3037</Color>
+    <Color x:Key="FieldHoverColor">#30373F</Color>
+    <SolidColorBrush x:Key="FieldBrush" Color="{StaticResource FieldColor}"/>
+    <SolidColorBrush x:Key="TextControlBackground" Color="{StaticResource FieldColor}"/>
+    <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="{StaticResource FieldHoverColor}"/>
+    <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="{StaticResource FieldColor}"/>
+    <SolidColorBrush x:Key="TextControlBorderBrush" Color="{StaticResource FieldColor}"/>
+    <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#3A434C"/>
+    <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="{StaticResource AccentColor}"/>
+    <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
+    <SolidColorBrush x:Key="ComboBoxBackground" Color="{StaticResource FieldColor}"/>
+    <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="{StaticResource FieldHoverColor}"/>
+    <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="{StaticResource FieldColor}"/>
+    <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="{StaticResource FieldColor}"/>
+    <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="#3A434C"/>
+    <SolidColorBrush x:Key="ComboBoxBorderBrushPressed" Color="{StaticResource AccentColor}"/>
+    <SolidColorBrush x:Key="ButtonBackground" Color="#323941"/>
+    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#3A424B"/>
+    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#2B3138"/>
+    <SolidColorBrush x:Key="ButtonBorderBrush" Color="#323941"/>
+    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#3A424B"/>
+    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#3A424B"/>
+    <SolidColorBrush x:Key="ToggleButtonBackground" Color="#323941"/>
+    <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="#3A424B"/>
+    <SolidColorBrush x:Key="ToggleButtonBorderBrush" Color="#323941"/>
+    <!-- D079 §2 (the owner): a numeric field as wide as its number — whole numbers of up to three digits (and a sign), and
+         .wide for a fraction or a longer number. -->
+    <!-- A button of 16–20 px (a track's M / S / lock, markers, the mixer's states, swatches) keeps a small radius. -->
+    <CornerRadius x:Key="SmallControlCornerRadius">3</CornerRadius>
+    <x:Double x:Key="NumericFieldWidth">60</x:Double>
+    <x:Double x:Key="NumericFieldWideWidth">80</x:Double>
+
     <!-- Fluent's control text size, brought to the body size. -->
     <x:Double x:Key="ControlContentThemeFontSize">13</x:Double>
   </Styles.Resources>
@@ -76,6 +111,71 @@
     <Setter Property="Background" Value="{DynamicResource Surface2Brush}"/>
     <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
     <Setter Property="BorderThickness" Value="1"/>
+  </Style>
+
+  <!-- D079 §2: the fields. Fluent sizes and colours these parts in theme styles with an activator, which win over a plain
+       selector, so these selectors carry one too (`:not(.theme-size)` — no element has that class; FU-25.1's way). -->
+  <Style Selector="TextBox:not(.theme-size)">
+    <Setter Property="Padding" Value="10,5,6,5"/>
+  </Style>
+  <Style Selector="NumericUpDown:not(.theme-size)">
+    <Setter Property="Width" Value="{DynamicResource NumericFieldWidth}"/>
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
+  <Style Selector="NumericUpDown.wide:not(.theme-size)">
+    <Setter Property="Width" Value="{DynamicResource NumericFieldWideWidth}"/>
+  </Style>
+  <!-- .fill: a field that takes its column (the canvas size in Project Settings). -->
+  <Style Selector="NumericUpDown.fill:not(.theme-size)">
+    <Setter Property="Width" Value="NaN"/>
+  </Style>
+  <Style Selector="NumericUpDown /template/ TextBox:not(.theme-size)">
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="Padding" Value="8,5,2,5"/>
+  </Style>
+  <!-- The inner text box draws no frame or fill of its own: the whole field (text and arrows) is one surface with one ring. -->
+  <Style Selector="NumericUpDown /template/ TextBox:not(.theme-size) /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+  </Style>
+  <Style Selector="NumericUpDown:focus-within:not(.theme-size)">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+  </Style>
+  <Style Selector="NumericUpDown:pointerover:not(:focus-within):not(.theme-size)">
+    <Setter Property="Background" Value="{DynamicResource TextControlBackgroundPointerOver}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource TextControlBorderBrushPointerOver}"/>
+  </Style>
+  <!-- The arrows: two small chevrons stacked at the right, without the square buttons and their separators. -->
+  <Style Selector="ButtonSpinner /template/ StackPanel#PART_SpinnerPanel:not(.theme-size)">
+    <Setter Property="Orientation" Value="Vertical"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="Margin" Value="0,0,3,0"/>
+    <Setter Property="Opacity" Value="0"/>
+  </Style>
+  <Style Selector="ButtonSpinner:pointerover /template/ StackPanel#PART_SpinnerPanel:not(.theme-size), ButtonSpinner:focus-within /template/ StackPanel#PART_SpinnerPanel:not(.theme-size)">
+    <Setter Property="Opacity" Value="1"/>
+  </Style>
+  <Style Selector="ButtonSpinner /template/ RepeatButton:not(.theme-size)">
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="Width" Value="18"/>
+    <Setter Property="Height" Value="12"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="4"/>
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+  </Style>
+  <Style Selector="ButtonSpinner /template/ RepeatButton:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#3A434C"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+  </Style>
+  <Style Selector="ButtonSpinner /template/ PathIcon:not(.theme-size)">
+    <Setter Property="Width" Value="9"/>
+    <Setter Property="Height" Value="5"/>
+  </Style>
+  <!-- A check box keeps a small square's corners (the soft radius would make it a circle). -->
+  <Style Selector="CheckBox">
+    <Setter Property="CornerRadius" Value="3"/>
   </Style>
 
   <!-- The main action of a place: Classes="accent". -->

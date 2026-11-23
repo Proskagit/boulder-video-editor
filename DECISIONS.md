@@ -12226,7 +12226,8 @@ beyond §3.
 
 ## D078 — Phase 59: the attempt's events from the video — the fall, the lift-off, the manual «Боулдер» anchored *(set by the owner on 2026-11-23)*
 
-**Status: the scope set by the product owner on 2026-11-23** after the research «Universal AI Highlight Detection», stages 0–2
+**Status: accepted by the product owner on 2026-11-23** (his check of 1.12.5, amendments 1–6 included; PR #89 merged, `a59d41f`).
+The scope set by the product owner on 2026-11-23 after the research «Universal AI Highlight Detection», stages 0–2
 (the lab `C:\BoulderHighlightLab`, reports `STAGE0.md`, `STAGE1.md`, `STAGE2.md`; summary in `docs/ATTEMPT_EVENTS_RESEARCH.md`),
 with his answers of the same day (all the recommended options). Branch `feat/phase-59-attempt-events` from `main` `e9ccdf1`.
 **No `project.json` format change** (v29); the user's settings file gains two keys (§4).
@@ -12414,3 +12415,52 @@ timeline (its edges drag since D061 amendment 1) is 8 px high instead of 5 and s
 hover sets it — the strip's own cursor was never seen); a press anywhere on it drags its nearer edge (before: only within 8 px of an
 edge, the middle was the clip's); the dragged edge snaps like the timeline's edges (the playhead, cuts, markers; the indicator shows
 it). The help says both.
+
+## D079 — Phase 60: the plates above YouTube's description, and softer fields and buttons *(set by the owner on 2026-11-23)*
+
+**Status: the scope set by the product owner on 2026-11-23**; his choice of the style «C» (with narrower numeric fields) the
+same day. Branch `feat/phase-60-plates-ui` from `main` `a59d41f`. **No `project.json` format change** (v29), no settings change.
+
+### 0. Step 0 — Phase 59 accepted
+
+PR #89 merged (`a59d41f`) after the owner's check of 1.12.5 (amendments 1–6) — D078, DEVELOPMENT_PLAN, ROADMAP, progress.
+
+### 1. The route plate and the heart rate one plate higher
+
+**Why (the owner):** on YouTube the description shown over the bottom of the video covers «Боулдер»'s route plate and the heart
+rate. **Decided:** in a **bottom** corner the route plate stands one plate height higher than D063 amendment 1's place
+(`CornerOverlayLayout.BottomLiftPlates = 1`: the margin `64 → 176` units plus one plate `62 → 84` units, landscape → portrait,
+× the canvas's short side / 1080) — on every canvas, the vertical one included (Shorts have their own overlay at the bottom too;
+the portrait plate returns about where it stood before D063 amendment 1). The heart rate moves with it: beside the plate in the
+same corner (above it, side by side as before) or on the plate's line in another bottom corner. A **top** corner is unchanged
+(YouTube's overlays there are the title, shown only on a pause, and the plates are already 64 / 200 units down). One computation
+(`PlateRow`) for the Preview and the export, as before: the export's E2E parity tests stay as they are; the geometry and the drawn
+plate are tested (`TransformKeyframesTests`, `KeyframeSnapRenderTests`).
+
+### 2. The fields and buttons
+
+**Research** (from the editors' current interfaces, not measured on screenshots): DaVinci Resolve and Premiere Pro — dark inset
+fields with a thin frame, radius ≈ 3–4, numbers changed mostly by dragging («hot text»), no square arrow buttons; Clipchamp (Fluent 2) —
+filled fields, radius 4–8, the focus a coloured line at the bottom; CapCut — filled fields without a frame, radius ≈ 6–8, the arrows
+small and shown on hover, the focus a thin accent ring. Three variants were drawn with the application's own controls and theme
+(`docs/images/phase60-style-variants.png`): A — thin frame, dark field, radius 4; B — filled, no frame, the focus a green line
+under the field, radius 6; C — filled, soft radius 8, the arrows on hover / focus.
+**The owner chose C** and asked the numeric fields to be no wider than their numbers («максимум 3 символа»). Applied app-wide in
+`BoulderTheme.axaml` (D068's design system), not per view:
+- `ControlCornerRadius` 8 (buttons, fields, lists of choices); a check box and the small 16–20 px buttons (a track's M / S / lock,
+  ▲▼✕, markers, the mixer's states, swatches, the placement grid) keep 3 (`SmallControlCornerRadius`); fields filled `#2A3037`
+  without a frame (a frame shows on hover), the focus a green ring round the **whole** field (a list of choices keeps Fluent's
+  focus outline); buttons `#323941` with Fluent's padding (a wider one wrapped the toolbar);
+- a numeric field: one surface — its inner text box draws no frame of its own; the up / down arrows two small chevrons stacked at
+  its right (18 × 12 each, no square buttons, no separators), shown on hover or focus; the arrow keys, the wheel and typing as before;
+- the numeric widths are the theme's: **60** px for whole numbers of up to three digits and a sign (`NumericFieldWidth`), **80** px
+  (`.wide`) for a fraction or a longer number (seconds, positions, scale, rotation, crop, speed, the animation's times, the heart
+  rate's offsets, the training clock's correction in frames); `.fill` takes its column (the canvas size in Project Settings). No view sets a numeric field's width any more;
+  the Inspector's own spinner sizes (FU-25.1) moved into the theme.
+Checked in the running application at 1024 and 1440 px window widths (the Inspector's holds section, the clip's transform section):
+`docs/images/phase60-window-1024.jpg`, `docs/images/phase60-inspector-holds-1440.jpg`.
+
+### Not included
+
+Dragging a number on its label («hot text» — `ScrubLabel` already does it for some fields); the timeline's own drawing; Phase 61
+(Follow at a scale).

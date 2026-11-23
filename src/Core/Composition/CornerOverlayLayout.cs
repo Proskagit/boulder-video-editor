@@ -12,7 +12,8 @@ namespace AiVideoEditor.Core.Composition;
 /// the aspect ratio (<see cref="Portraitness"/>: 0 at 1 : 1 and wider, 1 at 9 : 16 and taller), never of a resolution.</item>
 /// <item><b>The route plate</b> stands in its own corner (<see cref="TemplateClip.PlateCorner"/>) at the margins of before
 /// — left / right <c>60 → 48</c>, bottom <c>64 → 176</c> (above a phone's controls; 260 before D063 amendment 1), top <c>64 → 200</c> units, landscape →
-/// portrait.</item>
+/// portrait — and in a bottom corner one plate's height higher still (D079: YouTube's description at the bottom covered it); a top
+/// corner stays where it was.</item>
 /// <item><b>The heart rate</b> stands in its corner on the plate's line: centred on the row a plate has there, at the plate's
 /// side margin (D063 amendment 1 — a plate bottom left and the heart rate bottom right on one line). When the route
 /// plate is in the same corner, the heart rate is beside it nearer the canvas centre — above the plate in a bottom corner,
@@ -29,6 +30,9 @@ public static class CornerOverlayLayout
 
     /// <summary>The route plate's height in 1080-units (× <see cref="PlateFactor"/>).</summary>
     public const double PlateHeightUnits = 62;
+
+    /// <summary>D079: how many plate heights a bottom corner's plate (and the heart rate on its row) stands above the margin.</summary>
+    public const double BottomLiftPlates = 1;
 
     /// <summary>The gap between the plate and the heart rate standing beside it, in 1080-units.</summary>
     public const double StackGapUnits = 18;
@@ -63,7 +67,13 @@ public static class CornerOverlayLayout
         var side = Lerp(60, 48, p) * u;
         var outerX = IsLeft(corner) ? side : canvas.Width - side;
         // D063 amendment 1: on a portrait canvas one plate's height nearer the bottom than before (176 instead of 260).
-        var top = IsTop(corner) ? Lerp(64, 200, p) * u : canvas.Height - Lerp(64, 176, p) * u - height;
+        // D079: a bottom corner's plate one plate's height higher (YouTube's description covers the bottom of the picture); the
+        // heart rate standing on this row or beside the plate moves with it.
+        // D079: the row's outer edge (its top in a top corner, its bottom in a bottom one) on a whole pixel, wherever the lift
+        // puts it — as the margins alone did on a 1080-high canvas.
+        var top = IsTop(corner)
+            ? Math.Round(Lerp(64, 200, p) * u)
+            : Math.Round(canvas.Height - Lerp(64, 176, p) * u - BottomLiftPlates * height) - height;
         return (outerX, top, height);
     }
 

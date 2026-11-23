@@ -308,14 +308,37 @@ public class TransformKeyframesTests
     }
 
     [Fact]
-    public void The_landscape_plate_stays_where_it_was_and_the_portrait_one_a_plate_height_nearer_the_bottom()
+    public void A_bottom_plate_stands_one_plate_height_above_its_margin_and_a_top_one_where_it_was()
     {
+        // D079: one plate's height higher than D063 amendment 1's place in a bottom corner (YouTube's description).
         var (x, top, height) = CornerOverlayLayout.PlateRow(new FrameSize(1920, 1080), OverlayCorner.BottomLeft);
-        Assert.Equal((60.0, 1080 - 64 - 62.0, 62.0), (x, top, height));
+        Assert.Equal((60.0, 1080 - 64 - 62.0 - 62.0, 62.0), (x, top, height));
+        var (rx, rtop, _) = CornerOverlayLayout.PlateRow(new FrameSize(1920, 1080), OverlayCorner.BottomRight);
+        Assert.Equal((1920 - 60.0, top), (rx, rtop));
         var (vx, vtop, vheight) = CornerOverlayLayout.PlateRow(new FrameSize(1080, 1920), OverlayCorner.BottomLeft);
         Assert.Equal(48, vx, 9);
-        Assert.Equal(1920 - 176 - 62 * CornerOverlayLayout.PortraitPlateFactor, vtop, 9);
-        Assert.InRange(260 - 176 - vheight, -3, 3);                              // about one plate's height lower than before
+        Assert.Equal(Math.Round(1920 - 176 - 62 * CornerOverlayLayout.PortraitPlateFactor) - vheight, vtop, 9);   // its bottom on a whole pixel
+        Assert.Equal(62 * CornerOverlayLayout.PortraitPlateFactor, vheight, 9);
+        var (_, k4top, k4height) = CornerOverlayLayout.PlateRow(new FrameSize(3840, 2160), OverlayCorner.BottomLeft);
+        Assert.Equal(2160 - 2 * (64 + 62.0 + 62.0), k4top, 9);                   // in 1080-units on any resolution
+        Assert.Equal(124, k4height, 9);
+        // The top corners are unchanged.
+        Assert.Equal(64.0, CornerOverlayLayout.PlateRow(new FrameSize(1920, 1080), OverlayCorner.TopLeft).Top, 9);
+        Assert.Equal(200.0, CornerOverlayLayout.PlateRow(new FrameSize(1080, 1920), OverlayCorner.TopRight).Top, 9);
+    }
+
+    [Fact]
+    public void The_heart_rate_beside_a_bottom_plate_goes_up_with_it_and_stays_side_by_side()
+    {
+        var canvas = new FrameSize(1920, 1080);
+        var (outerX, top, plateHeight) = CornerOverlayLayout.PlateRow(canvas, OverlayCorner.BottomRight);
+        var heart = CornerOverlayLayout.HeartRate(canvas, OverlayCorner.BottomRight, 200, 65, plateCorner: OverlayCorner.BottomRight);
+        Assert.Equal(top - CornerOverlayLayout.StackGapUnits - 65, heart.Y, 9);   // right above the raised plate
+        Assert.Equal(outerX - 200, heart.X, 9);
+        Assert.Equal(1080 - 64 - 2 * 62.0, top, 9);
+        // Alone in a bottom corner: on the raised plate's line.
+        var alone = CornerOverlayLayout.HeartRate(canvas, OverlayCorner.BottomLeft, 200, 65, plateCorner: OverlayCorner.TopLeft);
+        Assert.Equal(top + plateHeight / 2, alone.Y + alone.Height / 2, 9);
     }
 
     [Theory]
