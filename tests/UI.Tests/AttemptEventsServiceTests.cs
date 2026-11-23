@@ -53,7 +53,6 @@ public sealed class AttemptEventsServiceTests : IDisposable
             RouteStart = MediaTime.FromSeconds(60), TimelineStart = MediaTime.FromSeconds(53), Duration = MediaTime.FromSeconds(42),
             Status = BoulderStatus.Attempt
         };
-        _projects.Current.Timeline.VideoTracks[0].Clips.Add(_area);
         _projects.SetTraining(new TrainingReference
         {
             FilePath = @"C:\fit\a.fit", FileSizeBytes = 1, Sha256 = new string('a', 64),
@@ -68,6 +67,14 @@ public sealed class AttemptEventsServiceTests : IDisposable
         });
     }
 
+    /// <summary>The FIT's area made now (the import) — an area already in the project when the service starts is never
+    /// refined (amendment 5).</summary>
+    private void AddArea()
+    {
+        _projects.Current.Timeline.VideoTracks[0].Clips.Add(_area);
+        _projects.NotifyTimelineChanged();
+    }
+
     public void Dispose()
     {
         _ui.Dispose();
@@ -77,6 +84,7 @@ public sealed class AttemptEventsServiceTests : IDisposable
     [Fact]
     public void The_window_of_an_area_is_T_minus_35_s_to_its_end_plus_20_s()
     {
+        _projects.Current.Timeline.VideoTracks[0].Clips.Add(_area);
         var window = Assert.Single(FitAreaEventWindows.Of(_projects.Current));
         Assert.Equal((_area.Id, _clip.MediaAssetId), (window.TemplateId, window.AssetId));
         Assert.Equal((MediaTime.FromSeconds(25), MediaTime.FromSeconds(115)), (window.From, window.To));
@@ -90,6 +98,7 @@ public sealed class AttemptEventsServiceTests : IDisposable
         using var people = new PeopleAnalysisCoordinator(_projects, decoder, new Vision());
         var edit = new Edit();
         _ = new AttemptEventsService(_projects, people, edit, settings, new StatusService());
+        AddArea();
         await people.IdleAsync();
         await Settle();
         Assert.Empty(decoder.Starts);
@@ -106,6 +115,7 @@ public sealed class AttemptEventsServiceTests : IDisposable
         using var people = new PeopleAnalysisCoordinator(_projects, decoder, new Vision());
         var edit = new Edit();
         var service = new AttemptEventsService(_projects, people, edit, settings, new StatusService());
+        AddArea();
         await people.IdleAsync();
         await Settle();
 
@@ -128,6 +138,7 @@ public sealed class AttemptEventsServiceTests : IDisposable
         using var people = new PeopleAnalysisCoordinator(_projects, decoder, new Vision());
         var edit = new Edit();
         _ = new AttemptEventsService(_projects, people, edit, new InMemoryUserSettings(), new StatusService());
+        AddArea();
         await people.IdleAsync();
         await Settle();
         Assert.Single(edit.Calls);
@@ -156,6 +167,7 @@ public sealed class AttemptEventsServiceTests : IDisposable
         using var people = new PeopleAnalysisCoordinator(_projects, new Decoder(), new Vision());
         var edit = new Edit();
         _ = new AttemptEventsService(_projects, people, edit, new InMemoryUserSettings(), new StatusService(), editing);
+        AddArea();
         await people.IdleAsync();
         await Settle();
         Assert.Empty(edit.Calls);                                                   // analysed, but the export locks editing
@@ -276,6 +288,7 @@ public sealed class AttemptEventsServiceTests : IDisposable
         var edit = new Edit();
         var settings = new InMemoryUserSettings();
         _ = new AttemptEventsService(_projects, people, edit, settings, new StatusService());
+        AddArea();
         await people.IdleAsync();
         await Settle();
         Assert.Empty(decoder.Starts);
@@ -286,6 +299,22 @@ public sealed class AttemptEventsServiceTests : IDisposable
         await Settle();
         Assert.Single(decoder.Starts);
         Assert.Single(edit.Calls);
+    });
+
+    [Fact]
+    public Task An_area_already_in_the_project_is_never_refined() => _ui.Run(async () =>
+    {
+        // Amendment 5 (the owner): opening a project with its FIT areas changes nothing — only areas made in the session are.
+        _projects.Current.Timeline.VideoTracks[0].Clips.Add(_area);
+        var decoder = new Decoder();
+        using var people = new PeopleAnalysisCoordinator(_projects, decoder, new Vision());
+        var edit = new Edit();
+        _ = new AttemptEventsService(_projects, people, edit, new InMemoryUserSettings(), new StatusService());
+        _projects.NotifyTimelineChanged();
+        await people.IdleAsync();
+        await Settle();
+        Assert.Empty(decoder.Starts);
+        Assert.Empty(edit.Calls);
     });
 
     private sealed class Edit : IFitMarkEditService

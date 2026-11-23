@@ -12397,3 +12397,10 @@ now the attempt's events) and nothing says that something runs in the background
   after the first.
 - **The version in the window's title:** «Проект — Boulder Video Editor · версия 1.12.3» (the build's stamped version; nothing on an
   unstamped development build).
+
+### D078 amendment 5 — an opened project is never refined (the owner, 2026-11-23)
+
+The refinement applies only to the FIT's areas made in the session — the FIT's import, «Распознать прохождения из FIT» (new
+areas). The areas a project has when it opens (or when the service starts) count as looked at: opening a finished project changes
+none of its lilacs, starts or statuses, and no events are searched for it. (Before: every untouched FIT area of an opened project was
+refined once per session.)

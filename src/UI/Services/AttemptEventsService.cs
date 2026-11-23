@@ -53,10 +53,13 @@ public sealed class AttemptEventsService
         people.StatusChanged += (_, _) => ReportGpu();
         // The windows may be analysed already (in memory from another project, by Follow, in the cache): looked at on every
         // change too, not only when an analysis grows.
+        // Amendment 5 (the owner): only the areas made in this session (the FIT's import, «Распознать прохождения из FIT») are
+        // refined — a project opened keeps its areas as they were saved, so they count as looked at.
         projects.ProjectChanged += (_, _) =>
         {
             _done.Clear();
             _liftCache = null;
+            MarkExistingAsDone();
             people.RefreshNeeds();
             RequestApply();
         };
@@ -72,8 +75,15 @@ public sealed class AttemptEventsService
             {
                 if (e.PropertyName == nameof(EditingLock.IsLocked) && !editingLock.IsLocked) RequestApply();
             };
+        MarkExistingAsDone();
         people.RefreshNeeds();
         RequestApply();
+    }
+
+    /// <summary>The FIT's areas the project has now (opened, or there before this service) are never refined.</summary>
+    private void MarkExistingAsDone()
+    {
+        foreach (var window in FitAreaEventWindows.Of(_projects.Current)) _done.Add(window.TemplateId);
     }
 
     /// <summary>The refinement runs later on the UI context, never inside the notification that asked for it: a timeline change

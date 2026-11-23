@@ -50,6 +50,8 @@ track names; FIT areas of close climbs end where the next begins (one track); a 
 FIT's climbs (27.09's 103026); no fall search for a manual «Боулдер»; the badge's smooth share and the whole queue in its tooltip;
 the version in the window's title. **Gates:** builds 0 / 0, Vision 38, Project 783, Core 2 016, Export 153, Rendering 288, UI 1 370,
 Timeline 1 277, Video 439 (+2 skips), ExportEndToEnd 191 = 6 555. Portable `artifacts/portable/BoulderVideoEditor-1.12.3-win-x64`.
+**Amendment 5 (the owner):** an opened project's FIT areas are never refined — only areas made in the session (test
+`An_area_already_in_the_project_is_never_refined`). UI 1 371. Portable `artifacts/portable/BoulderVideoEditor-1.12.4-win-x64`.
 **Third review: PASS WITH NOTES** — notes kept as is (documented): a refinement landing between two merged steps of a slider or under
 an unfinished strip drag (rare: a window must finish exactly then), the service assumes the UI context (comment added), and the
 known items of D078 «Refined».
