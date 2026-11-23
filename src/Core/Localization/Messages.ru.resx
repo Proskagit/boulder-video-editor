@@ -1510,4 +1510,10 @@
   <data name="Export_CodecUnavailable" xml:space="preserve">
     <value>{0} нельзя закодировать этим FFmpeg (нет {1}), а NVENC для него недоступен.</value>
   </data>
+  <data name="FitRoutes_RefinedByVideo" xml:space="preserve">
+    <value>Области трасс уточнены по видео: {0}.</value>
+  </data>
+  <data name="People_EventsNeedGpu" xml:space="preserve">
+    <value>Поиск событий попытки работает только с видеокартой — области трасс остаются по FIT.</value>
+  </data>
 </root>

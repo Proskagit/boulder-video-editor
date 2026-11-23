@@ -543,6 +543,25 @@ IVideoDecoder (1024 px, hardware decoding) ─► PeopleAnalyzer (Core/People)
 - **UI**: the Inspector's «Слежение и люди» (`InspectorViewModel.People`), the Preview's notice, pick and masks
   (`PreviewViewModel.People`, `Rendering/PeopleOverlay`), wired in `MainWindowViewModel.WirePeople`.
 
+## The attempt's events from the video (Phase 59, D078)
+
+```
+FitAreaEventWindows (Core/People: per FIT route area, T − 35 s … its laid-out end + 20 s)
+   └─ AttemptEventsService (UI) ─► PeopleAnalysisCoordinator.EventSpans: tracks chunks after Follow / Occlusion, GPU only
+         └─ PersonTracks (PersonDetection.Keypoints: RTMPose's 17 COCO points, analysis v3)
+               └─ AttemptEvents.Find (Core/People, pure): climbers → lift-off candidates, falls
+                     └─ IFitMarkEditService.RefineFitAreasFromVideo: «Попытка» lilac ← the fall (±8 s of the watch end − 3 s),
+                        T ← a lift-off (±3 s, no orange); untouched areas only; one Undo step per video; once per session
+TimelineViewModel.Strip: the orange's end sticks to AttemptEventsService.LiftOffsOn(clip) (setting on)
+```
+
+- **Settings** (`UserSettings`): `RefineFallFromVideo` (on), `SnapRouteStartToLiftOff` (off) — the settings window's «FIT-тренировки».
+- **GPU only**: `IPeopleVision.PrepareDetector` before an events' run; on the processor the coordinator sets `EventsNeedGpu` and
+  never fails the video's own analysis; the service says so once.
+- **The manual «Боулдер»** (`TimelineEditService.AddTemplateClip`): over a video clip a route area of that clip
+  (`NewRouteTemplate`, `PlaceRouteTemplate`); over none a free template (D056 §5).
+- The rules' accuracy and their origin: `docs/ATTEMPT_EVENTS_RESEARCH.md` (the lab `C:\BoulderHighlightLab`).
+
 ## Telemetry — FIT trainings: COROS, Garmin and others (Phase 35, D050, D049; Phase 43, D062)
 
 - **Core `Telemetry/`**: `FitFile` (FIT reader), `FitWorkoutParser` → `ClimbingWorkout` (any maker's activity by the FIT

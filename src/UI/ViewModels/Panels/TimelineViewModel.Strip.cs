@@ -1,4 +1,5 @@
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Playback;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.UI.Common;
 using AiVideoEditor.UI.Localization;
@@ -347,7 +348,7 @@ public sealed partial class TimelineViewModel
         var excluded = strip.TemplateId is { } templateId && _clipViewModels.TryGetValue(templateId, out var template)
             ? new[] { template }
             : Array.Empty<TimelineClipViewModel>();
-        var delta = ApplySnap(moved.Select(m => m + rawDelta).ToList(), excluded, rawDelta);
+        var delta = LiftOffSnap(clip, handle, moved[0], rawDelta) ?? ApplySnap(moved.Select(m => m + rawDelta).ToList(), excluded, rawDelta);
         g.StripFrames = (moved[0] + delta).ToNearestFrame(FrameRate) - moved[0].ToNearestFrame(FrameRate);
 
         if (_edit.PreviewOverlayStrip(clip.Id, handle, g.StripFrames, g.StripRouteId) is not { } preview) return;
@@ -368,6 +369,30 @@ public sealed partial class TimelineViewModel
             if (preview.Strip.Lilac is { } lilac)
                 templateVm.StatusMarkX = TimelineCoordinateMapper.TimeToX(MediaTime.FromFrame(lilac.Start - green.Start, FrameRate), PixelsPerSecond);
         }
+    }
+
+    /// <summary>D078 §3: while «Притягивать начало трассы к отрыву» is on, the orange's end sticks to a lift-off of the clip's video
+    /// within the snap tolerance (before the timeline's own targets); null — none that near.</summary>
+    private MediaTime? LiftOffSnap(TimelineClipViewModel clip, OverlayStripHandle handle, MediaTime from, MediaTime rawDelta)
+    {
+        if (handle != OverlayStripHandle.OrangeEnd || _attemptEvents is null || !SnappingEnabled || clip.Clip is not VideoClip video) return null;
+        var lifts = _attemptEvents.LiftOffsAround(video,
+            HoldAnimationRule.SourceTimeAt(video.TimelineStart, video.SourceIn, video.Speed, from.ToNearestFrame(FrameRate), FrameRate));
+        if (lifts.IsDefaultOrEmpty) return null;
+        var target = from + rawDelta;
+        var tolerance = TimelineCoordinateMapper.XToTime(SnapTolerancePixels, PixelsPerSecond);
+        MediaTime? best = null;
+        foreach (var lift in lifts)
+        {
+            var at = MediaTime.FromFrame(HoldAnimationRule.StartFrame(video.TimelineStart, video.SourceIn, video.Speed, lift, FrameRate), FrameRate);
+            if (at < video.TimelineStart || at > video.TimelineEnd) continue;
+            var d = Math.Abs((at - target).Ticks);
+            if (d <= tolerance.Ticks && (best is not { } b || d < Math.Abs((b - target).Ticks))) best = at;
+        }
+        if (best is not { } snapped) return null;
+        SnapIndicatorX = TimelineCoordinateMapper.TimeToX(snapped, PixelsPerSecond);
+        IsSnapIndicatorVisible = true;
+        return snapped - from;
     }
 
     /// <summary>The release: one edit (no step when the boundaries are where they were); a refusal reported, the strip back.</summary>

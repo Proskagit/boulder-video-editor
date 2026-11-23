@@ -311,6 +311,10 @@ public sealed partial class TimelineEditService
         var rate = plan.Rate;
         var startFrame = Math.Max(0, start.ToNearestFrame(rate));
         var frames = Math.Max(1, TemplateRules.DefaultDuration(kind).ToNearestFrame(rate));
+        // D078 §2 Q4: a «Боулдер» over a video clip is that clip's route area (green, lilac, the strip, the heart rate).
+        if (kind == TemplateKind.Boulder && TopVideoClipAt(startFrame, rate) is { } under &&
+            under.TimelineEnd.ToNearestFrame(rate) - startFrame >= 2)
+            return AddAnchoredBoulder(plan, under, startFrame, frames);
         // Phase 35.5: the heart-rate overlay covers the rest of the video clip below the playhead — what it reads its BPM
         // from — or the default length when there is none.
         if (kind == TemplateKind.HeartRate && VideoClipBelow(track, startFrame, rate) is { } below)
@@ -342,6 +346,34 @@ public sealed partial class TimelineEditService
 
         Commit(plan, "Add Template");
         return TimelineEditResult.Ok(new[] { clip.Id });
+    }
+
+    /// <summary>D078 §2 Q4: the video clip on the topmost visible track showing one at <paramref name="frame"/> (templates and texts
+    /// above it skipped); null over no video clip.</summary>
+    private VideoClip? TopVideoClipAt(long frame, FrameRate rate)
+    {
+        var time = MediaTime.FromFrame(frame, rate);
+        return Sequence.VideoTracks.Where(t => !t.IsHidden).OrderByDescending(t => t.Order)
+            .Select(t => t.Clips.OfType<VideoClip>().FirstOrDefault(c => c.TimelineStart <= time && time < c.TimelineEnd))
+            .FirstOrDefault(c => c is not null);
+    }
+
+    /// <summary>D078 §2 Q4: a new route area of <paramref name="video"/> from <paramref name="startFrame"/> (the default length cut
+    /// to the clip): a route id of its own, the status moment the last <see cref="LayoutFinal"/>, placed like the FIT's areas
+    /// (the first free unlocked track above the clip, else a new one). One Undo step.</summary>
+    private TimelineEditResult AddAnchoredBoulder(EditPlan plan, VideoClip video, long startFrame, long frames)
+    {
+        var rate = plan.Rate;
+        var ve = video.TimelineEnd.ToNearestFrame(rate);
+        long ps = startFrame, pe = Math.Min(ve, startFrame + frames);
+        var s = Math.Max(pe - LayoutFinal.ToNearestFrame(rate), ps + 1);
+        var template = NewRouteTemplate(video.Id, Guid.NewGuid(), ps, pe, s, rate);
+        if (PlaceRouteTemplate(plan, video, template, ps, pe, out var addTrack) is { } placeError) return TimelineEditResult.Fail(placeError);
+        if (Validate(plan) is { } error) return TimelineEditResult.Fail(string.Format(Messages.Edit_CantAddTemplate, plan.TrackOf(video).Name, error));
+        IUndoableCommand command = plan.BuildCommand("Add Template");
+        if (addTrack is not null) command = new CompositeCommand("Add Template", new[] { addTrack, command });
+        ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok(new[] { template.Id });
     }
 
     /// <summary>The video clip whose picture is right below <paramref name="track"/> at <paramref name="frame"/>: on the

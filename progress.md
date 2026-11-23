@@ -6,7 +6,33 @@
 `e9ccdf1`). **Step 0:** Phase 58 accepted (PR #88 merged, check of 1.11.0 without remarks). **Research** (lab `C:\BoulderHighlightLab`,
 stages 0–2, `docs/ATTEMPT_EVENTS_RESEARCH.md`): fall within 1 s on 6 / 7 routes of the independent day; lift-off exact only when the
 right candidate is chosen (~half); top not detectable (often out of frame). **The owner's answers:** background, GPU only, lift-off
-3 s + magnet, manual «Боулдер» anchored; settings — fall on, lift-off off by default. **In progress:** implementation.
+3 s + magnet, manual «Боулдер» anchored; settings — fall on, lift-off off by default. **Done:** `PersonDetection.Keypoints`
+(17 COCO points, cache `tracks-v3` / `AIVEPPT2`), `IPeopleVision.PrepareDetector`; `Core/People/AttemptEvents` (the research's rules v3,
+ported and checked on the lab's 28 routes with the product's tracker) and `FitAreaEventWindows`; `PeopleAnalysisCoordinator.EventSpans`
+(the events' windows after the clips' needs, GPU only, `EventsNeedGpu` / `EventsStopped`, never the export's wait, `HasTracks`);
+`TimelineEditService.RefineFitAreasFromVideo` (lilac of «Попытка» ← fall ±8 s of the watch end − 3 s, after `T`; `T` ← lift-off ±3 s
+without an orange; untouched areas only; one step per video); `AttemptEventsService` (once per session, on analysis / timeline /
+project / settings changes, waits for the export lock); settings `refineFallFromVideo` (on) / `snapRouteStartToLiftOff` (off) in
+«FIT-тренировки»; the orange end's magnet (±30 s, with the timeline's snapping); a manual «Боулдер» over a video clip anchored to it.
+**Product path on real footage** (lab `tools/ProductPath`, 1024 px, ≈ 3× real time): fall ≤ 2 s on 6 / 6 and 7 / 8 routes, none > 3 s.
+**Tests:** `AttemptEventsTests` (5), `PersonKeypointsTests` (1), the cache round trip with keypoints, `AttemptEventsEditTests` (10),
+`AttemptEventsServiceTests` (5), two coordinator tests, `UserSettingsStoreTests` (old file → defaults); two `RouteTimingEditTests`
+unanchor their «Боулдер» (D078 Q4). Manual plan `docs/PHASE59_MANUAL_TEST_PLAN.md`.
+**Review (phase-reviewer): FAIL** — (1) refinement never ran when the windows were analysed already (reopened project, areas made
+again) → applied on timeline / project changes too, tested; (2) it could edit during an export → waits for the editing lock, tested;
+(3) gates / D078 refinements not recorded → recorded. Notes taken: events' failures never fail the video's analysis, the magnet's
+window, the magnet honours snapping, no lilac before `T`, guard tests (locked track, orange, moved lilac, Undo of `T`, settings file).
+**Re-review: FAIL** — the refinement ran synchronously inside the command whose Execute / Undo notified the timeline's change (its step
+recorded before the creation's) → posted to the UI context, its own step after the notifying command; test on the real edit service
+and undo stack (`Areas_made_again_over_analysed_windows_…`, fails without the fix); an unrequested cancellation of an events' run
+never marks the video failed.
+**Third review: PASS WITH NOTES** — notes kept as is (documented): a refinement landing between two merged steps of a slider or under
+an unfinished strip drag (rare: a window must finish exactly then), the service assumes the UI context (comment added), and the
+known items of D078 «Refined».
+**Gates (2026-11-23, after the fixes):** Debug / Release `--no-incremental -warnaserror` 0 / 0, ModelTests build 0, `git diff --check`
+clean; Release + `AIVE_HEAVY_TESTS=1`: Vision 38, Project 783, Core 2 016, Export 153, Rendering 288, UI 1 361 (after the re-review fix;
+the builds again 0 / 0), Timeline 1 272, Video 438 (+2 skips as before), ExportEndToEnd 191 = 6 540.
+**Not done:** the re-review, commit / PR, the portable build, the owner's manual check.
 
 **Phase 58 — a faster export without the graphics card (D077, FU-EX.2, 2026-11-23) — on `feat/phase-58-export-speed`** (from
 `origin/main` `274b529`). **Step 0:** Phase 57 accepted (PR #87 merged). **Research** (`docs/EXPORT_PERFORMANCE.md` §9): the export on

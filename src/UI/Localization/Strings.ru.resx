@@ -4263,4 +4263,19 @@
 • NVENC: с H.264 и AV1 экспорт идёт с одной скоростью; HEVC на «Медленно» — примерно на 10 % медленнее.
 • Формат файла: MP4 — для всего; MOV — для монтажа на Apple; MKV — для плееров и архива. AV1 — только в MP4 или MKV.</value>
   </data>
+  <data name="AppSettings_AttemptEvents" xml:space="preserve">
+    <value>События попытки по видео</value>
+  </data>
+  <data name="AppSettings_RefineFall" xml:space="preserve">
+    <value>Уточнять конец срыва по видео</value>
+  </data>
+  <data name="AppSettings_RefineFallNote" xml:space="preserve">
+    <value>У областей трасс из FIT со статусом «Попытка» лиловая область начинается в момент срыва, найденный по видео (по скелету скалолаза; в фоне, только с видеокартой). Области, изменённые вручную, не трогаются.</value>
+  </data>
+  <data name="AppSettings_SnapLiftOff" xml:space="preserve">
+    <value>Притягивать начало трассы к отрыву</value>
+  </data>
+  <data name="AppSettings_SnapLiftOffNote" xml:space="preserve">
+    <value>Начало трассы T у областей из FIT сдвигается к найденному по видео отрыву ног от пола, если он не дальше 3 с; при перетаскивании конца оранжевой области — магнит к найденным отрывам. Находит отрыв не на каждой трассе — проверяйте начало.</value>
+  </data>
 </root>

@@ -114,6 +114,24 @@ public sealed class UserSettingsStoreTests : IDisposable
         Assert.True(Settings().Current.RouteProposalsEnabled);
     }
 
+    [Fact]
+    public void A_file_without_the_attempt_events_keys_loads_with_the_fall_on_and_the_lift_off_off()
+    {
+        // D078 §4: «refineFallFromVideo» on and «snapRouteStartToLiftOff» off by default — also for a file written before them.
+        Settings().Update(s => s with { CanvasSnapPixels = 5 });
+        var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(SettingsPath))!;
+        Assert.Equal(2, RemoveKeys(json, "refineFallFromVideo", "snapRouteStartToLiftOff"));
+        File.WriteAllText(SettingsPath, json.ToJsonString());
+
+        var reread = Settings();
+        Assert.Equal(UserFileState.Usable, reread.FileState);
+        Assert.True(reread.Current.RefineFallFromVideo);
+        Assert.False(reread.Current.SnapRouteStartToLiftOff);
+        reread.Update(s => s with { RefineFallFromVideo = false, SnapRouteStartToLiftOff = true });
+        Assert.False(Settings().Current.RefineFallFromVideo);
+        Assert.True(Settings().Current.SnapRouteStartToLiftOff);
+    }
+
     /// <summary>Removes the properties named <paramref name="names"/> (any case) wherever they are; how many were removed.</summary>
     private static int RemoveKeys(System.Text.Json.Nodes.JsonNode node, params string[] names)
     {

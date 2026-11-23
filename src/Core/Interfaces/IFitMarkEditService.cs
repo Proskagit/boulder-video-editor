@@ -38,4 +38,9 @@ public interface IFitMarkEditService
     /// the layout's start before it to its end plus 5 s; no holds, no animation, no status; never twice for a climb on
     /// one video, existing areas never changed. One Undo step; with nothing new no step and a message.</summary>
     TimelineEditResult CreateRoutesFromFit(Guid? clipId = null);
+
+    /// <summary>D078 §3: the FIT's route areas whose bounds are still the laid-out ones refined by the attempt's events of their
+    /// windows (by template id): on «Попытка» the lilac from the fall (<paramref name="fall"/>), <c>T</c> to a lift-off within 3 s
+    /// (<paramref name="liftOff"/>). One Undo step; nothing moved → no step.</summary>
+    TimelineEditResult RefineFitAreasFromVideo(IReadOnlyDictionary<Guid, Core.People.AttemptEventSet> events, bool fall, bool liftOff);
 }

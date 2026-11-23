@@ -1510,4 +1510,10 @@
   <data name="Export_CodecUnavailable" xml:space="preserve">
     <value>{0} can't be encoded with this FFmpeg ({1} is missing) and NVENC is unavailable for it.</value>
   </data>
+  <data name="FitRoutes_RefinedByVideo" xml:space="preserve">
+    <value>Route areas refined by the video: {0}.</value>
+  </data>
+  <data name="People_EventsNeedGpu" xml:space="preserve">
+    <value>The attempt's events are searched only with a graphics card — the route areas stay by the FIT.</value>
+  </data>
 </root>

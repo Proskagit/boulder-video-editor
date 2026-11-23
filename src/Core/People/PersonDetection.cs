@@ -47,8 +47,33 @@ public readonly record struct NormalizedBox(double X0, double Y0, double X1, dou
 /// </summary>
 public sealed record PersonDetection(NormalizedBox Box, float Score, NormalizedPoint? Torso, ImmutableArray<float> Appearance)
 {
+    /// <summary>The number of COCO keypoints RTMPose gives (nose, eyes, ears, shoulders, elbows, wrists, hips, knees, ankles).</summary>
+    public const int KeypointCount = 17;
+
+    /// <summary>A keypoint's score below which it is not used (the pose's own threshold).</summary>
+    public const float KeypointThreshold = 0.3f;
+
     /// <summary>The point the camera follows (D061 §3): the torso centre, or the box centre without a confident pose.</summary>
     public NormalizedPoint Anchor => Torso ?? Box.Center;
+
+    /// <summary>D078 §3: the pose's 17 COCO keypoints — x, y (normalized like <see cref="Box"/>) and score each, 51 values;
+    /// empty when no pose was run for the person.</summary>
+    public ImmutableArray<float> Keypoints { get; init; } = ImmutableArray<float>.Empty;
+
+    /// <summary>Keypoint <paramref name="index"/> when the pose has it with a score of at least
+    /// <see cref="KeypointThreshold"/>; null otherwise.</summary>
+    public NormalizedPoint? KeypointAt(int index)
+    {
+        if (Keypoints.IsDefault || Keypoints.Length < KeypointCount * 3 || index < 0 || index >= KeypointCount) return null;
+        return Keypoints[index * 3 + 2] >= KeypointThreshold ? new NormalizedPoint(Keypoints[index * 3], Keypoints[index * 3 + 1]) : null;
+    }
+}
+
+/// <summary>The COCO keypoints D078's attempt events read.</summary>
+public static class CocoKeypoint
+{
+    public const int LeftShoulder = 5, RightShoulder = 6, LeftWrist = 9, RightWrist = 10, LeftHip = 11, RightHip = 12,
+        LeftAnkle = 15, RightAnkle = 16;
 }
 
 /// <summary>The people of one analysed frame at source time <see cref="Time"/> (100 ns ticks from the file's start), with the

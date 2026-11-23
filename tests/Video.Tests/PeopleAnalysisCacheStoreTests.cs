@@ -30,7 +30,10 @@ public sealed class PeopleAnalysisCacheStoreTests : IDisposable
         var samples = Enumerable.Range(0, 40).Select(i => new PersonSample(MediaTime.FromSeconds(i * 0.1),
             ImmutableArray.Create(
                 new PersonDetection(new NormalizedBox(0.1 + i * 0.01, 0.2, 0.3 + i * 0.01, 0.8), 0.91f, new NormalizedPoint(0.2 + i * 0.01, 0.45),
-                    ImmutableArray.Create(Enumerable.Range(0, PersonAppearance.Length).Select(k => k / 100f).ToArray())),
+                    ImmutableArray.Create(Enumerable.Range(0, PersonAppearance.Length).Select(k => k / 100f).ToArray()))
+                {
+                    Keypoints = ImmutableArray.Create(Enumerable.Range(0, PersonDetection.KeypointCount * 3).Select(k => (k + i) / 60f).ToArray())
+                },
                 new PersonDetection(new NormalizedBox(0.6, 0.3, 0.8, 0.9), 0.4f, null, ImmutableArray<float>.Empty)),
             ImmutableArray.Create(0, i % 3 == 0 ? -1 : 1))).ToImmutableArray();
         return PersonTracks.Of(MediaTime.FromSeconds(0.1), samples, "people-v1");
@@ -63,6 +66,7 @@ public sealed class PeopleAnalysisCacheStoreTests : IDisposable
                 var (a, b) = (tracks.Samples[i].People[p], loaded.Samples[i].People[p]);
                 Assert.Equal((a.Box, a.Score, a.Torso), (b.Box, b.Score, b.Torso));
                 Assert.Equal(a.Appearance.ToArray(), b.Appearance.ToArray());
+                Assert.Equal(a.Keypoints.ToArray(), b.Keypoints.ToArray());   // D078 §3
             }
         }
     }

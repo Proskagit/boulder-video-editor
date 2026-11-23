@@ -585,3 +585,4 @@ src/Core/Entities/TemplateRules.cs	ON ROUTES
 # D076: the encoders' own names (as «NVENC», «libx264» — product names, not translated)
 src/Core/Export/ExportVideoPlan.cs	NVENC HEVC
 src/Core/Export/ExportVideoPlan.cs	NVENC AV1
+src/Timeline/TimelineEditService.AttemptEvents.cs	Refine Areas from Video

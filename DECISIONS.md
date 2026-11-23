@@ -12298,7 +12298,33 @@ PR #88 merged (`e9ccdf1`) after the owner's check of 1.11.0 (no remarks) — D07
 ### 4. Settings
 
 `UserSettings.RefineFallFromVideo` (`refineFallFromVideo`, default true) and `UserSettings.SnapRouteStartToLiftOff`
-(`snapRouteStartToLiftOff`, default false); in the settings window under «Тренировка» with a one-line explanation each.
+(`snapRouteStartToLiftOff`, default false); in the settings window's «FIT-тренировки» (a sub-heading «События попытки по видео»)
+with a note each.
+
+### Refined in the implementation (2026-11-23)
+
+- **The window's end** is the area's laid-out end + 20 s (`FitAreaEventWindows`) — the laid-out end is the watch's end − 4.6 s + 5 s,
+  so ≈ the watch's end + 20 s without reading the FIT again; its start `T` − 35 s (`RouteStart`, else the green's start + 7 s).
+- **`T` with an orange is the user's**: a route whose markup has a Duration animation (the orange) never has its `T` snapped.
+- **The fall only on an untouched lilac**: the status moment must still be the laid-out one (`FitLayout.StatusAt`), and the fall must
+  lie after `T` (never a lilac before the route's start) with room for the status before the clip's end.
+- **When the refinement runs**: a video's areas once all their windows are analysed (one Undo step per video) — on an analysis's
+  growth, on every timeline or project change (the windows may be analysed already: by Follow, from the cache, in memory from an
+  earlier opening) and on a settings change; **never while an export locks editing** — it waits for the lock's release (the export
+  lock's rule). Never inside the notification that asked for it: it is posted to the UI context and runs after the command (or
+  its Undo / Redo, or an edit gathered into one step) that notified the change is recorded — its own step above it. Once per
+  session per area (`_done`); a project opened again is looked at again.
+- **Without the events**: `EventsNeedGpu` when the detector is on the processor (the one status message); any other failure of an
+  events' run (a model, a decoding error) stops the events for the session (`EventsStopped`, logged) and never marks the video's own
+  analysis failed.
+- **The magnet** reads the lift-offs within ±30 s of the dragged end (the rules are made for an attempt's window, not a whole clip of
+  a training), only while the timeline's snapping is on.
+- **The manual «Боулдер»**: the topmost visible video clip at the playhead (`TopVideoClipAt`, templates and texts above skipped);
+  a remainder of the clip shorter than 2 frames → a free template as before; a locked topmost track refuses as before.
+- **Checked on the product's own path** (the lab's `tools/ProductPath`: `FfmpegVideoDecoder` + `PeopleAnalyzer` at 1024 px +
+  `OnnxPeopleVision` + `AttemptEvents`, the 28 routes' FIT windows; ≈ 3× real time on the RTX 4070 SUPER): the fall within 2 s on
+  6 / 6 (27.09) and 7 / 8 (08.08) routes, none off by more than 3 s; `T` snapped within 3 s exact (≤ 0.5 s) on 3 / 11 and 5 / 17,
+  worse than the FIT's `T` on 1 route of each day.
 
 ### Out of scope
 

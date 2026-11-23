@@ -58,6 +58,8 @@ public class PeopleAnalyzerTests
         public string ModelId => "fake";
         public InferenceDevice DetectorDevice => InferenceDevice.Cpu;
 
+        public InferenceDevice PrepareDetector(CancellationToken cancellationToken) => DetectorDevice;
+
         public static double Seconds(DecodedFrame frame) => frame.Timestamp.Pts / 30.0;
 
         public IReadOnlyList<PersonDetection> Detect(DecodedFrame frame, CancellationToken cancellationToken)
