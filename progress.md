@@ -2,7 +2,12 @@
 
 ## Current phase
 
-**Phase 60 — the plates above YouTube's description, softer fields and buttons (D079, 2026-11-23) — on
+**No phase in progress (2026-11-24).** Phase 60 accepted by the owner (check of 1.13.1, PR #90 merged `48bf90a`); the release
+**v1.13.1** built from `48bf90a` by `New-Release.ps1` (setup, web setup, portable zip, the FFmpeg sources tar, `SHA256SUMS`),
+`Test-Installer.ps1` 49 / 49 PASS, a GitHub draft release with its assets and Russian notes, published by the owner (Phases 59 and 60 since v1.11.0; 1.12.x were portable builds only). README
+gained Phase 59's falls / lift-off and the background badge. Next: Phase 61 (Follow keeps the climber at a scale) — not started.
+
+**Phase 60 — the plates above YouTube's description, softer fields and buttons (D079, 2026-11-23) — accepted 2026-11-24 — on
 `feat/phase-60-plates-ui`** (from `origin/main` `a59d41f`; `project.json` v29 unchanged). **Step 0:** Phase 59 accepted (check of
 1.12.5, PR #89 merged). **Plates:** in a bottom corner «Боулдер»'s route plate one plate height higher
 (`CornerOverlayLayout.BottomLiftPlates`), the heart rate with it (beside the plate or on its line); top corners unchanged; one
