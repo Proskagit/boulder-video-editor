@@ -96,6 +96,11 @@ jobs:
 
       - name: Test
         id: test
+        # Phase 60: the suites start in parallel and the blame data collector of one may take longer than vstest's default
+        # 90 s to connect on a busy runner — the run was aborted twice so ("failed to connect to datacollector"), every test
+        # that ran green. The connection timeout only; no test's own timeout changes.
+        env:
+          VSTEST_CONNECTION_TIMEOUT: 300
         run: >
           dotnet test AiVideoEditor.sln --no-build
           --blame-hang --blame-hang-timeout 10m

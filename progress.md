@@ -28,8 +28,9 @@ pixel (as the margins alone did).
 «Слежение и люди» evenly spaced). Nothing else found by the owner. **Gates:** builds 0 / 0; Vision 38, Project 783, Core 2 017,
 Export 153, Rendering 290, UI 1 376, Timeline 1 277, Video 439 (+2 skips), ExportEndToEnd 191 = 6 564 (UI and Export each had one timing
 test time out in the whole-solution run — `PreviewLayersTests.While_scrubbing_…`, `ExportServiceTests.A_rasterizer_failure_…` — and
-pass whole alone). CI of `ca542eb`: every suite green, the run aborted by «testhost process failed to connect to datacollector» (the
-runner, not a test). Portable `artifacts/portable/BoulderVideoEditor-1.13.1-win-x64`.
+pass whole alone). CI of `ca542eb` and `aa34909`: every suite that ran green, both runs aborted by «failed to connect to datacollector process
+after 90 seconds» (Video.Tests never started; the blame collector on a busy `windows-2025` runner) → the CI's test step sets
+`VSTEST_CONNECTION_TIMEOUT=300` (the connection only, no test timeout changed). Portable `artifacts/portable/BoulderVideoEditor-1.13.1-win-x64`.
 **Review (phase-reviewer): PASS WITH NOTES** — taken: the training clock's correction (frames, unbounded) `.wide`; the
 16–20 px buttons (track M / S / lock, ▲▼✕, markers, mixer states, swatches, placement grid) keep a small radius
 (`SmallControlCornerRadius` 3); the wider button padding withdrawn (it wrapped the toolbar more); the manual plan's ComboBox focus
