@@ -2,6 +2,12 @@
 
 ## Current phase
 
+**Phase 59 — the attempt's events from the video (D078, 2026-11-23) — on `feat/phase-59-attempt-events`** (from `origin/main`
+`e9ccdf1`). **Step 0:** Phase 58 accepted (PR #88 merged, check of 1.11.0 without remarks). **Research** (lab `C:\BoulderHighlightLab`,
+stages 0–2, `docs/ATTEMPT_EVENTS_RESEARCH.md`): fall within 1 s on 6 / 7 routes of the independent day; lift-off exact only when the
+right candidate is chosen (~half); top not detectable (often out of frame). **The owner's answers:** background, GPU only, lift-off
+3 s + magnet, manual «Боулдер» anchored; settings — fall on, lift-off off by default. **In progress:** implementation.
+
 **Phase 58 — a faster export without the graphics card (D077, FU-EX.2, 2026-11-23) — on `feat/phase-58-export-speed`** (from
 `origin/main` `274b529`). **Step 0:** Phase 57 accepted (PR #87 merged). **Research** (`docs/EXPORT_PERFORMANCE.md` §9): the export on
 the GPU — at most ×1.7 at 4K (NVENC itself 65–78 fps at p7 / p5), a second renderer; a hybrid 0–4 % → not made (the owner). **Done:**
