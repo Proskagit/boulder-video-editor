@@ -19,19 +19,7 @@
     <Style Selector="NumericUpDown">
       <Setter Property="ParsingNumberStyle" Value="{x:Static common:NumericInput.ParsingStyle}"/>
     </Style>
-    <!-- FU-25.1: in a 104 px field Fluent's two spinner buttons (≈ 35 px each) left the text ≈ 19 px — «100» showed as «10(».
-         Narrower buttons (22 px) and a smaller text padding give the text ≈ 49 px at the same field width and height; the
-         buttons, the arrow keys and typing work as before. Fluent sizes these parts in theme styles with an activator, which
-         win over a plain selector, so these selectors carry one too (`:not(.theme-size)` — no element has that class). -->
-    <Style Selector="NumericUpDown /template/ ButtonSpinner /template/ RepeatButton:not(.theme-size)">
-      <Setter Property="MinWidth" Value="0"/>
-      <Setter Property="Width" Value="22"/>
-      <Setter Property="Padding" Value="0"/>
-    </Style>
-    <Style Selector="NumericUpDown /template/ TextBox:not(.theme-size)">
-      <Setter Property="MinWidth" Value="0"/>
-      <Setter Property="Padding" Value="6,5,4,6"/>
-    </Style>
+    <!-- FU-25.1 / D079 §2: the numeric fields' arrows, padding and widths are the theme's (BoulderTheme). -->
     <!-- D039 §6: one label column for every field — wide enough for the Russian labels, a long one wraps instead of being cut. -->
     <Style Selector="TextBlock.label">
       <Setter Property="Width" Value="120"/>
@@ -54,6 +42,7 @@
       <Setter Property="MinWidth" Value="0"/>
       <Setter Property="Padding" Value="2"/>
       <Setter Property="Margin" Value="0,0,4,4"/>
+      <Setter Property="CornerRadius" Value="{DynamicResource SmallControlCornerRadius}"/>
     </Style>
     <Style Selector="Button.swatch > Border">
       <Setter Property="CornerRadius" Value="2"/>
@@ -66,6 +55,7 @@
       <Setter Property="MinWidth" Value="0"/>
       <Setter Property="Padding" Value="0"/>
       <Setter Property="Margin" Value="1"/>
+      <Setter Property="CornerRadius" Value="{DynamicResource SmallControlCornerRadius}"/>
     </Style>
     <!-- D068 amendment 1 (as CapCut): the slider between the label and its field, on the field's line. -->
     <Style Selector="Slider.inline">
@@ -199,7 +189,7 @@
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{x:Static l:Strings.Inspector_Duration}" Classes="label"/>
                 <controls:CommitNumericUpDown Value="{Binding DissolveFrames, Mode=TwoWay}" Increment="1" Minimum="{Binding MinDissolveFrames}"
-                               Maximum="{Binding MaxDissolveFrames}" FormatString="0" Width="72"/>
+                               Maximum="{Binding MaxDissolveFrames}" FormatString="0"/>
                 <TextBlock Text="{x:Static l:Strings.Unit_Frames}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
               </StackPanel>
               <TextBlock Text="{Binding DissolveTimeDisplay}" Foreground="{DynamicResource TextMutedBrush}" FontSize="{DynamicResource FontSizeCaption}" Margin="128,-4,0,0"/>
@@ -245,9 +235,9 @@
                       Value="{Binding TransitionSeconds, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
                       ToolTip.Tip="{x:Static l:Strings.Inspector_Duration}"/>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
-                  <controls:CommitNumericUpDown x:Name="TransitionSecondsField" Value="{Binding TransitionSeconds, Mode=TwoWay}" Increment="0.1"
+                  <controls:CommitNumericUpDown Classes="wide" x:Name="TransitionSecondsField" Value="{Binding TransitionSeconds, Mode=TwoWay}" Increment="0.1"
                                StepCommand="{Binding StepTransitionSecondsCommand}"
-                               Minimum="{Binding MinTransitionSeconds}" Maximum="{Binding MaxTransitionSeconds}" FormatString="0.##" Width="60"/>
+                               Minimum="{Binding MinTransitionSeconds}" Maximum="{Binding MaxTransitionSeconds}" FormatString="0.##"/>
                   <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                 </StackPanel>
               </Grid>
@@ -286,19 +276,19 @@
             <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasOpacity}">
               <TextBlock Text="{x:Static l:Strings.Inspector_Opacity}" Classes="label"/>
               <controls:CommitNumericUpDown x:Name="GroupOpacityBox" Value="{Binding OpacityPercent, Mode=TwoWay}" Increment="1"
-                             Minimum="{Binding MinOpacityPercent}" Maximum="{Binding MaxOpacityPercent}" FormatString="0.####" Width="72" Watermark="—"/>
+                             Minimum="{Binding MinOpacityPercent}" Maximum="{Binding MaxOpacityPercent}" FormatString="0.####" Watermark="—"/>
               <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasFades}">
               <TextBlock Text="{x:Static l:Strings.Inspector_FadeIn}" Classes="label"/>
               <controls:CommitNumericUpDown x:Name="GroupFadeInBox" Value="{Binding FadeInFrames, Mode=TwoWay}" Increment="1"
-                             Minimum="0" FormatString="0.####" Width="72" Watermark="—"/>
+                             Minimum="0" FormatString="0.####" Watermark="—"/>
               <TextBlock Text="{x:Static l:Strings.Unit_Frames}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasFades}">
               <TextBlock Text="{x:Static l:Strings.Inspector_FadeOut}" Classes="label"/>
               <controls:CommitNumericUpDown x:Name="GroupFadeOutBox" Value="{Binding FadeOutFrames, Mode=TwoWay}" Increment="1"
-                             Minimum="0" FormatString="0.####" Width="72" Watermark="—"/>
+                             Minimum="0" FormatString="0.####" Watermark="—"/>
               <TextBlock Text="{x:Static l:Strings.Unit_Frames}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
             </StackPanel>
               </StackPanel>
@@ -314,42 +304,42 @@
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{x:Static l:Strings.Color_Exposure}" Classes="label"/>
                 <controls:CommitNumericUpDown x:Name="GroupColorExposureBox" Value="{Binding ColorExposure, Mode=TwoWay}" Increment="1"
-                               Minimum="{Binding MinColor}" Maximum="{Binding MaxColor}" FormatString="0.####" Width="72" Watermark="—"/>
+                               Minimum="{Binding MinColor}" Maximum="{Binding MaxColor}" FormatString="0.####" Watermark="—"/>
               </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{x:Static l:Strings.Color_Brightness}" Classes="label"/>
                 <controls:CommitNumericUpDown x:Name="GroupColorBrightnessBox" Value="{Binding ColorBrightness, Mode=TwoWay}" Increment="1"
-                               Minimum="{Binding MinColor}" Maximum="{Binding MaxColor}" FormatString="0.####" Width="72" Watermark="—"/>
+                               Minimum="{Binding MinColor}" Maximum="{Binding MaxColor}" FormatString="0.####" Watermark="—"/>
               </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{x:Static l:Strings.Color_Contrast}" Classes="label"/>
                 <controls:CommitNumericUpDown x:Name="GroupColorContrastBox" Value="{Binding ColorContrast, Mode=TwoWay}" Increment="1"
-                               Minimum="{Binding MinColor}" Maximum="{Binding MaxColor}" FormatString="0.####" Width="72" Watermark="—"/>
+                               Minimum="{Binding MinColor}" Maximum="{Binding MaxColor}" FormatString="0.####" Watermark="—"/>
               </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{x:Static l:Strings.Color_Highlights}" Classes="label"/>
                 <controls:CommitNumericUpDown x:Name="GroupColorHighlightsBox" Value="{Binding ColorHighlights, Mode=TwoWay}" Increment="1"
-                               Minimum="{Binding MinColor}" Maximum="{Binding MaxColor}" FormatString="0.####" Width="72" Watermark="—"/>
+                               Minimum="{Binding MinColor}" Maximum="{Binding MaxColor}" FormatString="0.####" Watermark="—"/>
               </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{x:Static l:Strings.Color_Shadows}" Classes="label"/>
                 <controls:CommitNumericUpDown x:Name="GroupColorShadowsBox" Value="{Binding ColorShadows, Mode=TwoWay}" Increment="1"
-                               Minimum="{Binding MinColor}" Maximum="{Binding MaxColor}" FormatString="0.####" Width="72" Watermark="—"/>
+                               Minimum="{Binding MinColor}" Maximum="{Binding MaxColor}" FormatString="0.####" Watermark="—"/>
               </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{x:Static l:Strings.Color_Saturation}" Classes="label"/>
                 <controls:CommitNumericUpDown x:Name="GroupColorSaturationBox" Value="{Binding ColorSaturation, Mode=TwoWay}" Increment="1"
-                               Minimum="{Binding MinColor}" Maximum="{Binding MaxColor}" FormatString="0.####" Width="72" Watermark="—"/>
+                               Minimum="{Binding MinColor}" Maximum="{Binding MaxColor}" FormatString="0.####" Watermark="—"/>
               </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{x:Static l:Strings.Color_Temperature}" Classes="label"/>
                 <controls:CommitNumericUpDown x:Name="GroupColorTemperatureBox" Value="{Binding ColorTemperature, Mode=TwoWay}" Increment="1"
-                               Minimum="{Binding MinColor}" Maximum="{Binding MaxColor}" FormatString="0.####" Width="72" Watermark="—"/>
+                               Minimum="{Binding MinColor}" Maximum="{Binding MaxColor}" FormatString="0.####" Watermark="—"/>
               </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{x:Static l:Strings.Color_Tint}" Classes="label"/>
                 <controls:CommitNumericUpDown x:Name="GroupColorTintBox" Value="{Binding ColorTint, Mode=TwoWay}" Increment="1"
-                               Minimum="{Binding MinColor}" Maximum="{Binding MaxColor}" FormatString="0.####" Width="72" Watermark="—"/>
+                               Minimum="{Binding MinColor}" Maximum="{Binding MaxColor}" FormatString="0.####" Watermark="—"/>
               </StackPanel>
               </StackPanel>
             </controls:InspectorSection>
@@ -360,19 +350,19 @@
             <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasAudio}">
               <TextBlock Text="{x:Static l:Strings.Inspector_Volume}" Classes="label"/>
               <controls:CommitNumericUpDown x:Name="GroupVolumeBox" Value="{Binding VolumePercent, Mode=TwoWay}" Increment="1"
-                             Minimum="0" Maximum="200" FormatString="0.####" Width="72" Watermark="—"/>
+                             Minimum="0" Maximum="200" FormatString="0.####" Watermark="—"/>
               <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
               <CheckBox x:Name="GroupMuteBox" Content="{x:Static l:Strings.Inspector_Mute}" IsThreeState="False" IsChecked="{Binding IsMuted, Mode=TwoWay}"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasAudio}">
               <TextBlock Text="{x:Static l:Strings.Inspector_NoiseReduction}" Classes="label"/>
               <controls:CommitNumericUpDown x:Name="GroupNoiseBox" Value="{Binding NoiseReduction, Mode=TwoWay}" Increment="1"
-                             Minimum="0" Maximum="{Binding MaxCleanup}" FormatString="0.####" Width="72" Watermark="—"/>
+                             Minimum="0" Maximum="{Binding MaxCleanup}" FormatString="0.####" Watermark="—"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasAudio}">
               <TextBlock Text="{x:Static l:Strings.Inspector_VoiceEnhancement}" Classes="label"/>
               <controls:CommitNumericUpDown x:Name="GroupVoiceBox" Value="{Binding VoiceEnhancement, Mode=TwoWay}" Increment="1"
-                             Minimum="0" Maximum="{Binding MaxCleanup}" FormatString="0.####" Width="72" Watermark="—"/>
+                             Minimum="0" Maximum="{Binding MaxCleanup}" FormatString="0.####" Watermark="—"/>
             </StackPanel>
               </StackPanel>
             </controls:InspectorSection>
@@ -383,7 +373,7 @@
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{x:Static l:Strings.Holds_Width}" Classes="label"/>
                 <controls:CommitNumericUpDown x:Name="GroupStrokeBox" Value="{Binding StrokeWidth, Mode=TwoWay}" Increment="1"
-                               Minimum="{Binding MinStrokeWidth}" Maximum="{Binding MaxStrokeWidth}" FormatString="0.####" Width="72" Watermark="—"/>
+                               Minimum="{Binding MinStrokeWidth}" Maximum="{Binding MaxStrokeWidth}" FormatString="0.####" Watermark="—"/>
               </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{x:Static l:Strings.Holds_Colour}" Classes="label"/>
@@ -470,22 +460,22 @@
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_PositionX}" Classes="label" Target="{Binding #PositionXBox}" StepPerPixel="1"
                                          ToolTip.Tip="{x:Static l:Strings.Inspector_ScrubTip}"/>
-                    <controls:CommitNumericUpDown x:Name="PositionXBox" Value="{Binding PositionX, Mode=TwoWay}" Increment="1" Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}"
-                                   FormatString="0.##" Width="72"/>
+                    <controls:CommitNumericUpDown Classes="wide" x:Name="PositionXBox" Value="{Binding PositionX, Mode=TwoWay}" Increment="1" Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}"
+                                   FormatString="0.##"/>
                     <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_PositionY}" Classes="label" Target="{Binding #PositionYBox}" StepPerPixel="1"
                                          ToolTip.Tip="{x:Static l:Strings.Inspector_ScrubTip}"/>
-                    <controls:CommitNumericUpDown x:Name="PositionYBox" Value="{Binding PositionY, Mode=TwoWay}" Increment="1" Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}"
-                                   FormatString="0.##" Width="72"/>
+                    <controls:CommitNumericUpDown Classes="wide" x:Name="PositionYBox" Value="{Binding PositionY, Mode=TwoWay}" Increment="1" Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}"
+                                   FormatString="0.##"/>
                     <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_Scale}" Classes="label" Target="{Binding #ScaleBox}" StepPerPixel="0.5"
                                          ToolTip.Tip="{x:Static l:Strings.Inspector_ScrubTip}"/>
-                    <controls:CommitNumericUpDown x:Name="ScaleBox" Value="{Binding ScalePercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinScalePercent}" Maximum="{Binding MaxScalePercent}"
-                                   FormatString="0.##" Width="72"/>
+                    <controls:CommitNumericUpDown Classes="wide" x:Name="ScaleBox" Value="{Binding ScalePercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinScalePercent}" Maximum="{Binding MaxScalePercent}"
+                                   FormatString="0.##"/>
                     <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                   <!-- Fill / Fit (Phase 26, D041 §2): a one-off Scale for a video or image clip. -->
@@ -504,8 +494,8 @@
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_Rotation}" Classes="label" Target="{Binding #RotationBox}" StepPerPixel="0.5"
                                          ToolTip.Tip="{x:Static l:Strings.Inspector_ScrubTip}"/>
-                    <controls:CommitNumericUpDown x:Name="RotationBox" Value="{Binding Rotation, Mode=TwoWay}" Increment="1" Minimum="{Binding MinRotation}" Maximum="{Binding MaxRotation}"
-                                   FormatString="0.##" Width="72"/>
+                    <controls:CommitNumericUpDown Classes="wide" x:Name="RotationBox" Value="{Binding Rotation, Mode=TwoWay}" Increment="1" Minimum="{Binding MinRotation}" Maximum="{Binding MaxRotation}"
+                                   FormatString="0.##"/>
                     <TextBlock Text="°" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                   <Grid ColumnDefinitions="Auto,Auto,Auto">
@@ -516,7 +506,7 @@
                           ToolTip.Tip="{x:Static l:Strings.Inspector_Opacity}"/>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                       <controls:CommitNumericUpDown Value="{Binding OpacityPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinOpacityPercent}" Maximum="{Binding MaxOpacityPercent}"
-                                   FormatString="0.####" Width="60"/>
+                                   FormatString="0.####"/>
                       <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                   </Grid>
@@ -529,26 +519,26 @@
                 <StackPanel Spacing="6">
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Inspector_Left}" Classes="label"/>
-                    <controls:CommitNumericUpDown Value="{Binding CropLeftPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
-                                   FormatString="0.#" Width="72"/>
+                    <controls:CommitNumericUpDown Classes="wide" Value="{Binding CropLeftPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
+                                   FormatString="0.#"/>
                     <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Inspector_Top}" Classes="label"/>
-                    <controls:CommitNumericUpDown Value="{Binding CropTopPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
-                                   FormatString="0.#" Width="72"/>
+                    <controls:CommitNumericUpDown Classes="wide" Value="{Binding CropTopPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
+                                   FormatString="0.#"/>
                     <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Inspector_Right}" Classes="label"/>
-                    <controls:CommitNumericUpDown Value="{Binding CropRightPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
-                                   FormatString="0.#" Width="72"/>
+                    <controls:CommitNumericUpDown Classes="wide" Value="{Binding CropRightPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
+                                   FormatString="0.#"/>
                     <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Inspector_Bottom}" Classes="label"/>
-                    <controls:CommitNumericUpDown Value="{Binding CropBottomPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
-                                   FormatString="0.#" Width="72"/>
+                    <controls:CommitNumericUpDown Classes="wide" Value="{Binding CropBottomPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
+                                   FormatString="0.#"/>
                     <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                 </StackPanel>
@@ -572,7 +562,7 @@
                             Value="{Binding ColorExposure, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}" ToolTip.Tip="{x:Static l:Strings.Color_Exposure}"/>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                       <controls:CommitNumericUpDown Value="{Binding ColorExposure, Mode=TwoWay}" Increment="1" Minimum="{Binding MinColor}"
-                                     Maximum="{Binding MaxColor}" FormatString="0" Width="60"/>
+                                     Maximum="{Binding MaxColor}" FormatString="0"/>
                     </StackPanel>
                   </Grid>
                   <Grid ColumnDefinitions="Auto,Auto,Auto">
@@ -581,7 +571,7 @@
                             Value="{Binding ColorBrightness, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}" ToolTip.Tip="{x:Static l:Strings.Color_Brightness}"/>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                       <controls:CommitNumericUpDown Value="{Binding ColorBrightness, Mode=TwoWay}" Increment="1" Minimum="{Binding MinColor}"
-                                     Maximum="{Binding MaxColor}" FormatString="0" Width="60"/>
+                                     Maximum="{Binding MaxColor}" FormatString="0"/>
                     </StackPanel>
                   </Grid>
                   <Grid ColumnDefinitions="Auto,Auto,Auto">
@@ -590,7 +580,7 @@
                             Value="{Binding ColorContrast, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}" ToolTip.Tip="{x:Static l:Strings.Color_Contrast}"/>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                       <controls:CommitNumericUpDown Value="{Binding ColorContrast, Mode=TwoWay}" Increment="1" Minimum="{Binding MinColor}"
-                                     Maximum="{Binding MaxColor}" FormatString="0" Width="60"/>
+                                     Maximum="{Binding MaxColor}" FormatString="0"/>
                     </StackPanel>
                   </Grid>
                   <Grid ColumnDefinitions="Auto,Auto,Auto">
@@ -599,7 +589,7 @@
                             Value="{Binding ColorHighlights, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}" ToolTip.Tip="{x:Static l:Strings.Color_Highlights}"/>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                       <controls:CommitNumericUpDown Value="{Binding ColorHighlights, Mode=TwoWay}" Increment="1" Minimum="{Binding MinColor}"
-                                     Maximum="{Binding MaxColor}" FormatString="0" Width="60"/>
+                                     Maximum="{Binding MaxColor}" FormatString="0"/>
                     </StackPanel>
                   </Grid>
                   <Grid ColumnDefinitions="Auto,Auto,Auto">
@@ -608,7 +598,7 @@
                             Value="{Binding ColorShadows, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}" ToolTip.Tip="{x:Static l:Strings.Color_Shadows}"/>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                       <controls:CommitNumericUpDown Value="{Binding ColorShadows, Mode=TwoWay}" Increment="1" Minimum="{Binding MinColor}"
-                                     Maximum="{Binding MaxColor}" FormatString="0" Width="60"/>
+                                     Maximum="{Binding MaxColor}" FormatString="0"/>
                     </StackPanel>
                   </Grid>
                   <Grid ColumnDefinitions="Auto,Auto,Auto">
@@ -617,7 +607,7 @@
                             Value="{Binding ColorSaturation, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}" ToolTip.Tip="{x:Static l:Strings.Color_Saturation}"/>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                       <controls:CommitNumericUpDown Value="{Binding ColorSaturation, Mode=TwoWay}" Increment="1" Minimum="{Binding MinColor}"
-                                     Maximum="{Binding MaxColor}" FormatString="0" Width="60"/>
+                                     Maximum="{Binding MaxColor}" FormatString="0"/>
                     </StackPanel>
                   </Grid>
                   <Grid ColumnDefinitions="Auto,Auto,Auto">
@@ -626,7 +616,7 @@
                             Value="{Binding ColorTemperature, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}" ToolTip.Tip="{x:Static l:Strings.Color_Temperature}"/>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                       <controls:CommitNumericUpDown Value="{Binding ColorTemperature, Mode=TwoWay}" Increment="1" Minimum="{Binding MinColor}"
-                                     Maximum="{Binding MaxColor}" FormatString="0" Width="60"/>
+                                     Maximum="{Binding MaxColor}" FormatString="0"/>
                     </StackPanel>
                   </Grid>
                   <Grid ColumnDefinitions="Auto,Auto,Auto">
@@ -635,7 +625,7 @@
                             Value="{Binding ColorTint, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}" ToolTip.Tip="{x:Static l:Strings.Color_Tint}"/>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                       <controls:CommitNumericUpDown Value="{Binding ColorTint, Mode=TwoWay}" Increment="1" Minimum="{Binding MinColor}"
-                                     Maximum="{Binding MaxColor}" FormatString="0" Width="60"/>
+                                     Maximum="{Binding MaxColor}" FormatString="0"/>
                     </StackPanel>
                   </Grid>
               </StackPanel>
@@ -667,7 +657,7 @@
                         ToolTip.Tip="{x:Static l:Strings.Inspector_FadeIn}"/>
                   <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                     <controls:CommitNumericUpDown Value="{Binding FadeInFrames, Mode=TwoWay}" Increment="1" Minimum="0"
-                                 Maximum="{Binding MaxFadeInFrames}" FormatString="0" Width="60"/>
+                                 Maximum="{Binding MaxFadeInFrames}" FormatString="0"/>
                     <TextBlock Text="{x:Static l:Strings.Unit_Frames}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                 </Grid>
@@ -682,7 +672,7 @@
                         ToolTip.Tip="{x:Static l:Strings.Inspector_FadeOut}"/>
                   <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                     <controls:CommitNumericUpDown Value="{Binding FadeOutFrames, Mode=TwoWay}" Increment="1" Minimum="0"
-                                 Maximum="{Binding MaxFadeOutFrames}" FormatString="0" Width="60"/>
+                                 Maximum="{Binding MaxFadeOutFrames}" FormatString="0"/>
                     <TextBlock Text="{x:Static l:Strings.Unit_Frames}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                 </Grid>
@@ -696,8 +686,8 @@
               <StackPanel Spacing="6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="{x:Static l:Strings.Inspector_Speed}" Classes="label"/>
-                  <controls:CommitNumericUpDown Value="{Binding SpeedValue, Mode=TwoWay}" Increment="{Binding SpeedIncrement}"
-                                 Minimum="{Binding MinSpeed}" Maximum="{Binding MaxSpeed}" FormatString="0.00" Width="72"/>
+                  <controls:CommitNumericUpDown Classes="wide" Value="{Binding SpeedValue, Mode=TwoWay}" Increment="{Binding SpeedIncrement}"
+                                 Minimum="{Binding MinSpeed}" Maximum="{Binding MaxSpeed}" FormatString="0.00"/>
                   <TextBlock Text="×" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                 </StackPanel>
               </StackPanel>
@@ -941,8 +931,8 @@
                           Value="{Binding FontSize, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
                           ToolTip.Tip="{x:Static l:Strings.Inspector_Size}"/>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
-                      <controls:CommitNumericUpDown Value="{Binding FontSize, Mode=TwoWay}" Increment="1" Minimum="{Binding MinFontSize}" Maximum="{Binding MaxFontSize}"
-                                   FormatString="0.##" Width="60"/>
+                      <controls:CommitNumericUpDown Classes="wide" Value="{Binding FontSize, Mode=TwoWay}" Increment="1" Minimum="{Binding MinFontSize}" Maximum="{Binding MaxFontSize}"
+                                   FormatString="0.##"/>
                       <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                   </Grid>
@@ -972,8 +962,8 @@
                   <!-- D075 amendment 1: the line spacing and the block's width (also dragged in the Preview). -->
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Inspector_LineSpacing}" Classes="label"/>
-                    <controls:CommitNumericUpDown x:Name="LineSpacingField" Value="{Binding LineSpacing, Mode=TwoWay}" Increment="0.1"
-                                 Minimum="{Binding MinLineSpacing}" Maximum="{Binding MaxLineSpacing}" FormatString="0.##" Width="72"
+                    <controls:CommitNumericUpDown Classes="wide" x:Name="LineSpacingField" Value="{Binding LineSpacing, Mode=TwoWay}" Increment="0.1"
+                                 Minimum="{Binding MinLineSpacing}" Maximum="{Binding MaxLineSpacing}" FormatString="0.##"
                                  ToolTip.Tip="{x:Static l:Strings.Inspector_LineSpacingTip}"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
@@ -1022,7 +1012,7 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                       <controls:CommitNumericUpDown Value="{Binding OutlineThicknessPercent, Mode=TwoWay}" Increment="1"
                                    Minimum="{Binding MinOutlineThicknessPercent}" Maximum="{Binding MaxOutlineThicknessPercent}"
-                                   FormatString="0.####" Width="60" ToolTip.Tip="{x:Static l:Strings.Inspector_OutlineThicknessTip}"/>
+                                   FormatString="0.####" ToolTip.Tip="{x:Static l:Strings.Inspector_OutlineThicknessTip}"/>
                       <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                   </Grid>
@@ -1054,7 +1044,7 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                       <controls:CommitNumericUpDown Value="{Binding BackgroundOpacityPercent, Mode=TwoWay}" Increment="1"
                                    Minimum="{Binding MinBackgroundOpacityPercent}" Maximum="{Binding MaxBackgroundOpacityPercent}"
-                                   FormatString="0.####" Width="60"/>
+                                   FormatString="0.####"/>
                       <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                   </Grid>
@@ -1081,22 +1071,22 @@
                   <StackPanel Spacing="6" IsVisible="{Binding IsShadowOn}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                       <TextBlock Text="{x:Static l:Strings.Inspector_ShadowOpacity}" Classes="label"/>
-                      <controls:CommitNumericUpDown x:Name="ShadowOpacityField" Value="{Binding ShadowOpacityPercent, Mode=TwoWay}" Increment="5"
-                                   Minimum="0" Maximum="100" FormatString="0.#" Width="72"/>
+                      <controls:CommitNumericUpDown Classes="wide" x:Name="ShadowOpacityField" Value="{Binding ShadowOpacityPercent, Mode=TwoWay}" Increment="5"
+                                   Minimum="0" Maximum="100" FormatString="0.#"/>
                       <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8">
                       <TextBlock Text="{x:Static l:Strings.Inspector_ShadowBlur}" Classes="label"/>
-                      <controls:CommitNumericUpDown x:Name="ShadowBlurField" Value="{Binding ShadowBlurPercent, Mode=TwoWay}" Increment="1"
-                                   Minimum="0" Maximum="{Binding MaxShadowBlurPercent}" FormatString="0.#" Width="72"/>
+                      <controls:CommitNumericUpDown Classes="wide" x:Name="ShadowBlurField" Value="{Binding ShadowBlurPercent, Mode=TwoWay}" Increment="1"
+                                   Minimum="0" Maximum="{Binding MaxShadowBlurPercent}" FormatString="0.#"/>
                       <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8" ToolTip.Tip="{x:Static l:Strings.Inspector_ShadowOffsetTip}">
                       <TextBlock Text="{x:Static l:Strings.Inspector_ShadowOffset}" Classes="label"/>
-                      <controls:CommitNumericUpDown x:Name="ShadowOffsetXField" Value="{Binding ShadowOffsetXPercent, Mode=TwoWay}" Increment="1"
-                                   Minimum="{Binding MinShadowOffsetPercent}" Maximum="{Binding MaxShadowOffsetPercent}" FormatString="0.#" Width="72"/>
-                      <controls:CommitNumericUpDown x:Name="ShadowOffsetYField" Value="{Binding ShadowOffsetYPercent, Mode=TwoWay}" Increment="1"
-                                   Minimum="{Binding MinShadowOffsetPercent}" Maximum="{Binding MaxShadowOffsetPercent}" FormatString="0.#" Width="72"/>
+                      <controls:CommitNumericUpDown Classes="wide" x:Name="ShadowOffsetXField" Value="{Binding ShadowOffsetXPercent, Mode=TwoWay}" Increment="1"
+                                   Minimum="{Binding MinShadowOffsetPercent}" Maximum="{Binding MaxShadowOffsetPercent}" FormatString="0.#"/>
+                      <controls:CommitNumericUpDown Classes="wide" x:Name="ShadowOffsetYField" Value="{Binding ShadowOffsetYPercent, Mode=TwoWay}" Increment="1"
+                                   Minimum="{Binding MinShadowOffsetPercent}" Maximum="{Binding MaxShadowOffsetPercent}" FormatString="0.#"/>
                     </StackPanel>
                   </StackPanel>
                 </StackPanel>
@@ -1140,8 +1130,8 @@
                         Value="{Binding AppearSeconds, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
                         ToolTip.Tip="{x:Static l:Strings.Inspector_Appear}"/>
                   <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
-                    <controls:CommitNumericUpDown Value="{Binding AppearSeconds, Mode=TwoWay}" Increment="0.1" Minimum="{Binding MinAppearSeconds}"
-                                 Maximum="{Binding MaxAppearSeconds}" FormatString="0.##" Width="60"/>
+                    <controls:CommitNumericUpDown Classes="wide" Value="{Binding AppearSeconds, Mode=TwoWay}" Increment="0.1" Minimum="{Binding MinAppearSeconds}"
+                                 Maximum="{Binding MaxAppearSeconds}" FormatString="0.##"/>
                     <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                 </Grid>
@@ -1163,8 +1153,8 @@
                         Value="{Binding DisappearSeconds, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
                         ToolTip.Tip="{x:Static l:Strings.Inspector_Disappear}"/>
                   <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
-                    <controls:CommitNumericUpDown Value="{Binding DisappearSeconds, Mode=TwoWay}" Increment="0.1" Minimum="{Binding MinDisappearSeconds}"
-                                 Maximum="{Binding MaxDisappearSeconds}" FormatString="0.##" Width="60"/>
+                    <controls:CommitNumericUpDown Classes="wide" Value="{Binding DisappearSeconds, Mode=TwoWay}" Increment="0.1" Minimum="{Binding MinDisappearSeconds}"
+                                 Maximum="{Binding MaxDisappearSeconds}" FormatString="0.##"/>
                     <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                 </Grid>
@@ -1204,16 +1194,16 @@
                     <StackPanel Orientation="Horizontal" Spacing="8">
                       <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_PositionX}" Classes="label" Target="{Binding #FollowOffsetXBox}" StepPerPixel="1"
                                            ToolTip.Tip="{x:Static l:Strings.Inspector_ScrubTip}"/>
-                      <controls:CommitNumericUpDown x:Name="FollowOffsetXBox" Value="{Binding FollowOffsetX, Mode=TwoWay}" Increment="1"
-                                                    Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}" FormatString="0.##" Width="72"
+                      <controls:CommitNumericUpDown Classes="wide" x:Name="FollowOffsetXBox" Value="{Binding FollowOffsetX, Mode=TwoWay}" Increment="1"
+                                                    Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}" FormatString="0.##"
                                                     IsEnabled="{Binding IsEditingAllowed}"/>
                       <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8">
                       <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_PositionY}" Classes="label" Target="{Binding #FollowOffsetYBox}" StepPerPixel="1"
                                            ToolTip.Tip="{x:Static l:Strings.Inspector_ScrubTip}"/>
-                      <controls:CommitNumericUpDown x:Name="FollowOffsetYBox" Value="{Binding FollowOffsetY, Mode=TwoWay}" Increment="1"
-                                                    Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}" FormatString="0.##" Width="72"
+                      <controls:CommitNumericUpDown Classes="wide" x:Name="FollowOffsetYBox" Value="{Binding FollowOffsetY, Mode=TwoWay}" Increment="1"
+                                                    Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}" FormatString="0.##"
                                                     IsEnabled="{Binding IsEditingAllowed}"/>
                       <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
@@ -1309,7 +1299,7 @@
                           ToolTip.Tip="{x:Static l:Strings.Holds_Width}"/>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                       <controls:CommitNumericUpDown Value="{Binding StrokeWidth, Mode=TwoWay}" Increment="1" Minimum="{Binding MinStrokeWidth}" Maximum="{Binding MaxStrokeWidth}"
-                                   FormatString="0.####" Width="60"/>
+                                   FormatString="0.####"/>
                       <TextBlock Text="{x:Static l:Strings.Holds_WidthUnit}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"
                                ToolTip.Tip="{x:Static l:Strings.Holds_WidthUnitTip}"/>
                     </StackPanel>
@@ -1324,7 +1314,7 @@
                           ToolTip.Tip="{x:Static l:Strings.Holds_SmoothingTip}"/>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                       <controls:CommitNumericUpDown Value="{Binding ContourSmoothing, Mode=TwoWay}" Increment="5" Minimum="{Binding MinContourSmoothing}" Maximum="{Binding MaxContourSmoothing}"
-                                   FormatString="0" Width="60"/>
+                                   FormatString="0"/>
                     </StackPanel>
                   </Grid>
                   <StackPanel Orientation="Horizontal" Spacing="8">
@@ -1375,8 +1365,8 @@
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8">
                       <TextBlock Text="{x:Static l:Strings.Holds_Start}" Classes="label"/>
-                      <controls:CommitNumericUpDown Value="{Binding AnimationStart, Mode=TwoWay}" Increment="0.1" Minimum="0" Maximum="{Binding MaxAnimationStart}"
-                                     FormatString="0.###" Width="72"
+                      <controls:CommitNumericUpDown Classes="wide" Value="{Binding AnimationStart, Mode=TwoWay}" Increment="0.1" Minimum="0" Maximum="{Binding MaxAnimationStart}"
+                                     FormatString="0.###"
                                      ToolTip.Tip="{x:Static l:Strings.Holds_StartTip}"/>
                       <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
@@ -1387,27 +1377,27 @@
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsDurationMode}">
                       <TextBlock Text="{x:Static l:Strings.Holds_AnimationDuration}" Classes="label"/>
-                      <controls:CommitNumericUpDown Value="{Binding AnimationDuration, Mode=TwoWay}" Increment="0.1" Minimum="0" Maximum="{Binding MaxAnimationDuration}"
-                                     FormatString="0.###" Width="72"
+                      <controls:CommitNumericUpDown Classes="wide" Value="{Binding AnimationDuration, Mode=TwoWay}" Increment="0.1" Minimum="0" Maximum="{Binding MaxAnimationDuration}"
+                                     FormatString="0.###"
                                      ToolTip.Tip="{x:Static l:Strings.Holds_AnimationDurationTip}"/>
                       <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsIntervalMode}">
                       <TextBlock Text="{x:Static l:Strings.Holds_Interval}" Classes="label"/>
-                      <controls:CommitNumericUpDown Value="{Binding AnimationInterval, Mode=TwoWay}" Increment="0.05" Minimum="{Binding MinAnimationInterval}" Maximum="{Binding MaxAnimationInterval}"
-                                     FormatString="0.###" Width="72"/>
+                      <controls:CommitNumericUpDown Classes="wide" Value="{Binding AnimationInterval, Mode=TwoWay}" Increment="0.05" Minimum="{Binding MinAnimationInterval}" Maximum="{Binding MaxAnimationInterval}"
+                                     FormatString="0.###"/>
                       <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8">
                       <TextBlock Text="{x:Static l:Strings.Holds_AppearFade}" Classes="label"/>
-                      <controls:CommitNumericUpDown Value="{Binding AppearFade, Mode=TwoWay}" Increment="0.05" Minimum="0" Maximum="{Binding MaxAnimationFade}"
-                                     FormatString="0.###" Width="72" ToolTip.Tip="{x:Static l:Strings.Holds_FadeTip}"/>
+                      <controls:CommitNumericUpDown Classes="wide" Value="{Binding AppearFade, Mode=TwoWay}" Increment="0.05" Minimum="0" Maximum="{Binding MaxAnimationFade}"
+                                     FormatString="0.###" ToolTip.Tip="{x:Static l:Strings.Holds_FadeTip}"/>
                       <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsIntervalMode}">
                       <TextBlock Text="{x:Static l:Strings.Holds_StayAfterLast}" Classes="label"/>
-                      <controls:CommitNumericUpDown Value="{Binding StayAfterLast, Mode=TwoWay}" Increment="0.5" Minimum="0" Maximum="{Binding MaxAnimationStay}"
-                                     FormatString="0.###" Width="72" IsEnabled="{Binding !StayUntilClipEnd}"/>
+                      <controls:CommitNumericUpDown Classes="wide" Value="{Binding StayAfterLast, Mode=TwoWay}" Increment="0.5" Minimum="0" Maximum="{Binding MaxAnimationStay}"
+                                     FormatString="0.###" IsEnabled="{Binding !StayUntilClipEnd}"/>
                       <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsIntervalMode}">
@@ -1417,8 +1407,8 @@
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowsDisappearFade}">
                       <TextBlock Text="{x:Static l:Strings.Holds_DisappearFade}" Classes="label"/>
-                      <controls:CommitNumericUpDown Value="{Binding DisappearFade, Mode=TwoWay}" Increment="0.05" Minimum="0" Maximum="{Binding MaxAnimationFade}"
-                                     FormatString="0.###" Width="72" ToolTip.Tip="{x:Static l:Strings.Holds_FadeTip}"/>
+                      <controls:CommitNumericUpDown Classes="wide" Value="{Binding DisappearFade, Mode=TwoWay}" Increment="0.05" Minimum="0" Maximum="{Binding MaxAnimationFade}"
+                                     FormatString="0.###" ToolTip.Tip="{x:Static l:Strings.Holds_FadeTip}"/>
                       <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                     <TextBlock Text="{Binding AnimationSummary}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"/>
@@ -1531,7 +1521,7 @@
                         ToolTip.Tip="{x:Static l:Strings.Inspector_Volume}"/>
                   <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                     <controls:CommitNumericUpDown Value="{Binding VolumePercent, Mode=TwoWay}" Increment="1"
-                                 Minimum="0" Maximum="200" FormatString="0.####" Width="60"/>
+                                 Minimum="0" Maximum="200" FormatString="0.####"/>
                     <TextBlock Text="%" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                   </StackPanel>
                 </Grid>
@@ -1551,11 +1541,11 @@
                 <StackPanel Spacing="6" IsVisible="{Binding HasSoundFades}" ToolTip.Tip="{x:Static l:Strings.Inspector_SoundFadeTip}">
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Inspector_SoundFadeIn}" Classes="label"/>
-                    <controls:CommitNumericUpDown Value="{Binding SoundFadeInFrames, Mode=TwoWay}" Increment="1" Minimum="0" FormatString="0" Width="72"/>
+                    <controls:CommitNumericUpDown Value="{Binding SoundFadeInFrames, Mode=TwoWay}" Increment="1" Minimum="0" FormatString="0"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Inspector_SoundFadeOut}" Classes="label"/>
-                    <controls:CommitNumericUpDown Value="{Binding SoundFadeOutFrames, Mode=TwoWay}" Increment="1" Minimum="0" FormatString="0" Width="72"/>
+                    <controls:CommitNumericUpDown Value="{Binding SoundFadeOutFrames, Mode=TwoWay}" Increment="1" Minimum="0" FormatString="0"/>
                   </StackPanel>
                 </StackPanel>
 
@@ -1567,7 +1557,7 @@
                         Value="{Binding NoiseReduction, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
                         ToolTip.Tip="{x:Static l:Strings.Inspector_NoiseReductionTip}"/>
                   <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
-                    <controls:CommitNumericUpDown Value="{Binding NoiseReduction, Mode=TwoWay}" Increment="5" Minimum="0" Maximum="100" FormatString="0" Width="60"/>
+                    <controls:CommitNumericUpDown Value="{Binding NoiseReduction, Mode=TwoWay}" Increment="5" Minimum="0" Maximum="100" FormatString="0"/>
                   </StackPanel>
                 </Grid>
                 <Grid ColumnDefinitions="Auto,Auto,Auto" ToolTip.Tip="{x:Static l:Strings.Inspector_VoiceEnhancementTip}">
@@ -1576,7 +1566,7 @@
                         Value="{Binding VoiceEnhancement, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
                         ToolTip.Tip="{x:Static l:Strings.Inspector_VoiceEnhancementTip}"/>
                   <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
-                    <controls:CommitNumericUpDown Value="{Binding VoiceEnhancement, Mode=TwoWay}" Increment="5" Minimum="0" Maximum="100" FormatString="0" Width="60"/>
+                    <controls:CommitNumericUpDown Value="{Binding VoiceEnhancement, Mode=TwoWay}" Increment="5" Minimum="0" Maximum="100" FormatString="0"/>
                   </StackPanel>
                 </Grid>
                 <TextBlock Text="{Binding CleanupStatus}" IsVisible="{Binding HasCleanupStatus}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{DynamicResource FontSizeCaption}" TextWrapping="Wrap"/>

@@ -24,6 +24,7 @@
       <Setter Property="Padding" Value="5,0"/>
       <Setter Property="MinHeight" Value="0"/>
       <Setter Property="Height" Value="20"/>
+      <Setter Property="CornerRadius" Value="{DynamicResource SmallControlCornerRadius}"/>
     </Style>
   </UserControl.Styles>
 

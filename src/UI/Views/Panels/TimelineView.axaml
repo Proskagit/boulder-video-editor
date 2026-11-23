@@ -289,6 +289,7 @@
       <Setter Property="MinHeight" Value="0"/>
       <Setter Property="MinWidth" Value="16"/>
       <Setter Property="Height" Value="16"/>
+      <Setter Property="CornerRadius" Value="{DynamicResource SmallControlCornerRadius}"/>
       <Setter Property="HorizontalContentAlignment" Value="Center"/>
       <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
       <Setter Property="Opacity" Value="0.6"/>
@@ -447,6 +448,7 @@
                   <Setter Property="Padding" Value="1,0"/>
                   <Setter Property="MinHeight" Value="0"/>
                   <Setter Property="Height" Value="18"/>
+                  <Setter Property="CornerRadius" Value="{DynamicResource SmallControlCornerRadius}"/>
                   <Setter Property="VerticalAlignment" Value="Center"/>
                 </Style>
               </StackPanel.Styles>
@@ -491,6 +493,7 @@
                             <Setter Property="Padding" Value="4,0"/>
                             <Setter Property="MinHeight" Value="0"/>
                             <Setter Property="Height" Value="16"/>
+                            <Setter Property="CornerRadius" Value="{DynamicResource SmallControlCornerRadius}"/>
                           </Style>
                         </StackPanel.Styles>
                         <Button Content="▲" ToolTip.Tip="{x:Static l:Strings.Track_MoveUpTip}"

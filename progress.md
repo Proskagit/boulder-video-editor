@@ -2,7 +2,43 @@
 
 ## Current phase
 
-**Phase 59 — the attempt's events from the video (D078, 2026-11-23) — on `feat/phase-59-attempt-events`** (from `origin/main`
+**Phase 60 — the plates above YouTube's description, softer fields and buttons (D079, 2026-11-23) — on
+`feat/phase-60-plates-ui`** (from `origin/main` `a59d41f`; `project.json` v29 unchanged). **Step 0:** Phase 59 accepted (check of
+1.12.5, PR #89 merged). **Plates:** in a bottom corner «Боулдер»'s route plate one plate height higher
+(`CornerOverlayLayout.BottomLiftPlates`), the heart rate with it (beside the plate or on its line); top corners unchanged; one
+computation for the Preview and the export. Tests: `A_bottom_plate_stands_one_plate_height_above_its_margin_and_a_top_one_where_it_was`,
+`The_heart_rate_beside_a_bottom_plate_goes_up_with_it_and_stays_side_by_side` (Core), `A_bottom_plate_is_drawn_one_plate_height_above_its_margin_with_the_heart_rate_above_it`
+(Rendering, landscape and portrait). **Style:** three variants drawn with the app's own controls
+(`docs/images/phase60-style-variants.png`); **the owner chose «C»** + numeric fields as wide as their numbers. Applied in
+`BoulderTheme.axaml`: radius 8, filled fields, the focus ring round the whole numeric field, stacked small arrows on hover / focus,
+widths 60 / `.wide` 80 / `.fill`; no view sets a numeric width; the Inspector's FU-25.1 spinner styles moved to the theme
+(`InspectorFieldStyleTests` rewritten for the theme). Checked in the running Debug app at 1024 and 1440 px
+(`docs/images/phase60-inspector-holds-1440.jpg`). Manual plan `docs/PHASE60_MANUAL_TEST_PLAN.md`.
+**Gates (2026-11-24):** Debug / Release `--no-incremental -warnaserror` 0 / 0, `git diff --check` clean; Release +
+`AIVE_HEAVY_TESTS=1`: Vision 38, Project 783, Core 2 017, Export 153, Rendering 290, UI 1 374, Timeline 1 277, Video 439 (+2 skips),
+ExportEndToEnd 191 = 6 562. Flaky while the graphics card was at 99 % with a game (not this phase's code): `ExportServiceTests.A_rasterizer_failure_while_the_writer_waits_never_deadlocks`
+(10 s timeout in the whole-solution run; 153 / 153 alone), `NvencExportEncoderTests.Nvenc_encodes_…` and
+`PlaybackServiceIntegrationTests.TwoClipsAndAGap_…(Auto)` (frame 0 not ready in 20 s; passes on this branch and on `main` in a temporary
+worktree run alone) — Video 439 / 439 in a clean rerun. The first gate run found a real one: the raised portrait plate's bottom at
+a fraction of a pixel moved its measured text centre 1.5 px (`TemplateTextAlignmentTests`) → `PlateRow` keeps the row's outer edge on a whole
+pixel (as the margins alone did).
+**Amendment 1 (the owner's check of 1.13.0, 2026-11-24):** blank gaps between the Inspector's sections — an empty
+`Panel.category` around a hidden section kept the list's 16 px spacing → shown only while its section is
+(`InspectorView.HideEmptyCategoryPanels`), tests `InspectorCategoryGapTests` (2); checked in the running app (video clip: «Клип» →
+«Слежение и люди» evenly spaced). Nothing else found by the owner. **Gates:** builds 0 / 0; Vision 38, Project 783, Core 2 017,
+Export 153, Rendering 290, UI 1 376, Timeline 1 277, Video 439 (+2 skips), ExportEndToEnd 191 = 6 564 (UI and Export each had one timing
+test time out in the whole-solution run — `PreviewLayersTests.While_scrubbing_…`, `ExportServiceTests.A_rasterizer_failure_…` — and
+pass whole alone). CI of `ca542eb` and `aa34909`: every suite that ran green, both runs aborted by «failed to connect to datacollector process
+after 90 seconds» (Video.Tests never started; the blame collector on a busy `windows-2025` runner) → the CI's test step sets
+`VSTEST_CONNECTION_TIMEOUT=300` (the connection only, no test timeout changed). Portable `artifacts/portable/BoulderVideoEditor-1.13.1-win-x64`.
+**Review (phase-reviewer): PASS WITH NOTES** — taken: the training clock's correction (frames, unbounded) `.wide`; the
+16–20 px buttons (track M / S / lock, ▲▼✕, markers, mixer states, swatches, placement grid) keep a small radius
+(`SmallControlCornerRadius` 3); the wider button padding withdrawn (it wrapped the toolbar more); the manual plan's ComboBox focus
+corrected; a test of the settings' and the canvas size's widths. Window checked again at 1024 px (`docs/images/phase60-window-1024.jpg`;
+the 1440 px picture was taken before the padding was withdrawn).
+
+**Phase 59 — the attempt's events from the video (D078, 2026-11-23) — accepted by the owner 2026-11-23 (check of 1.12.5, PR #89
+merged `a59d41f`)** — on `feat/phase-59-attempt-events` (from `origin/main`
 `e9ccdf1`). **Step 0:** Phase 58 accepted (PR #88 merged, check of 1.11.0 without remarks). **Research** (lab `C:\BoulderHighlightLab`,
 stages 0–2, `docs/ATTEMPT_EVENTS_RESEARCH.md`): fall within 1 s on 6 / 7 routes of the independent day; lift-off exact only when the
 right candidate is chosen (~half); top not detectable (often out of frame). **The owner's answers:** background, GPU only, lift-off

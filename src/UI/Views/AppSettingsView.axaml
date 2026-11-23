@@ -69,7 +69,7 @@
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBlock Classes="label" Text="{x:Static l:Strings.AppSettings_CanvasSnap}"/>
             <controls:CommitNumericUpDown x:Name="CanvasSnapBox" Value="{Binding CanvasSnapPixels, Mode=TwoWay}" Increment="1"
-                                          Minimum="{Binding MinCanvasSnapPixels}" Maximum="{Binding MaxCanvasSnapPixels}" FormatString="0" Width="104"/>
+                                          Minimum="{Binding MinCanvasSnapPixels}" Maximum="{Binding MaxCanvasSnapPixels}" FormatString="0"/>
             <TextBlock Text="{x:Static l:Strings.Unit_Px}" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
           </StackPanel>
           <TextBlock Classes="note" Text="{x:Static l:Strings.AppSettings_CanvasSnapNote}"/>
@@ -85,8 +85,8 @@
           <StackPanel Spacing="4" IsVisible="{Binding HasTraining}">
             <StackPanel Orientation="Horizontal" Spacing="8">
               <TextBlock Classes="label" Text="{x:Static l:Strings.Toolbar_TrainingClockCorrection}"/>
-              <controls:CommitNumericUpDown x:Name="ClockCorrectionBox" Value="{Binding TrainingClockCorrectionFrames, Mode=TwoWay}" Increment="1"
-                                            FormatString="0" Width="104" ToolTip.Tip="{x:Static l:Strings.Toolbar_TrainingClockCorrectionTip}"/>
+              <controls:CommitNumericUpDown x:Name="ClockCorrectionBox" Classes="wide" Value="{Binding TrainingClockCorrectionFrames, Mode=TwoWay}" Increment="1"
+                                            FormatString="0" ToolTip.Tip="{x:Static l:Strings.Toolbar_TrainingClockCorrectionTip}"/>
             </StackPanel>
             <TextBlock Classes="note" Text="{x:Static l:Strings.AppSettings_ClockCorrectionNote}"/>
           </StackPanel>
@@ -101,20 +101,20 @@
           <TextBlock Classes="label" Text="{x:Static l:Strings.AppSettings_HeartRateOffset}" Margin="0,6,0,0"/>
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBlock Classes="label" Text="{x:Static l:Strings.AppSettings_Coros}"/>
-            <controls:CommitNumericUpDown x:Name="HeartRateOffsetBox" Value="{Binding HeartRateOffsetSeconds, Mode=TwoWay}" Increment="1"
-                                          Minimum="{Binding MinHeartRateOffset}" Maximum="{Binding MaxHeartRateOffset}" FormatString="0" Width="104"/>
+            <controls:CommitNumericUpDown Classes="wide" x:Name="HeartRateOffsetBox" Value="{Binding HeartRateOffsetSeconds, Mode=TwoWay}" Increment="1"
+                                          Minimum="{Binding MinHeartRateOffset}" Maximum="{Binding MaxHeartRateOffset}" FormatString="0"/>
             <TextBlock Text="{x:Static l:Strings.AppSettings_Seconds}" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
           </StackPanel>
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBlock Classes="label" Text="{x:Static l:Strings.AppSettings_Garmin}"/>
-            <controls:CommitNumericUpDown x:Name="GarminHeartRateOffsetBox" Value="{Binding GarminHeartRateOffsetSeconds, Mode=TwoWay}" Increment="1"
-                                          Minimum="{Binding MinHeartRateOffset}" Maximum="{Binding MaxHeartRateOffset}" FormatString="0" Width="104"/>
+            <controls:CommitNumericUpDown Classes="wide" x:Name="GarminHeartRateOffsetBox" Value="{Binding GarminHeartRateOffsetSeconds, Mode=TwoWay}" Increment="1"
+                                          Minimum="{Binding MinHeartRateOffset}" Maximum="{Binding MaxHeartRateOffset}" FormatString="0"/>
             <TextBlock Text="{x:Static l:Strings.AppSettings_Seconds}" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
           </StackPanel>
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBlock Classes="label" Text="{x:Static l:Strings.AppSettings_OtherWatches}"/>
-            <controls:CommitNumericUpDown x:Name="OtherHeartRateOffsetBox" Value="{Binding OtherHeartRateOffsetSeconds, Mode=TwoWay}" Increment="1"
-                                          Minimum="{Binding MinHeartRateOffset}" Maximum="{Binding MaxHeartRateOffset}" FormatString="0" Width="104"/>
+            <controls:CommitNumericUpDown Classes="wide" x:Name="OtherHeartRateOffsetBox" Value="{Binding OtherHeartRateOffsetSeconds, Mode=TwoWay}" Increment="1"
+                                          Minimum="{Binding MinHeartRateOffset}" Maximum="{Binding MaxHeartRateOffset}" FormatString="0"/>
             <TextBlock Text="{x:Static l:Strings.AppSettings_Seconds}" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
             <Button Content="{x:Static l:Strings.AppSettings_ResetDefault}" Command="{Binding ResetHeartRateOffsetCommand}"/>
           </StackPanel>
