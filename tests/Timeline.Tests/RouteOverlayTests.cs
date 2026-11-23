@@ -254,8 +254,9 @@ public sealed class RouteOverlayTests
 
         var templates = Templates(clip);
         Assert.Equal(2, templates.Length);
-        // A: T = 8 s (200) → [T − 7 s, actual end 30 − 4.6 s + 5 s) = [25, 760); B: T = 33 s (825) → [650, 1335).
-        Assert.Equal((25L, 760L), (F(templates[0].TimelineStart), F(templates[0].TimelineEnd)));
+        // A: T = 8 s (200) → [T − 7 s, actual end 30 − 4.6 s + 5 s) = [25, 760); B: T = 33 s (825) → [650, 1335). D078
+        // amendment 4: A runs only to B's start (the layout's margins overlapped) — [25, 650).
+        Assert.Equal((25L, 650L), (F(templates[0].TimelineStart), F(templates[0].TimelineEnd)));
         Assert.Equal((650L, 1335L), (F(templates[1].TimelineStart), F(templates[1].TimelineEnd)));
         Assert.All(templates, t => Assert.Equal(BoulderStatus.None, t.Status));          // no lilac
         Assert.Equal(training.Marks.Select(m => m.Climb).ToHashSet(), templates.Select(t => t.FitClimb!.Value).ToHashSet());
@@ -269,8 +270,9 @@ public sealed class RouteOverlayTests
 
         // The areas are routes like any other: their bounds are moved by hand, holds marked into them.
         var routeA = templates[0].AnchorRouteId!.Value;
-        Assert.True(_f.Service.TrimClip(templates[0].Id, ClipEdge.End, Frame(700)).Success);
-        Assert.Equal(700, F(templates[0].TimelineEnd));
+        // (Amendment 4: A and B share one track now — A is shortened, not stretched over B.)
+        Assert.True(_f.Service.TrimClip(templates[0].Id, ClipEdge.End, Frame(600)).Success);
+        Assert.Equal(600, F(templates[0].TimelineEnd));
         Assert.Equal((650L, 1335L), (F(templates[1].TimelineStart), F(templates[1].TimelineEnd)));
         Assert.True(_f.Service.AddHold(clip.Id, NewHold(0.5, 0.5), routeA).Success);
         Assert.Equal(routeA, Assert.Single(clip.Routes).Id);

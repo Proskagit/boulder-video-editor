@@ -46,8 +46,13 @@ public sealed class FitRouteBindingTests
         var agreeing = Video("video_20260927_100204.mp4", "2026-09-27T07:03:00.000000Z");   // the name 4 s later: one time
         Assert.Equal(FitBindingTimeSource.RecordingTag, FitRouteBinding.TimeOf(agreeing, Workout)!.Value.Source);
 
-        // The tag gives 07:02:00, the name 07:01:00: a file edited after the recording — no time, said, never a guess.
-        var edited = Video("video_20260927_100100.mp4", "2026-09-27T07:03:00.000000Z");
+        // The tag gives 07:02:00, the name 07:01:00: they disagree. D078 amendment 4: the FIT tells which is right — climb 1
+        // (07:01:40–07:02:00) lies inside the video only by the name's time, so the name's time it is.
+        var late = Video("video_20260927_100100.mp4", "2026-09-27T07:03:00.000000Z");
+        Assert.Equal(new FitBindingTime(W0.AddSeconds(60), FitBindingTimeSource.FileName), FitRouteBinding.TimeOf(late, Workout));
+        Assert.False(FitRouteBinding.FileTimesConflict(late, Workout));
+        // No climb under either time (10:20 / 10:25 local): still unknown — no time, said, never a guess.
+        var edited = Video("video_20260927_102000.mp4", "2026-09-27T07:26:00.000000Z");
         Assert.Null(FitRouteBinding.TimeOf(edited, Workout));
         Assert.True(FitRouteBinding.FileTimesConflict(edited, Workout));
         Assert.False(FitRouteBinding.FileTimesConflict(agreeing, Workout));

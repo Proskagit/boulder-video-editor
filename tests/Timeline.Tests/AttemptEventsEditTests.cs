@@ -116,19 +116,14 @@ public sealed class AttemptEventsEditTests
     }
 
     [Fact]
-    public void A_manual_boulder_takes_the_last_fall_within_its_green()
+    public void A_manual_boulder_has_no_window_and_is_never_refined()
     {
+        // D078 amendment 4 (the owner): the fall is searched for the FIT's areas only.
         var added = _f.Service.AddTemplateClip(TemplateKind.Boulder, MediaTime.FromSeconds(60));
         Assert.True(added.Success, added.Message);
-        var manual = _f.Project.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<TemplateClip>().Single(t => t.Id == added.ClipIds[0]);
-        Assert.NotNull(manual.FitLayout);
-        var (start, end) = (manual.FitLayout!.SourceStart.TotalSeconds, manual.FitLayout.SourceEnd.TotalSeconds);
-        var falls = new[] { start - 2, start + 3, end - 3, end + 2 };              // outside, inside, inside (the last), outside
-
-        var result = _f.Service.RefineFitAreasFromVideo(new Dictionary<Guid, AttemptEventSet> { [manual.Id] = Events([], falls) }, fall: true, liftOff: true);
-        Assert.True(result.Success && !result.NoChange, result.Message);
-        Assert.Equal(F(MediaTime.FromSeconds(end - 3)), F(manual.TimelineStart + manual.StatusAt));
-        Assert.Equal(BoulderStatus.Attempt, manual.Status);
+        Assert.DoesNotContain(FitAreaEventWindows.Of(_f.Project), w => w.TemplateId == added.ClipIds[0]);
+        var result = _f.Service.RefineFitAreasFromVideo(new Dictionary<Guid, AttemptEventSet> { [added.ClipIds[0]] = Events([], [62.0, 65.0]) }, fall: true, liftOff: true);
+        Assert.True(result.NoChange);
     }
 
     [Fact]
@@ -186,6 +181,43 @@ public sealed class AttemptEventsEditTests
         _f.UndoRedo.Undo();
         Assert.Equal((275L, 450L), (F(area.TimelineStart), F(area.RouteStart!.Value)));
         Assert.Equal(MediaTime.FromFrame(275, Rate), area.FitLayout!.SourceStart);
+    }
+
+    [Fact]
+    public void Two_climbs_seconds_apart_get_areas_that_end_where_the_next_begins_on_one_track()
+    {
+        // D078 amendment 4 (the owner, 27.09's 110133): climbs 10 and 11 were 12 s apart and their areas overlapped by the
+        // layout's margins — the second went to a new track.
+        var f = new TimelineFixture();
+        var asset = f.Video(120, Rate, "b.mp4");
+        asset.Metadata!.RecordingTimeProbe = RecordingTimeProbe.Found(W0.AddSeconds(120).UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ"),
+            RecordingTimeTagOrigin.Format);
+        Assert.True(f.Service.AddClip(asset.Id).Success);
+        f.Projects.SetTraining(new TrainingReference
+        {
+            FilePath = @"C:it.fit", FileSizeBytes = 1, Sha256 = new string('b', 64),
+            Activity = new TrainingActivity(W0.AddMinutes(-5), W0.AddHours(1), 294, 814),
+            Workout = new ClimbingWorkout
+            {
+                DeviceName = "COROS", Manufacturer = 294, Product = 814, StartUtc = W0.AddMinutes(-5), EndUtc = W0.AddHours(1),
+                UtcOffset = TimeSpan.FromHours(3), ElapsedTime = MediaTime.FromSeconds(3900), TimerTime = MediaTime.FromSeconds(3900),
+                Sport = 31, SubSport = 69, AverageHeartRate = null, MaxHeartRate = null, HeartRate = [], Pauses = [], Warnings = [],
+                Segments = new[]
+                {
+                    new WorkoutSegment(0, WorkoutSegmentKind.Climb, 1, W0.AddSeconds(30), W0.AddSeconds(48), MediaTime.FromSeconds(18), null, null),
+                    new WorkoutSegment(1, WorkoutSegmentKind.Climb, 2, W0.AddSeconds(60), W0.AddSeconds(67), MediaTime.FromSeconds(7), null, null)
+                }
+            },
+            Availability = TrainingAvailability.Available
+        });
+        Assert.True(f.Service.CreateRoutesFromFit().Success);
+
+        var areas = f.Project.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<TemplateClip>().OrderBy(t => t.TimelineStart).ToList();
+        Assert.Equal(2, areas.Count);
+        Assert.Equal(F(areas[0].TimelineEnd), F(areas[1].TimelineStart));            // the first ends where the second begins
+        Assert.Equal(2, f.Project.Timeline.VideoTracks.Count);                        // both on one track above the clip
+        Assert.True(areas[0].StatusAt < areas[0].Duration);
+        Assert.Equal(areas[0].FitLayout!.SourceEnd, MediaTime.FromFrame(F(areas[0].TimelineEnd), Rate));
     }
 
     [Fact]

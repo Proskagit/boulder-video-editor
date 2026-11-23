@@ -154,13 +154,20 @@ public sealed class AudioProcessingCoordinator : IDisposable
 
     /// <summary>D078 amendment 1: the sound processing running now for the toolbar's badge — the running job's progress and the
     /// jobs not done yet; null while none runs. Changes are raised by <see cref="StatusChanged"/>.</summary>
-    public BackgroundActivity? Activity
+    public BackgroundActivity? Activity => ActivityQueue is { Count: > 0 } q ? q[0] : null;
+
+    /// <summary>D078 amendment 4: the running job (its progress) and the jobs still waiting, with their files' names.</summary>
+    public IReadOnlyList<BackgroundActivity> ActivityQueue
     {
         get
         {
-            if (_running is not { } running) return null;
-            var waiting = _jobs.Count(p => !p.Value.IsDone && p.Value.Failure is null && !p.Value.Cancelled);
-            return new BackgroundActivity(Strings.Activity_Audio, StateOf(running.Job).Progress, Math.Max(1, waiting));
+            var queue = new List<BackgroundActivity>();
+            if (_running is { } running)
+                queue.Add(new BackgroundActivity(Strings.Activity_Audio, StateOf(running.Job).Progress, 1, Path.GetFileName(running.Job.FilePath)));
+            foreach (var (job, state) in _jobs)
+                if ((_running is not { } r || r.Job != job) && !state.IsDone && state.Failure is null && !state.Cancelled)
+                    queue.Add(new BackgroundActivity(Strings.Activity_Audio, 0, 1, Path.GetFileName(job.FilePath), Running: false));
+            return queue;
         }
     }
 

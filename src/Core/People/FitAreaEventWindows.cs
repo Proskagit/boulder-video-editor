@@ -29,9 +29,9 @@ public static class FitAreaEventWindows
         var result = new List<FitAreaEventWindow>();
         foreach (var template in clips.OfType<TemplateClip>())
         {
-            // Amendment 3: the FIT's areas and a manual «Боулдер» anchored over a clip (both keep the bounds they were laid out
-            // with); an area laid out by «Разложить вступление и финал» keeps none and is the user's.
-            if (template.Kind != TemplateKind.Boulder || template.FitLayout is not { } layout ||
+            // Amendment 4 (the owner): only the FIT's areas — a manual «Боулдер» is placed at the route's start and its default
+            // length rarely reaches the fall.
+            if (template.Kind != TemplateKind.Boulder || template.FitClimb is null || template.FitLayout is not { } layout ||
                 template.AnchorClipId is not { } clipId || !videos.TryGetValue(clipId, out var clip))
                 continue;
             var start = template.RouteStart ?? layout.SourceStart + Intro;

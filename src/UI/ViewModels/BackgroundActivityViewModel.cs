@@ -48,25 +48,27 @@ public sealed partial class BackgroundActivityViewModel : ObservableObject, IDis
 
     public string LoadTip => Strings.Activity_LoadTip;
 
-    /// <summary>The badge from the running analyses.</summary>
+    /// <summary>The badge from the analyses' queues (D078 amendment 4): the running ones first, then the waiting ones; the badge
+    /// shows the first with its own share and «+N» for the rest; the tooltip lists the whole queue, a line each.</summary>
     public void Refresh()
     {
-        var running = new[] { _people?.Activity, _cameraMotion?.Activity, _audio?.Activity }.Where(a => a is not null).Select(a => a!.Value).ToList();
-        IsBusy = running.Count > 0;
+        var queue = new[] { _people?.ActivityQueue, _cameraMotion?.ActivityQueue, _audio?.ActivityQueue }
+            .Where(q => q is not null).SelectMany(q => q!).OrderByDescending(a => a.Running).ToList();
+        IsBusy = queue.Count > 0;
         if (!IsBusy)
         {
             ActivityText = ActivityTip = "";
             HasProgress = false;
             return;
         }
-        var first = running[0];
+        var first = queue[0];
         HasProgress = first.Progress is not null;
         ActivityProgress = (first.Progress ?? 0) * 100;
-        // «+N»: the other running analyses and this one's waiting runs (amendment 3: one run's share on the badge).
-        var others = running.Count - 1 + Math.Max(0, first.Items - 1);
-        ActivityText = Line(first) + (others > 0 ? " · " + string.Format(CultureInfo.CurrentCulture, Strings.Activity_More, others) : "");
-        ActivityTip = string.Join(Environment.NewLine, running.Select(a =>
-            Line(a) + (a.Items > 1 ? " — " + string.Format(CultureInfo.CurrentCulture, Strings.Activity_Items, a.Items) : "")));
+        ActivityText = Line(first) + (queue.Count > 1 ? " · " + string.Format(CultureInfo.CurrentCulture, Strings.Activity_More, queue.Count - 1) : "");
+        ActivityTip = string.Join(Environment.NewLine, queue.Select((a, i) =>
+            string.Format(CultureInfo.CurrentCulture, "{0}. {1}{2} — {3}", i + 1, a.Label, a.Detail is { } d ? " · " + d : "",
+                !a.Running ? Strings.Activity_Queued
+                : a.Progress is { } p ? string.Format(CultureInfo.CurrentCulture, "{0:0} %", Math.Clamp(p, 0, 1) * 100) : Strings.Activity_Running)));
     }
 
     private static string Line(BackgroundActivity a) =>

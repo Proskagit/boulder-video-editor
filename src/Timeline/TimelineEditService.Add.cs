@@ -386,8 +386,6 @@ public sealed partial class TimelineEditService
         long ps = startFrame, pe = Math.Min(ve, startFrame + frames);
         var s = Math.Max(pe - LayoutFinal.ToNearestFrame(rate), ps + 1);
         var template = NewRouteTemplate(video.Id, Guid.NewGuid(), ps, pe, s, rate);
-        // D078 amendment 3: the bounds it is laid out with — the attempt's fall then gives it its lilac while it is untouched.
-        template.FitLayout = FitLayoutOf(video, ps, pe, template.StatusAt, rate);
         if (PlaceRouteTemplate(plan, video, template, ps, pe, out var addTrack) is { } placeError) return TimelineEditResult.Fail(placeError);
         if (Validate(plan) is { } error) return TimelineEditResult.Fail(string.Format(Messages.Edit_CantAddTemplate, plan.TrackOf(video).Name, error));
         IUndoableCommand command = plan.BuildCommand("Add Template");

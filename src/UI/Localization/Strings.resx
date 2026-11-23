@@ -4301,4 +4301,13 @@ Everything else works without the models. They can also be installed later: «Se
   <data name="Activity_LoadTip" xml:space="preserve">
     <value>The whole computer's processor and graphics card load</value>
   </data>
+  <data name="Activity_Queued" xml:space="preserve">
+    <value>queued</value>
+  </data>
+  <data name="Activity_Running" xml:space="preserve">
+    <value>running</value>
+  </data>
+  <data name="App_Version" xml:space="preserve">
+    <value>version {0}</value>
+  </data>
 </root>

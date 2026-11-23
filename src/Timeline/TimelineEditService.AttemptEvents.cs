@@ -81,19 +81,11 @@ public sealed partial class TimelineEditService
             if (fall && template.Status is BoulderStatus.Attempt or BoulderStatus.None && template.StatusAt == laid.StatusAt)
             {
                 MediaTime? fallAt = null;
-                if (template.FitClimb is { } climb)
-                {
-                    // A FIT area: the fall nearest to the climb's watch end − 3 s within 8 s.
-                    if (workout is not null && workout.Climbs.FirstOrDefault(c => FitMarkRules.IdentityOf(c) == climb) is { } segment &&
-                        FindAsset(clip.MediaAssetId) is { } asset && FitRouteBinding.TimeOf(asset, workout) is { } time)
-                        fallAt = AttemptEventSet.Nearest(found.Falls, TrainingAlignment.SourceTimeOf(time.Zero, segment.End, clockCorrection) - FallBeforeWatchEnd, FallSnapRadius);
-                }
-                else
-                {
-                    // A manual area: the last fall within its green (the user laid it over the attempt).
-                    var falls = found.Falls.Where(f => f >= laid.SourceStart && f <= laid.SourceEnd).ToList();
-                    if (falls.Count > 0) fallAt = falls[^1];
-                }
+                // A FIT area (amendment 4: only these): the fall nearest to the climb's watch end − 3 s within 8 s.
+                if (template.FitClimb is { } climb && workout is not null &&
+                    workout.Climbs.FirstOrDefault(c => FitMarkRules.IdentityOf(c) == climb) is { } segment &&
+                    FindAsset(clip.MediaAssetId) is { } asset && FitRouteBinding.TimeOf(asset, workout) is { } time)
+                    fallAt = AttemptEventSet.Nearest(found.Falls, TrainingAlignment.SourceTimeOf(time.Zero, segment.End, clockCorrection) - FallBeforeWatchEnd, FallSnapRadius);
                 if (fallAt is { } at)
                 {
                     var f = HoldAnimationRule.StartFrame(clip.TimelineStart, clip.SourceIn, clip.Speed, at, rate);

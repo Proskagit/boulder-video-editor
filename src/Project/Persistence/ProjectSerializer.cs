@@ -671,7 +671,7 @@ public static class ProjectSerializer
                 AnchorClipId = p.AnchorClipId,
                 AnchorRouteId = p.AnchorClipId is null ? null : p.AnchorRouteId,
                 FitClimb = p.AnchorClipId is not null && p.FitClimb is { } fitClimb ? ToDto(fitClimb) : null,
-                FitLayout = p.AnchorClipId is not null && p.FitLayout is { } layout   // D078 amendment 3: also a manual area's
+                FitLayout = p.AnchorClipId is not null && p.FitClimb is not null && p.FitLayout is { } layout
                     ? new FitAreaLayoutDto { SourceStartTicks = layout.SourceStart.Ticks, SourceEndTicks = layout.SourceEnd.Ticks, StatusAtTicks = layout.StatusAt.Ticks }
                     : null,
                 RouteStartTicks = p.AnchorClipId is not null && p.RouteStart is { } routeStart ? routeStart.Ticks : null,
@@ -1262,7 +1262,7 @@ public static class ProjectSerializer
                 AnchorClipId = formatVersion >= RouteTimingVersion ? p.AnchorClipId : null,
                 AnchorRouteId = formatVersion >= RoutesVersion ? p.AnchorRouteId : null,
                 FitClimb = formatVersion >= RoutesVersion && p.FitClimb is { } fitClimb ? ReadClimb(fitClimb) : null,
-                FitLayout = formatVersion >= FitLayoutVersion && p.FitLayout is { } layout ? ReadFitLayout(layout) : null,
+                FitLayout = formatVersion >= FitLayoutVersion && p.FitClimb is not null && p.FitLayout is { } layout ? ReadFitLayout(layout) : null,
                 RouteStart = formatVersion >= RouteStartVersion && p.RouteStartTicks is { } routeStartTicks ? new MediaTime(routeStartTicks) : null,
                 // Phase 35.5: the heart-rate overlay's look and corner are required on it, absent on the other kinds.
                 // D055 §5: from v16 a «Боулдер» has them too (required); an older one gets the defaults.

@@ -292,13 +292,13 @@ public sealed class MediaRemovalUiTests
         }
     }
 
-    private sealed class NoAnalysis : IMediaAnalysisService
+    internal sealed class NoAnalysis : IMediaAnalysisService
     {
         public Task<MediaAnalysisResult> AnalyzeAsync(string filePath, CancellationToken ct = default) =>
             Task.FromResult(MediaAnalysisResult.Failure(MediaAnalysisOutcome.ProbeToolUnavailable, "test"));
     }
 
-    private sealed class NoImport : IMediaImportService
+    internal sealed class NoImport : IMediaImportService
     {
         public IReadOnlySet<string> SupportedExtensions { get; } = new HashSet<string>();
         public Task<MediaImportBatchResult> ImportManyAsync(IEnumerable<string> filePaths, CancellationToken ct = default) =>

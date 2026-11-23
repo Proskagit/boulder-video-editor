@@ -119,26 +119,42 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
     /// analysis is not affected.</summary>
     public bool EventsStopped { get; private set; }
 
-    /// <summary>D078 amendment 1: the analysis running now for the toolbar's badge — its kind and the share done of what that
-    /// kind needs over all videos; null while nothing runs. Changes are raised by <see cref="StatusChanged"/>.</summary>
-    public BackgroundActivity? Activity
+    /// <summary>D078 amendments 1, 4: the queue for the toolbar's badge — the run going now first (its share, smooth within the
+    /// run: the analyser's frame progress), then every file and kind still waiting, in the order they run. Changes are raised
+    /// by <see cref="StatusChanged"/>.</summary>
+    public IReadOnlyList<BackgroundActivity> ActivityQueue
     {
         get
         {
-            // Amendment 3 (the owner): each run on its own — its share 0..100 %, then the next one's; the runs still waiting are
-            // counted for the «+N» (the videos with chunks still to do of any kind).
-            if (_running is not { } running) return null;
-            var category = running.ForEvents ? 2 : running.Kind == PeopleAnalysisKind.Masks ? 1 : 0;
-            var share = running.Chunks.Length == 0 ? 0 : (double)running.Done.Count / running.Chunks.Length;
-            var waiting = _wanted.Count(p =>
+            var queue = new List<BackgroundActivity>();
+            if (_running is { } running)
             {
-                var state = StateOf(p.Key);
-                return p.Key != running.File && (p.Value.Tracks.Concat(p.Value.EventTracks).Any(k => !state.Tracks.ContainsKey(k)) ||
-                                                p.Value.Masks.Any(k => !state.Masks.ContainsKey(k)));
-            });
-            return new BackgroundActivity(LabelOf(category), share, 1 + waiting);
+                var share = running.Chunks.Length == 0 ? 0 : Math.Max((double)running.Done.Count / running.Chunks.Length, running.Fraction);
+                queue.Add(new BackgroundActivity(LabelOf(CategoryOf(running.ForEvents, running.Kind)), Math.Clamp(share, 0, 1), 1,
+                    Path.GetFileName(running.File.FilePath)));
+            }
+            foreach (var (category, forEvents, kind) in new[] { (0, false, PeopleAnalysisKind.Tracks), (1, false, PeopleAnalysisKind.Masks), (2, true, PeopleAnalysisKind.Tracks) })
+                foreach (var (key, want) in _wanted)
+                {
+                    if (_running is { } r && r.File == key && CategoryOf(r.ForEvents, r.Kind) == category) continue;
+                    var state = StateOf(key);
+                    if (state.TracksCancelled || state.TracksFailure is not null || (category == 2 && (EventsNeedGpu || EventsStopped))) continue;
+                    var missing = category switch
+                    {
+                        0 => want.Tracks.Any(k => !state.Tracks.ContainsKey(k)),
+                        1 => !state.MasksCancelled && state.MasksFailure is null && want.Masks.Any(k => !state.Masks.ContainsKey(k)),
+                        _ => want.EventTracks.Any(k => !state.Tracks.ContainsKey(k))
+                    };
+                    if (missing) queue.Add(new BackgroundActivity(LabelOf(category), 0, 1, Path.GetFileName(key.FilePath), Running: false));
+                }
+            return queue;
         }
     }
+
+    /// <summary>The first of <see cref="ActivityQueue"/>, or null.</summary>
+    public BackgroundActivity? Activity => ActivityQueue is { Count: > 0 } q ? q[0] : null;
+
+    private static int CategoryOf(bool forEvents, PeopleAnalysisKind kind) => forEvents ? 2 : kind == PeopleAnalysisKind.Masks ? 1 : 0;
 
     private static string LabelOf(int category) => category switch
     {
@@ -208,6 +224,9 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
     private sealed record Running(FileKey File, PeopleAnalysisKind Kind, int[] Chunks, bool ForFollow, bool ForEvents, CancellationTokenSource Cancel)
     {
         public HashSet<int> Done { get; } = new();
+
+        /// <summary>D078 amendment 4: the analyser's progress over the run's frames (0..1).</summary>
+        public double Fraction { get; set; }
     }
 
     private sealed record Work(FileKey File, PeopleAnalysisKind Kind, int[] Chunks, bool ForFollow, bool ForEvents = false);
@@ -476,7 +495,14 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
             string? failure = null;
             try
             {
-                results = await Task.Run(() => AnalyseAsync(work, tracks, chunks, cancel.Token), cancel.Token);
+                // D078 amendment 4: the frames' progress reaches the badge (on this context; a step of 1 % at least).
+                var fraction = new Progress<double>(p =>
+                {
+                    if (p - running.Fraction < 0.01 && p < 1) return;
+                    running.Fraction = p;
+                    StatusChanged?.Invoke(this, EventArgs.Empty);
+                });
+                results = await Task.Run(() => AnalyseAsync(work, tracks, chunks, cancel.Token, fraction), cancel.Token);
             }
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
             {
@@ -518,7 +544,7 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
     /// <summary>One run on the thread pool: the chunks found in the cache are handed on at once; from the first one that is
     /// not, the rest is analysed in one decoding pass, each chunk saved and handed on when done.</summary>
     private async Task<List<(int, object)>> AnalyseAsync(Work work, PersonTracks? tracksForMasks, IProgress<(int Chunk, object Result)> report,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, IProgress<double>? fraction = null)
     {
         if (_vision is null) throw new PeopleModelException(string.Format(Messages.People_ModelLoadFailed, nameof(IPeopleVision)));
         var results = new List<(int, object)>();
@@ -553,7 +579,7 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
             {
                 if (Key(chunk) is { } key) _cache!.SaveTracks(key, tracks);
                 Done(chunk, tracks);
-            }, null, cancellationToken);
+            }, fraction, cancellationToken);
         }
         else
         {
@@ -562,7 +588,7 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
                 {
                     if (Key(chunk) is { } key) _cache!.SaveMasks(key, masks);
                     Done(chunk, masks);
-                }, null, cancellationToken);
+                }, fraction, cancellationToken);
         }
         _logger.LogInformation("People {Kind}: {File}: {From:F1}–{To:F1} s ({Chunks} chunks), {Seconds:F1} s.", work.Kind,
             Path.GetFileName(work.File.FilePath), from.TotalSeconds, to.TotalSeconds, work.Chunks.Length - index, started.Elapsed.TotalSeconds);

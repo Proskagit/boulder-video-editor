@@ -232,6 +232,9 @@ public sealed partial class TimelineEditService : IFitMarkEditService
         var created = new List<Guid>();
         int locked = 0;
         var approximate = false;
+        // The areas' frames first: D078 amendment 4 (the owner) — on one clip an area runs at most to the next climb's area's start
+        // (two climbs a few seconds apart would overlap by the layout's margins), so both stay on one track.
+        var planned = new List<(VideoClip Clip, WorkoutSegment Segment, FitBindingTime Time, (long Tf, long ClimbEnd, long Ps, long Pe, long S) Frames)>();
         foreach (var (clip, segment, time, _) in best.Values.OrderBy(b => b.Climb.StartUtc).ThenBy(b => b.Clip.TimelineStart))
         {
             var identity = FitMarkRules.IdentityOf(segment);
@@ -239,7 +242,23 @@ public sealed partial class TimelineEditService : IFitMarkEditService
             var mark = training.Marks.FirstOrDefault(m => m.Climb == identity);
             var own = mark is not null && FitMarkRules.EffectiveStart(mark, Project) is { SourceTime: { } markStart } effective &&
                       effective.AssetId == clip.MediaAssetId ? markStart : (MediaTime?)null;
-            if (FitAreaFrames(clip, segment, time, own, training.ClockCorrection, estimate, rate) is not { } frames) continue;
+            if (FitAreaFrames(clip, segment, time, own, training.ClockCorrection, estimate, rate) is { } frames) planned.Add((clip, segment, time, frames));
+        }
+        for (var i = 0; i < planned.Count; i++)
+        {
+            var next = planned.Skip(i + 1).Where(p => p.Clip == planned[i].Clip && p.Frames.Ps > planned[i].Frames.Ps)
+                .OrderBy(p => p.Frames.Ps).FirstOrDefault();
+            if (next.Clip is null) continue;
+            var f = planned[i].Frames;
+            if (f.Pe <= next.Frames.Ps || next.Frames.Ps - f.Ps < 2) continue;
+            var pe = next.Frames.Ps;
+            var s = Math.Clamp(Math.Min(f.S, pe - LayoutFinal.ToNearestFrame(rate)), f.Tf, pe - 1);
+            planned[i] = planned[i] with { Frames = f with { Pe = pe, S = Math.Max(s, f.Ps + 1), ClimbEnd = Math.Min(f.ClimbEnd, pe) } };
+        }
+
+        foreach (var (clip, segment, time, frames) in planned)
+        {
+            var identity = FitMarkRules.IdentityOf(segment);
             var (tf, climbEnd, ps, pe, s) = frames;
             // A green the user made on this clip that covers at least half of the climb [T, actual end) on the clip: the
             // climb is marked by hand (its bounds may differ from the estimate by seconds).
@@ -270,6 +289,10 @@ public sealed partial class TimelineEditService : IFitMarkEditService
             {
                 track = NewTrack(TrackType.Video);
                 track.Order += newTracks.Count;
+                // D078 amendment 4: a name no track of the sequence or of this step has (several new tracks were all «V2»).
+                var number = Sequence.VideoTracks.Count + newTracks.Count + 1;
+                while (Sequence.VideoTracks.Concat(newTracks).Any(t => t.Name == $"V{number}")) number++;
+                track.Name = $"V{number}";
                 newTracks.Add(track);
             }
             if (newTracks.Contains(track)) track.Clips.Add(template);

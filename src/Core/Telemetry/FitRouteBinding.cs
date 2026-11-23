@@ -61,20 +61,46 @@ public static class FitRouteBinding
     {
         if (asset.Kind != MediaKind.Video) return null;
         var candidates = RecordingZeroEstimator.Candidates(asset, workout.UtcOffset);
-        if (Conflict(candidates)) return null;
+        if (Conflict(candidates)) return ResolveByClimbs(candidates, asset, workout);
         if (candidates.TagMarksEnd is { } tag) return new FitBindingTime(tag, FitBindingTimeSource.RecordingTag);
         if (candidates.FromFileName is { } name) return new FitBindingTime(name, FitBindingTimeSource.FileName);
         return null;
     }
 
-    /// <summary>Whether a video's file times disagree (D055 §1, D054 §2) — whatever its <c>Z</c>.</summary>
+    /// <summary>Whether a video's file times disagree (D055 §1, D054 §2) and the FIT cannot tell which is right — whatever its
+    /// <c>Z</c>.</summary>
     public static bool FileTimesDisagree(MediaAsset asset, ClimbingWorkout workout) =>
-        asset.Kind == MediaKind.Video && Conflict(RecordingZeroEstimator.Candidates(asset, workout.UtcOffset));
+        asset.Kind == MediaKind.Video && RecordingZeroEstimator.Candidates(asset, workout.UtcOffset) is var c && Conflict(c) &&
+        ResolveByClimbs(c, asset, workout) is null;
 
-    /// <summary>Whether a video without a <c>Z</c> is unbound because its tag and its file name disagree (D054 §2).</summary>
+    /// <summary>Whether a video without a <c>Z</c> is unbound because its tag and its file name disagree (D054 §2) and the FIT
+    /// cannot tell which is right.</summary>
     public static bool FileTimesConflict(MediaAsset asset, ClimbingWorkout workout) =>
-        asset.Kind == MediaKind.Video && RecordingZeroEstimator.Resolve(asset).Utc is null &&
-        Conflict(RecordingZeroEstimator.Candidates(asset, workout.UtcOffset));
+        asset.Kind == MediaKind.Video && RecordingZeroEstimator.Resolve(asset).Utc is null && FileTimesDisagree(asset, workout);
+
+    /// <summary>The slack a climb may stick out of the video and still count as shown by it (whole-second times).</summary>
+    private static readonly TimeSpan ClimbSlack = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    /// D078 amendment 4 (the owner's 27.09 103026): the tag and the file name disagree — the phone may write its tag (the moment
+    /// the file is finished) minutes after the recording stopped. The FIT tells which is right: the time under which at least
+    /// one climb lies inside the video while none does under the other; the file name's time, else the tag's. Null when both or
+    /// neither show a climb — still unknown.
+    /// </summary>
+    private static FitBindingTime? ResolveByClimbs(RecordingZeroCandidates candidates, MediaAsset asset, ClimbingWorkout workout)
+    {
+        if (candidates is not { TagMarksEnd: { } tag, FromFileName: { } name } || asset.Metadata?.Duration is not { } duration || duration <= MediaTime.Zero)
+            return null;
+        int Shown(DateTimeOffset start)
+        {
+            var end = start.AddTicks(duration.Ticks);
+            return workout.Climbs.Count(c => c.StartUtc >= start - ClimbSlack && c.End <= end + ClimbSlack);
+        }
+        var (byName, byTag) = (Shown(name), Shown(tag));
+        if (byName > 0 && byTag == 0) return new FitBindingTime(name, FitBindingTimeSource.FileName);
+        if (byTag > 0 && byName == 0) return new FitBindingTime(tag, FitBindingTimeSource.RecordingTag);
+        return null;
+    }
 
     private static bool Conflict(RecordingZeroCandidates candidates) =>
         candidates is { TagMarksEnd: { } tag, FromFileName: { } name } && Math.Abs((tag - name).Ticks) > FileTimesTolerance.Ticks;

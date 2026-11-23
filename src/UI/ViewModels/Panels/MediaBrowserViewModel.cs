@@ -210,6 +210,9 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
     {
         var wanted = Items.Where(i => touched.Contains(i) || kept.Contains(i)).ToList();
         if (wanted.SequenceEqual(SelectedItems)) return;
+        // D078 amendment 4: the primary file first — setting it after the group would reset the list's selection to it.
+        if (SelectedItem is null || !wanted.Contains(SelectedItem))
+            SelectedItem = Items.FirstOrDefault(touched.Contains) ?? wanted.FirstOrDefault();
         foreach (var item in SelectedItems.Where(i => !wanted.Contains(i)).ToList()) SelectedItems.Remove(item);
         for (var i = 0; i < wanted.Count; i++)
         {
@@ -263,10 +266,12 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanRemoveContextItem))]
     private Task RemoveContextItem()
     {
-        if (ContextItem is not { } item) return Task.CompletedTask;
-        if (SelectedItems.Contains(item)) SelectedItem = item;   // D069 §1: the group stays — Remove takes all of it
-        else FocusOn(item);
-        return RemoveCommand.ExecuteAsync(null);
+        if (ContextItem is not { } item || !CanRemove()) return Task.CompletedTask;
+        // D069 §1: the group stays — Remove takes all of it. D078 amendment 4: the group is taken as it is, never by setting the
+        // current file inside it (the list's SelectedItem binding would reset a multiple selection to that one file).
+        if (SelectedItems.Contains(item)) return RemoveItemsAsync(SelectedItems.ToList());
+        FocusOn(item);
+        return RemoveItemsAsync(new List<MediaBrowserItemViewModel> { item });
     }
 
     private bool CanRelinkContextItem() => CanRelinkAny() && ContextItem is { Asset.IsMissing: true };
@@ -328,6 +333,12 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
         // after one question for all of them, as one Undo step.
         var items = SelectedItems.Contains(focused) ? SelectedItems.ToList() : new List<MediaBrowserItemViewModel> { focused };
         if (items.Count == 1) items = new List<MediaBrowserItemViewModel> { focused };
+        await RemoveItemsAsync(items);
+    }
+
+    private async Task RemoveItemsAsync(List<MediaBrowserItemViewModel> items)
+    {
+        if (_edit is null || items.Count == 0 || !CanEdit()) return;
         foreach (var item in items)
         {
             if (_edit.GetRemoveMediaBlockReason(item.Asset.Id) is { } blocked)

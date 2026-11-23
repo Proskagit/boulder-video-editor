@@ -135,7 +135,20 @@ public sealed class CameraMotionCoordinator : IDisposable
 
     /// <summary>D078 amendment 1: the hold tracking running now for the toolbar's badge — the clips still analysed (no share
     /// can be told: one route at a time); null while none. Changes are raised by <see cref="StatusChanged"/>.</summary>
-    public BackgroundActivity? Activity => Pending.Count == 0 ? null : new BackgroundActivity(Strings.Activity_HoldTracking, null, Pending.Count);
+    public BackgroundActivity? Activity => ActivityQueue is { Count: > 0 } q ? q[0] : null;
+
+    /// <summary>D078 amendment 4: the clips still tracked, the first running (no share can be told), with their files' names.</summary>
+    public IReadOnlyList<BackgroundActivity> ActivityQueue
+    {
+        get
+        {
+            if (Pending.Count == 0) return Array.Empty<BackgroundActivity>();
+            var project = _projects.Current;
+            var clips = project.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<VideoClip>().Where(c => Pending.Contains(c.Id)).ToList();
+            string? NameOf(VideoClip c) => project.MediaAssets.FirstOrDefault(a => a.Id == c.MediaAssetId)?.FileName;
+            return clips.Select((c, i) => new BackgroundActivity(Strings.Activity_HoldTracking, null, 1, NameOf(c), Running: i == 0)).ToList();
+        }
+    }
 
     /// <summary>The clips with a route whose analysis has not finished yet.</summary>
     public ImmutableHashSet<Guid> Pending { get; private set; } = ImmutableHashSet<Guid>.Empty;

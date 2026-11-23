@@ -4305,4 +4305,13 @@
   <data name="Activity_LoadTip" xml:space="preserve">
     <value>Общая загрузка процессора и видеокарты компьютера</value>
   </data>
+  <data name="Activity_Queued" xml:space="preserve">
+    <value>в очереди</value>
+  </data>
+  <data name="Activity_Running" xml:space="preserve">
+    <value>идёт</value>
+  </data>
+  <data name="App_Version" xml:space="preserve">
+    <value>версия {0}</value>
+  </data>
 </root>

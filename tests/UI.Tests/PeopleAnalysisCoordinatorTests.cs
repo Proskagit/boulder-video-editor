@@ -74,13 +74,17 @@ public sealed class PeopleAnalysisCoordinatorTests : IDisposable
         AddClip(FollowSettings.Whole(), seconds: 4);                                 // two videos: one is done before the other
         using var coordinator = new PeopleAnalysisCoordinator(_projects, new Decoder(6), new Vision { Delay = TimeSpan.FromMilliseconds(5) });
         var seen = new List<BackgroundActivity>();
-        coordinator.StatusChanged += (_, _) => { if (coordinator.Activity is { } a) seen.Add(a); };
+        var queues = new List<IReadOnlyList<BackgroundActivity>>();
+        coordinator.StatusChanged += (_, _) => { if (coordinator.Activity is { } a) seen.Add(a); queues.Add(coordinator.ActivityQueue); };
         await coordinator.IdleAsync();
         Assert.NotEmpty(seen);
         Assert.All(seen, a => Assert.Equal(AiVideoEditor.UI.Localization.Strings.Activity_PeopleTracks, a.Label));
         Assert.All(seen, a => Assert.InRange(a.Progress!.Value, 0, 1));
         Assert.Contains(seen, a => a.Progress > 0);
         // Amendment 3: each run's own share — it grows within a run and starts again at the next one.
+        // Amendment 4: the queue — the running video first with its file's name, the other one waiting after it.
+        Assert.Contains(queues, q => q.Count == 2 && q[0].Running && !q[1].Running && q[1].Progress == 0 && q[1].Detail is not null);
+        Assert.Empty(coordinator.ActivityQueue);
         Assert.Null(coordinator.Activity);
         var badge = new AiVideoEditor.UI.ViewModels.BackgroundActivityViewModel(coordinator);
         Assert.False(badge.IsBusy);

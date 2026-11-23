@@ -44,6 +44,12 @@ lift-off is off; the badge shows each run's own share; clear names («Поиск
 UI (4K canvas + its Undo, the lift-off filter), the settings file, the manual layout saved. **Gates:** builds 0 / 0, Vision 38,
 Project 783, Core 2 016, Export 153, Rendering 288, UI 1 367, Timeline 1 275, Video 439 (+2 skips), ExportEndToEnd 191 = 6 550.
 Portable `artifacts/portable/BoulderVideoEditor-1.12.2-win-x64`.
+**Amendment 4 (the owner's check of 1.12.2):** the Media Browser keeps a group (the list's `SelectedItem` reset it; checked on the
+real `ListBox`), Delete after a rubber band; removing files takes their anchored templates and the emptied video tracks; distinct new
+track names; FIT areas of close climbs end where the next begins (one track); a video whose tag and name disagree bound by the
+FIT's climbs (27.09's 103026); no fall search for a manual «Боулдер»; the badge's smooth share and the whole queue in its tooltip;
+the version in the window's title. **Gates:** builds 0 / 0, Vision 38, Project 783, Core 2 016, Export 153, Rendering 288, UI 1 370,
+Timeline 1 277, Video 439 (+2 skips), ExportEndToEnd 191 = 6 555. Portable `artifacts/portable/BoulderVideoEditor-1.12.3-win-x64`.
 **Third review: PASS WITH NOTES** — notes kept as is (documented): a refinement landing between two merged steps of a slider or under
 an unfinished strip drag (rare: a window must finish exactly then), the service assumes the UI context (comment added), and the
 known items of D078 «Refined».

@@ -12374,3 +12374,26 @@ now the attempt's events) and nothing says that something runs in the background
 - **The first 4K video gives the project 4K:** an empty project takes the first video's frame size when the video has the canvas's
   shape and is larger (`PlanFirstVideoCanvas`, in the add's Undo step, with a status note); a smaller source never shrinks it; another
   shape stays D041's offer, which is never made when the canvas already has the video's shape.
+
+### D078 amendment 4 — the owner's check of 1.12.2 (2026-11-23)
+
+- **The Media Browser keeps a group:** removing through the menu on a file of a group, or after a rubber band, took one file — the
+  list's `SelectedItem` binding resets a multiple selection when the view model sets it inside the group. The group is now taken as
+  it is (never by setting the current file), the rubber band sets the primary file first; a rubber band focuses the list, so Delete
+  removes what it selected. Checked on the real `ListBox` (`MediaBrowserSelectionViewTests`).
+- **Removing files removes what goes with their clips:** the templates anchored to the removed clips (D048 §3.10, as a deletion on the
+  timeline does — before, an area was left pointing at a clip that is gone) and the video tracks that step leaves empty (D075
+  amendment 2).
+- **New tracks of one FIT import get distinct names** (several were all «V2»).
+- **Areas of climbs a few seconds apart do not overlap:** on one clip an area made from the FIT runs at most to the next climb's area's
+  start (its status moment kept inside it), so both stay on one track (27.09's 110133: climbs 10 and 11 were 12 s apart).
+- **A video whose tag and file name disagree is bound by the FIT:** the phone may write its tag (the file finished) minutes after the
+  stop (27.09's 103026: name 10:30:26, tag 10:35:07 for a 1:39 video). The time under which a climb lies inside the video while none
+  does under the other is used; both or neither → still unbound and said (`FitRouteBinding.ResolveByClimbs`).
+- **No fall search for a manual «Боулдер»** (the owner): it is placed at the route's start and rarely reaches the fall; amendment 3's
+  manual part withdrawn (a manual area keeps no `FitLayout`); it stays anchored to its clip.
+- **The badge's queue:** the running analysis's share is smooth within its run (the analyser's frame progress); the tooltip lists the
+  whole queue a line each — «1. Маски людей · file — 86 %», «2. … — в очереди» — the running ones first; «+N» is the number of lines
+  after the first.
+- **The version in the window's title:** «Проект — Boulder Video Editor · версия 1.12.3» (the build's stamped version; nothing on an
+  unstamped development build).

@@ -224,11 +224,26 @@ public sealed class FitAutoBindingTests
     }
 
     [Fact]
+    public void A_file_whose_tag_and_name_disagree_is_bound_by_the_time_its_climb_lies_under()
+    {
+        // D078 amendment 4 (the owner's 27.09 103026): named 13:00:00 local (W0), its tag ends at W0 + 300 s (written minutes
+        // after the stop). Climb 1 (W0 + 30 … 50 s) lies inside the video by the name's time only: the name's time is used.
+        var late = Add(Tagged(_f.Video(60, Rate, "video_20261103_130000.mp4"), W0.AddSeconds(300)));
+        ThreeClimbs();
+        var result = _f.Service.CreateRoutesFromFit();
+        Assert.True(result.Success, result.Message);
+        var area = Assert.Single(Areas());
+        Assert.Equal(late.Id, area.AnchorClipId);
+        Assert.DoesNotContain(string.Format(Messages.FitRoutes_TimesConflict, 1), result.Message);
+    }
+
+    [Fact]
     public void A_file_whose_tag_and_name_disagree_is_skipped_and_said()
     {
         Add(VideoA());
-        // Named 13:00:00 local (W0) but its tag says it ended at W0 + 300 s: edited after the recording.
-        var edited = Add(Tagged(_f.Video(60, Rate, "video_20261103_130000.mp4"), W0.AddSeconds(300)));
+        // Named 14:00:00 local (W0 + 1 h) but its tag says it ended 4 min later than that minute: the times disagree, and no
+        // climb lies under either (D078 amendment 4: the FIT cannot tell which is right) — skipped and said.
+        var edited = Add(Tagged(_f.Video(60, Rate, "video_20261103_140000.mp4"), W0.AddSeconds(3900)));
         ThreeClimbs();
 
         var result = _f.Service.CreateRoutesFromFit();
