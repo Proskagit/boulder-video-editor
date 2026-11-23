@@ -4,7 +4,9 @@ using AiVideoEditor.Core.Entities;
 namespace AiVideoEditor.Core.People;
 
 /// <summary>A route area made from the FIT and the source time window of its video the attempt's events are searched in.</summary>
-public readonly record struct FitAreaEventWindow(Guid TemplateId, Guid ClipId, Guid AssetId, MediaTime From, MediaTime To);
+/// <para><see cref="FallUsable"/>: no status yet or «Попытка» — a fall can give it its lilac (amendment 3); a top's or a flash's
+/// window is wanted only for the lift-off.</para>
+public readonly record struct FitAreaEventWindow(Guid TemplateId, Guid ClipId, Guid AssetId, MediaTime From, MediaTime To, bool FallUsable = false);
 
 /// <summary>
 /// D078 §3: the windows of the attempt's events — per route area made from the FIT (a «Боулдер» with a FIT climb and the bounds it
@@ -27,13 +29,15 @@ public static class FitAreaEventWindows
         var result = new List<FitAreaEventWindow>();
         foreach (var template in clips.OfType<TemplateClip>())
         {
-            if (template.Kind != TemplateKind.Boulder || template.FitClimb is null || template.FitLayout is not { } layout ||
+            // Amendment 3: the FIT's areas and a manual «Боулдер» anchored over a clip (both keep the bounds they were laid out
+            // with); an area laid out by «Разложить вступление и финал» keeps none and is the user's.
+            if (template.Kind != TemplateKind.Boulder || template.FitLayout is not { } layout ||
                 template.AnchorClipId is not { } clipId || !videos.TryGetValue(clipId, out var clip))
                 continue;
             var start = template.RouteStart ?? layout.SourceStart + Intro;
             var from = start - BeforeStart;
             result.Add(new FitAreaEventWindow(template.Id, clip.Id, clip.MediaAssetId, from < MediaTime.Zero ? MediaTime.Zero : from,
-                layout.SourceEnd + AfterEnd));
+                layout.SourceEnd + AfterEnd, template.Status is BoulderStatus.Attempt or BoulderStatus.None));
         }
         return result;
     }

@@ -34,6 +34,9 @@ public sealed partial class TimelineViewModel
         if (metadata.DisplayRotation is null || metadata is not { DisplayWidth: > 0 and var width, DisplayHeight: > 0 and var height })
             return;
         if (ProjectSettingsRules.SuggestedCanvas(width, height) is not { } offered || offered == CurrentCanvas) return;
+        // D078 amendment 3: a canvas of the video's shape already (the first 4K video gave its size) is never offered smaller.
+        var canvas = CurrentCanvas;
+        if (Math.Abs((long)width * canvas.Height - (long)height * canvas.Width) * 100 <= (long)height * canvas.Width) return;
 
         CanvasOffer = AskCanvasAsync(asset.FileName, width, height, offered);
     }

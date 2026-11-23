@@ -58,6 +58,7 @@ public sealed partial class TimelineEditService
         var plan = new EditPlan(Sequence, Settings);
         if (PlanFirstVideoRate(plan, asset, out var info) is { } regridError)
             return TimelineEditResult.Fail($"Can't {verb} {asset.FileName}: {regridError}");
+        if (!sound) PlanFirstVideoCanvas(plan, asset, ref info);
         var rate = plan.Rate;
 
         var kind = asset.Kind == MediaKind.Audio || sound ? TrackType.Audio : TrackType.Video;

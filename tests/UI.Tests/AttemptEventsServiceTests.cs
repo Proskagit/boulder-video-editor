@@ -50,7 +50,8 @@ public sealed class AttemptEventsServiceTests : IDisposable
         {
             Kind = TemplateKind.Boulder, AnchorClipId = _clip.Id, AnchorRouteId = Guid.NewGuid(), FitClimb = new ClimbIdentity(1, 1, DateTimeOffset.UnixEpoch),
             FitLayout = new FitAreaLayout(MediaTime.FromSeconds(53), MediaTime.FromSeconds(95), MediaTime.FromSeconds(37)),
-            RouteStart = MediaTime.FromSeconds(60), TimelineStart = MediaTime.FromSeconds(53), Duration = MediaTime.FromSeconds(42)
+            RouteStart = MediaTime.FromSeconds(60), TimelineStart = MediaTime.FromSeconds(53), Duration = MediaTime.FromSeconds(42),
+            Status = BoulderStatus.Attempt
         };
         _projects.Current.Timeline.VideoTracks[0].Clips.Add(_area);
         _projects.SetTraining(new TrainingReference
@@ -135,7 +136,8 @@ public sealed class AttemptEventsServiceTests : IDisposable
         var again = new TemplateClip
         {
             Kind = TemplateKind.Boulder, AnchorClipId = _clip.Id, AnchorRouteId = Guid.NewGuid(), FitClimb = new ClimbIdentity(2, 2, DateTimeOffset.UnixEpoch),
-            FitLayout = _area.FitLayout, RouteStart = _area.RouteStart, TimelineStart = _area.TimelineStart, Duration = _area.Duration
+            FitLayout = _area.FitLayout, RouteStart = _area.RouteStart, TimelineStart = _area.TimelineStart, Duration = _area.Duration,
+            Status = BoulderStatus.Attempt
         };
         _projects.Current.Timeline.VideoTracks[0].Clips.Add(again);
         _projects.NotifyTimelineChanged();
@@ -206,7 +208,8 @@ public sealed class AttemptEventsServiceTests : IDisposable
         });
         using var people = new PeopleAnalysisCoordinator(projects, new Decoder(), new Vision());
         var edit = new StepEdit(service, undo);
-        _ = new AttemptEventsService(projects, people, edit, new InMemoryUserSettings(), new StatusService());
+        // The FIT's areas have no status here: the lift-off's setting makes every area's window wanted.
+        _ = new AttemptEventsService(projects, people, edit, new InMemoryUserSettings(new UserSettings { SnapRouteStartToLiftOff = true }), new StatusService());
 
         Assert.True(service.CreateRoutesFromFit().Success);
         await people.IdleAsync();
@@ -263,6 +266,27 @@ public sealed class AttemptEventsServiceTests : IDisposable
             public void Undo() { }
         }
     }
+
+    [Fact]
+    public Task With_the_lift_off_off_only_an_attempts_window_is_analysed() => _ui.Run(async () =>
+    {
+        _area.Status = BoulderStatus.Top;                                           // a top: the fall is never used
+        var decoder = new Decoder();
+        using var people = new PeopleAnalysisCoordinator(_projects, decoder, new Vision());
+        var edit = new Edit();
+        var settings = new InMemoryUserSettings();
+        _ = new AttemptEventsService(_projects, people, edit, settings, new StatusService());
+        await people.IdleAsync();
+        await Settle();
+        Assert.Empty(decoder.Starts);
+        Assert.Empty(edit.Calls);
+
+        settings.Update(s => s with { SnapRouteStartToLiftOff = true });            // the lift-off needs every area's window
+        await people.IdleAsync();
+        await Settle();
+        Assert.Single(decoder.Starts);
+        Assert.Single(edit.Calls);
+    });
 
     private sealed class Edit : IFitMarkEditService
     {

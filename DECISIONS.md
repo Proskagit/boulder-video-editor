@@ -12347,3 +12347,30 @@ now the attempt's events) and nothing says that something runs in the background
   (`BackgroundActivity`), refreshed on their status changes (`BackgroundActivityViewModel`).
 **Not included:** the media import analysis, the thumbnails, waveforms and filmstrips (short, with their own feedback); the export
 (its own progress); the route analysis of the first hold (modal already).
+
+### D078 amendment 2 — the owner's check of 1.12.1 (2026-11-23)
+
+- **Only what is used is analysed:** with «Притягивать начало трассы к отрыву» off only the «Попытка» areas' windows are wanted (a top's
+  or a flash's fall is never used); a status changed to «Попытка» later brings its window in. About half the work on a training.
+- **The badge's share only grows:** the share is of everything that kind of work was asked for since it began (a video whose windows
+  are done and dropped from the needs stays counted); it was the share of what is still wanted and fell back when a video finished.
+  The videos still queued are in the tooltip, not on the badge.
+- **The names say what it is:** «Поиск срывов и отрывов» on the badge; «Срывы и отрывы по видео» in the settings (was «События
+  попытки»).
+- **The load keeps its width:** each number padded to three digit widths (figure spaces), a minimum width, right-aligned.
+- **Why the first occlusion is slower once:** the people analysis's cache moved to v3 (the keypoints): Follow's and Occlusion's tracks
+  and masks of older projects are analysed again once, then come from the cache as before.
+
+### D078 amendment 3 — the owner's check of 1.12.1, second round (2026-11-23)
+
+- **Every route area is analysed, and one without a lilac gets one:** the windows are wanted for the FIT's areas **and** a manual
+  «Боулдер» anchored over a clip (it now keeps the bounds it was laid out with — `FitLayout`, saved for an anchored area without a FIT
+  climb too); with the lift-off off, every area but a «Топ» / «Flash». The fall moves the status moment of «Попытка» **and of an area
+  with no status yet, which becomes «Попытка»** (the owner: an area without a lilac gets one; a top found as a fall is set back by
+  hand). A FIT area's fall: nearest to the watch end − 3 s within 8 s; a manual area's: the last fall within its green. Areas made
+  again by «Распознать прохождения из FIT» over analysed windows are refined at once (the cache).
+- **The badge: one run at a time:** its own share 0 → 100 %, then the next run's; «+N» for the other runs and analyses waiting
+  (amendment 2's grand total withdrawn by the owner).
+- **The first 4K video gives the project 4K:** an empty project takes the first video's frame size when the video has the canvas's
+  shape and is larger (`PlanFirstVideoCanvas`, in the add's Undo step, with a status note); a smaller source never shrinks it; another
+  shape stays D041's offer, which is never made when the canvas already has the video's shape.

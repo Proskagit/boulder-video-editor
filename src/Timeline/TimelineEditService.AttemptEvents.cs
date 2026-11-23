@@ -44,7 +44,7 @@ public sealed partial class TimelineEditService
         var refined = new List<Guid>();
         foreach (var (templateId, found) in events)
         {
-            if (allClips.FirstOrDefault(c => c.Id == templateId) is not TemplateClip { Kind: TemplateKind.Boulder, FitClimb: { } climb, FitLayout: { } laid } template ||
+            if (allClips.FirstOrDefault(c => c.Id == templateId) is not TemplateClip { Kind: TemplateKind.Boulder, FitLayout: { } laid } template ||
                 template.AnchorClipId is not { } clipId || allClips.FirstOrDefault(c => c.Id == clipId) is not VideoClip clip)
                 continue;
             var current = CurrentFitLayout(template, clip, rate);
@@ -75,29 +75,44 @@ public sealed partial class TimelineEditService
                 }
             }
 
-            // The fall: the lilac of «Попытка» from the detected fall.
-            if (fall && template.Status == BoulderStatus.Attempt && template.StatusAt == laid.StatusAt && workout is not null &&
-                workout.Climbs.FirstOrDefault(c => FitMarkRules.IdentityOf(c) == climb) is { } segment &&
-                FindAsset(clip.MediaAssetId) is { } asset && FitRouteBinding.TimeOf(asset, workout) is { } time)
+            // The fall: the lilac from the detected fall — of «Попытка», and of an area with no status yet, which becomes
+            // «Попытка» (amendment 3: the owner — an area without a lilac gets one).
+            BoulderStatus? newStatus = null;
+            if (fall && template.Status is BoulderStatus.Attempt or BoulderStatus.None && template.StatusAt == laid.StatusAt)
             {
-                var watchEnd = TrainingAlignment.SourceTimeOf(time.Zero, segment.End, clockCorrection);
-                if (AttemptEventSet.Nearest(found.Falls, watchEnd - FallBeforeWatchEnd, FallSnapRadius) is { } fallAt)
+                MediaTime? fallAt = null;
+                if (template.FitClimb is { } climb)
                 {
-                    var f = HoldAnimationRule.StartFrame(clip.TimelineStart, clip.SourceIn, clip.Speed, fallAt, rate);
+                    // A FIT area: the fall nearest to the climb's watch end − 3 s within 8 s.
+                    if (workout is not null && workout.Climbs.FirstOrDefault(c => FitMarkRules.IdentityOf(c) == climb) is { } segment &&
+                        FindAsset(clip.MediaAssetId) is { } asset && FitRouteBinding.TimeOf(asset, workout) is { } time)
+                        fallAt = AttemptEventSet.Nearest(found.Falls, TrainingAlignment.SourceTimeOf(time.Zero, segment.End, clockCorrection) - FallBeforeWatchEnd, FallSnapRadius);
+                }
+                else
+                {
+                    // A manual area: the last fall within its green (the user laid it over the attempt).
+                    var falls = found.Falls.Where(f => f >= laid.SourceStart && f <= laid.SourceEnd).ToList();
+                    if (falls.Count > 0) fallAt = falls[^1];
+                }
+                if (fallAt is { } at)
+                {
+                    var f = HoldAnimationRule.StartFrame(clip.TimelineStart, clip.SourceIn, clip.Speed, at, rate);
                     // After the route's start (never a lilac before T), room for the status before the clip's end.
                     if (f > Math.Max(ps2, tFrame ?? ps2) && f < ve - MinStatusFrames)
                     {
                         s2 = f;
                         pe2 = Math.Min(ve, Math.Max(pe2, f + LayoutFinal.ToNearestFrame(rate)));
+                        if (template.Status == BoulderStatus.None) newStatus = BoulderStatus.Attempt;
                     }
                 }
             }
 
-            if (ps2 == ps && pe2 == pe && s2 == s && newStart is null) continue;
+            if (ps2 == ps && pe2 == pe && s2 == s && newStart is null && newStatus is null) continue;
             if (s2 <= ps2 || pe2 - s2 < MinStatusFrames) continue;
             var statusAt = MediaTime.FromFrame(s2 - ps2, rate);
             var timing = ClipState.FromFrames(ps2, pe2, MediaTime.Zero, rate);
             var fields = plan.TemplateFieldsOf(template) with { StatusAt = statusAt };
+            if (newStatus is { } status) fields = fields with { Status = status };
 
             // Alone first: an area whose new bounds would cover another clip of its track stays where it is.
             var trial = new EditPlan(Sequence, Settings);

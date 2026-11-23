@@ -1514,6 +1514,9 @@
     <value>Route areas refined by the video: {0}.</value>
   </data>
   <data name="People_EventsNeedGpu" xml:space="preserve">
-    <value>The attempt's events are searched only with a graphics card — the route areas stay by the FIT.</value>
+    <value>Finding falls and lift-offs in the video needs a graphics card — the route areas stay by the FIT.</value>
+  </data>
+  <data name="Edit_CanvasSetFrom" xml:space="preserve">
+    <value>The frame size {0} × {1} is taken from the first video.</value>
   </data>
 </root>

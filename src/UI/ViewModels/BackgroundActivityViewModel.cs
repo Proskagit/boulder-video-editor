@@ -62,7 +62,9 @@ public sealed partial class BackgroundActivityViewModel : ObservableObject, IDis
         var first = running[0];
         HasProgress = first.Progress is not null;
         ActivityProgress = (first.Progress ?? 0) * 100;
-        ActivityText = Line(first) + (running.Count > 1 ? " · " + string.Format(CultureInfo.CurrentCulture, Strings.Activity_More, running.Count - 1) : "");
+        // «+N»: the other running analyses and this one's waiting runs (amendment 3: one run's share on the badge).
+        var others = running.Count - 1 + Math.Max(0, first.Items - 1);
+        ActivityText = Line(first) + (others > 0 ? " · " + string.Format(CultureInfo.CurrentCulture, Strings.Activity_More, others) : "");
         ActivityTip = string.Join(Environment.NewLine, running.Select(a =>
             Line(a) + (a.Items > 1 ? " — " + string.Format(CultureInfo.CurrentCulture, Strings.Activity_Items, a.Items) : "")));
     }
@@ -70,10 +72,12 @@ public sealed partial class BackgroundActivityViewModel : ObservableObject, IDis
     private static string Line(BackgroundActivity a) =>
         a.Progress is { } p ? string.Format(CultureInfo.CurrentCulture, "{0} {1:0} %", a.Label, Math.Clamp(p, 0, 1) * 100) : a.Label;
 
-    /// <summary>The load as text: «ЦП 23 % · ГП 61 %», a dash where not measurable.</summary>
+    /// <summary>The load as text: «ЦП  23 % · ГП  61 %», a dash where not measurable; each number padded to three digits with
+    /// figure spaces (the width of a digit) so the text never shifts as the numbers change (amendment 2).</summary>
     public static string FormatLoad(SystemLoad load)
     {
-        static string Percent(double? v) => v is { } x ? string.Format(CultureInfo.CurrentCulture, "{0:0} %", x) : "—";
+        static string Percent(double? v) => (v is { } x ? Math.Round(Math.Clamp(x, 0, 100)).ToString("0", CultureInfo.CurrentCulture) : "—")
+            .PadLeft(3, '\u2007') + " %";
         return string.Format(CultureInfo.CurrentCulture, Strings.Activity_Load, Percent(load.Cpu), Percent(load.Gpu));
     }
 

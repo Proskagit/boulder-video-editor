@@ -125,22 +125,27 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
     {
         get
         {
+            // Amendment 3 (the owner): each run on its own — its share 0..100 %, then the next one's; the runs still waiting are
+            // counted for the «+N» (the videos with chunks still to do of any kind).
             if (_running is not { } running) return null;
-            int total = 0, done = 0, files = 0;
-            foreach (var (key, want) in _wanted)
+            var category = running.ForEvents ? 2 : running.Kind == PeopleAnalysisKind.Masks ? 1 : 0;
+            var share = running.Chunks.Length == 0 ? 0 : (double)running.Done.Count / running.Chunks.Length;
+            var waiting = _wanted.Count(p =>
             {
-                var state = StateOf(key);
-                var set = running.ForEvents ? want.EventTracks : running.Kind == PeopleAnalysisKind.Tracks ? want.Tracks : want.Masks;
-                if (set.Count == 0) continue;
-                files++;
-                total += set.Count;
-                done += running.Kind == PeopleAnalysisKind.Masks ? set.Count(state.Masks.ContainsKey) : set.Count(state.Tracks.ContainsKey);
-            }
-            var label = running.ForEvents ? Strings.Activity_AttemptEvents
-                : running.Kind == PeopleAnalysisKind.Masks ? Strings.Activity_PeopleMasks : Strings.Activity_PeopleTracks;
-            return new BackgroundActivity(label, total == 0 ? null : (double)done / total, Math.Max(1, files));
+                var state = StateOf(p.Key);
+                return p.Key != running.File && (p.Value.Tracks.Concat(p.Value.EventTracks).Any(k => !state.Tracks.ContainsKey(k)) ||
+                                                p.Value.Masks.Any(k => !state.Masks.ContainsKey(k)));
+            });
+            return new BackgroundActivity(LabelOf(category), share, 1 + waiting);
         }
     }
+
+    private static string LabelOf(int category) => category switch
+    {
+        2 => Strings.Activity_AttemptEvents,
+        1 => Strings.Activity_PeopleMasks,
+        _ => Strings.Activity_PeopleTracks
+    };
 
     /// <summary>Re-reads what the clips and <see cref="EventSpans"/> need (a setting changed).</summary>
     public void RefreshNeeds() => Refresh();

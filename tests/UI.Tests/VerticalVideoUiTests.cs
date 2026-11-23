@@ -144,13 +144,26 @@ public sealed class VerticalVideoUiTests
     }
 
     [Theory]
-    [InlineData(3840, 2160)]
-    [InlineData(1920, 1080)]
-    public async Task A_landscape_16_by_9_clip_makes_no_offer(int w, int h)
+    [InlineData(3840, 2160, 3840, 2160)]   // D078 amendment 3: a larger source of the canvas's shape gives its size, unasked
+    [InlineData(1920, 1080, 1920, 1080)]
+    [InlineData(1280, 720, 1920, 1080)]    // a smaller one never shrinks it
+    public async Task A_landscape_16_by_9_clip_makes_no_offer(int w, int h, int canvasW, int canvasH)
     {
         await AddAsync(Video(w, h));
         Assert.Empty(_dialogs.Asked);
+        Assert.Equal((canvasW, canvasH), Canvas);
+    }
+
+    [Fact]
+    public async Task The_4K_canvas_comes_with_the_first_clip_in_its_undo_step()
+    {
+        await AddAsync(Video(3840, 2160));
+        Assert.Equal((3840, 2160), Canvas);
+        _undo.Undo();
+        Assert.Empty(Clips);
         Assert.Equal((1920, 1080), Canvas);
+        _undo.Redo();
+        Assert.Equal((3840, 2160), Canvas);
     }
 
     [Fact]

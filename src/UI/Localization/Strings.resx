@@ -4260,7 +4260,7 @@ Everything else works without the models. They can also be installed later: «Se
 • The file type: MP4 — for everything; MOV — for Apple editors; MKV — for players and archives. AV1 only in MP4 or MKV.</value>
   </data>
   <data name="AppSettings_AttemptEvents" xml:space="preserve">
-    <value>The attempt's events from the video</value>
+    <value>Falls and lift-offs from the video</value>
   </data>
   <data name="AppSettings_RefineFall" xml:space="preserve">
     <value>Refine the end of a fall from the video</value>
@@ -4281,7 +4281,7 @@ Everything else works without the models. They can also be installed later: «Se
     <value>People masks (occlusion)</value>
   </data>
   <data name="Activity_AttemptEvents" xml:space="preserve">
-    <value>Attempt's events</value>
+    <value>Finding falls and lift-offs</value>
   </data>
   <data name="Activity_HoldTracking" xml:space="preserve">
     <value>Hold tracking</value>
@@ -4293,7 +4293,7 @@ Everything else works without the models. They can also be installed later: «Se
     <value>+{0}</value>
   </data>
   <data name="Activity_Items" xml:space="preserve">
-    <value>{0} items</value>
+    <value>videos left: {0}</value>
   </data>
   <data name="Activity_Load" xml:space="preserve">
     <value>CPU {0} · GPU {1}</value>

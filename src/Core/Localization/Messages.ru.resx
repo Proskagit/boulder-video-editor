@@ -1514,6 +1514,9 @@
     <value>Области трасс уточнены по видео: {0}.</value>
   </data>
   <data name="People_EventsNeedGpu" xml:space="preserve">
-    <value>Поиск событий попытки работает только с видеокартой — области трасс остаются по FIT.</value>
+    <value>Поиск срывов и отрывов по видео работает только с видеокартой — области трасс остаются по FIT.</value>
+  </data>
+  <data name="Edit_CanvasSetFrom" xml:space="preserve">
+    <value>Размер кадра {0} × {1} взят по первому видео.</value>
   </data>
 </root>

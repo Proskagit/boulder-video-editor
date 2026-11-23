@@ -4264,7 +4264,7 @@
 • Формат файла: MP4 — для всего; MOV — для монтажа на Apple; MKV — для плееров и архива. AV1 — только в MP4 или MKV.</value>
   </data>
   <data name="AppSettings_AttemptEvents" xml:space="preserve">
-    <value>События попытки по видео</value>
+    <value>Срывы и отрывы по видео</value>
   </data>
   <data name="AppSettings_RefineFall" xml:space="preserve">
     <value>Уточнять конец срыва по видео</value>
@@ -4285,7 +4285,7 @@
     <value>Маски людей (окклюзия)</value>
   </data>
   <data name="Activity_AttemptEvents" xml:space="preserve">
-    <value>События попытки</value>
+    <value>Поиск срывов и отрывов</value>
   </data>
   <data name="Activity_HoldTracking" xml:space="preserve">
     <value>Трекинг зацепок</value>
@@ -4297,7 +4297,7 @@
     <value>+{0}</value>
   </data>
   <data name="Activity_Items" xml:space="preserve">
-    <value>объектов: {0}</value>
+    <value>видео в очереди: {0}</value>
   </data>
   <data name="Activity_Load" xml:space="preserve">
     <value>ЦП {0} · ГП {1}</value>

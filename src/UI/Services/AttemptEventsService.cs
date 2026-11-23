@@ -96,10 +96,12 @@ public sealed class AttemptEventsService
     private bool Fall => _settings.Current.RefineFallFromVideo;
     private bool LiftOff => _settings.Current.SnapRouteStartToLiftOff;
 
-    /// <summary>The windows still to look at (none while both settings are off or the project has no usable training).</summary>
+    /// <summary>The windows still to look at (none while both settings are off or the project has no usable training). With
+    /// the lift-off off only the «Попытка» areas need the video (amendment 2: a top's or a flash's window is never analysed for
+    /// nothing); a status changed to «Попытка» later brings its window in.</summary>
     private IReadOnlyList<FitAreaEventWindow> Pending(Project project) =>
         (Fall || LiftOff) && project.Training is { IsUsable: true }
-            ? FitAreaEventWindows.Of(project).Where(w => !_done.Contains(w.TemplateId)).ToList()
+            ? FitAreaEventWindows.Of(project).Where(w => !_done.Contains(w.TemplateId) && (LiftOff || (Fall && w.FallUsable))).ToList()
             : Array.Empty<FitAreaEventWindow>();
 
     private IEnumerable<(Guid, MediaTime, MediaTime)> Spans(Project project) => Pending(project).Select(w => (w.AssetId, w.From, w.To));

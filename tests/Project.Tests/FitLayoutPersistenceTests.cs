@@ -147,11 +147,12 @@ public class FitLayoutPersistenceTests
     }
 
     [Fact]
-    public void A_layout_without_the_fit_climb_is_not_saved()
+    public void A_manual_anchored_areas_layout_is_saved_too()
     {
+        // D078 amendment 3: a «Боулдер» added over a clip keeps the bounds it was laid out with (no FIT climb).
         var area = FitArea(Layout);
         area.FitClimb = null;
 
-        Assert.Null(AreaJson(JsonNode.Parse(Save(Build(area)))!, 0)["fitLayout"]);
+        Assert.NotNull(AreaJson(JsonNode.Parse(Save(Build(area)))!, 0)["fitLayout"]);
     }
 }

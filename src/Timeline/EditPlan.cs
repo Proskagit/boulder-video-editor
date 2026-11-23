@@ -78,6 +78,11 @@ public sealed class EditPlan
         NewFrameRateLocked = locked;
     }
 
+    /// <summary>D078 amendment 3: the canvas the first video gives an empty project (nothing on it to rescale).</summary>
+    public (int Width, int Height)? NewCanvas { get; private set; }
+
+    public void SetCanvas(int width, int height) => NewCanvas = (width, height);
+
     public void Update(Clip clip, Track toTrack, ClipState after) => _updates[clip] = (toTrack, after);
 
     /// <summary>D069 §6: drops the updates that leave a clip as it is (the magnet may close a gap an edit opened, so the clip
@@ -486,6 +491,8 @@ public sealed class EditPlan
 
         if (NewFrameRate is { } rate)
             commands.Add(new SetFrameRateCommand(_settings, _settings.FrameRate, _settings.IsFrameRateLocked, rate, NewFrameRateLocked));
+        if (NewCanvas is { } canvas && (canvas.Width != _settings.FrameWidth || canvas.Height != _settings.FrameHeight))
+            commands.Add(new SetCanvasSizeCommand(_settings, _settings.FrameWidth, _settings.FrameHeight, canvas.Width, canvas.Height));
 
         foreach (var (clip, track) in _removes)
             commands.Add(new RemoveClipCommand(track, clip));

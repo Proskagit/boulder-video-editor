@@ -74,10 +74,11 @@ public sealed class AttemptEventsEditTests
     }
 
     [Fact]
-    public void A_fall_is_not_used_without_the_attempt_status_too_far_or_with_the_setting_off()
+    public void A_fall_is_not_used_on_a_top_too_far_or_with_the_setting_off()
     {
         var area = Area;
-        Assert.True(_f.Service.RefineFitAreasFromVideo(For(Events([], [46.4])), fall: true, liftOff: false).NoChange);   // no status
+        area.Status = BoulderStatus.Top;
+        Assert.True(_f.Service.RefineFitAreasFromVideo(For(Events([], [46.4])), fall: true, liftOff: false).NoChange);   // a top
         area.Status = BoulderStatus.Attempt;
         Assert.True(_f.Service.RefineFitAreasFromVideo(For(Events([], [56.0])), fall: true, liftOff: false).NoChange);   // 9 s away
         Assert.True(_f.Service.RefineFitAreasFromVideo(For(Events([], [46.4])), fall: false, liftOff: false).NoChange);  // setting off
@@ -98,6 +99,36 @@ public sealed class AttemptEventsEditTests
         Assert.Equal(MediaTime.FromFrame(235, Rate), area.FitLayout!.SourceStart);
         // Again with the same events: nothing more moves.
         Assert.True(_f.Service.RefineFitAreasFromVideo(For(Events([12.0, 16.4], [])), fall: false, liftOff: true).NoChange);
+    }
+
+    [Fact]
+    public void An_area_without_a_status_gets_its_lilac_from_the_fall_as_an_attempt()
+    {
+        // D078 amendment 3 (the owner): an area with no lilac gets one where the climber falls.
+        var area = Area;
+        Assert.Equal(BoulderStatus.None, area.Status);
+        var result = _f.Service.RefineFitAreasFromVideo(For(Events([], [46.4])), fall: true, liftOff: false);
+        Assert.True(result.Success && !result.NoChange, result.Message);
+        Assert.Equal(BoulderStatus.Attempt, area.Status);
+        Assert.Equal((275L, 1285L, 1160L), (F(area.TimelineStart), F(area.TimelineEnd), F(area.TimelineStart + area.StatusAt)));
+        _f.UndoRedo.Undo();
+        Assert.Equal(BoulderStatus.None, area.Status);
+    }
+
+    [Fact]
+    public void A_manual_boulder_takes_the_last_fall_within_its_green()
+    {
+        var added = _f.Service.AddTemplateClip(TemplateKind.Boulder, MediaTime.FromSeconds(60));
+        Assert.True(added.Success, added.Message);
+        var manual = _f.Project.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<TemplateClip>().Single(t => t.Id == added.ClipIds[0]);
+        Assert.NotNull(manual.FitLayout);
+        var (start, end) = (manual.FitLayout!.SourceStart.TotalSeconds, manual.FitLayout.SourceEnd.TotalSeconds);
+        var falls = new[] { start - 2, start + 3, end - 3, end + 2 };              // outside, inside, inside (the last), outside
+
+        var result = _f.Service.RefineFitAreasFromVideo(new Dictionary<Guid, AttemptEventSet> { [manual.Id] = Events([], falls) }, fall: true, liftOff: true);
+        Assert.True(result.Success && !result.NoChange, result.Message);
+        Assert.Equal(F(MediaTime.FromSeconds(end - 3)), F(manual.TimelineStart + manual.StatusAt));
+        Assert.Equal(BoulderStatus.Attempt, manual.Status);
     }
 
     [Fact]
@@ -155,6 +186,22 @@ public sealed class AttemptEventsEditTests
         _f.UndoRedo.Undo();
         Assert.Equal((275L, 450L), (F(area.TimelineStart), F(area.RouteStart!.Value)));
         Assert.Equal(MediaTime.FromFrame(275, Rate), area.FitLayout!.SourceStart);
+    }
+
+    [Fact]
+    public void The_first_4K_video_gives_an_empty_project_its_frame_size_in_the_adds_step()
+    {
+        var f = new TimelineFixture();
+        var asset = f.Video(10, Rate, "uhd.mp4");
+        asset.Metadata!.Width = 3840;
+        asset.Metadata.Height = 2160;
+        asset.Metadata.DisplayWidth = 3840;
+        asset.Metadata.DisplayHeight = 2160;
+        var result = f.Service.AddClip(asset.Id);
+        Assert.True(result.Success, result.Message);
+        Assert.Equal((3840, 2160), (f.Project.Settings.FrameWidth, f.Project.Settings.FrameHeight));
+        f.UndoRedo.Undo();
+        Assert.Equal((1920, 1080), (f.Project.Settings.FrameWidth, f.Project.Settings.FrameHeight));
     }
 
     [Fact]

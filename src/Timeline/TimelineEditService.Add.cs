@@ -135,6 +135,7 @@ public sealed partial class TimelineEditService
 
         if (PlanFirstVideoRate(plan, asset, out info) is { } regridError)
             return Failed(string.Format(Messages.Edit_CantAddFile, asset.FileName, regridError));
+        PlanFirstVideoCanvas(plan, asset, ref info);
 
         var rateForAdd = plan.Rate;
         var kind = asset.Kind == MediaKind.Audio ? TrackType.Audio : TrackType.Video;
@@ -233,7 +234,24 @@ public sealed partial class TimelineEditService
         info = fromSource
             ? string.Format(Messages.Edit_RateSetFrom, FormatRate(rate), asset.FileName)
             : string.Format(Messages.Edit_RateUnknownFallback, asset.FileName, FormatRate(rate));
+
         return null;
+    }
+
+    /// <summary>D078 amendment 3 (the owner): an empty project takes the first video's frame size when the video has the
+    /// canvas's shape and is larger (4K sources → a 4K project) — in the add's step; nothing is on the timeline to rescale, a
+    /// smaller source never shrinks the canvas, another shape is D041's offer (asked after the add, unchanged).</summary>
+    private void PlanFirstVideoCanvas(EditPlan plan, MediaAsset asset, ref string? info)
+    {
+        if (asset.Kind != MediaKind.Video || plan.NewCanvas is not null) return;
+        if (asset.Metadata is { DisplayWidth: > 0 and var w, DisplayHeight: > 0 and var h } &&
+            (long)w * h > (long)Settings.FrameWidth * Settings.FrameHeight && ProjectSettingsRules.CanvasError(w, h) is null &&
+            Math.Abs((long)w * Settings.FrameHeight - (long)h * Settings.FrameWidth) * 100 <= (long)h * Settings.FrameWidth &&
+            Sequence.VideoTracks.Concat(Sequence.AudioTracks).All(t => t.Clips.Count == 0))
+        {
+            plan.SetCanvas(w, h);
+            info = (info is null ? "" : info + " ") + string.Format(Messages.Edit_CanvasSetFrom, w, h);
+        }
     }
 
     public TimelineEditResult AddTextClip(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox = null) =>
@@ -368,6 +386,8 @@ public sealed partial class TimelineEditService
         long ps = startFrame, pe = Math.Min(ve, startFrame + frames);
         var s = Math.Max(pe - LayoutFinal.ToNearestFrame(rate), ps + 1);
         var template = NewRouteTemplate(video.Id, Guid.NewGuid(), ps, pe, s, rate);
+        // D078 amendment 3: the bounds it is laid out with — the attempt's fall then gives it its lilac while it is untouched.
+        template.FitLayout = FitLayoutOf(video, ps, pe, template.StatusAt, rate);
         if (PlaceRouteTemplate(plan, video, template, ps, pe, out var addTrack) is { } placeError) return TimelineEditResult.Fail(placeError);
         if (Validate(plan) is { } error) return TimelineEditResult.Fail(string.Format(Messages.Edit_CantAddTemplate, plan.TrackOf(video).Name, error));
         IUndoableCommand command = plan.BuildCommand("Add Template");

@@ -37,6 +37,13 @@ analysis and its share (`BackgroundActivityViewModel` over the people, hold-trac
 **Gates with amendment 1 (2026-11-23):** Debug / Release `--no-incremental -warnaserror` 0 / 0, `git diff --check` clean; Release +
 `AIVE_HEAVY_TESTS=1`: Vision 38, Project 783, Core 2 016, Export 153, Rendering 288, UI 1 364, Timeline 1 272, Video 439 (+2 skips),
 ExportEndToEnd 191 = 6 544. Portable `artifacts/portable/BoulderVideoEditor-1.12.1-win-x64`.
+**Amendments 2–3 (the owner's checks of 1.12.1):** every route area analysed (the FIT's and a manual anchored «Боулдер», whose
+`FitLayout` is now kept and saved), an area without a status gets its lilac from the fall as «Попытка»; tops / flashes skipped while the
+lift-off is off; the badge shows each run's own share; clear names («Поиск срывов и отрывов»); the load text keeps its width; the first
+4K video of the canvas's shape gives an empty project its frame size (D041's offer never shrinks it back). Tests: Timeline 3 new,
+UI (4K canvas + its Undo, the lift-off filter), the settings file, the manual layout saved. **Gates:** builds 0 / 0, Vision 38,
+Project 783, Core 2 016, Export 153, Rendering 288, UI 1 367, Timeline 1 275, Video 439 (+2 skips), ExportEndToEnd 191 = 6 550.
+Portable `artifacts/portable/BoulderVideoEditor-1.12.2-win-x64`.
 **Third review: PASS WITH NOTES** — notes kept as is (documented): a refinement landing between two merged steps of a slider or under
 an unfinished strip drag (rare: a window must finish exactly then), the service assumes the UI context (comment added), and the
 known items of D078 «Refined».
