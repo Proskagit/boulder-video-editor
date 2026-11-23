@@ -118,6 +118,22 @@ public sealed class PeopleAnalysisCacheStoreTests : IDisposable
     }
 
     [Fact]
+    public void The_file_just_saved_is_kept_even_when_every_write_time_is_the_same()
+    {
+        // Files written within the clock's resolution share a write time (and a later one may even look older): the one just
+        // saved is never the one pruned.
+        _store.SaveTracks("probe", Tracks());
+        var size = Directory.GetFiles(_folder).Sum(f => new FileInfo(f).Length);
+        var small = new PeopleAnalysisCacheStore(_folder, NullLogger<PeopleAnalysisCacheStore>.Instance, maxBytes: size * 2 + size / 2);
+        for (var i = 0; i < 4; i++) small.SaveTracks($"old{i}", Tracks());
+        var future = DateTime.UtcNow.AddMinutes(5);
+        foreach (var f in Directory.GetFiles(_folder)) File.SetLastWriteTimeUtc(f, future);
+        small.SaveTracks("new", Tracks());
+        Assert.NotNull(small.TryLoadTracks("new"));
+        Assert.True(Directory.GetFiles(_folder).Sum(f => new FileInfo(f).Length) <= size * 2 + size / 2);
+    }
+
+    [Fact]
     public void The_fingerprint_changes_with_the_file()
     {
         Directory.CreateDirectory(_folder);

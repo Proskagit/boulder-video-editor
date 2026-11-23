@@ -87,7 +87,7 @@ public sealed class PeopleAnalysisCacheStore : IPeopleAnalysisCache
             Directory.CreateDirectory(_folder);
             File.WriteAllBytes(temp, bytes);
             File.Move(temp, path, overwrite: true);
-            Prune();
+            Prune(path);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -247,9 +247,13 @@ public sealed class PeopleAnalysisCacheStore : IPeopleAnalysisCache
         }
     }
 
-    private void Prune()
+    /// <summary>Keeps the folder under its limit, the least recently used first out — never <paramref name="saved"/>, the file
+    /// just written (files written within the clock's resolution share a write time: the order alone could drop it).</summary>
+    private void Prune(string saved)
     {
-        var files = new DirectoryInfo(_folder).GetFiles("*.pp?").OrderByDescending(f => f.LastWriteTimeUtc).ToList();
+        var files = new DirectoryInfo(_folder).GetFiles("*.pp?")
+            .OrderByDescending(f => string.Equals(f.FullName, Path.GetFullPath(saved), StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(f => f.LastWriteTimeUtc).ToList();
         long total = 0;
         foreach (var file in files)
         {

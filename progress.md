@@ -26,6 +26,10 @@ window, the magnet honours snapping, no lilac before `T`, guard tests (locked tr
 recorded before the creation's) → posted to the UI context, its own step after the notifying command; test on the real edit service
 and undo stack (`Areas_made_again_over_analysed_windows_…`, fails without the fix); an unrequested cancellation of an events' run
 never marks the video failed.
+**CI (PR #89) red:** `PeopleAnalysisCacheStoreTests.The_folder_stays_under_its_limit` — the cache pruned by write time alone,
+and files written within the clock's resolution tie: the file just saved could be the one removed (surfaced by the larger files
+with keypoints) → the file just saved is never pruned; test `The_file_just_saved_is_kept_even_when_every_write_time_is_the_same`
+(fails on the old order). Video 439 (+2 skips), builds 0 / 0.
 **Third review: PASS WITH NOTES** — notes kept as is (documented): a refinement landing between two merged steps of a slider or under
 an unfinished strip drag (rare: a window must finish exactly then), the service assumes the UI context (comment added), and the
 known items of D078 «Refined».
