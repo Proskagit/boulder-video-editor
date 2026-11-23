@@ -786,6 +786,13 @@ takes the vertical-video export.
   rate and with the heart rate shifted by about −60 s; compare them; judge how close the peak comes to the end of the climb
   and whether the dynamics elsewhere and between climbs look wrong. If it works, decide separately: a fixed or adjustable
   shift, where it applies, Preview and export, and how it is marked as a display correction, not the FIT's time.
+- **FU-EX.2 — a faster 4K export (the product owner, 2026-11-23; after Phase 57)** — *Future / Backlog: a phase of its own,
+  not planned.* The 4K export stops at ~45 fps with every NVENC codec: the frames pass the processor and the memory about ten
+  times each (decode to BGRA, the pipe, the bitmap, the drawing, the read-back, the YUV conversion; `docs/EXPORT_PERFORMANCE.md`
+  §3, §8). Two ways, each measured on the owner's machine: (a) fewer copies in the present pipeline — D059's E6 items (a
+  decoded-frame buffer pool, fewer passes, the YUV conversion off the CPU), expected +10–25 %; (b) **the whole frame on the
+  graphics card** (NVDEC, the composition on the GPU, NVENC without a read-back) — up to 2–3×, but a second renderer that
+  must keep Preview = export byte for byte; the owner deferred (b) to a separate research phase.
 - **FU-EX.1 — «Кодек и пресет» instead of «Скорость кодирования» (the product owner, 2026-11-16; D060 §4)** — *taken by
   Phase 57 (D076): codecs, file types and presets.* The original note: «Скорость кодирования» is the H.264 preset (libx264 fast / medium / slow, NVENC p3 /
   p5 / p7 — faster, a larger file), which users read as unclear. Proposed: a «Кодек» chooser in the style of CapCut — each
