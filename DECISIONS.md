@@ -12587,3 +12587,21 @@ of a real project.
   B — those controls are locked inside a zoomed part, only «Масштаб, %» changes it.
 - **Q5 — turning the scale off.** A — a «Постоянный масштаб» check box beside the field (on — the scale follows the climber, off —
   the clip's own scale as before) (proposed); B — no switch: the scale always follows, «Авто» is the only reset.
+
+**The owner's answers (2026-11-24):**
+- **Q1 — A.** «Масштаб, %» = the climber's height as % of the frame's height.
+- **Q2 — A**, with a modest default: existing projects' parts stay as they were (the dynamic scale off); new parts get it on, and
+  the **automatic default zooms in by about 20 % over the part's starting frame** at most (`FollowZoom.AutoMaxZoom = 1.2`, to be
+  calibrated on the owner's footage in the manual check) — replacing §3.4's «one source pixel» rule as the cap of the default;
+  the user's own value is not capped by it.
+- **Q3 — B** in the owner's words: «if the user has already set the frame's scale, Follow takes that scale and centres the climber
+  at it» — the precise reading is being confirmed with the owner (step 2 waits for it; see the clarification below).
+- **Q4 — A.** A scale changed by hand inside a part with the dynamic scale changes the part's «Масштаб, %» proportionally (one undo
+  step).
+- **Q5 — A**, the check box named **«Динамический масштаб»** (off — the scale as before Phase 61).
+
+**Step 1 done (2026-11-24): the Inspector's order (§2).** `InspectorView.axaml` reordered (a clip: frame, the text sections,
+people, holds, training, fit, color, timing, audio, clip; a group: frame, holds, color, audio); the rail's lit group is now the one
+of the nearest shown section at or above the list's top, by position (`InspectorView.NoteCategoryAtTop`), and at the list's end
+the pressed group stays lit while a section of it is shown below the top. Tests: `InspectorSectionOrderTests` (new),
+`InspectorSectionsTests` (the ids' order updated). UI.Tests 1 378 / 1 378 green (Debug).

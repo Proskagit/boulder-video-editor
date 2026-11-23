@@ -65,19 +65,28 @@ public partial class InspectorView : UserControl
         InspectorScroll.Offset = InspectorScroll.Offset.WithY(Math.Min(max, Math.Max(0, TopOf(panel) - 4)));
     }
 
-    /// <summary>The group whose section is at the top of the visible list is lit on the rail.</summary>
+    /// <summary>The group whose section is at the top of the visible list is lit on the rail. D080 §2: a group's sections need
+    /// not stand together («Клип»'s transform first, its clip section last), so the lit group is the one of the nearest shown
+    /// section at or above the list's top, by position.</summary>
     private void NoteCategoryAtTop()
     {
         if (_viewModel is not { IsSingleClipSelected: true }) return;
         var top = InspectorScroll.Offset.Y + 12;
+        var shown = InspectorScroll.GetVisualDescendants().OfType<Panel>()
+            .Where(p => p.Classes.Contains("category") && p.IsEffectivelyVisible && p.Bounds.Height > 0 &&
+                        Enum.TryParse<InspectorCategory>(p.Tag as string, out _))
+            .Select(p => (Category: Enum.Parse<InspectorCategory>((string)p.Tag!), Top: TopOf(p)))
+            .ToList();
         InspectorCategory? atTop = null;
-        foreach (var category in Enum.GetValues<InspectorCategory>())
-        {
-            if (CategoryPanel(category) is { } panel && TopOf(panel) <= top) atTop = category;
-        }
-        // At the end of the list the last group can't reach the top: the one whose button was pressed stays lit.
+        var nearest = double.NegativeInfinity;
+        foreach (var (category, at) in shown)
+            if (at <= top && at >= nearest) (atTop, nearest) = (category, at);
+        // At the end of the list the last groups can't reach the top: the one whose button was pressed stays lit while a
+        // section of it is shown below the top.
         var atEnd = InspectorScroll.Offset.Y >= InspectorScroll.Extent.Height - InspectorScroll.Viewport.Height - 1;
-        if (atTop is { } shown && !(atEnd && _viewModel.SelectedCategory > shown)) _viewModel.NoteCategoryAtTop(shown);
+        var selected = _viewModel.SelectedCategory;
+        if (atEnd && shown.Any(s => s.Category == selected && s.Top > top)) return;
+        if (atTop is { } lit) _viewModel.NoteCategoryAtTop(lit);
     }
 
     private readonly InspectorScrollMemory _scroll;
