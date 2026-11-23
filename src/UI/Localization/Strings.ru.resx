@@ -4314,4 +4314,7 @@
   <data name="App_Version" xml:space="preserve">
     <value>версия {0}</value>
   </data>
+  <data name="Follow_Continuing" xml:space="preserve">
+    <value>Слежение продолжается отсюда — нажмите «Остановить слежение здесь», где оно должно закончиться.</value>
+  </data>
 </root>

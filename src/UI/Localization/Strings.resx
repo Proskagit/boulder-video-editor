@@ -4310,4 +4310,7 @@ Everything else works without the models. They can also be installed later: «Se
   <data name="App_Version" xml:space="preserve">
     <value>version {0}</value>
   </data>
+  <data name="Follow_Continuing" xml:space="preserve">
+    <value>Following continues from here — press «Stop following here» where it should end.</value>
+  </data>
 </root>

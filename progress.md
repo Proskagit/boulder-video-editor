@@ -52,6 +52,10 @@ the version in the window's title. **Gates:** builds 0 / 0, Vision 38, Project 7
 Timeline 1 277, Video 439 (+2 skips), ExportEndToEnd 191 = 6 555. Portable `artifacts/portable/BoulderVideoEditor-1.12.3-win-x64`.
 **Amendment 5 (the owner):** an opened project's FIT areas are never refined — only areas made in the session (test
 `An_area_already_in_the_project_is_never_refined`). UI 1 371. Portable `artifacts/portable/BoulderVideoEditor-1.12.4-win-x64`.
+**Amendment 6 (the owner):** «Следить отсюда» inside a followed part continues it (same climber, new end at «Остановить»);
+the part's strip 8 px, the resize cursor along it, a press anywhere drags the nearer edge, the edge snaps (playhead, cuts, markers);
+the help updated. Tests `Follow_from_here_inside_a_part_continues_that_part_to_a_new_end`, `A_dragged_edge_snaps_to_the_playhead`.
+UI 1 373. Portable `artifacts/portable/BoulderVideoEditor-1.12.5-win-x64`.
 **Third review: PASS WITH NOTES** — notes kept as is (documented): a refinement landing between two merged steps of a slider or under
 an unfinished strip drag (rare: a window must finish exactly then), the service assumes the UI context (comment added), and the
 known items of D078 «Refined».

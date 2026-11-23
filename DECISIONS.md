@@ -12404,3 +12404,13 @@ The refinement applies only to the FIT's areas made in the session — the FIT's
 areas). The areas a project has when it opens (or when the service starts) count as looked at: opening a finished project changes
 none of its lilacs, starts or statuses, and no events are searched for it. (Before: every untouched FIT area of an opened project was
 refined once per session.)
+
+### D078 amendment 6 — extending a followed part (the owner, 2026-11-23)
+
+The owner: followed 0–5 s, back to 4 s, and the part could not be continued. **«Следить за скалолазом отсюда» inside a part now
+continues that part** — the same climber (its target kept), its end opened to the next part (or the clip's end), the timeline plays
+and «Остановить слежение здесь» sets its new end (one step each; before: «already followed here» and nothing). The part's strip on the
+timeline (its edges drag since D061 amendment 1) is 8 px high instead of 5 and shows the resize cursor all along (the timeline's
+hover sets it — the strip's own cursor was never seen); a press anywhere on it drags its nearer edge (before: only within 8 px of an
+edge, the middle was the clip's); the dragged edge snaps like the timeline's edges (the playhead, cuts, markers; the indicator shows
+it). The help says both.

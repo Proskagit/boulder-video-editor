@@ -366,7 +366,8 @@ public partial class TimelineView : UserControl
     /// <summary>D069 amendment 2 (the owner): the horizontal resize cursor over a zone's edge, so it is clear the edge is grabbed.</summary>
     private void UpdateZoneHover(PointerEventArgs e)
     {
-        var onEdge = _stripHoverTarget is null && _volumeHoverTarget is null && ZoneEdgeAt(e) is not null;
+        // D078 amendment 6 (the owner): over a followed part's strip the resize cursor too — a press there drags its nearer edge.
+        var onEdge = _stripHoverTarget is null && _volumeHoverTarget is null && (ZoneEdgeAt(e) is not null || FollowStripOf(e.Source) is not null);
         TrackRows.Cursor = onEdge ? ResizeCursor : null;
     }
 

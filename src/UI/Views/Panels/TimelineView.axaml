@@ -672,7 +672,7 @@
                           </Border>
                           <!-- D061 amendment 1: the followed part of the clip, a cyan strip along its bottom; its edges drag. -->
                           <ItemsControl x:Name="FollowLane" Tag="FollowLane" Classes="canvasItems" ItemsSource="{Binding FollowSegments}"
-                                        IsVisible="{Binding HasFollowStrip}" Height="5" Margin="0,35,0,0" VerticalAlignment="Top"
+                                        IsVisible="{Binding HasFollowStrip}" Height="8" Margin="0,32,0,0" VerticalAlignment="Top"
                                         HorizontalAlignment="Left" Width="{Binding Width}" ClipToBounds="True">
                             <ItemsControl.ItemsPanel>
                               <ItemsPanelTemplate>
@@ -681,7 +681,7 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                               <DataTemplate>
-                                <Border Tag="FollowStrip" Width="{Binding Width}" Height="5" Background="#26C6DA" CornerRadius="1"
+                                <Border Tag="FollowStrip" Width="{Binding Width}" Height="8" Background="#26C6DA" CornerRadius="2"
                                         Cursor="SizeWestEast" ToolTip.Tip="{Binding Tip}"/>
                               </DataTemplate>
                             </ItemsControl.ItemTemplate>

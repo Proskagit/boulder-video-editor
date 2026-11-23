@@ -212,9 +212,24 @@ public sealed partial class InspectorViewModel
         var existing = clip.Follow;
         if (existing is null || existing.IsWholeClip)
             follow = FollowSettings.Of(new FollowPart(from), existing?.Smoothness ?? SmoothnessAt(FollowSmoothnessIndex));
-        else if (existing.IndexAt(at) >= 0)
+        else if (existing.IndexAt(at) is var inside and >= 0)
         {
-            _status.ReportWarning(Strings.Follow_AlreadyFollowedHere);
+            // D078 amendment 6 (the owner): on a followed part the press continues it — the same climber, its end opened to the
+            // next part (or the clip's end) and recorded again from here: «Остановить слежение здесь» sets its new end.
+            var part = existing.Parts[inside];
+            var nextFrom = existing.Parts.Skip(inside + 1).FirstOrDefault()?.From;
+            var continued = existing.WithPart(inside, part with { To = nextFrom ?? existing.OpenEnd(inside) })!;
+            var extended = Equals(continued, existing) ? Core.Interfaces.TimelineEditResult.Unchanged() : _edit.SetClipFollow(clip.Id, continued);
+            if (!extended.Success)
+            {
+                Apply(extended);
+                return;
+            }
+            _followRecordingClipId = clip.Id;
+            _followRecordingFrom = part.From;
+            IsRecordingFollow = true;
+            _status.Report(Strings.Follow_Continuing);
+            FollowPlaybackRequested?.Invoke(this, true);
             return;
         }
         else
