@@ -586,3 +586,4 @@ src/Core/Entities/TemplateRules.cs	ON ROUTES
 src/Core/Export/ExportVideoPlan.cs	NVENC HEVC
 src/Core/Export/ExportVideoPlan.cs	NVENC AV1
 src/Timeline/TimelineEditService.AttemptEvents.cs	Refine Areas from Video
+src/Infrastructure/WindowsSystemLoadMonitor.cs	\GPU Engine(*)\Utilization Percentage

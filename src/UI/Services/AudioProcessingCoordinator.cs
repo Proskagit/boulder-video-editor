@@ -4,6 +4,7 @@ using AiVideoEditor.Core.Audio;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.UI.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -149,6 +150,18 @@ public sealed class AudioProcessingCoordinator : IDisposable
         if (statuses.Any(s => s.State == AudioJobState.Processing)) return new AudioJobStatus(AudioJobState.Processing, progress);
         if (statuses.Any(s => s.State == AudioJobState.Waiting)) return new AudioJobStatus(AudioJobState.Waiting, progress);
         return new AudioJobStatus(AudioJobState.Ready, 1);
+    }
+
+    /// <summary>D078 amendment 1: the sound processing running now for the toolbar's badge — the running job's progress and the
+    /// jobs not done yet; null while none runs. Changes are raised by <see cref="StatusChanged"/>.</summary>
+    public BackgroundActivity? Activity
+    {
+        get
+        {
+            if (_running is not { } running) return null;
+            var waiting = _jobs.Count(p => !p.Value.IsDone && p.Value.Failure is null && !p.Value.Cancelled);
+            return new BackgroundActivity(Strings.Activity_Audio, StateOf(running.Job).Progress, Math.Max(1, waiting));
+        }
     }
 
     private AudioJobStatus StatusOf(Job job)

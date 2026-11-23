@@ -170,6 +170,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<CameraMotionCoordinator>();   // hold tracking (R2 → E): camera motion of clips with holds
         services.AddSingleton<PeopleAnalysisCoordinator>();   // D061: the people of videos with Follow / Occlusion
         services.AddSingleton<AttemptEventsService>();        // D078: the attempt's events refine the FIT's route areas
+        services.AddSingleton<ISystemLoadMonitor, AiVideoEditor.Infrastructure.WindowsSystemLoadMonitor>();   // D078 amendment 1
+        services.AddSingleton<BackgroundActivityViewModel>();   // D078 amendment 1: the toolbar's load and analyses' badge
         services.AddSingleton<AudioProcessingCoordinator>();  // D064: the clean-ups and the speech of the ducking
         services.AddSingleton<WaveformCoordinator>();
         services.AddSingleton<FilmstripCoordinator>();                         // D068 item 10

@@ -62,10 +62,12 @@ public sealed partial class ToolbarViewModel : ViewModelBase, ITrainingClockCorr
         IFitMarkEditService? fitMarks = null,
         FitSettingsWorkflow? fitSettings = null,
         IHelpWindow? help = null,
-        SaveStateViewModel? saveState = null)
+        SaveStateViewModel? saveState = null,
+        BackgroundActivityViewModel? activity = null)
     {
         _help = help;
         SaveState = saveState;
+        Activity = activity;
         _fitMarks = fitMarks;
         _fitSettings = fitSettings;
         _trainingImport = trainingImport;
@@ -164,6 +166,9 @@ public sealed partial class ToolbarViewModel : ViewModelBase, ITrainingClockCorr
 
     /// <summary>D068 item 11: «Сохранено в 10:26» / «Изменения не сохранены» on the bar.</summary>
     public SaveStateViewModel? SaveState { get; }
+
+    /// <summary>D078 amendment 1: the computer's load and the background analyses' badge beside the save state.</summary>
+    public BackgroundActivityViewModel? Activity { get; }
 
     /// <summary>D068 §3: «?» / F1 — the in-app help; always available (reading it changes nothing, also during an export).</summary>
     public bool HasHelp => _help is not null;

@@ -65,6 +65,26 @@ public sealed class PeopleAnalysisCoordinatorTests : IDisposable
         return clip;
     }
 
+    // D078 amendment 1: the toolbar's badge reads what runs now.
+
+    [Fact]
+    public Task The_activity_names_the_running_analysis_and_its_share_and_ends_with_it() => _ui.Run(async () =>
+    {
+        var clip = AddClip(FollowSettings.Whole(), seconds: 6);
+        using var coordinator = new PeopleAnalysisCoordinator(_projects, new Decoder(6), new Vision { Delay = TimeSpan.FromMilliseconds(5) });
+        var seen = new List<BackgroundActivity>();
+        coordinator.StatusChanged += (_, _) => { if (coordinator.Activity is { } a) seen.Add(a); };
+        await coordinator.IdleAsync();
+        Assert.NotEmpty(seen);
+        Assert.All(seen, a => Assert.Equal(AiVideoEditor.UI.Localization.Strings.Activity_PeopleTracks, a.Label));
+        Assert.All(seen, a => Assert.InRange(a.Progress!.Value, 0, 1));
+        Assert.Contains(seen, a => a.Progress > 0);
+        Assert.Null(coordinator.Activity);
+        var badge = new AiVideoEditor.UI.ViewModels.BackgroundActivityViewModel(coordinator);
+        Assert.False(badge.IsBusy);
+        Assert.Equal(PeopleAnalysisState.Ready, coordinator.StatusOf(clip.MediaAssetId, PeopleAnalysisKind.Tracks).State);
+    });
+
     // D078 §3: the attempt's events' windows — tracks after the clips' own needs, on a GPU only, never in the export's wait.
 
     [Fact]

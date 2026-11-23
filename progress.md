@@ -30,6 +30,13 @@ never marks the video failed.
 and files written within the clock's resolution tie: the file just saved could be the one removed (surfaced by the larger files
 with keypoints) → the file just saved is never pruned; test `The_file_just_saved_is_kept_even_when_every_write_time_is_the_same`
 (fails on the old order). Video 439 (+2 skips), builds 0 / 0.
+**Amendment 1 (the owner, during the phase):** the toolbar shows the computer's load always («ЦП · ГП», `WindowsSystemLoadMonitor`:
+GetSystemTimes + the «GPU Engine» counters, checked here: GPU 51–59 % against nvidia-smi 63 %) and a badge with the running background
+analysis and its share (`BackgroundActivityViewModel` over the people, hold-tracking and sound coordinators' `Activity`); tests
+`BackgroundActivityViewModelTests` (2), the coordinator's activity test.
+**Gates with amendment 1 (2026-11-23):** Debug / Release `--no-incremental -warnaserror` 0 / 0, `git diff --check` clean; Release +
+`AIVE_HEAVY_TESTS=1`: Vision 38, Project 783, Core 2 016, Export 153, Rendering 288, UI 1 364, Timeline 1 272, Video 439 (+2 skips),
+ExportEndToEnd 191 = 6 544. Portable `artifacts/portable/BoulderVideoEditor-1.12.1-win-x64`.
 **Third review: PASS WITH NOTES** — notes kept as is (documented): a refinement landing between two merged steps of a slider or under
 an unfinished strip drag (rare: a window must finish exactly then), the service assumes the UI context (comment added), and the
 known items of D078 «Refined».

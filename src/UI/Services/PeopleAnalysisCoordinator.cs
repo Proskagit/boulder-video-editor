@@ -7,6 +7,7 @@ using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Localization;
 using AiVideoEditor.Core.People;
 using AiVideoEditor.Core.Playback;
+using AiVideoEditor.UI.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -117,6 +118,29 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
     /// <summary>D078 §3: an events' run failed (a model, a decoding error) — no more events' runs this session; the video's own
     /// analysis is not affected.</summary>
     public bool EventsStopped { get; private set; }
+
+    /// <summary>D078 amendment 1: the analysis running now for the toolbar's badge — its kind and the share done of what that
+    /// kind needs over all videos; null while nothing runs. Changes are raised by <see cref="StatusChanged"/>.</summary>
+    public BackgroundActivity? Activity
+    {
+        get
+        {
+            if (_running is not { } running) return null;
+            int total = 0, done = 0, files = 0;
+            foreach (var (key, want) in _wanted)
+            {
+                var state = StateOf(key);
+                var set = running.ForEvents ? want.EventTracks : running.Kind == PeopleAnalysisKind.Tracks ? want.Tracks : want.Masks;
+                if (set.Count == 0) continue;
+                files++;
+                total += set.Count;
+                done += running.Kind == PeopleAnalysisKind.Masks ? set.Count(state.Masks.ContainsKey) : set.Count(state.Tracks.ContainsKey);
+            }
+            var label = running.ForEvents ? Strings.Activity_AttemptEvents
+                : running.Kind == PeopleAnalysisKind.Masks ? Strings.Activity_PeopleMasks : Strings.Activity_PeopleTracks;
+            return new BackgroundActivity(label, total == 0 ? null : (double)done / total, Math.Max(1, files));
+        }
+    }
 
     /// <summary>Re-reads what the clips and <see cref="EventSpans"/> need (a setting changed).</summary>
     public void RefreshNeeds() => Refresh();

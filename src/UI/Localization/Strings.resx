@@ -4274,4 +4274,31 @@ Everything else works without the models. They can also be installed later: «Se
   <data name="AppSettings_SnapLiftOffNote" xml:space="preserve">
     <value>The route start T of an area made from the FIT moves to the feet leaving the floor found in the video when it is within 3 s; dragging the orange's end, it sticks to the lift-offs found. It does not find the lift-off on every route — check the start.</value>
   </data>
+  <data name="Activity_PeopleTracks" xml:space="preserve">
+    <value>People (Follow)</value>
+  </data>
+  <data name="Activity_PeopleMasks" xml:space="preserve">
+    <value>People masks (occlusion)</value>
+  </data>
+  <data name="Activity_AttemptEvents" xml:space="preserve">
+    <value>Attempt's events</value>
+  </data>
+  <data name="Activity_HoldTracking" xml:space="preserve">
+    <value>Hold tracking</value>
+  </data>
+  <data name="Activity_Audio" xml:space="preserve">
+    <value>Sound processing</value>
+  </data>
+  <data name="Activity_More" xml:space="preserve">
+    <value>+{0}</value>
+  </data>
+  <data name="Activity_Items" xml:space="preserve">
+    <value>{0} items</value>
+  </data>
+  <data name="Activity_Load" xml:space="preserve">
+    <value>CPU {0} · GPU {1}</value>
+  </data>
+  <data name="Activity_LoadTip" xml:space="preserve">
+    <value>The whole computer's processor and graphics card load</value>
+  </data>
 </root>

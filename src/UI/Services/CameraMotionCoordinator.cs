@@ -7,6 +7,7 @@ using AiVideoEditor.Core.Export;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Motion;
 using AiVideoEditor.Core.Playback;
+using AiVideoEditor.UI.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -131,6 +132,10 @@ public sealed class CameraMotionCoordinator : IDisposable
 
     /// <summary>The tracks of the current project's routes, by clip and route (D053).</summary>
     public ImmutableDictionary<RouteKey, CameraMotionTrack> Tracks { get; private set; } = ImmutableDictionary<RouteKey, CameraMotionTrack>.Empty;
+
+    /// <summary>D078 amendment 1: the hold tracking running now for the toolbar's badge — the clips still analysed (no share
+    /// can be told: one route at a time); null while none. Changes are raised by <see cref="StatusChanged"/>.</summary>
+    public BackgroundActivity? Activity => Pending.Count == 0 ? null : new BackgroundActivity(Strings.Activity_HoldTracking, null, Pending.Count);
 
     /// <summary>The clips with a route whose analysis has not finished yet.</summary>
     public ImmutableHashSet<Guid> Pending { get; private set; } = ImmutableHashSet<Guid>.Empty;

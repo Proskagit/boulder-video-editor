@@ -12331,3 +12331,19 @@ with a note each.
 The top's detection; the outcome (top / fall) from the video; an automatic recording zero `Z` from the events; the learned
 lift-off model (needs 100+ routes of several gyms — the lab's `stage2.py` is to be run again then); the universal highlighter
 (trips, ordinary video) and 360° video — deferred; a refinement of areas made by hand («Разложить вступление и финал»).
+
+### D078 amendment 1 — the background work made visible (the owner, 2026-11-23, during the phase)
+
+**Why (the owner):** a picture in the Preview may still lack an analysis's result (Follow, the occlusion's masks, the hold tracking,
+now the attempt's events) and nothing says that something runs in the background.
+**Decided:** at the toolbar's right end, beside the save state —
+- **the computer's load, always:** «ЦП 23 % · ГП 61 %» every 1.5 s (`ISystemLoadMonitor` / `WindowsSystemLoadMonitor`: the processor
+  from `GetSystemTimes`, the graphics card from the «GPU Engine» performance counters as Task Manager does — the busiest engine type,
+  any vendor; no new dependency; a dash where not measurable);
+- **left of it, a badge while a background analysis runs:** a small progress bar and the running analysis with its share done
+  («Анализ людей (Follow) 45 %»; the people's masks, the attempt's events, the sound by their share; the hold tracking without a
+  share — an indeterminate bar), «+N» for the others running or waiting, each one in the tooltip; hidden when nothing runs.
+  The sources: `PeopleAnalysisCoordinator.Activity`, `CameraMotionCoordinator.Activity`, `AudioProcessingCoordinator.Activity`
+  (`BackgroundActivity`), refreshed on their status changes (`BackgroundActivityViewModel`).
+**Not included:** the media import analysis, the thumbnails, waveforms and filmstrips (short, with their own feedback); the export
+(its own progress); the route analysis of the first hold (modal already).

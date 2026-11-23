@@ -4278,4 +4278,31 @@
   <data name="AppSettings_SnapLiftOffNote" xml:space="preserve">
     <value>Начало трассы T у областей из FIT сдвигается к найденному по видео отрыву ног от пола, если он не дальше 3 с; при перетаскивании конца оранжевой области — магнит к найденным отрывам. Находит отрыв не на каждой трассе — проверяйте начало.</value>
   </data>
+  <data name="Activity_PeopleTracks" xml:space="preserve">
+    <value>Анализ людей (Follow)</value>
+  </data>
+  <data name="Activity_PeopleMasks" xml:space="preserve">
+    <value>Маски людей (окклюзия)</value>
+  </data>
+  <data name="Activity_AttemptEvents" xml:space="preserve">
+    <value>События попытки</value>
+  </data>
+  <data name="Activity_HoldTracking" xml:space="preserve">
+    <value>Трекинг зацепок</value>
+  </data>
+  <data name="Activity_Audio" xml:space="preserve">
+    <value>Обработка звука</value>
+  </data>
+  <data name="Activity_More" xml:space="preserve">
+    <value>+{0}</value>
+  </data>
+  <data name="Activity_Items" xml:space="preserve">
+    <value>объектов: {0}</value>
+  </data>
+  <data name="Activity_Load" xml:space="preserve">
+    <value>ЦП {0} · ГП {1}</value>
+  </data>
+  <data name="Activity_LoadTip" xml:space="preserve">
+    <value>Общая загрузка процессора и видеокарты компьютера</value>
+  </data>
 </root>
