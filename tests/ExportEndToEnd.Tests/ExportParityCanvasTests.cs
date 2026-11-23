@@ -33,7 +33,7 @@ public sealed class ExportParityCanvasTests
 
     private async Task<ExportRun> Export(ProjectBuilder p, string name)
     {
-        var run = await ExportProject(p.Project, Path.Combine(_media.OutputFolder(), name + ".mp4"));
+        var run = await ExportProject(p.Project, Path.Combine(_media.OutputFolder(), name + ".mp4"), PainterParity);
         AssertValidMp4(run);
         return run;
     }

@@ -49,7 +49,7 @@ public sealed class ExportCanvasChangeEndToEndTests
         Assert.Equal((100 * s, 50 * s), (box.PositionX, box.PositionY));
         Assert.Equal(24 * s, title.FontSize);
 
-        var run = await ExportProject(p.Project, Path.Combine(_media.OutputFolder(), $"canvas-{width}x{height}.mp4"));
+        var run = await ExportProject(p.Project, Path.Combine(_media.OutputFolder(), $"canvas-{width}x{height}.mp4"), PainterParity);
         AssertValidMp4(run);
         Assert.Equal(new FrameSize(width, height), run.Output.Size);
         Assert.Equal(new FrameSize(width, height), run.Job.Snapshot.Canvas);

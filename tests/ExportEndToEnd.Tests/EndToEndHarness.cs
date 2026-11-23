@@ -318,22 +318,27 @@ public static class EndToEnd
     public static readonly AiVideoEditor.Media.Caching.HdrLutStore Luts =
         new(Path.Combine(Path.GetTempPath(), "aive-e2e-luts"), NullLogger<AiVideoEditor.Media.Caching.HdrLutStore>.Instance);
 
-    public static ExportService Service(IExportEncoder encoder, IFfmpegLocator? locator = null)
+    /// <summary>D077 §2: the export decoding every source at its full size — as the Preview's pipeline of these tests does
+    /// (its media are no larger than its 1280 × 720 bound) — so a test can compare the two canvases byte for byte: the
+    /// painter's parity. Without it the export decodes a clip drawn smaller at its drawn size (the app's behaviour).</summary>
+    public static readonly ExportDecodeSettings PainterParity = new() { DecodeAtDrawnSize = false };
+
+    public static ExportService Service(IExportEncoder encoder, IFfmpegLocator? locator = null, ExportDecodeSettings? decode = null)
     {
         locator ??= FfmpegTools.FfmpegLocator;
         return new ExportService(locator,
             new FfmpegVideoDecoder(locator, NullLogger<FfmpegVideoDecoder>.Instance, luts: Luts),
             new FfmpegAudioDecoder(locator, NullLogger<FfmpegAudioDecoder>.Instance),
-            encoder, () => new AvaloniaCompositionRasterizer(), NullLogger<ExportService>.Instance);
+            encoder, () => new AvaloniaCompositionRasterizer(), NullLogger<ExportService>.Instance, decode: decode);
     }
 
     /// <summary>Preflight → <see cref="ExportService"/> (real decoders, Avalonia rasterizer, ffmpeg encoder) → MP4.</summary>
-    public static async Task<ExportRun> ExportProject(Project project, string outputPath)
+    public static async Task<ExportRun> ExportProject(Project project, string outputPath, ExportDecodeSettings? decode = null)
     {
         var job = Preflight(project, outputPath);
         var encoder = new RecordingEncoder(EncoderHarness.Encoder());
         var progress = new List<ExportProgress>();
-        await Service(encoder).ExportAsync(job, new SyncProgress(progress.Add));
+        await Service(encoder, decode: decode).ExportAsync(job, new SyncProgress(progress.Add));
         return new ExportRun(outputPath, job, encoder.Canvases, encoder.Pcm.ToArray(), progress) { EncoderSettings = encoder.Settings };
     }
 

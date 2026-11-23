@@ -2,6 +2,18 @@
 
 ## Current phase
 
+**Phase 58 — a faster export without the graphics card (D077, FU-EX.2, 2026-11-23) — on `feat/phase-58-export-speed`** (from
+`origin/main` `274b529`). **Step 0:** Phase 57 accepted (PR #87 merged). **Research** (`docs/EXPORT_PERFORMANCE.md` §9): the export on
+the GPU — at most ×1.7 at 4K (NVENC itself 65–78 fps at p7 / p5), a second renderer; a hybrid 0–4 % → not made (the owner). **Done:**
+`ExportDecodeSizes` (the largest drawn scale of each video clip over the export's frames → its decode bound; full size for stills,
+Follow, unknown sizes), `ExportDecodeSettings.DecodeAtDrawnSize`, `ExportService(…, decode)`; `FrameBitmap.Copy` one block.
+Measured: «Быстрый» ×2.2, «Средний» ×1.6, vertical ×2.5–2.9, HDR vertical ×2.2, 4K +7 % (same bytes); the picture closer to a Lanczos
+downscale (vertical 41.0 against 37.1 dB). Bench switches `AIVE_BENCH_HWDEC` / `AIVE_BENCH_DECODE_MAX` (research only). **Tests:**
+`ExportDecodeSizesTests` (8), `ExportDrawnSizeEndToEndTests` (2); the Preview-parity E2E tests export with `EndToEnd.PainterParity`
+(full-size decode, as their ≤ 720p media were). Manual plan `docs/PHASE58_MANUAL_TEST_PLAN.md`.
+**Review (phase-reviewer): PASS WITH NOTES** — notes taken: the D023 A1 / D059 parity rule named as refined in D077 §2, tests for the Follow exclusion, the 0.95 threshold and the cancellation (`ExportDecodeSizesTests` 11), the pre-pass cancelled with the export (at the first frame's request), the plan's table cell; kept as is: whole parity files on `PainterParity` (their claim is the painter's; the default path has its own E2E tests). **Gates (2026-11-23):** Debug / Release `--no-incremental -warnaserror` 0 / 0, ModelTests build 0, `git diff --check` clean; Release + `AIVE_HEAVY_TESTS=1`: Vision 37, Project 782, Core 2 011, Export 153, Rendering 288, UI 1 353, Timeline 1 262, Video 438 (+2 skips as before), ExportEndToEnd 191 (the 4K heavy scenes on the drawn-size path included) = 6 515.
+**Not done:** the owner's manual check, the merge.
+
 **Phase 57 — codecs and export presets (D076, 2026-11-22/23) — on `feat/phase-57-codecs-presets`** (from `origin/main` `b739142`).
 **Step 0:** Phase 56 accepted (PR #86 merged) — D075 «Acceptance», DEVELOPMENT_PLAN, ROADMAP. **The owner's answers:** Q1–Q7 all A,
 plus the file types MP4 / MOV / MKV; after the calibration Q3 amended (B): «Максимальный» / «Высокий» / «Быстрый» H.264,

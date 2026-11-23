@@ -36,7 +36,7 @@ public sealed class ExportKeyframeEndToEndTests
         var p = new ProjectBuilder(FrameRate.Fps25);
         var clip = p.Video(p.VideoTrack(), _media.Pattern(), 0, 25);
         clip.Keyframes = Keys((0, -80, 0.5, KeyframeEasing.EaseInOut), (0.96, 80, 0.5, KeyframeEasing.Linear));
-        var run = await ExportProject(p.Project, Path.Combine(_media.OutputFolder(), "keyframes.mp4"));
+        var run = await ExportProject(p.Project, Path.Combine(_media.OutputFolder(), "keyframes.mp4"), PainterParity);
 
         AssertValidMp4(run);
         var decoded = EncoderHarness.DecodeFrames(run.Path, run.Output.Size.Width, run.Output.Size.Height);
@@ -77,7 +77,7 @@ public sealed class ExportKeyframeEndToEndTests
         (clip.Scale, clip.PositionX, clip.PositionY) = (snapped.Scale, snapped.PositionX, snapped.PositionY);
         Assert.True(CompositionMath.Layout(canvas, source, snapped).CoversCanvas);
 
-        var run = await ExportProject(p.Project, Path.Combine(_media.OutputFolder(), "snapped.mp4"));
+        var run = await ExportProject(p.Project, Path.Combine(_media.OutputFolder(), "snapped.mp4"), PainterParity);
         AssertValidMp4(run);
         var (w, h) = (run.Output.Size.Width, run.Output.Size.Height);
         var decoded = EncoderHarness.DecodeFrames(run.Path, w, h);

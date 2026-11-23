@@ -23,7 +23,7 @@ public sealed class ExportHeartRateEndToEndTests
     public ExportHeartRateEndToEndTests(E2EMedia media) => _media = media;
 
     private Task<ExportRun> Export(ProjectBuilder p, string name) =>
-        ExportProject(p.Project, Path.Combine(_media.OutputFolder(), name + ".mp4"));
+        ExportProject(p.Project, Path.Combine(_media.OutputFolder(), name + ".mp4"), PainterParity);
 
     /// <summary>A sample every second (95, 130, 140, 99 BPM) and the timer paused over the third second.</summary>
     private static TrainingReference Training()

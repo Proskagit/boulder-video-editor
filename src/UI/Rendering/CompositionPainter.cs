@@ -408,8 +408,11 @@ public static class FrameBitmap
             ? segment
             : new ArraySegment<byte>(frame.Pixels.ToArray());
         var rowBytes = frame.Width * DecodedFrame.BytesPerPixel;
-        for (var y = 0; y < frame.Height; y++)
-            Marshal.Copy(source.Array!, source.Offset + y * frame.Stride, target.Address + y * target.RowBytes, rowBytes);
+        if (frame.Stride == rowBytes && target.RowBytes == rowBytes)
+            Marshal.Copy(source.Array!, source.Offset, target.Address, rowBytes * frame.Height);   // D077 §3: one block, the same bytes
+        else
+            for (var y = 0; y < frame.Height; y++)
+                Marshal.Copy(source.Array!, source.Offset + y * frame.Stride, target.Address + y * target.RowBytes, rowBytes);
         if (color is { IsNeutral: false })
             Correct(target.Address, target.RowBytes, frame.Width, frame.Height, Core.Color.ColorAdjust.For(color));   // in the bitmap's memory
     }

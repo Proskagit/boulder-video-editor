@@ -12155,3 +12155,71 @@ apart from the export window; sharing presets between computers.
 ### The owner's manual check (2026-11-23)
 
 1.10.0 checked by the owner: the export window and the defaults are fine, no remarks. The phase closes on his merge of PR #87.
+
+---
+
+## D077 — Phase 58: a faster export without the graphics card *(set by the owner on 2026-11-23, FU-EX.2)*
+
+**Status: approved by the owner on 2026-11-23** after the research of FU-EX.2 (`docs/EXPORT_PERFORMANCE.md` §9): «дешёвое
+улучшение на 4K» and «декод в размере вывода»; the export on the graphics card is **not** made. Implemented in Phase 58 on
+`feat/phase-58-export-speed` (from `main` `274b529`). Continues D059 (the pipeline), D060 §3 (the resolution) and D076. `project.json`
+unchanged (v29).
+
+### 0. Step 0 — Phase 57 accepted
+
+PR #87 merged (`274b529`) after the owner's manual check of 1.10.0 — D076, DEVELOPMENT_PLAN, ROADMAP, progress.
+
+### 1. The research's answer (measured, §9)
+
+- A pipeline entirely on the GPU (NVDEC, the composition on the card, NVENC without a read-back) would reach at most what NVENC
+  encodes on its own: 4K at p7 / p5 65–78 fps against today's 45 — **×1.45–1.7**, not 2–3×; several NVENC sessions are no
+  faster; HEVC p7 not at all. It needs a second renderer of everything the Preview's painter draws. **Not made.**
+- A hybrid (hardware decoding in the export; NVENC converting BGRA itself) gives 0–4 % and makes the decoded frames differ from
+  the software decoder's — **not made**.
+- At 4K the export is bound by the memory traffic of the 33 MB BGRA frames (two exports at once share the same 46 fps), not by
+  the cores; below 4K by decoding and carrying the 4K source at 4K although the painter shrinks it.
+
+### 2. Decoding at the drawn size (the owner's «пункт 3»)
+
+- `ExportDecodeSizes.For(snapshot, output)` runs once, at the first frame's request (cancelled with the export), over every output frame of the export (its range):
+  for each picture layer, the transform `CompositionDrawPlan.Operation` draws it with — canvas → output stretch, the transition's
+  motion, the keyframed geometry of that frame — gives how many output pixels one source pixel covers at most (the largest
+  singular value). A video clip is decoded at `⌈source × the largest factor over its frames⌉` when that factor is below 0.95;
+  otherwise at full size. Full size always for still images (decoded once), clips with a Follow camera (framed per source
+  frame), clips whose source size is unknown.
+- `ExportPictureReader` passes the bound to the decoder (`MaxWidth` / `MaxHeight` — the same `scale` filter as the Preview's
+  bound, ffmpeg's bicubic; the HDR graph scales before its LUT as before). The draw plan does not depend on the decoded size (the
+  crop is normalized, the local rectangle in source pixels — how the Preview draws its reduced frames), and the frame-size
+  dependent effects are relative (the blurred background samples normalized points; a transition's blur is a share of the short
+  side), so the layout, the outlines, the masks and the effects stay where they were; only the resampling changes.
+- `ExportDecodeSettings.DecodeAtDrawnSize` (default true); `ExportService` takes `ExportDecodeSettings` (default: the defaults).
+- **What changes for the user:** the files of every export where a clip is drawn smaller than its source (Full HD / 2K / HD
+  presets of a 4K project, vertical exports of landscape footage, pictures in picture) — faster, and closer to a high-quality
+  downscale of the source (vertical 1080 × 1920 of 4K: 41.0 dB against a Lanczos reference, 37.1 before — the painter's 3.5×
+  shrink aliased the wall's texture; Full HD: 46.9 against 46.2), VMAF 99.5 against the 1.10.0 canvases. 4K exports of 4K
+  footage: unchanged bytes.
+- **Preview = export — refines D023 Step 8 (1) A1 and the «parity suite unchanged» of D059 §7:** the painter is still one; byte equality of the two canvases holds where both decode a clip at the same
+  size. The parity tests compare the painter with the export decoding at full size (`EndToEnd.PainterParity`), as their media
+  (≤ 1280 × 720) were decoded at full size by both before; `ExportDrawnSizeEndToEndTests` checks the new path against the
+  decoder's own scaled frame and against the full-size path.
+
+### 3. Fewer copies at 4K (the owner's «пункт 1»)
+
+`FrameBitmap.Copy` copies a frame whose rows are contiguous in both the decoded buffer and the bitmap as one block instead of row
+by row (the same bytes; the Preview benefits too): 4K «Максимальный» **45.4 → 48.6 fps (+7 %)**, the MP4 byte-identical
+(SHA-256). Measured and **not** taken: `GCRetainVM` (+4 % alone, nothing on top of the block copy), fewer rasterizers (the same
+speed — less memory, not this phase's goal), the frame buffer pool / BGRA → YUV in the app / the decoder writing YUV (each a
+change of the bytes or of the Preview's path, beyond «дешёвое»).
+
+### 4. The numbers (`docs/EXPORT_PERFORMANCE.md` §10)
+
+4K source, 600 frames, NVENC, median of 2: «Быстрый» 69.4 → 150.1 fps (×2.2), «Средний» 61.1 → 96.8 (×1.6), 4K → 1080p
+«Максимальный» 66.4 → 148.7 (×2.2), vertical 1080 × 1920 65.7 → 188.3 (×2.9), vertical with the blurred background 65.5 → 160.5
+(×2.5), HDR HEVC → vertical 34.4 → 76.1 (×2.2), two 4K layers (picture in picture) 30.0 → 39.6 (×1.3), 4K «Максимальный» 45.4 →
+48.6 (×1.07).
+
+### Out of scope
+
+The export on the graphics card (§1); hardware decoding in the export; decoding still images smaller; the Preview's own decoding
+(D071's quality bound); a different scaler or interpolation in the painter (it is the Preview's); the GPU research's E6 items
+beyond §3.
