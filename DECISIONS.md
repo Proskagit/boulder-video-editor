@@ -12418,7 +12418,8 @@ it). The help says both.
 
 ## D079 — Phase 60: the plates above YouTube's description, and softer fields and buttons *(set by the owner on 2026-11-23)*
 
-**Status: the scope set by the product owner on 2026-11-23**; his choice of the style «C» (with narrower numeric fields) the
+**Status: accepted by the product owner on 2026-11-24** (his check of 1.13.1 — amendment 1 included; PR #90 merged, `48bf90a`;
+released as v1.13.1). The scope set by the product owner on 2026-11-23; his choice of the style «C» (with narrower numeric fields) the
 same day. Branch `feat/phase-60-plates-ui` from `main` `a59d41f`. **No `project.json` format change** (v29), no settings change.
 
 ### 0. Step 0 — Phase 59 accepted

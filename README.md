@@ -18,7 +18,8 @@ climber, and the training from your watch (FIT) lays the climbs out on the clips
   route» proposes all holds of the route from its first one; the outlines appear one by one, follow the camera and hide
   behind people.
 - **Training from the watch** — a FIT file (COROS, Garmin…): every climb is laid out on its clip — the green «Boulder» plate
-  before the climb, the orange holds, the lilac result (TOP / attempt / Flash); the heart rate shown as it was recorded.
+  before the climb, the orange holds, the lilac result (TOP / attempt / Flash); the heart rate shown as it was recorded. The
+  climber's fall is found in the video and starts the lilac of an attempt; the route's start can snap to the lift-off.
 - **Templates** — «Boulder» (route, grade, result, heart rate), «Summary» (an animated board of the day: time on each route,
   attempts, heart rate, totals), «Heart rate», «Highlight», REC, VHS; Russian or English words on the frame.
 - **Editing** — a magnetic main track, trim / split / «Trim left / right», a Source viewer, J / L cuts, transitions, keyframes,
@@ -29,6 +30,8 @@ climber, and the training from your watch (FIT) lays the climbs out on the clips
 - **Export** — MP4 / MOV / MKV in H.264, HEVC or AV1; presets «Fast» … «Maximum» (the default) and your own; with an NVIDIA
   card fast through NVENC, in the background; YouTube
   chapter timestamps (each route and the «Summary») to copy.
+- **Background work in sight** — the processor and graphics card load always on the toolbar, and a badge with the running
+  analysis (Follow, people masks, hold tracking, the falls) and its share.
 - Russian / English interface, in-app help (F1). Nothing is uploaded anywhere: the AI models run on your computer.
 
 ### Quick start
@@ -93,7 +96,8 @@ dotnet test                      # AIVE_HEAVY_TESTS=1 adds the 4K export scenes
 - **Зацепки и трассы** — локальный ИИ (SAM 2.1): щелчок даёт контур зацепки, сглаженный без срезания углов; «Предлагать
   трассу» отмечает все зацепки трассы по первой; контуры появляются по очереди, следуют за камерой и прячутся за людьми.
 - **Тренировка с часов** — FIT-файл (COROS, Garmin…): каждый подъём раскладывается на свой клип — зелёная плашка «Боулдер»
-  перед подъёмом, оранжевые зацепки, лиловый результат (TOP / попытка / Flash); пульс показывается таким, каким записан.
+  перед подъёмом, оранжевые зацепки, лиловый результат (TOP / попытка / Flash); пульс показывается таким, каким записан. Срыв
+  скалолаза находится по видео и начинает лиловую область попытки; начало трассы можно притянуть к отрыву от земли.
 - **Шаблоны** — «Боулдер» (трасса, категория, результат, пульс), «Итоги» (анимированное табло дня: время на каждой трассе,
   попытки, пульс, итог), «Пульс», «Хайлайт», REC, VHS; надписи на кадре по-русски или по-английски.
 - **Монтаж** — магнитная основная дорожка, обрезка / разрез / «Обрезать слева / справа», окно источника, J / L-склейки,
@@ -104,6 +108,8 @@ dotnet test                      # AIVE_HEAVY_TESTS=1 adds the 4K export scenes
 - **Экспорт** — MP4 / MOV / MKV в H.264, HEVC или AV1; пресеты «Быстрый» … «Максимальный» (по умолчанию) и свои; с видеокартой
   NVIDIA быстро через NVENC, в фоне; таймкоды
   глав YouTube (каждая трасса и «Итоги») — скопировать в описание.
+- **Фоновая работа на виду** — загрузка процессора и видеокарты всегда на панели инструментов и плашка идущего анализа
+  (Follow, маски людей, трекинг зацепок, поиск срывов) с процентом.
 - Интерфейс на русском и английском, справка в программе (F1). Ничего никуда не отправляется: модели ИИ работают на вашем
   компьютере.
 
