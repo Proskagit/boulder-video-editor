@@ -96,7 +96,7 @@ public class HeartRateAreaPersistenceTests
         var area = Load(v15).Timeline.VideoTracks[1].Clips.OfType<TemplateClip>().Single();
         Assert.Equal((true, HeartRateLook.Plate, OverlayCorner.BottomRight, TemplateRules.HeartRateAccentHex),
             (area.ShowHeartRate, area.Look, area.Corner, area.HeartHex));
-        Assert.Equal(28, JsonNode.Parse(Save(Load(v15)))!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(29, JsonNode.Parse(Save(Load(v15)))!["formatVersion"]!.GetValue<int>());
     }
 
     [Fact]

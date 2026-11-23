@@ -44,7 +44,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 28;
+    public const int CurrentFormatVersion = 29;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -150,6 +150,10 @@ public static class ProjectSerializer
 
     /// <summary>D075 amendment 1: a text's italic, shadow, line spacing and block width.</summary>
     private const int TextStyle2Version = 28;
+
+    // D076 (v29): the export's codec and container, the quality «Очень высокое» and the speed «Очень быстро»; the profile is no
+    // longer written (every field explicit). A v28 file's profile is read as its exact old output (Q7 A); an older build
+    // refuses a v29 file as newer, so it never exports an HEVC project as H.264.
 
     /// <summary>Whether a template of <paramref name="kind"/> in a file of <paramref name="formatVersion"/> carries the
     /// heart-rate look and corner: the overlay (v13), a «Боулдер» from v16 (D055 §5).</summary>
@@ -394,10 +398,11 @@ public static class ProjectSerializer
         : new()
         {
             Quality = e.Quality.ToString(), Preset = e.Preset.ToString(), AudioBitrateKbps = e.AudioBitrateKbps,
-            // D059: each new field only when it differs from the D028 meaning (Custom, libx264, constant quality), so a
-            // D028 project is saved exactly as before.
-            Profile = e.Profile == ExportProfile.Custom ? null : e.Profile.ToString(),
-            Encoder = e.Encoder == ExportVideoEncoder.Libx264 ? null : e.Encoder.ToString(),
+            // D059: each field only when it differs from the D028 meaning (the processor, constant quality); D076: no profile
+            // (every field is explicit), the codec / container only when not H.264 / MP4.
+            Encoder = e.Encoder == ExportVideoEncoder.Software ? null : e.Encoder.ToString(),
+            Codec = e.Codec == ExportVideoCodec.H264 ? null : e.Codec.ToString(),
+            Container = e.Container == ExportContainer.Mp4 ? null : e.Container.ToString(),
             RateControl = e.RateControl == ExportRateControl.ConstantQuality ? null : e.RateControl.ToString(),
             VideoBitrateMbps = e.VideoBitrateMbps == ExportEncoding.DefaultVideoBitrateMbps ? null : e.VideoBitrateMbps,
             // D060 §3: only a preset other than the canvas.
@@ -994,23 +999,33 @@ public static class ProjectSerializer
     private static ExportEncoding ReadExportEncoding(ExportEncodingDto? dto)
     {
         if (dto is null) return ExportEncoding.Default;
-        var encoding = new ExportEncoding(
-            ReadName<ExportQuality>(dto.Quality, "export quality"),
-            ReadName<ExportSpeedPreset>(dto.Preset, "export speed preset"),
-            dto.AudioBitrateKbps ?? throw Damaged("export audio bitrate is missing"))
+        var quality = ReadName<ExportQuality>(dto.Quality, "export quality");
+        var speed = ReadName<ExportSpeedPreset>(dto.Preset, "export speed preset");
+        var rateControl = dto.RateControl is null ? ExportRateControl.ConstantQuality : ReadName<ExportRateControl>(dto.RateControl, "export rate control");
+        // D059 / D076 Q7 A: a v28 file's profile set the level and the speed itself (its own fields then held «Пользовательский»'s
+        // values) and always constant quality — read as exactly that output, now explicit.
+        switch (dto.Profile)
         {
-            // D059: a D028 file has none of these — «Пользовательский» with libx264 at constant quality, its old output.
-            Profile = dto.Profile is null ? ExportProfile.Custom : ReadName<ExportProfile>(dto.Profile, "export profile"),
-            Encoder = dto.Encoder is null ? ExportVideoEncoder.Libx264 : ReadName<ExportVideoEncoder>(dto.Encoder, "export encoder"),
-            RateControl = dto.RateControl is null ? ExportRateControl.ConstantQuality : ReadName<ExportRateControl>(dto.RateControl, "export rate control"),
+            case null or "Custom": break;
+            case "Fast": (quality, speed, rateControl) = (ExportQuality.High, ExportSpeedPreset.VeryFast, ExportRateControl.ConstantQuality); break;
+            case "Balanced": (quality, speed, rateControl) = (ExportQuality.High, ExportSpeedPreset.Medium, ExportRateControl.ConstantQuality); break;
+            case "HighQuality": (quality, speed, rateControl) = (ExportQuality.Maximum, ExportSpeedPreset.Slow, ExportRateControl.ConstantQuality); break;
+            default: throw Damaged("unknown export profile");
+        }
+        var encoding = new ExportEncoding(quality, speed, dto.AudioBitrateKbps ?? throw Damaged("export audio bitrate is missing"))
+        {
+            // D059: a D028 file has none of these — libx264 at constant quality, its old output; D059 wrote "Libx264" never
+            // (the default), D076 calls it "Software".
+            Encoder = dto.Encoder is null or "Libx264" ? ExportVideoEncoder.Software : ReadName<ExportVideoEncoder>(dto.Encoder, "export encoder"),
+            RateControl = rateControl,
             VideoBitrateMbps = dto.VideoBitrateMbps ?? ExportEncoding.DefaultVideoBitrateMbps,
             // D060 §3: absent — the canvas, as every file before it.
-            Resolution = dto.Resolution is null ? ExportResolution.Project : ReadName<ExportResolution>(dto.Resolution, "export resolution")
+            Resolution = dto.Resolution is null ? ExportResolution.Project : ReadName<ExportResolution>(dto.Resolution, "export resolution"),
+            Codec = dto.Codec is null ? ExportVideoCodec.H264 : ReadName<ExportVideoCodec>(dto.Codec, "export codec"),
+            Container = dto.Container is null ? ExportContainer.Mp4 : ReadName<ExportContainer>(dto.Container, "export container")
         };
         if (encoding.Validate() is not null) throw Damaged("invalid export settings");
-        // A D028 file that wrote the default values out (High, Medium, 192) is the default — as it always read.
-        return dto.Profile is null && encoding == new ExportEncoding(ExportQuality.High, ExportSpeedPreset.Medium, 192)
-            ? ExportEncoding.Default : encoding;
+        return encoding;
     }
 
     /// <summary>The <typeparamref name="T"/> value whose name is exactly <paramref name="name"/>.</summary>

@@ -26,7 +26,8 @@ climber, and the training from your watch (FIT) lays the climbs out on the clips
 - **Text** — fonts, outline, background, italic, shadow, line spacing, a block width with word wrap (dragged in the Preview),
   saved styles, appearance animations.
 - **Sound** — volume line, mixer, ducking under speech, noise reduction, voice enhancement.
-- **Export** — MP4 H.264; with an NVIDIA card fast through NVENC in the background, «High quality» by default; YouTube
+- **Export** — MP4 / MOV / MKV in H.264, HEVC or AV1; presets «Fast» … «Maximum» (the default) and your own; with an NVIDIA
+  card fast through NVENC, in the background; YouTube
   chapter timestamps (each route and the «Summary») to copy.
 - Russian / English interface, in-app help (F1). Nothing is uploaded anywhere: the AI models run on your computer.
 
@@ -44,7 +45,7 @@ Download the installer (full or light web Setup) or the portable archive from
 7. **Follow** — «Follow the climber» when the frame has room: the frame follows the climber, the outlines hide behind people.
 8. **Sound** — music, ducking under speech, noise reduction, voice enhancement.
 9. **Design** — text and templates («Boulder», «Summary», «Heart rate», «Highlight»…).
-10. **Export** — Ctrl+E, MP4; with NVIDIA — fast through NVENC, in the background; copy the YouTube timestamps.
+10. **Export** — Ctrl+E, a preset («Maximum» by default); with NVIDIA — fast through NVENC, in the background; copy the YouTube timestamps.
 
 Help on any step — F1 in the program.
 
@@ -100,7 +101,8 @@ dotnet test                      # AIVE_HEAVY_TESTS=1 adds the 4K export scenes
 - **Текст** — шрифты, обводка, подложка, курсив, тень, интервал, ширина блока с переносом (тянется в Preview), сохранённые
   стили, анимация появления.
 - **Звук** — линия громкости, микшер, приглушение под речь, шумоподавление, улучшение речи.
-- **Экспорт** — MP4 H.264; с видеокартой NVIDIA быстро через NVENC в фоне, по умолчанию «Высокое качество»; таймкоды
+- **Экспорт** — MP4 / MOV / MKV в H.264, HEVC или AV1; пресеты «Быстрый» … «Максимальный» (по умолчанию) и свои; с видеокартой
+  NVIDIA быстро через NVENC, в фоне; таймкоды
   глав YouTube (каждая трасса и «Итоги») — скопировать в описание.
 - Интерфейс на русском и английском, справка в программе (F1). Ничего никуда не отправляется: модели ИИ работают на вашем
   компьютере.
@@ -119,7 +121,7 @@ dotnet test                      # AIVE_HEAVY_TESTS=1 adds the 4K export scenes
 7. **Follow** — «Следить за скалолазом», если у кадра есть запас: кадр ведёт скалолаза, контуры прячутся за людьми.
 8. **Звук** — музыка, приглушение под речь, шумоподавление, улучшение речи.
 9. **Оформление** — текст и шаблоны («Боулдер», «Итоги», «Пульс», «Хайлайт»…).
-10. **Экспорт** — Ctrl+E, MP4; с NVIDIA — быстро через NVENC, в фоне; скопируйте таймкоды для YouTube.
+10. **Экспорт** — Ctrl+E, пресет (по умолчанию «Максимальный»); с NVIDIA — быстро через NVENC, в фоне; скопируйте таймкоды для YouTube.
 
 Подсказка по любому шагу — F1 в программе.
 

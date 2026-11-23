@@ -50,6 +50,10 @@ public sealed record UserSettings
     /// <summary>D075 amendment 1: the user's saved text styles, in the order saved (offered in every project).</summary>
     public IReadOnlyList<Entities.SavedTextStyle> TextStyles { get; init; } = Array.Empty<Entities.SavedTextStyle>();
 
+    /// <summary>D076: the user's saved export presets, in the order saved (offered in every project).</summary>
+    [System.Text.Json.Serialization.JsonConverter(typeof(Entities.SavedExportPresetListConverter))]
+    public IReadOnlyList<Entities.SavedExportPreset> ExportPresets { get; init; } = Array.Empty<Entities.SavedExportPreset>();
+
     /// <summary>D063 §B: the Preview's magnetic snap of a picture's edges to the canvas edges — its threshold in screen
     /// pixels (0: off).</summary>
     public double CanvasSnapPixels { get; init; } = Composition.CanvasSnap.DefaultThresholdPixels;
@@ -89,6 +93,8 @@ public sealed record UserSettings
 
     private static bool Valid(Entities.SavedTextStyle? s) => s is not null && !string.IsNullOrWhiteSpace(s.Name) && !string.IsNullOrWhiteSpace(s.FontFamily);
 
+    private static bool Valid(Entities.SavedExportPreset? p) => p is not null && !string.IsNullOrWhiteSpace(p.Name) && p.Settings?.Validate() is null;
+
     /// <summary>These settings with every value inside its bounds (a value from a file edited by hand).</summary>
     public UserSettings Normalized() => this with
     {
@@ -105,7 +111,10 @@ public sealed record UserSettings
         FfprobePath = string.IsNullOrWhiteSpace(FfprobePath) ? null : FfprobePath.Trim(),
         TextStyles = TextStyles is null ? Array.Empty<Entities.SavedTextStyle>()
             : TextStyles.All(Valid) ? TextStyles      // the same list: unchanged settings stay equal
-            : TextStyles.Where(Valid).ToList()
+            : TextStyles.Where(Valid).ToList(),
+        ExportPresets = ExportPresets is null ? Array.Empty<Entities.SavedExportPreset>()
+            : ExportPresets.All(Valid) ? ExportPresets
+            : ExportPresets.Where(Valid).ToList()
     };
 }
 

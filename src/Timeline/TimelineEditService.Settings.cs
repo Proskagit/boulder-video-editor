@@ -299,21 +299,32 @@ public sealed partial class TimelineEditService
         return TimelineEditResult.Ok(null, ExportMessage(export));
     }
 
-    private static string ExportMessage(ExportEncoding e) => e.Profile != ExportProfile.Custom
-        ? string.Format(Messages.Settings_ExportProfileSet, e.Profile switch
+    /// <summary>D076: «Параметры экспорта: пресет «Максимальный».» for a built-in preset; otherwise the settings in short —
+    /// «HEVC · NVENC · MP4 · Максимальное · slow · AAC 320».</summary>
+    private string ExportMessage(ExportEncoding e) => Core.Export.ExportPresets.Match(e, new Core.Composition.FrameSize(Settings.FrameWidth, Settings.FrameHeight)) is { } kind
+        ? string.Format(Messages.Settings_ExportProfileSet, kind switch
         {
-            ExportProfile.Fast => Messages.ExportProfile_Fast,
-            ExportProfile.Balanced => Messages.ExportProfile_Balanced,
-            _ => Messages.ExportProfile_HighQuality
-        }, e.Encoder == ExportVideoEncoder.Nvenc ? "NVENC" : "libx264", e.AudioBitrateKbps)
-        : string.Format(Messages.Settings_ExportSet, e.Quality switch
+            Core.Export.ExportPresetKind.Fast => Messages.ExportPreset_Fast,
+            Core.Export.ExportPresetKind.Medium => Messages.ExportPreset_Medium,
+            Core.Export.ExportPresetKind.High => Messages.ExportPreset_High,
+            _ => Messages.ExportPreset_Maximum
+        })
+        : string.Format(Messages.Settings_ExportSet, string.Join(" · ", new[]
         {
-            ExportQuality.Maximum => Messages.ExportQuality_Maximum,
-            ExportQuality.High => Messages.ExportQuality_High,
-            ExportQuality.Standard => Messages.ExportQuality_Standard,
-            ExportQuality.Compact => Messages.ExportQuality_Compact,
-            _ => e.Quality.ToString()
-        }, e.PresetName, e.AudioBitrateKbps);
+            e.Codec switch { ExportVideoCodec.Hevc => "HEVC", ExportVideoCodec.Av1 => "AV1", _ => "H.264" },
+            e.Encoder == ExportVideoEncoder.Nvenc ? "NVENC" : "CPU",
+            e.Container.ToString().ToUpperInvariant(),
+            e.RateControl == ExportRateControl.Bitrate ? $"{e.VideoBitrateMbps} Mbit/s" : e.Quality switch
+            {
+                ExportQuality.Maximum => Messages.ExportQuality_Maximum,
+                ExportQuality.VeryHigh => Messages.ExportQuality_VeryHigh,
+                ExportQuality.High => Messages.ExportQuality_High,
+                ExportQuality.Standard => Messages.ExportQuality_Standard,
+                ExportQuality.Compact => Messages.ExportQuality_Compact,
+                _ => e.Quality.ToString()
+            },
+            e.PresetName, $"AAC {e.AudioBitrateKbps}"
+        }));
 
     /// <summary>How a clip is named in a message: a text clip by its first line, a media clip by its file.</summary>
     private string Describe(Clip clip)

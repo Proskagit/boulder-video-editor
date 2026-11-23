@@ -685,7 +685,9 @@ the orange area's end to the purple area's start, scrolling past ~10 rows — in
 6) technical debt (the split of `TimelineEditService` / `TimelineViewModel`); 7) the repository's page (its «Status» rewritten,
 the page restructured). Other ideas (Shorts per route, comparing attempts, beta notes …) wait until then.
 
-**Phase 56 (D075, 2026-11-22) — the holds' contour, text styles, technical debt, the README** on `feat/phase-56-holds-contour` (from `main` `13500cf`; amendment 1 — text styles with `project.json` v28, `TimelineEditService` / `TimelineViewModel` split by section, the README EN + RU with screenshots; **Phase 57 next — codecs and presets, FU-EX.1**): the smoothing that removes the teeth but
+**Phase 57 (D076, 2026-11-22/23) — codecs and export presets (FU-EX.1)** on `feat/phase-57-codecs-presets` (from `main` `b739142`; `project.json` v29): H.264 / HEVC / AV1 — NVENC per codec where the card has it, the processor (libx264 / libx265 / SVT-AV1) as the fallback, the minimal FFmpeg rebuilt for it; MP4 / MOV / MKV; four built-in presets «Быстрый» (Full HD H.264), «Средний» (2K AV1), «Высокий» (4K H.264), «Максимальный» (the project's size, H.264 — a new project's default; HEVC / AV1 make no smaller file at the highest quality, measured) with every field in «Подробные настройки» and the user's own saved presets; the new encoders calibrated by VMAF against libx264. Manual plan: `docs/PHASE57_MANUAL_TEST_PLAN.md`. The owner's queue after 1.3.0 is done with it.
+
+**Phase 56 (D075, 2026-11-22) — the holds' contour, text styles, technical debt, the README — accepted by the owner 2026-11-22 (PR #86 merged, `b739142`)** on `feat/phase-56-holds-contour` (from `main` `13500cf`; amendment 1 — text styles with `project.json` v28, `TimelineEditService` / `TimelineViewModel` split by section, the README EN + RU with screenshots; **Phase 57 next — codecs and presets, FU-EX.1**): the smoothing that removes the teeth but
 keeps a corner standing alone (a triangle keeps its tips); a refinement of the mask on a close-up was measured on the owner's
 project and withdrawn by him (not worth a second model pass); saved holds untouched.
 
@@ -784,8 +786,15 @@ takes the vertical-video export.
   rate and with the heart rate shifted by about −60 s; compare them; judge how close the peak comes to the end of the climb
   and whether the dynamics elsewhere and between climbs look wrong. If it works, decide separately: a fixed or adjustable
   shift, where it applies, Preview and export, and how it is marked as a display correction, not the FIT's time.
-- **FU-EX.1 — «Кодек и пресет» instead of «Скорость кодирования» (the product owner, 2026-11-16; D060 §4)** — *Future /
-  Backlog: not planned, not implemented.* «Скорость кодирования» is the H.264 preset (libx264 fast / medium / slow, NVENC p3 /
+- **FU-EX.2 — a faster 4K export (the product owner, 2026-11-23; after Phase 57)** — *Future / Backlog: a phase of its own,
+  not planned.* The 4K export stops at ~45 fps with every NVENC codec: the frames pass the processor and the memory about ten
+  times each (decode to BGRA, the pipe, the bitmap, the drawing, the read-back, the YUV conversion; `docs/EXPORT_PERFORMANCE.md`
+  §3, §8). Two ways, each measured on the owner's machine: (a) fewer copies in the present pipeline — D059's E6 items (a
+  decoded-frame buffer pool, fewer passes, the YUV conversion off the CPU), expected +10–25 %; (b) **the whole frame on the
+  graphics card** (NVDEC, the composition on the GPU, NVENC without a read-back) — up to 2–3×, but a second renderer that
+  must keep Preview = export byte for byte; the owner deferred (b) to a separate research phase.
+- **FU-EX.1 — «Кодек и пресет» instead of «Скорость кодирования» (the product owner, 2026-11-16; D060 §4)** — *taken by
+  Phase 57 (D076): codecs, file types and presets.* The original note: «Скорость кодирования» is the H.264 preset (libx264 fast / medium / slow, NVENC p3 /
   p5 / p7 — faster, a larger file), which users read as unclear. Proposed: a «Кодек» chooser in the style of CapCut — each
   choice with a two-line description — that folds the preset in (H.264, later HEVC / AV1 of D059 E5 with their calibration and
   compatibility notes), together with a rework of the export dialog's preview of the output. Needs a product decision on the

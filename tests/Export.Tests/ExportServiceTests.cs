@@ -559,14 +559,14 @@ public sealed partial class ExportServiceTests
     // --- D059 §3: a hardware encoder that fails --------------------------------------------------------------------------
 
     [Fact]
-    public async Task A_failing_hardware_encoder_is_replaced_by_libx264_of_the_same_profile_and_the_export_succeeds()
+    public async Task A_failing_hardware_encoder_is_replaced_by_the_processor_with_the_same_settings_and_the_export_succeeds()
     {
         _encoder.HardwareFails = true;
-        var nvenc = ExportEncoding.Default with { Profile = ExportProfile.Fast, Encoder = ExportVideoEncoder.Nvenc };
+        var nvenc = ExportEncoding.Default with { Encoder = ExportVideoEncoder.Nvenc };
 
         await Service(rasterizers: 2).ExportAsync(new ExportJob(Snapshot(), Destination, nvenc), _progress);
 
-        Assert.Equal(new[] { nvenc, nvenc.WithLibx264() }, _encoder.Started);
+        Assert.Equal(new[] { nvenc, nvenc.WithSoftware() }, _encoder.Started);
         Assert.True(_encoder.Encoding!.Completed);
         Assert.Equal(Enumerable.Range(0, 50), _encoder.Encoding.SourceNumbers);                    // the whole video again
         var last = _progress.Reports[^1];

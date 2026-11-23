@@ -321,7 +321,7 @@ src/Export/ExportPictureReader.cs	the decoder has no frame there
 src/Export/ExportPictureReader.cs	the source's first frame comes later
 src/Export/ExportPictureReader.cs	the source ends before it
 src/Export/ExportPictureReader.cs	'{Path.GetFileName(_asset.FilePath)}' has no source frame for timeline frame {timelineFrame} of a {zone?.TypeId ??
-src/Export/ExportService.cs	profile {Profile}, encoder {Encoder}, quality {Quality}, preset {Preset}, rate control {RateControl}, AAC {Bitrate} kbps)
+src/Export/ExportService.cs	codec {Codec}, container {Container}, encoder {Encoder}, quality {Quality}, preset {Preset}, rate control {RateControl}, AAC {Bitrate} kbps)
 src/Media/Thumbnails/ThumbnailService.cs	'{asset.FilePath}' produced no frame.
 src/Project/MediaCacheLocation.cs	The {_kind} file is gone.
 src/Timeline/Playback/SpanReader.cs	'{_asset.FilePath}' produced no frame.
@@ -553,13 +553,15 @@ src/UI/ViewModels/Panels/ClipGroupViewModel.cs	Change Outline Width (Group)
 src/UI/ViewModels/Panels/ClipGroupViewModel.cs	Change Outline Colour (Group)
 src/UI/ViewModels/Panels/ClipGroupViewModel.cs	Change Keyline (Group)
 src/Project/Persistence/ProjectSerializer.cs	export encoder
-src/Project/Persistence/ProjectSerializer.cs	export profile
+src/Project/Persistence/ProjectSerializer.cs	unknown export profile
+src/Project/Persistence/ProjectSerializer.cs	export codec
+src/Project/Persistence/ProjectSerializer.cs	export container
 src/Project/Persistence/ProjectSerializer.cs	export rate control
 src/Project/Persistence/ProjectSerializer.cs	export resolution
 src/Video/FfmpegEncoderCapabilities.cs	ffmpeg did not finish within
 src/Video/FfmpegVideoFrameStream.cs	ffmpeg's frame pipe ended in the middle of frame {info.Index} ({ex.Message}). {_process.StderrTail()}
 src/Video/FramePipe.cs	ffmpeg ended without opening its frame pipe.
-src/Video/FfmpegEncoderCapabilities.cs	exit code {code}
+src/Video/FfmpegEncoderCapabilities.cs	exit code {c}
 src/Project/Persistence/ProjectSerializer.cs	unknown Follow smoothness
 src/Project/Persistence/ProjectSerializer.cs	an incomplete Follow target
 src/Project/Persistence/ProjectSerializer.cs	a Follow target outside the frame
@@ -580,3 +582,6 @@ src/Core/Entities/TemplateRules.cs	Day summary
 src/Core/Entities/TemplateRules.cs	AVG HR
 src/Core/Entities/TemplateRules.cs	MAX HR
 src/Core/Entities/TemplateRules.cs	ON ROUTES
+# D076: the encoders' own names (as «NVENC», «libx264» — product names, not translated)
+src/Core/Export/ExportVideoPlan.cs	NVENC HEVC
+src/Core/Export/ExportVideoPlan.cs	NVENC AV1

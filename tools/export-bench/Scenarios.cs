@@ -27,6 +27,7 @@ internal sealed class Scenarios
     {
         ["4k"] = ("4K60 H.264 SDR, one layer, 4K canvas", 600),
         ["4k-1080"] = ("4K60 source → 1920×1080 canvas", 600),
+        ["4k30"] = ("4K60 source in a 30 fps project, 4K canvas (D076: the calibration's 30 fps reference)", 300),
         ["vert"] = ("4K60 source → vertical 1080×1920 (contain, black)", 600),
         ["vert-blur"] = ("4K60 source → vertical 1080×1920, blurred background", 600),
         ["vert4k-blur"] = ("4K60 source → vertical 2160×3840, blurred background", 600),
@@ -51,6 +52,7 @@ internal sealed class Scenarios
         {
             case "4k": { var p = New(3840, 2160, rate); await Video(p, Track(p), File12(0), 0, frames); return p; }
             case "4k-1080": { var p = New(1920, 1080, rate); await Video(p, Track(p), File12(0), 0, frames); return p; }
+            case "4k30": { var r30 = new FrameRate(30, 1); var p = New(3840, 2160, r30); await Video(p, Track(p), File12(2), 0, frames); return p; }
             case "vert": { var p = New(1080, 1920, rate); await Video(p, Track(p), File12(0), 0, frames); return p; }
             case "vert-blur":
             {

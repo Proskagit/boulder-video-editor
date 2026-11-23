@@ -225,4 +225,43 @@ public sealed class UserSettingsStoreTests : IDisposable
         Assert.Equal(a, b);
         Assert.NotEqual(a, b with { InspectorSections = b.InspectorSections.SetItem("x", false) });
     }
+
+    // --- D076 §4.3: the saved export presets --------------------------------------------------------------------------
+
+    [Fact]
+    public void Saved_export_presets_are_written_by_name_and_read_back_in_their_order()
+    {
+        var mine = new Core.Entities.SavedExportPreset("Архив", Core.Export.ExportPresets.Maximum with { Codec = Core.Entities.ExportVideoCodec.Av1, Container = Core.Entities.ExportContainer.Mkv });
+        var fast = new Core.Entities.SavedExportPreset("Telegram", Core.Export.ExportPresets.Fast);
+        Settings().Update(s => s with { ExportPresets = new[] { mine, fast } });
+
+        var text = File.ReadAllText(SettingsPath);
+        Assert.Contains("\"codec\": \"Av1\"", text);
+        Assert.Contains("\"container\": \"Mkv\"", text);
+        Assert.Contains("\"quality\": \"Maximum\"", text);
+        Assert.DoesNotContain("\"crf\"", text);                                  // computed members are not written
+        var next = Settings();
+        Assert.Equal(new[] { mine, fast }, next.Current.ExportPresets);
+        Assert.Equal(UserFileState.Usable, next.FileState);
+    }
+
+    [Fact]
+    public void A_saved_preset_that_cannot_be_read_is_dropped_alone_and_the_other_settings_stay()
+    {
+        var good = new Core.Entities.SavedExportPreset("Good", Core.Export.ExportPresets.High);
+        Settings().Update(s => s with { Language = "en", ExportPresets = new[] { good, good with { Name = "Bad" }, good with { Name = "Mov" } } });
+        var root = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(SettingsPath))!;
+        var presets = root["value"]!["exportPresets"]!.AsArray();
+        presets[1]!["settings"]!["codec"] = "Vp9";                                // a name of a newer version
+        presets[2]!["settings"]!["codec"] = "Av1";
+        presets[2]!["settings"]!["container"] = "Mov";                            // valid names, not a valid preset
+        File.WriteAllText(SettingsPath, root.ToJsonString());
+
+        var next = Settings();
+
+        Assert.Equal(new[] { good }, next.Current.ExportPresets);
+        Assert.Equal("en", next.Current.Language);
+        Assert.Equal(UserFileState.Usable, next.FileState);
+        Assert.False(File.Exists(SettingsPath + ".damaged"));
+    }
 }

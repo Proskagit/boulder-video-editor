@@ -9,11 +9,12 @@ using Microsoft.Extensions.Logging;
 namespace AiVideoEditor.Video;
 
 /// <summary>
-/// <see cref="IExportEncoderCapabilities"/> over the ffmpeg CLI (D059 §3). NVENC counts as available only when both hold:
+/// <see cref="IExportEncoderCapabilities"/> over the ffmpeg CLI (D059 §3, D076 per codec: H.264, HEVC, AV1; and whether the
+/// software libx265 / SVT-AV1 are in this FFmpeg). NVENC of a codec counts as available only when both hold:
 /// <list type="number">
 /// <item>the ffmpeg found has the <c>h264_nvenc</c> encoder (<c>ffmpeg -encoders</c>; the project's minimal build S1 needs
 /// <c>--enable-ffnvcodec --enable-nvenc</c> for it, D059 §6);</item>
-/// <item>a trial encoding of a few frames with the options of a real export («Сбалансированный») succeeds — it fails without
+/// <item>a trial encoding of a few frames with the options of a real export (medium speed and level) succeeds — it fails without
 /// an NVIDIA GPU, with a driver too old for the headers ffmpeg was built with, or when the GPU has no free session.</item>
 /// </list>
 /// Checked once (the first call; the app starts it in the background at startup) and cached; a failure of the check only
@@ -58,27 +59,43 @@ public sealed class FfmpegEncoderCapabilities : IExportEncoderCapabilities
             if (ffmpeg is null) return new ExportEncoderAvailability(false, Messages.Nvenc_NoFfmpeg);
 
             var (code, output) = await RunAsync(ffmpeg, new[] { "-hide_banner", "-encoders" });
-            if (code != 0 || !output.Split('\n').Any(l => l.Contains(" h264_nvenc ", StringComparison.Ordinal)))
+            bool Listed(string encoder) => code == 0 && output.Split('\n').Any(l => l.Contains($" {encoder} ", StringComparison.Ordinal));
+            // D076: the software HEVC / AV1 encoders this FFmpeg has (the delivered minimal build has both).
+            var software = new ExportEncoderAvailability(false) { SoftwareHevc = Listed("libx265"), SoftwareAv1 = Listed("libsvtav1") };
+            if (!software.SoftwareHevc || !software.SoftwareAv1)
+                _logger.LogInformation("This ffmpeg lacks {Missing}: that codec is encoded only with NVENC.",
+                    string.Join(", ", new[] { software.SoftwareHevc ? null : "libx265", software.SoftwareAv1 ? null : "libsvtav1" }.Where(m => m is not null)));
+            if (!Listed("h264_nvenc"))
             {
                 _logger.LogInformation("NVENC unavailable: this ffmpeg has no h264_nvenc encoder.");
-                return new ExportEncoderAvailability(false, Messages.Nvenc_NotInBuild);
+                return software with { NvencUnavailableReason = Messages.Nvenc_NotInBuild };
             }
 
-            var plan = ExportVideoPlan.For(ExportEncoding.Default with { Encoder = ExportVideoEncoder.Nvenc }, new FrameSize(640, 360),
-                new ExportEncoderAvailability(true));
-            var trial = new List<string> { "-hide_banner", "-nostats", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc2=s=640x360:r=30",
-                "-frames:v", "10", "-vf", "format=yuv420p" };
-            trial.AddRange(FfmpegExportEncoder.CodecArguments(plan));
-            trial.AddRange(new[] { "-f", "null", "-" });
-            (code, output) = await RunAsync(ffmpeg, trial);
-            if (code != 0)
+            // A trial per codec with the options of a real export (the medium speed and level), on a small picture.
+            async Task<string?> TrialAsync(ExportVideoCodec codec)
             {
-                var reason = output.Trim().Split('\n').LastOrDefault()?.Trim();
-                _logger.LogInformation("NVENC unavailable: the trial encoding failed (exit code {Code}): {Output}", code, output.Trim());
-                return new ExportEncoderAvailability(false, string.Format(Messages.Nvenc_TrialFailed, string.IsNullOrEmpty(reason) ? $"exit code {code}" : reason));
+                var plan = ExportVideoPlan.For(new ExportEncoding(ExportQuality.High, ExportSpeedPreset.Medium, 192) { Encoder = ExportVideoEncoder.Nvenc, Codec = codec },
+                    new FrameSize(640, 360), new ExportEncoderAvailability(true) { NvencHevc = true, NvencAv1 = true });
+                var trial = new List<string> { "-hide_banner", "-nostats", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc2=s=640x360:r=30",
+                    "-frames:v", "10", "-vf", "format=yuv420p" };
+                trial.AddRange(FfmpegExportEncoder.CodecArguments(plan));
+                trial.AddRange(new[] { "-f", "null", "-" });
+                var (c, o) = await RunAsync(ffmpeg, trial);
+                if (c == 0) return null;
+                _logger.LogInformation("NVENC {Codec} unavailable: the trial encoding failed (exit code {Code}): {Output}", codec, c, o.Trim());
+                var last = o.Trim().Split('\n').LastOrDefault()?.Trim();
+                return string.IsNullOrEmpty(last) ? $"exit code {c}" : last;
             }
-            _logger.LogInformation("NVENC available (h264_nvenc trial encoding succeeded).");
-            return new ExportEncoderAvailability(true);
+
+            var h264 = await TrialAsync(ExportVideoCodec.H264);
+            var hevc = Listed("hevc_nvenc") && await TrialAsync(ExportVideoCodec.Hevc) is null;
+            var av1 = Listed("av1_nvenc") && await TrialAsync(ExportVideoCodec.Av1) is null;
+            _logger.LogInformation("NVENC: H.264 {H264}, HEVC {Hevc}, AV1 {Av1}.", h264 is null, hevc, av1);
+            return software with
+            {
+                Nvenc = h264 is null, NvencHevc = hevc, NvencAv1 = av1,
+                NvencUnavailableReason = h264 is null ? null : string.Format(Messages.Nvenc_TrialFailed, h264)
+            };
         }
         catch (Exception ex)
         {

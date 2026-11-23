@@ -73,7 +73,7 @@ public class SpeedPersistenceTests
         Assert.Equal((S(4), S(6), S(1), S(7)), (video.TimelineStart, video.Duration, video.SourceIn, video.SourceOut));
 
         var saved = JsonNode.Parse(ProjectSerializer.Serialize(loaded, Folder))!;
-        Assert.Equal(28, saved["formatVersion"]!.GetValue<int>());
+        Assert.Equal(29, saved["formatVersion"]!.GetValue<int>());
         var clip = Clip(saved);
         Assert.False(clip.ContainsKey("speed"));                           // the v1 number is not written
         Assert.Equal(1, clip["speedRatio"]!["numerator"]!.GetValue<long>());

@@ -120,11 +120,11 @@ public sealed class ProjectSettingsViewBindingTests
         Assert.True(((Button)Named("CancelButton")).IsCancel);
         Assert.Equal((1920, 1080), (_projects.Current.Settings.FrameWidth, _projects.Current.Settings.FrameHeight));
 
-        // Export settings (Step 13.9): three combo boxes on the draft, the current values selected.
+        // Export settings (Step 13.9; D076 — every field of the preset): the combo boxes on the draft, the current values selected.
         var quality = (ComboBox)Named("QualityBox");
         var speed = (ComboBox)Named("SpeedBox");
         var bitrate = (ComboBox)Named("BitrateBox");
-        Assert.Equal((4, 3, 5), (quality.ItemCount, speed.ItemCount, bitrate.ItemCount));
+        Assert.Equal((5, 4, 5), (quality.ItemCount, speed.ItemCount, bitrate.ItemCount));
         Assert.Same(draft.SelectedQuality, quality.SelectedItem);
         Assert.Same(draft.SelectedSpeed, speed.SelectedItem);
         Assert.Same(draft.SelectedBitrate, bitrate.SelectedItem);
@@ -132,5 +132,6 @@ public sealed class ProjectSettingsViewBindingTests
         bitrate.SelectedItem = draft.Bitrates.Single(o => o.Value == 320);
         Assert.Equal((ExportQuality.Compact, 320), (draft.DraftExport.Quality, draft.DraftExport.AudioBitrateKbps));
         Assert.Same(ExportEncoding.Default, _projects.Current.Settings.Export);   // the view writes the draft only
+        Assert.NotNull(((Button)Named("CodecGuideButton")).Flyout);   // D076: «?» — which codec and encoder suit which quality
     }
 }

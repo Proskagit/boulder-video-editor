@@ -5,7 +5,7 @@
              x:Class="AiVideoEditor.UI.Views.ExportDialogView">
 
   <!-- Phase 38 acceptance (2026-11-10): the export's output file, a line about the output and the YouTube timestamps of what
-       is exported, to copy. D059 §4: the export settings — profile, encoder, «Пользовательский» fields, the expected size. -->
+       is exported, to copy. D076: the preset on top, its fields (the file type, the codec, the resolution …) in «Подробные настройки», the expected size. -->
   <DockPanel Margin="16">
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,12,0,0">
       <Button x:Name="ExportButton" Classes="accent" Content="{x:Static l:Strings.ExportDialog_Export}" Command="{Binding ExportCommand}" IsDefault="True"/>
@@ -23,21 +23,6 @@
       </Grid>
       <TextBlock Text="{x:Static l:Strings.ExportDialog_FileName}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"/>
       <TextBox x:Name="FileNameBox" Text="{Binding FileName, Mode=TwoWay}"/>
-      <!-- D060 §3: the size of the exported file; the canvas and the composition are not changed. -->
-      <Grid ColumnDefinitions="Auto,*" Margin="0,4,0,0" ToolTip.Tip="{x:Static l:Strings.ExportResolution_Hint}">
-        <TextBlock Text="{x:Static l:Strings.ExportResolution_Label}" VerticalAlignment="Center"/>
-        <ComboBox x:Name="ResolutionBox" Grid.Column="1" HorizontalAlignment="Stretch" Margin="10,0,0,0"
-                  ItemsSource="{Binding Resolutions}" SelectedItem="{Binding SelectedResolution, Mode=TwoWay}">
-          <ComboBox.ItemTemplate>
-            <DataTemplate>
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBlock Text="{Binding Label}"/>
-                <TextBlock Text="{Binding Detail}" Foreground="{DynamicResource TextMutedBrush}" FontSize="{DynamicResource FontSizeCaption}" VerticalAlignment="Center"/>
-              </StackPanel>
-            </DataTemplate>
-          </ComboBox.ItemTemplate>
-        </ComboBox>
-      </Grid>
       <TextBlock x:Name="InfoText" Text="{Binding Info}" FontSize="{DynamicResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
       <views:ExportEncodingEditorView x:Name="SettingsEditor" DataContext="{Binding Settings}" Margin="0,0,0,8"/>
     <!-- D068 item 13: the YouTube timestamps stay one click away, folded. -->

@@ -84,13 +84,42 @@ public sealed record ExportSizeEstimate(long LowBytes, long HighBytes, bool From
         return Make(median * LowFactor, median * HighFactor, audio, fromBitrate: false);
     }
 
+    /// <summary>D076 §5: the median bpp at 4K60 of the HEVC / AV1 encoders at their reference value (<see cref="Reference"/>),
+    /// per preset — measured by the calibration.</summary>
+    public static double HevcAv1Bpp(ExportVideoPlan plan) => (plan.Encoder, plan.Codec) switch
+    {
+        // measured: x265 medium CRF 16 0.075, slow (from CRF 15) 0.087, veryfast (from 16) 0.061; fast between — not measured
+        (ExportVideoEncoder.Software, ExportVideoCodec.Hevc) => plan.Preset switch { "veryfast" or "faster" => 0.061, "fast" => 0.068, "slow" or "slower" => 0.087, _ => 0.075 },
+        // measured: hevc_nvenc p5 CQ 22 0.089, p7 multipass (from 21) 0.088, p2 (from 23) 0.095
+        (ExportVideoEncoder.Nvenc, ExportVideoCodec.Hevc) => plan.Preset switch { "p1" or "p2" => 0.095, "p3" or "p4" => 0.092, "p6" or "p7" => 0.088, _ => 0.089 },
+        // measured: SVT-AV1 preset 7 CRF 14 0.074, preset 5 0.096, preset 11 (from 22) 0.073; 9 between — not measured
+        (ExportVideoEncoder.Software, _) => plan.Preset switch { "11" => 0.073, "9" => 0.074, "5" => 0.096, _ => 0.074 },
+        // measured: av1_nvenc p5 CQ 28 0.069, p7 multipass (from 26) 0.063, p2 0.068
+        _ => plan.Preset switch { "p1" or "p2" => 0.068, "p3" or "p4" => 0.069, "p6" or "p7" => 0.063, _ => 0.069 }
+    };
+
+    /// <summary>The quality value each encoder's bpp is measured at, and how many steps halve the bits.</summary>
+    public static (int Reference, double Halving) Scale(ExportVideoPlan plan) => (plan.Encoder, plan.Codec) switch
+    {
+        (ExportVideoEncoder.Software, ExportVideoCodec.H264) => (18, X264CrfHalving),
+        (ExportVideoEncoder.Nvenc, ExportVideoCodec.H264) => (22, NvencCqHalving),
+        (ExportVideoEncoder.Software, ExportVideoCodec.Hevc) => (16, HevcCrfHalving),
+        (ExportVideoEncoder.Nvenc, ExportVideoCodec.Hevc) => (22, HevcCqHalving),
+        (ExportVideoEncoder.Software, _) => (14, Av1CrfHalving),
+        _ => (28, NvencCqHalving)
+    };
+
+    /// <summary>D076 §5 (measured on the 4K60 reference): libx265 and NVENC HEVC halve the bits about every 4 steps, SVT-AV1
+    /// about every 10 (its 0–63 scale), NVENC AV1 every 4.5 as NVENC H.264.</summary>
+    public const double HevcCrfHalving = 4.0, HevcCqHalving = 4.0, Av1CrfHalving = 10.0;
+
     /// <summary>The calibrated median bits per pixel and frame of <paramref name="plan"/> at the output's size and rate.</summary>
     public static double BitsPerPixel(ExportVideoPlan plan, ExportOutput output)
     {
         var nvenc = plan.Encoder == ExportVideoEncoder.Nvenc;
-        var at4K60 = nvenc
-            ? NvencBpp(plan.Preset) * Math.Pow(2, (22 - plan.Quality) / NvencCqHalving)
-            : X264Bpp(plan.Preset) * Math.Pow(2, (18 - plan.Quality) / X264CrfHalving);
+        var (reference, halving) = Scale(plan);
+        var bpp = plan.Codec == ExportVideoCodec.H264 ? (nvenc ? NvencBpp(plan.Preset) : X264Bpp(plan.Preset)) : HevcAv1Bpp(plan);
+        var at4K60 = bpp * Math.Pow(2, (reference - plan.Quality) / halving);
         var pixels = Math.Max(1.0, (double)output.Size.Width * output.Size.Height);
         var rate = output.FrameRate.IsValid ? output.FrameRate.ToDouble() : 60;
         return at4K60 * Math.Pow(pixels / ReferencePixels, nvenc ? NvencResolutionExponent : X264ResolutionExponent)

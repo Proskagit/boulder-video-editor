@@ -13,8 +13,10 @@ namespace AiVideoEditor.ExportBench;
 /// export hands them to the encoder: yuv420p after the export's BT.709 conversion, x264 QP 0) with the export's own codec
 /// options (<see cref="FfmpegExportEncoder.CodecArgumentsFor"/>); per encoding: the encoder-only speed, the bitrate, bits
 /// per pixel and frame, VMAF (the 4K model for frames above 1080p, every frame) against the reference.
-/// <c>calibrate --refs a.mkv,b.mkv --settings x264:medium:18,nvenc:p5:22 --results file.jsonl</c>; a setting is
-/// <c>x264:PRESET:CRF</c> or <c>nvenc:PRESET:CQ[:mp][:noaq]</c>.
+/// <c>calibrate --refs a.mkv,b.mkv --settings x264:medium:18,nvenc:p5:22 --results file.jsonl [--vmaf-ffmpeg PATH]</c>; a setting
+/// is <c>x264:PRESET:CRF</c>, <c>x265:PRESET:CRF</c>, <c>svtav1:PRESET:CRF</c> (D076), or <c>nvenc:PRESET:CQ[:mp][:noaq]</c>,
+/// <c>hevcnvenc:…</c>, <c>av1nvenc:…</c> (D076) — <c>mp</c> multipass. <c>--vmaf-ffmpeg</c>: an FFmpeg with libvmaf when the
+/// encoding one (the delivered minimal build) has none; <c>--vmaf-subsample N</c> scores every N-th frame (D076: faster).
 /// </summary>
 internal static class Calibration
 {
@@ -27,7 +29,7 @@ internal static class Calibration
         "nvenc:p7:18:mp", "nvenc:p7:20:mp", "nvenc:p7:22:mp", "nvenc:p5:22:noaq",
     };
 
-    public static async Task<int> RunAsync(string ffmpeg, string[] refs, string[] settings, string? results, string work)
+    public static async Task<int> RunAsync(string ffmpeg, string[] refs, string[] settings, string? results, string work, string? vmafFfmpeg = null, int vmafSubsample = 1)
     {
         Directory.CreateDirectory(work);
         foreach (var reference in refs)
@@ -48,7 +50,7 @@ internal static class Calibration
 
                 var size = new FileInfo(output).Length;
                 var duration = frames / rate;
-                var (vmaf, vmafMin, vmaf1) = await Vmaf(ffmpeg, output, reference, w, h, work);
+                var (vmaf, vmafMin, vmaf1) = await Vmaf(vmafFfmpeg ?? ffmpeg, output, reference, w, h, work, vmafSubsample);
                 var row = new Dictionary<string, object>
                 {
                     ["reference"] = Path.GetFileName(reference), ["setting"] = setting, ["width"] = w, ["height"] = h, ["fps"] = rate,
@@ -69,14 +71,19 @@ internal static class Calibration
     {
         var p = setting.Split(':');
         var value = int.Parse(p[2], CultureInfo.InvariantCulture);
-        return p[0] switch
+        var (encoder, codec) = p[0] switch
         {
-            "x264" => new ExportVideoPlan(ExportVideoEncoder.Libx264, p[1], value, ExportRateControl.ConstantQuality, 0, false, false),
-            "nvenc" => new ExportVideoPlan(ExportVideoEncoder.Nvenc, p[1], value, ExportRateControl.ConstantQuality, 0, p.Contains("mp"), false)
-            {
-                SpatialAq = !p.Contains("noaq")
-            },
+            "x264" => (ExportVideoEncoder.Software, ExportVideoCodec.H264),
+            "x265" => (ExportVideoEncoder.Software, ExportVideoCodec.Hevc),
+            "svtav1" => (ExportVideoEncoder.Software, ExportVideoCodec.Av1),
+            "nvenc" => (ExportVideoEncoder.Nvenc, ExportVideoCodec.H264),
+            "hevcnvenc" => (ExportVideoEncoder.Nvenc, ExportVideoCodec.Hevc),
+            "av1nvenc" => (ExportVideoEncoder.Nvenc, ExportVideoCodec.Av1),
             _ => throw new ArgumentException(setting)
+        };
+        return new ExportVideoPlan(encoder, p[1], value, ExportRateControl.ConstantQuality, 0, encoder == ExportVideoEncoder.Nvenc && p.Contains("mp"), false)
+        {
+            Codec = codec, SpatialAq = !p.Contains("noaq")
         };
     }
 
@@ -97,7 +104,7 @@ internal static class Calibration
             double.Parse(r[0], CultureInfo.InvariantCulture) / double.Parse(r[1], CultureInfo.InvariantCulture), long.Parse(parts[3], CultureInfo.InvariantCulture));
     }
 
-    private static async Task<(double Mean, double Min, double Low1)> Vmaf(string ffmpeg, string distorted, string reference, int w, int h, string work)
+    private static async Task<(double Mean, double Min, double Low1)> Vmaf(string ffmpeg, string distorted, string reference, int w, int h, string work, int subsample = 1)
     {
         var log = Path.Combine(work, "vmaf-" + Guid.NewGuid().ToString("N") + ".json");
         var model = (long)w * h > 1920L * 1080 ? "vmaf_4k_v0.6.1" : "vmaf_v0.6.1";
@@ -105,7 +112,7 @@ internal static class Calibration
         var args = new List<string>
         {
             "-hide_banner", "-nostats", "-loglevel", "error", "-i", distorted, "-i", reference,
-            "-lavfi", $"[0:v]setpts=PTS-STARTPTS[d];[1:v]setpts=PTS-STARTPTS[r];[d][r]libvmaf=model=version={model}:n_threads={Environment.ProcessorCount}:log_fmt=json:log_path={escaped}",
+            "-lavfi", $"[0:v]setpts=PTS-STARTPTS[d];[1:v]setpts=PTS-STARTPTS[r];[d][r]libvmaf=model=version={model}:n_threads={Environment.ProcessorCount}:n_subsample={subsample}:log_fmt=json:log_path={escaped}",
             "-f", "null", "-"
         };
         var (code, err) = await Ffmpeg(ffmpeg, args);

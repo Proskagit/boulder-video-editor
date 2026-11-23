@@ -81,6 +81,8 @@ def main():
     copyrights = '\n'.join(f'  {line}' for line in [
         *ffmpeg_copyrights(pathlib.Path(a.ffmpeg_src)),
         'x264: Copyright (C) 2003-2025 x264 project',
+        'x265: Copyright (C) 2013-2020 MulticoreWare, Inc (licenses/x265/COPYING; the x265 sources\' headers)',
+        'SVT-AV1: Copyright (c) 2021, Alliance for Open Media (licenses/svt-av1/LICENSE.md)',
         *ijg_copyrights,
         'dav1d: Copyright © 2018-2025, VideoLAN and dav1d authors (licenses/dav1d/COPYING)',
         'zlib: (C) 1995-2026 Jean-loup Gailly and Mark Adler (licenses/zlib/LICENSE)',
@@ -105,7 +107,7 @@ https://github.com/Proskagit/boulder-video-editor from the sources listed below.
 LICENCE OF THE BINARIES
 -----------------------
 FFmpeg was configured with --enable-gpl (without --enable-version3 and without --enable-nonfree) and is statically
-linked with libx264, licensed under the GNU General Public License version 2 or later. ffmpeg.exe and ffprobe.exe are
+linked with libx264 and libx265, both licensed under the GNU General Public License version 2 or later. ffmpeg.exe and ffprobe.exe are
 therefore distributed under the GNU General Public License, version 2 or (at your option) any later version; its text is
 in licenses/ffmpeg/COPYING.GPLv2 and reproduced below. The complete corresponding source code is published as
 aive-ffmpeg-minimal-9.0.2-sources.tar next to these binaries in their release.
@@ -128,7 +130,7 @@ Their licence terms are reproduced below (licenses/ffmpeg/ijg/).
 
 AV1 PATENT LICENSE
 ------------------
-These programs contain dav1d, an implementation of the AV1 specification. The Alliance for Open Media Patent License 1.0
+These programs contain dav1d and SVT-AV1, implementations of the AV1 specification. The Alliance for Open Media Patent License 1.0
 (licenses/dav1d/AOM-PATENT-LICENSE-1.0.txt) is reproduced below, as its section 1.2.1 asks for implementations
 distributed in binary form.
 
@@ -146,7 +148,7 @@ TOOLCHAIN RUNTIME LINKED STATICALLY INTO THE BINARIES
 
 NOT INCLUDED
 ------------
-  No libx265, libdvdcss, libdvdread, libdvdnav, OpenH264, LCEVCdec, rubberband or other external library; no
+  No libdvdcss, libdvdread, libdvdnav, OpenH264, LCEVCdec, rubberband or other external library; no
   non-free component; no network support.
 
 PATENTS
@@ -174,6 +176,11 @@ LICENCE FILES IN THIS PACKAGE
                 else text(lic / 'zimg' / 'COPYING') + '\n\n--- graphengine ---\n\n' + text(lic / 'graphengine' / 'COPYING')),
         section('zlib 1.3.2 — Zlib licence (licenses/zlib/LICENSE)', text(lic / 'zlib' / 'LICENSE')),
         section('dav1d 1.5.4 — BSD-2-Clause (licenses/dav1d/COPYING)', text(lic / 'dav1d' / 'COPYING')),
+        section('x265 4.1 — Copyright (C) 2013-2020 MulticoreWare, Inc; GPL version 2 or later (licenses/x265/COPYING)',
+                text(lic / 'x265' / 'COPYING')),
+        section('SVT-AV1 4.0.1 — BSD-3-Clause-Clear (licenses/svt-av1/LICENSE.md)', text(lic / 'svt-av1' / 'LICENSE.md')),
+        section('SVT-AV1 4.0.1 — Alliance for Open Media Patent License 1.0 (licenses/svt-av1/PATENTS.md)',
+                text(lic / 'svt-av1' / 'PATENTS.md')),
         *[section(f'nv-codec-headers 12.2.72.0 — MIT terms of include/ffnvcodec/{h.name.removesuffix(".header.txt")} '
                   f'(licenses/nv-codec-headers/{h.name}); the NVENC interface headers — the NVIDIA driver is not part of these '
                   'programs and is loaded at run time', text(h))

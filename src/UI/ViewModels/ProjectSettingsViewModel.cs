@@ -58,7 +58,7 @@ public sealed partial class ProjectSettingsViewModel : ObservableObject
 
     /// <param name="encoders">Which encoders work here (D059 §3; NVENC offered only when confirmed); null = libx264 only.</param>
     public ProjectSettingsViewModel(ProjectSettings current, ITimelineEditService edit, StatusService status, Func<bool> isLocked,
-        Core.Export.ExportEncoderAvailability? encoders = null)
+        Core.Export.ExportEncoderAvailability? encoders = null, Core.Interfaces.IUserSettingsService? userSettings = null)
     {
         _edit = edit;
         _status = status;
@@ -74,7 +74,8 @@ public sealed partial class ProjectSettingsViewModel : ObservableObject
         _height = current.FrameHeight;
         _selectedPreset = PresetFor(current.FrameWidth, current.FrameHeight);
         CurrentExport = current.Export;
-        Export = new ExportEncodingEditorViewModel(current.Export, encoders);
+        Export = new ExportEncodingEditorViewModel(current.Export, encoders,
+            canvas: new Core.Composition.FrameSize(current.FrameWidth, current.FrameHeight), userSettings: userSettings);
         Export.Changed += (_, _) => Error = null;
         Refresh();
     }
@@ -85,13 +86,15 @@ public sealed partial class ProjectSettingsViewModel : ObservableObject
     public static IReadOnlyList<ExportChoice<ExportQuality>> QualityOptions { get; } = new[]
     {
         new ExportChoice<ExportQuality>(ExportQuality.Maximum, Strings.Quality_Maximum, Strings.Quality_MaximumDetail),
+        new ExportChoice<ExportQuality>(ExportQuality.VeryHigh, Strings.Quality_VeryHigh, Strings.Quality_VeryHighDetail),
         new ExportChoice<ExportQuality>(ExportQuality.High, Strings.Quality_High, Strings.Quality_HighDetail),
-        new ExportChoice<ExportQuality>(ExportQuality.Standard, Strings.Quality_Standard, "CRF 23"),
+        new ExportChoice<ExportQuality>(ExportQuality.Standard, Strings.Quality_Standard, Strings.Quality_StandardDetail),
         new ExportChoice<ExportQuality>(ExportQuality.Compact, Strings.Quality_Compact, Strings.Quality_CompactDetail),
     };
 
     public static IReadOnlyList<ExportChoice<ExportSpeedPreset>> SpeedOptions { get; } = new[]
     {
+        new ExportChoice<ExportSpeedPreset>(ExportSpeedPreset.VeryFast, Strings.Speed_VeryFast, Strings.Speed_VeryFastDetail),
         new ExportChoice<ExportSpeedPreset>(ExportSpeedPreset.Fast, Strings.Speed_Fast, Strings.Speed_FastDetail),
         new ExportChoice<ExportSpeedPreset>(ExportSpeedPreset.Medium, Strings.Speed_Medium, Strings.Speed_MediumDetail),
         new ExportChoice<ExportSpeedPreset>(ExportSpeedPreset.Slow, Strings.Speed_Slow, Strings.Speed_SlowDetail),

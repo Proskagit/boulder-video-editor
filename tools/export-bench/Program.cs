@@ -60,7 +60,7 @@ internal static class Program
                     .GetFfmpegPathAsync() ?? throw new InvalidOperationException("ffmpeg not found");
                 return await Calibration.RunAsync(ffmpeg, (options.Refs ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries),
                     options.Settings?.Split(',', StringSplitOptions.RemoveEmptyEntries) ?? Calibration.DefaultSettings, options.Results,
-                    options.Out ?? Path.Combine(Path.GetTempPath(), "aive-export-calibration"));
+                    options.Out ?? Path.Combine(Path.GetTempPath(), "aive-export-calibration"), options.VmafFfmpeg, options.VmafSubsample ?? 1);
             }
 #endif
             default:
@@ -235,7 +235,8 @@ internal sealed class Sync(Action<ExportProgress> report) : IProgress<ExportProg
 }
 
 internal sealed record Options(string? Media, long? Frames, string? Encoding, string? Out, bool Keep, bool HashCanvases, string? Reference,
-    string? Label, string? Scenarios, int? Runs, string? Results, int? Rasterizers = null, string? Refs = null, string? Settings = null)
+    string? Label, string? Scenarios, int? Runs, string? Results, int? Rasterizers = null, string? Refs = null, string? Settings = null,
+    string? VmafFfmpeg = null, int? VmafSubsample = null)
 {
     public static Options Parse(IEnumerable<string> args)
     {
@@ -244,7 +245,7 @@ internal sealed record Options(string? Media, long? Frames, string? Encoding, st
         return new Options(Get("--media"), Get("--frames") is { } f ? long.Parse(f, CultureInfo.InvariantCulture) : null, Get("--encoding"),
             Get("--out"), a.Contains("--keep"), a.Contains("--hash-canvases"), Get("--reference"), Get("--label"), Get("--scenarios"),
             Get("--runs") is { } r ? int.Parse(r, CultureInfo.InvariantCulture) : null, Get("--results"),
-            Get("--rasterizers") is { } k ? int.Parse(k, CultureInfo.InvariantCulture) : null, Get("--refs"), Get("--settings"));
+            Get("--rasterizers") is { } k ? int.Parse(k, CultureInfo.InvariantCulture) : null, Get("--refs"), Get("--settings"), Get("--vmaf-ffmpeg"), Get("--vmaf-subsample") is { } n ? int.Parse(n, CultureInfo.InvariantCulture) : null);
     }
 
     /// <summary>The options a suite passes on to every run (everything but its own).</summary>

@@ -21,6 +21,7 @@ internal static class NvencProbe
             : new FfmpegEncoderCapabilities(FfmpegTools.FfmpegLocator, NullLogger<FfmpegEncoderCapabilities>.Instance).GetAsync().GetAwaiter().GetResult());
 
     public static bool Available => Result.Value.Nvenc;
+    public static ExportEncoderAvailability Value => Result.Value;
     public static string? Reason => Result.Value.NvencUnavailableReason;
 }
 
@@ -61,12 +62,16 @@ public sealed class NvencExportEncoderTests : IDisposable
 
         Assert.StartsWith(FfmpegExportEncoderTests.GoldenVideoArguments[..FfmpegExportEncoderTests.GoldenVideoArguments.IndexOf("-c:v", StringComparison.Ordinal)], line);
         Assert.EndsWith("-pix_fmt yuv420p -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv -c:a copy -movflags +faststart -f mp4 v.mp4", line);
-        Assert.Contains($"-c:v h264_nvenc -preset {ExportVideoPlan.NvencBalancedPreset} -tune hq -profile:v high -rc vbr -cq {ExportVideoPlan.NvencBalancedCq} -b:v 0", line);
+        Assert.Contains($"-c:v h264_nvenc -preset p5 -tune hq -profile:v high -rc vbr -cq {ExportVideoPlan.NvencCqOf(ExportQuality.High)} -b:v 0", line);
         Assert.Contains("-spatial-aq 1 -rc-lookahead 20 -bf 3 -g 250", line);
+        // D059's exact encoder part (D076 Q7 A): nothing between the CQ and the AQ — no peak, no buffer.
+        Assert.Contains($"-rc vbr -cq {ExportVideoPlan.NvencCqOf(ExportQuality.High)} -b:v 0 -spatial-aq 1 -rc-lookahead 20 -bf 3 -g 250 -pix_fmt", line);
+        Assert.DoesNotContain("-maxrate", line);
+        Assert.DoesNotContain("-bufsize", line);
         Assert.DoesNotContain("libx264", line);
         Assert.DoesNotContain("-crf", line);
         Assert.DoesNotContain("-multipass", line);
-        Assert.Contains("-multipass qres", Line(ExportVideoPlan.For(ExportEncoding.Default with { Profile = ExportProfile.HighQuality, Encoder = ExportVideoEncoder.Nvenc },
+        Assert.Contains("-multipass qres", Line(ExportVideoPlan.For(ExportEncoding.Default with { Preset = ExportSpeedPreset.Slow, Encoder = ExportVideoEncoder.Nvenc },
             new(1920, 1080), new ExportEncoderAvailability(true))));
     }
 
@@ -83,16 +88,15 @@ public sealed class NvencExportEncoderTests : IDisposable
     }
 
     [Fact]
-    public void The_libx264_profiles_change_only_the_preset_and_the_crf()
+    public void The_old_libx264_profiles_change_only_the_preset_and_the_crf()
     {
         var golden = FfmpegExportEncoderTests.GoldenVideoArguments;
-        string Of(ExportProfile p) => string.Join(' ', FfmpegExportEncoder.VideoArguments(Output(1920, 1080, FrameRate.Ntsc30, 300),
-            ExportEncoding.Default with { Profile = p }, "a.m4a", "v.mp4"));
+        string Of(ExportQuality q, ExportSpeedPreset s) => string.Join(' ', FfmpegExportEncoder.VideoArguments(Output(1920, 1080, FrameRate.Ntsc30, 300),
+            new ExportEncoding(q, s, 192), "a.m4a", "v.mp4"));
 
-        Assert.Equal(golden, Of(ExportProfile.Balanced));
-        Assert.Equal(golden.Replace("-preset medium -crf 18", $"-preset {ExportVideoPlan.X264FastPreset} -crf {ExportVideoPlan.X264FastCrf}"), Of(ExportProfile.Fast));
-        Assert.Equal(golden.Replace("-preset medium -crf 18", $"-preset {ExportVideoPlan.X264HighQualityPreset} -crf {ExportVideoPlan.X264HighQualityCrf}"),
-            Of(ExportProfile.HighQuality));
+        Assert.Equal(golden, Of(ExportQuality.High, ExportSpeedPreset.Medium));                                            // «Сбалансированный»
+        Assert.Equal(golden.Replace("-preset medium -crf 18", "-preset veryfast -crf 18"), Of(ExportQuality.High, ExportSpeedPreset.VeryFast)); // «Быстрый»
+        Assert.Equal(golden.Replace("-preset medium -crf 18", "-preset slow -crf 14"), Of(ExportQuality.Maximum, ExportSpeedPreset.Slow));     // «Высокое качество»
     }
 
     [FfmpegFact]
@@ -115,13 +119,13 @@ public sealed class NvencExportEncoderTests : IDisposable
     [NvencFact]
     public async Task Nvenc_encodes_a_valid_mp4_with_every_frame_in_order_and_the_D023_tags()
     {
-        foreach (var profile in new[] { ExportProfile.Fast, ExportProfile.Balanced, ExportProfile.HighQuality })
+        foreach (var (profile, speed) in new[] { ("Fast", ExportSpeedPreset.VeryFast), ("Balanced", ExportSpeedPreset.Medium), ("HighQuality", ExportSpeedPreset.Slow) })
         {
             var path = Out($"nvenc-{profile}.mp4");
             var output = Output(320, 180, FrameRate.Ntsc30, 60);   // 2 s at 29.97
             var encoder = new FfmpegExportEncoder(FfmpegTools.FfmpegLocator, NullLogger<FfmpegExportEncoder>.Instance,
                 new FfmpegEncoderCapabilities(FfmpegTools.FfmpegLocator, NullLogger<FfmpegEncoderCapabilities>.Instance));
-            await using (var encoding = await encoder.StartAsync(output, ExportEncoding.Default with { Profile = profile, Encoder = ExportVideoEncoder.Nvenc }, path))
+            await using (var encoding = await encoder.StartAsync(output, ExportEncoding.Default with { Preset = speed, Encoder = ExportVideoEncoder.Nvenc }, path))
             {
                 Assert.True(encoding.IsHardware);
                 Assert.StartsWith("NVENC p", encoding.EncoderDescription);

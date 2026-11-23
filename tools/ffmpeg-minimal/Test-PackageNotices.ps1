@@ -29,6 +29,7 @@ try {
         'licenses/nv-codec-headers/dynlink_nvcuvid.h.header.txt', 'licenses/mingw-w64-runtime/COPYING.MinGW-w64-runtime.txt',
         'licenses/gcc-runtime/COPYING.RUNTIME', 'licenses/gcc-runtime/COPYING3',
         'licenses/dav1d/AOM-PATENT-LICENSE-1.0.txt',
+        'licenses/x265/COPYING', 'licenses/svt-av1/LICENSE.md', 'licenses/svt-av1/PATENTS.md',
         'licenses/ffmpeg/ijg/jrevdct.c.header.txt', 'licenses/ffmpeg/ijg/jfdctfst.c.header.txt',
         'licenses/ffmpeg/ijg/jfdctint_template.c.header.txt',
         'bin/ffmpeg.exe', 'bin/ffprobe.exe')

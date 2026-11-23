@@ -6,19 +6,46 @@ using AiVideoEditor.Core.Playback;
 namespace AiVideoEditor.Core.Export;
 
 /// <summary>
-/// The fixed part of the export format (D023): MP4, H.264 (8-bit 4:2:0, BT.709 limited range), AAC-LC 48 kHz stereo;
+/// The fixed part of the export format (D023; D076: the container and the codec chosen — MP4 / MOV / MKV, H.264 / HEVC / AV1):
+/// 8-bit 4:2:0, BT.709 limited range, AAC-LC 48 kHz stereo;
 /// the picture is the project canvas at the project frame rate (<see cref="ExportOutput"/>). What the user chooses — the
 /// quality (CRF), the libx264 preset and the AAC bitrate — is the project's <see cref="ExportEncoding"/> (D028, Step 13.7),
 /// carried by the <see cref="ExportJob"/>; it is not repeated here.
 /// </summary>
 public static class ExportFormat
 {
+    /// <summary>The container and codec of an export without other settings (D023); D076: chosen per export.</summary>
     public const ExportContainer Container = ExportContainer.Mp4;
     public const ExportVideoCodec VideoCodec = ExportVideoCodec.H264;
     public const ExportAudioCodec AudioCodec = ExportAudioCodec.Aac;
 
-    /// <summary>File extension of the output (MP4).</summary>
+    /// <summary>File extension of the default output (MP4).</summary>
     public const string FileExtension = ".mp4";
+
+    /// <summary>D076: the file extension of <paramref name="container"/>: ".mp4", ".mov", ".mkv".</summary>
+    public static string ExtensionOf(ExportContainer container) => container switch
+    {
+        ExportContainer.Mov => ".mov",
+        ExportContainer.Mkv => ".mkv",
+        _ => ".mp4"
+    };
+
+    /// <summary>D076: the ffmpeg muxer of <paramref name="container"/>.</summary>
+    public static string MuxerOf(ExportContainer container) => container switch
+    {
+        ExportContainer.Mov => "mov",
+        ExportContainer.Mkv => "matroska",
+        _ => "mp4"
+    };
+
+    /// <summary>D076: the container whose extension <paramref name="path"/> has, or null.</summary>
+    public static ExportContainer? ContainerOf(string path) => Path.GetExtension(path).ToLowerInvariant() switch
+    {
+        ".mp4" => ExportContainer.Mp4,
+        ".mov" => ExportContainer.Mov,
+        ".mkv" => ExportContainer.Mkv,
+        _ => null
+    };
 
     /// <summary>The audio track is always present (silence when the timeline has no audio):
     /// AAC-LC at the playback format, 48 kHz stereo (D013).</summary>

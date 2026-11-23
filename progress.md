@@ -2,6 +2,38 @@
 
 ## Current phase
 
+**Phase 57 — codecs and export presets (D076, 2026-11-22/23) — on `feat/phase-57-codecs-presets`** (from `origin/main` `b739142`).
+**Step 0:** Phase 56 accepted (PR #86 merged) — D075 «Acceptance», DEVELOPMENT_PLAN, ROADMAP. **The owner's answers:** Q1–Q7 all A,
+plus the file types MP4 / MOV / MKV; after the calibration Q3 amended (B): «Максимальный» / «Высокий» / «Быстрый» H.264,
+«Средний» AV1 (HEVC / AV1 make no smaller file at the highest quality and no faster export — measured); plus a «?» guide.
+**Done:** the minimal FFmpeg rebuilt (x265 4.1, SVT-AV1 4.0.1, hevc / av1_nvenc, mov / matroska muxers; CI run 45066996109, both
+builds identical, the Windows check green; 31.1 MB per binary, was 17.6); `ExportEncoding` with every field explicit (codec,
+container, encoder Software / Nvenc, «Очень высокое», «Очень быстро»; `ExportProfile` removed), `ExportPresets` (four, the
+resolution a ceiling, 2K added), `SavedExportPreset` in `UserSettings.ExportPresets` (a bad one dropped alone), `ExportVideoPlan`
+per codec and encoder, NVENC per codec in `FfmpegEncoderCapabilities`, the fallback keeps the codec, `ExportFailure.CodecUnavailable`,
+HEVC hvc1 + NVENC High tier (the automatic 5.1 Main tier capped 4K60 at ~31 Mbit/s), MKV with its cues first; the editor (preset on
+top, every field in «Подробные настройки», «＋ Сохранить пресет…» / ✕, the «?»), the extension following the file type;
+`project.json` **v29** (v28 profiles read as their exact old output). Calibration: `docs/EXPORT_PERFORMANCE.md` §8 (5 references,
+the rule of D059 §5, every value checked on all five). **Tests:** `CodecExportEncoderTests` (every codec × encoder × container
+encodes every frame in order, the audio sample-exact, the tags; a real skip where the encoder is missing — on the new minimal
+build 20 / 20 ran), `ExportVideoPlanTests` (rewritten), `ExportEncodingPersistenceTests` (v29, the old profiles), the editor /
+dialog / workflow tests, `UserSettingsStoreTests` (+2), the pinned format versions 28 → 29.
+**Review (phase-reviewer): FAIL** — (1) matching applied the ceiling to the user's own size, (2) a codec that can't be encoded
+could still start and was reported as «ffmpeg not found», (3) no detach when the window's ✕ closed it, (4) a test that silently
+returned, (5) a bad saved preset set the whole settings file aside, (6) gates / progress not recorded. All fixed with tests; notes
+taken (CQ ignores the bitrate field in matching, a replaced saved preset is seen, saved presets come first so they can be deleted).
+**Gates (2026-11-23):** Debug / Release `--no-incremental -warnaserror` 0 / 0, ModelTests build 0, `git diff --check` clean;
+Release + `AIVE_HEAVY_TESTS=1`: Vision 37, Project 782, Core 2 005, Export 142, Rendering 288, UI 1 353, Timeline 1 262, Video
+438 (+2 skips: ScrubBenchmark as before, software AV1 — no SVT-AV1 in the dev FFmpeg), ExportEndToEnd 189 = 6 496.
+**Re-review: FAIL** — a line added for HEVC's peak took the `else` of the CQ branch: H.264 / AV1 NVENC at constant quality got
+`-b:v 0k -maxrate 0k -bufsize 0k` (measured bit-identical streams with and without them, so the calibration stands) — fixed, the
+exact D059 encoder part pinned by tests; notes taken (the «Очень быстро» offsets x265 +3 / SVT-AV1 +10 from the lowered values, the
+English guide's level names). Gates after the fix: the same — 0 / 0, 6 496 passed, 2 skips.
+**Final re-review: PASS WITH NOTES** (its note taken: a test of the «Очень быстро» values per encoder — Core 2 011, so 6 502 in all). Portable
+`artifacts/portable/BoulderVideoEditor-1.10.0-win-x64` (the new minimal FFmpeg in `ffmpegin` with its notices).
+**The owner's manual check of 1.10.0 (2026-11-23): passed** — the export window and the defaults «всё окей», no remarks.
+**Not done:** the merge (the owner's).
+
 **Phase 56 amendment 1 (D075, 2026-11-22) — text styles, technical debt, the repository's page** (the owner added them to the
 phase; codecs → Phase 57). **Done:** italic, `TextShadow`, line spacing, block width (Preview side handles —
 `TransformGestureKind.TextWidth` — and the Inspector), saved styles (`SavedTextStyle`, `UserSettings.TextStyles`; `Normalized`

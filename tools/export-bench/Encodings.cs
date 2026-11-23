@@ -15,9 +15,10 @@ namespace AiVideoEditor.ExportBench;
 /// <list type="bullet">
 /// <item><c>default</c> — «Сбалансированный», libx264 (the D028 default output);</item>
 /// <item><c>x264:QUALITY:PRESET</c> — «Пользовательский» with libx264 (D028 names, e.g. <c>x264:High:Medium</c>);</item>
-/// <item><c>profile:PROFILE[:nvenc]</c> — <c>Fast</c>, <c>Balanced</c>, <c>HighQuality</c>, optionally with NVENC;</item>
-/// <item><c>custom:ENCODER:QUALITY:PRESET</c>, <c>bitrate:ENCODER:MBPS</c> — «Пользовательский».</item>
-/// <item>any of them with <c>@RESOLUTION</c> (D060 §3: <c>Uhd4K</c>, <c>FullHd</c>, <c>Hd</c>, <c>Sd</c>), e.g. <c>default@FullHd</c>.</item>
+/// <item><c>preset:PRESET</c> — D076's built-in <c>Fast</c>, <c>Medium</c>, <c>High</c>, <c>Maximum</c>;</item>
+/// <item><c>custom:ENCODER:QUALITY:PRESET[:CODEC]</c> (<c>x264</c> / <c>software</c> or <c>nvenc</c>; <c>H264</c>, <c>Hevc</c>, <c>Av1</c>),
+/// <c>bitrate:ENCODER:MBPS</c> — every field by hand.</item>
+/// <item>any of them with <c>@RESOLUTION</c> (D060 §3: <c>Uhd4K</c>, <c>Qhd</c>, <c>FullHd</c>, <c>Hd</c>, <c>Sd</c>), e.g. <c>default@FullHd</c>.</item>
 /// </list></summary>
 internal static class Encodings
 {
@@ -44,12 +45,15 @@ internal static class Encodings
             return Parse(spec[..at]) with { Resolution = Enum.Parse<ExportResolution>(spec[(at + 1)..]) };
         if (spec is null or "default") return ExportEncoding.Default;
         var p = spec.Split(':');
-        ExportVideoEncoder Encoder(string s) => s == "nvenc" ? ExportVideoEncoder.Nvenc : ExportVideoEncoder.Libx264;
+        ExportVideoEncoder Encoder(string s) => s == "nvenc" ? ExportVideoEncoder.Nvenc : ExportVideoEncoder.Software;
         return p[0] switch
         {
             "x264" when p.Length == 3 => new ExportEncoding(Enum.Parse<ExportQuality>(p[1]), Enum.Parse<ExportSpeedPreset>(p[2]), 192),
-            "profile" => ExportEncoding.Default with { Profile = Enum.Parse<ExportProfile>(p[1]), Encoder = p.Length > 2 ? Encoder(p[2]) : ExportVideoEncoder.Libx264 },
-            "custom" => new ExportEncoding(Enum.Parse<ExportQuality>(p[2]), Enum.Parse<ExportSpeedPreset>(p[3]), 192) { Encoder = Encoder(p[1]) },
+            "preset" => ExportPresets.Of(Enum.Parse<ExportPresetKind>(p[1])),
+            "custom" => new ExportEncoding(Enum.Parse<ExportQuality>(p[2]), Enum.Parse<ExportSpeedPreset>(p[3]), 192)
+            {
+                Encoder = Encoder(p[1]), Codec = p.Length > 4 ? Enum.Parse<ExportVideoCodec>(p[4]) : ExportVideoCodec.H264
+            },
             "bitrate" => new ExportEncoding(ExportQuality.High, ExportSpeedPreset.Medium, 192)
             {
                 Encoder = Encoder(p[1]), RateControl = ExportRateControl.Bitrate, VideoBitrateMbps = int.Parse(p[2])

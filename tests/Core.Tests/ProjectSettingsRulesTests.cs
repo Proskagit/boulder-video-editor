@@ -116,8 +116,8 @@ public class ProjectSettingsRulesTests
     [Fact]
     public void The_offered_values_are_exactly_those_decided()
     {
-        Assert.Equal(new[] { ExportQuality.Maximum, ExportQuality.High, ExportQuality.Standard, ExportQuality.Compact }, Enum.GetValues<ExportQuality>());
-        Assert.Equal(new[] { ExportSpeedPreset.Fast, ExportSpeedPreset.Medium, ExportSpeedPreset.Slow }, Enum.GetValues<ExportSpeedPreset>());
+        Assert.Equal(new[] { ExportQuality.Maximum, ExportQuality.VeryHigh, ExportQuality.High, ExportQuality.Standard, ExportQuality.Compact }, Enum.GetValues<ExportQuality>());
+        Assert.Equal(new[] { ExportSpeedPreset.VeryFast, ExportSpeedPreset.Fast, ExportSpeedPreset.Medium, ExportSpeedPreset.Slow }, Enum.GetValues<ExportSpeedPreset>());   // D076
         Assert.Equal(new[] { 128, 160, 192, 256, 320 }, ExportEncoding.AudioBitratesKbps);
     }
 
@@ -144,9 +144,9 @@ public class ProjectSettingsRulesTests
     [Fact]
     public void Export_settings_compare_by_value()
     {
-        Assert.Equal(ExportEncoding.Default, new ExportEncoding(ExportQuality.High, ExportSpeedPreset.Medium, 192) { Profile = ExportProfile.Balanced });
-        // D059: «Пользовательский» with the D028 default values is another setting (the same output, a different profile).
-        Assert.NotEqual(ExportEncoding.Default, new ExportEncoding(ExportQuality.High, ExportSpeedPreset.Medium, 192));
+        // D076: every field explicit — the D028 default values are the default.
+        Assert.Equal(ExportEncoding.Default, new ExportEncoding(ExportQuality.High, ExportSpeedPreset.Medium, 192));
+        Assert.NotEqual(ExportEncoding.Default, ExportEncoding.Default with { Codec = ExportVideoCodec.Hevc });
         Assert.NotEqual(ExportEncoding.Default, ExportEncoding.Default with { AudioBitrateKbps = 256 });
     }
 }

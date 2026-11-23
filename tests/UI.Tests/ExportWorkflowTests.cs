@@ -378,15 +378,15 @@ public sealed class ExportWorkflowTests : IDisposable
     [Fact]
     public async Task The_export_dialog_offers_the_projects_settings_and_its_choice_reaches_the_job()
     {
-        // D059 §4: the dialog shows the project's profile; the job takes what was chosen there.
+        // D059 §4, D076: the dialog shows the project's settings (an old project's: «Пользовательский»); the job takes the chosen preset.
         ExportableProject();
         _projects.Current.LastExportSettings.OutputPath = Output("profile.mp4");
         _exportDialog = new ScriptedExportDialog(d =>
         {
-            Assert.Equal(ExportProfile.Balanced, d.Settings.SelectedProfile.Value);
-            Assert.Equal(new[] { ExportVideoEncoder.Libx264 }, d.Settings.Encoders.Select(e => e.Value));   // no NVENC confirmed here
+            Assert.Equal(ExportPresetChoiceKind.Custom, d.Settings.SelectedPreset!.Kind);
+            Assert.Equal(new[] { ExportVideoEncoder.Software }, d.Settings.Encoders.Select(e => e.Value));   // no NVENC confirmed here
             Assert.NotNull(d.Settings.EstimateText);
-            d.Settings.SelectedProfile = d.Settings.Profiles.Single(o => o.Value == ExportProfile.HighQuality);
+            d.Settings.SelectedPreset = d.Settings.Presets.Single(o => o.BuiltIn == Core.Export.ExportPresetKind.High);
             d.ExportCommand.Execute(null);
             return Task.FromResult<ExportDialogResult?>(new ExportDialogResult(d.OutputPath!) { Encoding = d.Settings.Value });
         });
@@ -394,7 +394,9 @@ public sealed class ExportWorkflowTests : IDisposable
         var outcome = await Workflow(Ok).RunAsync();
 
         Assert.Equal(ExportOutcomeKind.Succeeded, outcome.Kind);
-        Assert.Equal(ExportProfile.HighQuality, Assert.Single(_export.Jobs).Encoding.Profile);
+        var job = Assert.Single(_export.Jobs);
+        Assert.Equal(Core.Export.ExportPresetKind.High, Core.Export.ExportPresets.Match(job.Encoding, job.Snapshot.Canvas));
+        Assert.Equal(ExportVideoCodec.H264, job.Encoding.Codec);   // D076: «Высокий» is H.264
     }
 
     [Fact]
@@ -465,7 +467,7 @@ public sealed class ExportWorkflowTests : IDisposable
         var first = _picker.SaveRequests[^1];
         Assert.Matches(TimestampName, first.SuggestedFileName);
         Assert.Equal("mp4", first.DefaultExtension);
-        Assert.Equal(new[] { "*.mp4" }, Assert.Single(first.FileTypeFilters).Patterns);
+        Assert.Equal(new[] { "*.mp4", "*.mov", "*.mkv" }, first.FileTypeFilters.Select(f => f.Patterns.Single()));   // D076: the chosen type first
 
         _projects.Current.LastExportSettings.OutputPath = Output("last.mp4");
         await Workflow().RunAsync();
@@ -829,8 +831,8 @@ public sealed class ExportWorkflowTests : IDisposable
         _projects.Current.IsDirty = false;
         _exportDialog = new ScriptedExportDialog(dialog =>
         {
-            Assert.Equal(ExportResolution.Uhd4K, dialog.SelectedResolution.Value);      // the canvas's preset
-            dialog.SelectedResolution = dialog.Resolutions.Single(r => r.Value == ExportResolution.FullHd);
+            Assert.Equal(ExportResolution.Project, dialog.Settings.SelectedResolution.Value);      // the canvas's own size
+            dialog.Settings.SelectedResolution = dialog.Settings.Resolutions.Single(r => r.Value == ExportResolution.FullHd);
             Assert.StartsWith("1920 × 1080", dialog.Info);
             dialog.FileName = "fhd.mp4";
             dialog.Folder = _root;
@@ -854,8 +856,8 @@ public sealed class ExportWorkflowTests : IDisposable
         ExportableProject();                                                       // 1920 × 1080
         _exportDialog = new ScriptedExportDialog(dialog =>
         {
-            Assert.Equal(ExportResolution.FullHd, dialog.SelectedResolution.Value);
-            Assert.DoesNotContain(dialog.Resolutions, r => r.Value == ExportResolution.Project);
+            Assert.Equal(ExportResolution.Project, dialog.Settings.SelectedResolution.Value);
+            Assert.DoesNotContain(dialog.Settings.Resolutions, r => r.Value == ExportResolution.FullHd);   // the canvas's size is «Как в проекте»
             dialog.Folder = _root;
             ExportDialogResult? result = null;
             dialog.Closed += (_, r) => result = r;

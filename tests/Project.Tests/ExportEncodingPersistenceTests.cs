@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Export;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Project.Persistence;
 using Xunit;
@@ -287,21 +288,22 @@ public class ExportEncodingPersistenceTests
         Assert.Equal(new Core.Common.FrameRate(numerator, denominator), loaded.Settings.FrameRate);
     }
 
-    // --- D059: profiles, the encoder, the rate control ------------------------------------------------------------------
+    // --- D059 / D076: the encoder, the rate control, the codec, the container; the old profiles ------------------------
 
-    public static TheoryData<ExportEncoding> D059Values => new()
+    public static TheoryData<ExportEncoding> D076Values => new()
     {
-        ExportEncoding.Default with { Profile = ExportProfile.Fast },
-        ExportEncoding.Default with { Profile = ExportProfile.Fast, Encoder = ExportVideoEncoder.Nvenc },
-        ExportEncoding.Default with { Profile = ExportProfile.HighQuality, AudioBitrateKbps = 256 },
         ExportEncoding.Default with { Encoder = ExportVideoEncoder.Nvenc },
+        new ExportEncoding(ExportQuality.High, ExportSpeedPreset.VeryFast, 192) { Encoder = ExportVideoEncoder.Nvenc },
         new ExportEncoding(ExportQuality.Standard, ExportSpeedPreset.Slow, 192) { Encoder = ExportVideoEncoder.Nvenc },
         new ExportEncoding(ExportQuality.High, ExportSpeedPreset.Medium, 192) { RateControl = ExportRateControl.Bitrate, VideoBitrateMbps = 25 },
+        ExportPresets.Fast, ExportPresets.Medium, ExportPresets.High, ExportPresets.Maximum,
+        ExportPresets.Maximum with { Container = ExportContainer.Mov },
+        ExportEncoding.Default with { Codec = ExportVideoCodec.Av1, Container = ExportContainer.Mkv },
     };
 
     [Theory]
-    [MemberData(nameof(D059Values))]
-    public void Profiles_and_the_encoder_survive_save_and_reopen(ExportEncoding export)
+    [MemberData(nameof(D076Values))]
+    public void Every_field_survives_save_and_reopen(ExportEncoding export)
     {
         var json = ProjectSerializer.Serialize(Sample(export), Folder);
 
@@ -309,38 +311,77 @@ public class ExportEncodingPersistenceTests
 
         Assert.Equal(export, loaded.Settings.Export);
         Assert.Equal(json, ProjectSerializer.Serialize(loaded, Folder));
-        Assert.Equal(ProjectSerializer.CurrentFormatVersion, Json(loaded)["formatVersion"]!.GetValue<int>());   // no format version change
+        Assert.Equal(29, Json(loaded)["formatVersion"]!.GetValue<int>());   // D076: v29
     }
 
     [Fact]
-    public void A_profile_is_written_by_name_and_only_the_fields_that_differ_from_D028()
+    public void The_codec_and_the_container_are_written_by_name_only_when_not_h264_mp4_and_no_profile_is_written()
     {
-        var export = Settings(Json(Sample(ExportEncoding.Default with { Profile = ExportProfile.Fast, Encoder = ExportVideoEncoder.Nvenc })))["export"]!.AsObject();
+        var export = Settings(Json(Sample(ExportPresets.Maximum with { Codec = ExportVideoCodec.Hevc, Container = ExportContainer.Mkv })))["export"]!.AsObject();
+        Assert.Equal(("Hevc", "Mkv", "Nvenc"), (export["codec"]!.GetValue<string>(), export["container"]!.GetValue<string>(), export["encoder"]!.GetValue<string>()));
+        Assert.Equal(("Maximum", "Slow", 320), (export["quality"]!.GetValue<string>(), export["preset"]!.GetValue<string>(), export["audioBitrateKbps"]!.GetValue<int>()));
+        Assert.False(export.ContainsKey("profile"));
+        var h264 = Settings(Json(Sample(ExportEncoding.Default with { Encoder = ExportVideoEncoder.Nvenc })))["export"]!.AsObject();
+        Assert.False(h264.ContainsKey("codec"));
+        Assert.False(h264.ContainsKey("container"));
+        Assert.False(h264.ContainsKey("rateControl"));
+        Assert.False(h264.ContainsKey("videoBitrateMbps"));
+    }
 
-        Assert.Equal("Fast", export["profile"]!.GetValue<string>());
-        Assert.Equal("Nvenc", export["encoder"]!.GetValue<string>());
-        Assert.False(export.ContainsKey("rateControl"));
-        Assert.False(export.ContainsKey("videoBitrateMbps"));
-        Assert.Equal(("High", "Medium", 192), (export["quality"]!.GetValue<string>(), export["preset"]!.GetValue<string>(), export["audioBitrateKbps"]!.GetValue<int>()));
+    [Theory]   // D076 Q7 A: a v28 file's profile is read as exactly its old output (now explicit; «Пользовательский» in the UI)
+    [InlineData("Fast", "Standard", "Slow", ExportQuality.High, ExportSpeedPreset.VeryFast)]
+    [InlineData("Balanced", "Compact", "Fast", ExportQuality.High, ExportSpeedPreset.Medium)]
+    [InlineData("HighQuality", "High", "Medium", ExportQuality.Maximum, ExportSpeedPreset.Slow)]
+    [InlineData("Custom", "Standard", "Slow", ExportQuality.Standard, ExportSpeedPreset.Slow)]
+    public void An_old_profile_reads_as_its_exact_old_output(string profile, string quality, string preset, ExportQuality expectedQuality,
+        ExportSpeedPreset expectedSpeed)
+    {
+        var root = Json(Sample(Custom));
+        root["formatVersion"] = 28;
+        var e = Settings(root)["export"]!.AsObject();
+        e["profile"] = profile;
+        e["quality"] = quality;
+        e["preset"] = preset;
+        e["encoder"] = "Nvenc";
+        e["rateControl"] = "Bitrate";   // a profile ignored «Пользовательский»'s rate control
+
+        var loaded = Load(root.ToJsonString()).Settings.Export;
+
+        var rate = profile == "Custom" ? ExportRateControl.Bitrate : ExportRateControl.ConstantQuality;
+        Assert.Equal(new ExportEncoding(expectedQuality, expectedSpeed, Custom.AudioBitrateKbps) { Encoder = ExportVideoEncoder.Nvenc, RateControl = rate }, loaded);
+        Assert.Equal(ExportVideoCodec.H264, loaded.Codec);
+        Assert.Equal(ExportContainer.Mp4, loaded.Container);
     }
 
     [Fact]
-    public void A_D028_file_reads_as_custom_with_exactly_its_values_and_saves_unchanged()
+    public void A_D028_file_reads_with_exactly_its_values_and_saves_unchanged()
     {
         var json = ProjectSerializer.Serialize(Sample(Custom), Folder);   // what D028 wrote: quality, preset, bitrate only
 
         var loaded = Load(json);
 
         Assert.Equal(Custom, loaded.Settings.Export);
-        Assert.Equal((ExportProfile.Custom, ExportVideoEncoder.Libx264, ExportRateControl.ConstantQuality),
-            (loaded.Settings.Export.Profile, loaded.Settings.Export.Encoder, loaded.Settings.Export.RateControl));
+        Assert.Equal((ExportVideoEncoder.Software, ExportRateControl.ConstantQuality, ExportVideoCodec.H264),
+            (loaded.Settings.Export.Encoder, loaded.Settings.Export.RateControl, loaded.Settings.Export.Codec));
         Assert.Equal(json, ProjectSerializer.Serialize(loaded, Folder));
+    }
+
+    [Fact]
+    public void Av1_in_mov_makes_the_project_damaged()
+    {
+        var root = Json(Sample(Custom));
+        Settings(root)["export"]!.AsObject()["codec"] = "Av1";
+        Settings(root)["export"]!.AsObject()["container"] = "Mov";
+
+        Assert.Throws<ProjectFileException>(() => Load(root.ToJsonString()));
     }
 
     [Theory]
     [InlineData("profile", "Turbo")]
     [InlineData("encoder", "Quicksync")]
     [InlineData("rateControl", "Crf")]
+    [InlineData("codec", "Vp9")]
+    [InlineData("container", "Avi")]
     public void An_unknown_D059_name_makes_the_project_damaged(string field, string value)
     {
         var root = Json(Sample(Custom));
@@ -362,6 +403,7 @@ public class ExportEncodingPersistenceTests
 
     [Theory]
     [InlineData(ExportResolution.Uhd4K, "Uhd4K")]
+    [InlineData(ExportResolution.Qhd, "Qhd")]
     [InlineData(ExportResolution.FullHd, "FullHd")]
     [InlineData(ExportResolution.Hd, "Hd")]
     [InlineData(ExportResolution.Sd, "Sd")]
@@ -374,7 +416,7 @@ public class ExportEncodingPersistenceTests
         var loaded = Load(json);
         Assert.Equal(export, loaded.Settings.Export);
         Assert.Equal(json, ProjectSerializer.Serialize(loaded, Folder));
-        Assert.Equal(ProjectSerializer.CurrentFormatVersion, Json(loaded)["formatVersion"]!.GetValue<int>());   // no format version change
+        Assert.Equal(ProjectSerializer.CurrentFormatVersion, Json(loaded)["formatVersion"]!.GetValue<int>());
     }
 
     [Fact]

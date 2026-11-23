@@ -92,7 +92,9 @@ public enum ExportFailure
     /// <summary>A Dissolve or a Push needs source frames beyond its clips that the media do not have (D025 §4 as changed in
     /// Phase 28): the export is refused rather than drawn with held frames. <see cref="ExportException.MissingSource"/>
     /// names the transition.</summary>
-    TransitionSourceMissing
+    TransitionSourceMissing,
+    /// <summary>D076: the chosen codec has neither NVENC here nor its software encoder in this FFmpeg (libx265 / SVT-AV1).</summary>
+    CodecUnavailable
 }
 
 /// <summary>The transition whose zone lacks source frames (D025 §4, D044): its type, its clips, the track and the cut;
