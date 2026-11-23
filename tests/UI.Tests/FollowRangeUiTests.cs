@@ -79,6 +79,37 @@ public sealed class FollowRangeUiTests
     }
 
     [Fact]
+    public void Follow_from_here_inside_a_part_continues_that_part_to_a_new_end()
+    {
+        // D078 amendment 6 (the owner): followed 2–5 s, back to 4 s, «Следить отсюда» — the same part (its climber) goes on, and
+        // «Остановить» at 9 s makes it 2–9 s; the next part (12 s) limits it; one step each, Undo back.
+        var (asset, clip) = AddClip();
+        var target = new NormalizedPoint(0.4, 0.5);
+        Assert.True(_edit.SetClipFollow(clip.Id, FollowSettings.Of(new FollowPart(S(2), S(5)) { TargetTime = S(3), TargetPoint = target })
+            .WithAdded(new FollowPart(S(12), S(15)))).Success);
+        var inspector = new InspectorViewModel(_edit, _status);
+        var playhead = S(4);
+        inspector.Playhead = () => playhead;
+        var playback = new List<bool>();
+        inspector.FollowPlaybackRequested += (_, play) => playback.Add(play);
+        inspector.ShowClip(new TimelineClipSelection(clip, "climb", asset, Rate));
+
+        inspector.FollowFromHereCommand.Execute(null);
+        Assert.True(inspector.IsRecordingFollow);
+        Assert.Equal(new[] { true }, playback);
+        Assert.Equal((S(2), (MediaTime?)S(12)), (clip.Follow!.Parts[0].From!.Value, clip.Follow.Parts[0].To));   // open to the next part
+        Assert.Equal(target, clip.Follow.Parts[0].TargetPoint);                                                       // the same climber
+
+        playhead = S(9);
+        inspector.StopFollowHereCommand.Execute(null);
+        Assert.Equal((S(2), (MediaTime?)S(9)), (clip.Follow!.Parts[0].From!.Value, clip.Follow.Parts[0].To));
+        Assert.Equal(2, clip.Follow.Parts.Length);
+        _undo.Undo();
+        _undo.Undo();
+        Assert.Equal((MediaTime?)S(5), clip.Follow!.Parts[0].To);
+    }
+
+    [Fact]
     public void Stop_here_before_half_a_second_keeps_the_part_open_and_the_playhead_off_the_clip_refuses_the_start()
     {
         var (asset, clip) = AddClip();
@@ -132,13 +163,34 @@ public sealed class FollowRangeUiTests
         _undo.Undo();
         Assert.Equal(FollowSettings.Of(new FollowPart(S(4), S(12))), clip.Follow);
 
-        // The middle of the strip is the clip's (no edge); Esc cancels with nothing changed.
-        Assert.False(timeline.BeginFollowDrag(vm, X(8), 1000));
+        // D078 amendment 6: anywhere on the strip grabs its nearer edge (X(7) — the start, 4 s); Esc cancels with nothing changed.
+        Assert.True(timeline.BeginFollowDrag(vm, X(7), 1000));
+        timeline.CancelFollowDrag();
+        Assert.False(timeline.BeginFollowDrag(vm, X(14), 1000));                       // past the strip: the clip's
         Assert.True(timeline.BeginFollowDrag(vm, X(12), 1000));
         timeline.UpdateFollowDrag(1000 - X(3));
         timeline.CancelFollowDrag();
         Assert.Equal(FollowSettings.Of(new FollowPart(S(4), S(12))), clip.Follow);
         Assert.Equal(X(8), vm.FollowSegments[0].Width, 6);
+    }
+
+    [Fact]
+    public void A_dragged_edge_snaps_to_the_playhead()
+    {
+        // D078 amendment 6 (the owner): the strip's edges snap like the timeline's edges.
+        var (_, clip) = AddClip();
+        var timeline = new TimelineViewModel(_projects, _edit, _status, NullLogger<TimelineViewModel>.Instance) { SnappingEnabled = true };
+        var vm = timeline.Tracks.SelectMany(t => t.Clips).Single(v => v.Id == clip.Id);
+        double X(double seconds) => TimelineCoordinateMapper.TimeToX(S(seconds), timeline.PixelsPerSecond);
+        Assert.True(_edit.SetClipFollow(clip.Id, FollowSettings.Of(new FollowPart(S(4), S(12)))).Success);
+        _projects.Current.Timeline.PlayheadPosition = S(15);
+
+        Assert.True(timeline.BeginFollowDrag(vm, X(12), 1000));
+        timeline.UpdateFollowDrag(1000 + X(3) - 3);                       // the end to just short of 15 s
+        Assert.True(timeline.IsSnapIndicatorVisible);
+        timeline.EndFollowDrag();
+        Assert.Equal((MediaTime?)S(15), clip.Follow!.Parts[0].To);
+        Assert.False(timeline.IsSnapIndicatorVisible);
     }
 
     [Fact]
@@ -210,11 +262,17 @@ public sealed class FollowRangeUiTests
         Assert.Equal(new FollowPart(S(12), S(15), S(13), new NormalizedPoint(0.6, 0.5)), clip.Follow!.Parts[1]);
         Assert.Null(clip.Follow.Parts[0].TargetPoint);
 
-        // «Следить отсюда» inside a part changes nothing.
+        // D078 amendment 6: «Следить отсюда» inside a part continues it — open to the next part, stopped at 9 s again; two steps.
         playhead = S(5);
         inspector.FollowFromHereCommand.Execute(null);
-        Assert.False(inspector.IsRecordingFollow);
+        Assert.True(inspector.IsRecordingFollow);
+        Assert.Equal((MediaTime?)S(12), clip.Follow!.Parts[0].To);
         Assert.Equal(2, clip.Follow!.Parts.Length);
+        playhead = S(9);
+        inspector.StopFollowHereCommand.Execute(null);
+        Assert.Equal((MediaTime?)S(9), clip.Follow!.Parts[0].To);
+        _undo.Undo();
+        _undo.Undo();
 
         // Undo takes back the pick, the second part's end, then the second part; the first stays.
         _undo.Undo();

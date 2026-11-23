@@ -94,6 +94,9 @@ public partial class MediaBrowserView : UserControl
             _marqueeKept = e.KeyModifiers == KeyModifiers.Control ? marqueeVm.SelectedItems.ToList() : new List<MediaBrowserItemViewModel>();
             _marqueeMoved = false;
             e.Pointer.Capture(MediaList);
+            // D078 amendment 4: the list takes the keyboard focus, so Delete then removes what the rubber band selected (the press
+            // is handled here, the list never focuses itself on it).
+            MediaList.Focus();
             e.Handled = true;
             return;
         }

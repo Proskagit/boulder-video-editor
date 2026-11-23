@@ -35,6 +35,10 @@ public interface IPeopleVision
     /// when a model is missing or damaged.</summary>
     IReadOnlyList<PersonDetection> Detect(DecodedFrame frame, CancellationToken cancellationToken);
 
+    /// <summary>D078 §3: loads the detector (when not loaded yet) and returns the device it runs on — the attempt's events are
+    /// searched only on a GPU. Throws <see cref="PeopleModelException"/> when a model is missing or damaged.</summary>
+    InferenceDevice PrepareDetector(CancellationToken cancellationToken);
+
     /// <summary>A new video segmentation (its own memory per person). Throws <see cref="PeopleModelException"/> (with
     /// <see cref="PeopleModelException.RequiresGpu"/>) without a usable DirectML GPU — on the CPU it would take about a second
     /// per frame.</summary>

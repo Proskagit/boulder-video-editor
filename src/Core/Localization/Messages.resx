@@ -1510,4 +1510,13 @@
   <data name="Export_CodecUnavailable" xml:space="preserve">
     <value>{0} can't be encoded with this FFmpeg ({1} is missing) and NVENC is unavailable for it.</value>
   </data>
+  <data name="FitRoutes_RefinedByVideo" xml:space="preserve">
+    <value>Route areas refined by the video: {0}.</value>
+  </data>
+  <data name="People_EventsNeedGpu" xml:space="preserve">
+    <value>Finding falls and lift-offs in the video needs a graphics card — the route areas stay by the FIT.</value>
+  </data>
+  <data name="Edit_CanvasSetFrom" xml:space="preserve">
+    <value>The frame size {0} × {1} is taken from the first video.</value>
+  </data>
 </root>

@@ -60,6 +60,8 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
         _garminHeartRateOffsetSeconds = Seconds(current.GarminHeartRateDisplayOffsetTicks);
         _otherHeartRateOffsetSeconds = Seconds(current.OtherHeartRateDisplayOffsetTicks);
         _routeProposalsEnabled = current.RouteProposalsEnabled;
+        _refineFallFromVideo = current.RefineFallFromVideo;
+        _snapRouteStartToLiftOff = current.SnapRouteStartToLiftOff;
         _timelineFollowsPlayhead = current.TimelineFollowsPlayhead;
         _canvasSnapPixels = (decimal)current.CanvasSnapPixels;
         _showPeopleMasks = current.ShowPeopleMasks;
@@ -231,6 +233,16 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
 
     /// <summary>D072 §3: «Предлагать трассу» (on by default).</summary>
     [ObservableProperty] private bool _routeProposalsEnabled;
+
+    /// <summary>D078 §4: «Уточнять конец срыва по видео».</summary>
+    [ObservableProperty] private bool _refineFallFromVideo;
+
+    /// <summary>D078 §4: «Притягивать начало трассы к отрыву».</summary>
+    [ObservableProperty] private bool _snapRouteStartToLiftOff;
+
+    partial void OnRefineFallFromVideoChanged(bool value) => _settings.Update(s => s with { RefineFallFromVideo = value });
+
+    partial void OnSnapRouteStartToLiftOffChanged(bool value) => _settings.Update(s => s with { SnapRouteStartToLiftOff = value });
 
     partial void OnRouteProposalsEnabledChanged(bool value) => _settings.Update(s => s with { RouteProposalsEnabled = value });
 

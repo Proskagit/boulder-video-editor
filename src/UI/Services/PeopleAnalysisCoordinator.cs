@@ -7,6 +7,7 @@ using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Localization;
 using AiVideoEditor.Core.People;
 using AiVideoEditor.Core.Playback;
+using AiVideoEditor.UI.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -107,6 +108,72 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
     /// <summary>Raised on the caller's context whenever a state or a progress may have changed.</summary>
     public event EventHandler? StatusChanged;
 
+    /// <summary>D078 §3: the source time spans the attempt's events need, per video asset (set by the attempt events'
+    /// service); analysed as tracks after everything Follow and Occlusion need, on a GPU only.</summary>
+    public Func<Project, IEnumerable<(Guid AssetId, MediaTime From, MediaTime To)>>? EventSpans { get; set; }
+
+    /// <summary>D078 §3: the detector runs on the processor on this computer — the attempt's events are not searched.</summary>
+    public bool EventsNeedGpu { get; private set; }
+
+    /// <summary>D078 §3: an events' run failed (a model, a decoding error) — no more events' runs this session; the video's own
+    /// analysis is not affected.</summary>
+    public bool EventsStopped { get; private set; }
+
+    /// <summary>D078 amendments 1, 4: the queue for the toolbar's badge — the run going now first (its share, smooth within the
+    /// run: the analyser's frame progress), then every file and kind still waiting, in the order they run. Changes are raised
+    /// by <see cref="StatusChanged"/>.</summary>
+    public IReadOnlyList<BackgroundActivity> ActivityQueue
+    {
+        get
+        {
+            var queue = new List<BackgroundActivity>();
+            if (_running is { } running)
+            {
+                var share = running.Chunks.Length == 0 ? 0 : Math.Max((double)running.Done.Count / running.Chunks.Length, running.Fraction);
+                queue.Add(new BackgroundActivity(LabelOf(CategoryOf(running.ForEvents, running.Kind)), Math.Clamp(share, 0, 1), 1,
+                    Path.GetFileName(running.File.FilePath)));
+            }
+            foreach (var (category, forEvents, kind) in new[] { (0, false, PeopleAnalysisKind.Tracks), (1, false, PeopleAnalysisKind.Masks), (2, true, PeopleAnalysisKind.Tracks) })
+                foreach (var (key, want) in _wanted)
+                {
+                    if (_running is { } r && r.File == key && CategoryOf(r.ForEvents, r.Kind) == category) continue;
+                    var state = StateOf(key);
+                    if (state.TracksCancelled || state.TracksFailure is not null || (category == 2 && (EventsNeedGpu || EventsStopped))) continue;
+                    var missing = category switch
+                    {
+                        0 => want.Tracks.Any(k => !state.Tracks.ContainsKey(k)),
+                        1 => !state.MasksCancelled && state.MasksFailure is null && want.Masks.Any(k => !state.Masks.ContainsKey(k)),
+                        _ => want.EventTracks.Any(k => !state.Tracks.ContainsKey(k))
+                    };
+                    if (missing) queue.Add(new BackgroundActivity(LabelOf(category), 0, 1, Path.GetFileName(key.FilePath), Running: false));
+                }
+            return queue;
+        }
+    }
+
+    /// <summary>The first of <see cref="ActivityQueue"/>, or null.</summary>
+    public BackgroundActivity? Activity => ActivityQueue is { Count: > 0 } q ? q[0] : null;
+
+    private static int CategoryOf(bool forEvents, PeopleAnalysisKind kind) => forEvents ? 2 : kind == PeopleAnalysisKind.Masks ? 1 : 0;
+
+    private static string LabelOf(int category) => category switch
+    {
+        2 => Strings.Activity_AttemptEvents,
+        1 => Strings.Activity_PeopleMasks,
+        _ => Strings.Activity_PeopleTracks
+    };
+
+    /// <summary>Re-reads what the clips and <see cref="EventSpans"/> need (a setting changed).</summary>
+    public void RefreshNeeds() => Refresh();
+
+    /// <summary>Whether every tracks chunk of <c>[from, to]</c> of <paramref name="assetId"/>'s file is done.</summary>
+    public bool HasTracks(Guid assetId, MediaTime from, MediaTime to)
+    {
+        if (!_assets.TryGetValue(assetId, out var asset)) return false;
+        var state = StateOf(asset.Key);
+        return PeopleAnalysisNeeds.Chunks(new[] { (from, to) }, asset.Key.Duration).All(state.Tracks.ContainsKey);
+    }
+
     /// <summary>The analyses of the project's videos done so far (what the snapshot draws with) — partial while a part is
     /// still analysed: Follow follows on the chunks that are done.</summary>
     public PeopleAnalyses Analyses { get; private set; } = PeopleAnalyses.None;
@@ -133,6 +200,9 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
         public SortedSet<int> FollowTracks { get; } = new();
         public SortedSet<int> Tracks { get; } = new();
         public SortedSet<int> Masks { get; } = new();
+
+        /// <summary>D078 §3: the attempt's events' windows — tracks, after all the others, on a GPU only.</summary>
+        public SortedSet<int> EventTracks { get; } = new();
     }
 
     /// <summary>What is done for one file (kept across projects): the chunks, their merge, failures, the user's stop.</summary>
@@ -151,12 +221,18 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
     }
 
     /// <summary>The run being analysed: a contiguous series of chunks of one file and kind.</summary>
-    private sealed record Running(FileKey File, PeopleAnalysisKind Kind, int[] Chunks, bool ForFollow, CancellationTokenSource Cancel)
+    private sealed record Running(FileKey File, PeopleAnalysisKind Kind, int[] Chunks, bool ForFollow, bool ForEvents, CancellationTokenSource Cancel)
     {
         public HashSet<int> Done { get; } = new();
+
+        /// <summary>D078 amendment 4: the analyser's progress over the run's frames (0..1).</summary>
+        public double Fraction { get; set; }
     }
 
-    private sealed record Work(FileKey File, PeopleAnalysisKind Kind, int[] Chunks, bool ForFollow);
+    private sealed record Work(FileKey File, PeopleAnalysisKind Kind, int[] Chunks, bool ForFollow, bool ForEvents = false);
+
+    /// <summary>The detector is on the processor: the events' run stops (D078 §2 Q2).</summary>
+    private sealed class EventsNeedGpuException : Exception;
 
     private FileState StateOf(FileKey key)
     {
@@ -236,20 +312,33 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
         var assets = project.MediaAssets.ToDictionary(a => a.Id);
         var byAsset = new Dictionary<Guid, (FileKey, bool)>();
         var wanted = new Dictionary<FileKey, Want>();
+        FileKey? KeyOf(Guid assetId)
+        {
+            if (!assets.TryGetValue(assetId, out var asset) || asset.IsMissing || asset.Kind != MediaKind.Video || asset.Metadata is not { } metadata)
+                return null;
+            var (length, written) = Stat(asset.FilePath);
+            return new FileKey(asset.FilePath, length, written, metadata.StartTime ?? MediaTime.Zero,
+                HdrColor.Classify(asset.Kind, metadata).Conversion, SourceFrameSelector.NominalRate(metadata), metadata.Duration);
+        }
         foreach (var (clip, track) in project.Timeline.VideoTracks.SelectMany(t => t.Clips.OfType<VideoClip>().Select(c => (c, t))))
         {
             if (clip.Follow is null && !clip.HidesOutlinesBehindPeople) continue;
-            if (!assets.TryGetValue(clip.MediaAssetId, out var asset) || asset.IsMissing || asset.Kind != MediaKind.Video ||
-                asset.Metadata is not { } metadata)
-                continue;
-            var (length, written) = Stat(asset.FilePath);
-            var key = new FileKey(asset.FilePath, length, written, metadata.StartTime ?? MediaTime.Zero,
-                HdrColor.Classify(asset.Kind, metadata).Conversion, SourceFrameSelector.NominalRate(metadata), metadata.Duration);
+            if (KeyOf(clip.MediaAssetId) is not { } key) continue;
+            var asset = assets[clip.MediaAssetId];
+            var metadata = asset.Metadata!;
             if (!wanted.TryGetValue(key, out var want)) wanted[key] = want = new Want();
             var (before, after) = PeopleAnalysisNeeds.PastTheCut(clip, track.Transitions);
             foreach (var k in PeopleAnalysisNeeds.Chunks(PeopleAnalysisNeeds.FollowSpans(clip, before, after), metadata.Duration)) want.FollowTracks.Add(k);
             foreach (var k in PeopleAnalysisNeeds.Chunks(PeopleAnalysisNeeds.MaskSpans(clip, rate, before, after), metadata.Duration)) want.Masks.Add(k);
             byAsset[asset.Id] = (key, (byAsset.TryGetValue(asset.Id, out var earlier) && earlier.Item2) || clip.HidesOutlinesBehindPeople);
+        }
+        // D078 §3: the attempt's events' windows (after the clips' own needs; the asset is known without Follow too).
+        foreach (var (assetId, from, to) in EventSpans?.Invoke(project) ?? Enumerable.Empty<(Guid, MediaTime, MediaTime)>())
+        {
+            if (KeyOf(assetId) is not { } key) continue;
+            if (!wanted.TryGetValue(key, out var want)) wanted[key] = want = new Want();
+            foreach (var k in PeopleAnalysisNeeds.Chunks(new[] { (from, to) }, key.Duration)) want.EventTracks.Add(k);
+            if (!byAsset.ContainsKey(assetId)) byAsset[assetId] = (key, false);
         }
         foreach (var (key, want) in wanted)
         {
@@ -274,9 +363,11 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
     {
         if (_running is not { } running || running.Cancel.IsCancellationRequested) return;
         var want = _wanted.GetValueOrDefault(running.File);
-        var set = want is null ? null : running.Kind == PeopleAnalysisKind.Tracks ? want.Tracks : want.Masks;
+        var set = want is null ? null : running.ForEvents ? want.EventTracks : running.Kind == PeopleAnalysisKind.Tracks ? want.Tracks : want.Masks;
         var stillWanted = set is not null && running.Chunks.Any(k => !running.Done.Contains(k) && set.Contains(k));
-        if (!stillWanted || (!running.ForFollow && NextWork() is { ForFollow: true })) running.Cancel.Cancel();
+        // The events' run gives way to anything the clips need (D078 §3), a run not for Follow to the followed parts.
+        if (!stillWanted || (!running.ForFollow && NextWork() is { ForFollow: true }) || (running.ForEvents && NextWork() is { ForEvents: false }))
+            running.Cancel.Cancel();
     }
 
     private static (long Length, long WriteTicks) Stat(string path)
@@ -318,6 +409,14 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
                 .All(n => !want.Tracks.Contains(n) || state.Tracks.ContainsKey(n));
             var run = FirstRun(want.Masks, Ready);
             if (run.Length > 0) return new Work(key, PeopleAnalysisKind.Masks, run, false);
+        }
+        if (EventsNeedGpu || EventsStopped) return null;
+        foreach (var (key, want) in _wanted)
+        {
+            var state = StateOf(key);
+            if (state.TracksCancelled || state.TracksFailure is not null) continue;
+            var run = FirstRun(want.EventTracks, k => !state.Tracks.ContainsKey(k));
+            if (run.Length > 0) return new Work(key, PeopleAnalysisKind.Tracks, run, false, ForEvents: true);
         }
         return null;
     }
@@ -386,7 +485,7 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
         while (!_disposed && !project.IsCancellationRequested && NextWork() is { } work)
         {
             using var cancel = CancellationTokenSource.CreateLinkedTokenSource(project.Token);
-            var running = new Running(work.File, work.Kind, work.Chunks, work.ForFollow, cancel);
+            var running = new Running(work.File, work.Kind, work.Chunks, work.ForFollow, work.ForEvents, cancel);
             _running = running;
             Publish();
             // Each chunk reaches this (UI) context as soon as it is done: the worker never touches the coordinator's state.
@@ -396,10 +495,27 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
             string? failure = null;
             try
             {
-                results = await Task.Run(() => AnalyseAsync(work, tracks, chunks, cancel.Token), cancel.Token);
+                // D078 amendment 4: the frames' progress reaches the badge (on this context; a step of 1 % at least).
+                var fraction = new Progress<double>(p =>
+                {
+                    if (p - running.Fraction < 0.01 && p < 1) return;
+                    running.Fraction = p;
+                    StatusChanged?.Invoke(this, EventArgs.Empty);
+                });
+                results = await Task.Run(() => AnalyseAsync(work, tracks, chunks, cancel.Token, fraction), cancel.Token);
             }
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
             {
+            }
+            catch (EventsNeedGpuException)
+            {
+                EventsNeedGpu = true;   // D078 §2 Q2: never a failure of the video's own analysis
+            }
+            catch (Exception ex) when (work.ForEvents)
+            {
+                // Never a failure of the video's own analysis (Follow / Occlusion keep their state): the events stop for the session.
+                _logger.LogWarning(ex, "The attempt's events are not searched for {File}.", work.File.FilePath);
+                EventsStopped = true;
             }
             catch (PeopleModelException ex)
             {
@@ -428,7 +544,7 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
     /// <summary>One run on the thread pool: the chunks found in the cache are handed on at once; from the first one that is
     /// not, the rest is analysed in one decoding pass, each chunk saved and handed on when done.</summary>
     private async Task<List<(int, object)>> AnalyseAsync(Work work, PersonTracks? tracksForMasks, IProgress<(int Chunk, object Result)> report,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, IProgress<double>? fraction = null)
     {
         if (_vision is null) throw new PeopleModelException(string.Format(Messages.People_ModelLoadFailed, nameof(IPeopleVision)));
         var results = new List<(int, object)>();
@@ -450,6 +566,7 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
             Done(work.Chunks[index], cached);
         }
         if (index == work.Chunks.Length) return results;
+        if (work.ForEvents && _vision.PrepareDetector(cancellationToken) != InferenceDevice.Gpu) throw new EventsNeedGpuException();
 
         var from = PeopleAnalyzer.ChunkStart(work.Chunks[index]);
         var to = PeopleAnalyzer.ChunkStart(work.Chunks[^1] + 1);
@@ -462,7 +579,7 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
             {
                 if (Key(chunk) is { } key) _cache!.SaveTracks(key, tracks);
                 Done(chunk, tracks);
-            }, null, cancellationToken);
+            }, fraction, cancellationToken);
         }
         else
         {
@@ -471,7 +588,7 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
                 {
                     if (Key(chunk) is { } key) _cache!.SaveMasks(key, masks);
                     Done(chunk, masks);
-                }, null, cancellationToken);
+                }, fraction, cancellationToken);
         }
         _logger.LogInformation("People {Kind}: {File}: {From:F1}–{To:F1} s ({Chunks} chunks), {Seconds:F1} s.", work.Kind,
             Path.GetFileName(work.File.FilePath), from.TotalSeconds, to.TotalSeconds, work.Chunks.Length - index, started.Elapsed.TotalSeconds);

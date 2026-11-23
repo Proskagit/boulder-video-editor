@@ -35,6 +35,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private readonly IProjectService _projectService;
     private readonly ITimelineEditService _edit;
+    private readonly AttemptEventsService? _attemptEvents;
     private readonly StatusService _status;
     private readonly ILogger<TimelineViewModel> _logger;
     private readonly EditingLock _editingLock;
@@ -69,8 +70,10 @@ public sealed partial class TimelineViewModel : ViewModelBase
         ITextBoxMeasurer? textBoxes = null,
         IUserSettingsService? userSettings = null,
         AudioProcessingCoordinator? audio = null,
-        FilmstripCoordinator? filmstrips = null)
+        FilmstripCoordinator? filmstrips = null,
+        AttemptEventsService? attemptEvents = null)
     {
+        _attemptEvents = attemptEvents;   // D078: the lift-offs' magnet for the orange's end
         if (userSettings is not null) FollowsPlayheadSetting = () => userSettings.Current.TimelineFollowsPlayhead;
         Mixer = new MixerViewModel(projectService, edit, status, audio, () => !(editingLock?.IsLocked ?? false));
         _source = source;

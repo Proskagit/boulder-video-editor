@@ -119,6 +119,25 @@ internal static class PersonDetectorMath
         return new NormalizedPoint(Math.Clamp(sx / n / frameWidth, 0, 1), Math.Clamp(sy / n / frameHeight, 0, 1));
     }
 
+    /// <summary>D078 §3: all 17 keypoints from SimCC outputs — x, y in normalized frame coordinates (clamped to 0..1) and the
+    /// score (the lower of the two axes' maxima), 51 values.</summary>
+    public static ImmutableArray<float> Keypoints(ReadOnlySpan<float> simccX, int widthX, ReadOnlySpan<float> simccY, int widthY,
+        (double Cx, double Cy, double W, double H) crop, int frameWidth, int frameHeight)
+    {
+        var values = new float[PersonDetection.KeypointCount * 3];
+        for (var k = 0; k < PersonDetection.KeypointCount; k++)
+        {
+            var (ix, vx) = ArgMax(simccX.Slice(k * widthX, widthX));
+            var (iy, vy) = ArgMax(simccY.Slice(k * widthY, widthY));
+            var px = ix / 2.0 / PeopleModel.PoseWidth * crop.W + crop.Cx - crop.W / 2;
+            var py = iy / 2.0 / PeopleModel.PoseHeight * crop.H + crop.Cy - crop.H / 2;
+            values[k * 3] = (float)Math.Clamp(px / frameWidth, 0, 1);
+            values[k * 3 + 1] = (float)Math.Clamp(py / frameHeight, 0, 1);
+            values[k * 3 + 2] = Math.Min(vx, vy);
+        }
+        return ImmutableArray.Create(values);
+    }
+
     private static (int Index, float Value) ArgMax(ReadOnlySpan<float> values)
     {
         var best = 0;
@@ -195,6 +214,7 @@ internal sealed class PersonDetectorSessions : IDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
             NormalizedPoint? torso = null;
+            var keypoints = ImmutableArray<float>.Empty;
             if (person.Score >= PersonTracker.LowScore && person.Box.Width * frame.Width >= 8 && person.Box.Height * frame.Height >= 8)
             {
                 var crop = PersonDetectorMath.PoseInput(frame, person.Box);
@@ -204,10 +224,12 @@ internal sealed class PersonDetectorSessions : IDisposable
                 var y = (DenseTensor<float>)results.First(r => r.Name == "simcc_y").AsTensor<float>();
                 torso = PersonDetectorMath.TorsoCentre(x.Buffer.Span, x.Dimensions[2], y.Buffer.Span, y.Dimensions[2],
                     (crop.Cx, crop.Cy, crop.W, crop.H), frame.Width, frame.Height);
+                keypoints = PersonDetectorMath.Keypoints(x.Buffer.Span, x.Dimensions[2], y.Buffer.Span, y.Dimensions[2],
+                    (crop.Cx, crop.Cy, crop.W, crop.H), frame.Width, frame.Height);
                 // A torso outside the person's own box is a confused pose: the box centre is safer.
                 if (torso is { } t && !person.Box.Contains(t)) torso = null;
             }
-            result.Add(person with { Torso = torso, Appearance = PersonAppearance.Of(frame, person.Box) });
+            result.Add(person with { Torso = torso, Appearance = PersonAppearance.Of(frame, person.Box), Keypoints = keypoints });
         }
         return result;
     }

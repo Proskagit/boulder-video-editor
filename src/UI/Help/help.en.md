@@ -103,7 +103,7 @@ A training file from your watch (COROS, Garmin and others) knows when you climbe
 
 The Inspector's **«Follow and people»** section.
 
-- **«Follow the climber»** — the visible part of the frame moves with the chosen person. It needs room: scale the clip beyond «Fill». Follow the whole clip or «from here» — from the current frame.
+- **«Follow the climber»** — the visible part of the frame moves with the chosen person. It needs room: scale the clip beyond «Fill». Follow the whole clip or «from here» — from the current frame. A followed part is the cyan strip along the clip's bottom: drag its edges; «Follow from here» inside a part continues it with the same climber to where you press «Stop following here».
 - **«Smoothness»** — how gently the frame catches up. **«Climber in the frame»** — where they stand in the frame; easier to drag the frame in Preview.
 - **«Hide outlines behind people»** — the hold outlines hide behind anyone who covers them. It switches on by itself when a route gets its first holds (you can switch it off here). «Follow and people» and «Holds» also open for a «Boulder» plate anchored to a clip.
 - The people analysis runs in the background with its progress in the section. Its results are kept, so it isn't computed twice.

@@ -16,6 +16,20 @@
         <Style Selector="TextBlock.unsaved"><Setter Property="Foreground" Value="{DynamicResource WarningTextBrush}"/></Style>
       </TextBlock.Styles>
     </TextBlock>
+    <!-- D078 amendment 1: the computer's load (always) and, left of it, a badge while a background analysis runs. -->
+    <TextBlock x:Name="LoadText" DockPanel.Dock="Right" DataContext="{Binding Activity}"
+               IsVisible="{Binding HasLoad, FallbackValue=False}" Text="{Binding LoadText}" ToolTip.Tip="{Binding LoadTip}"
+               VerticalAlignment="Center" Margin="12,0,0,0" FontSize="{DynamicResource FontSizeCaption}" MinWidth="130" TextAlignment="Right"
+               Foreground="{DynamicResource TextMutedBrush}"/>
+    <Border x:Name="ActivityBadge" DockPanel.Dock="Right" DataContext="{Binding Activity}" IsVisible="{Binding IsBusy, FallbackValue=False}"
+            ToolTip.Tip="{Binding ActivityTip}" VerticalAlignment="Center" Margin="12,0,0,0" Padding="8,2" CornerRadius="10"
+            Background="{DynamicResource Surface3Brush}" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1">
+      <StackPanel Orientation="Horizontal" Spacing="6">
+        <ProgressBar Width="48" Height="4" Minimum="0" Maximum="100" Value="{Binding ActivityProgress}"
+                     IsIndeterminate="{Binding !HasProgress}" VerticalAlignment="Center" MinWidth="0"/>
+        <TextBlock Text="{Binding ActivityText}" VerticalAlignment="Center" FontSize="{DynamicResource FontSizeCaption}"/>
+      </StackPanel>
+    </Border>
     <!-- D039 §6: the commands wrap onto a second row rather than push the window's layout wider (Russian labels are longer). -->
     <WrapPanel Orientation="Horizontal">
       <WrapPanel.Styles>

@@ -4263,4 +4263,58 @@
 • NVENC: с H.264 и AV1 экспорт идёт с одной скоростью; HEVC на «Медленно» — примерно на 10 % медленнее.
 • Формат файла: MP4 — для всего; MOV — для монтажа на Apple; MKV — для плееров и архива. AV1 — только в MP4 или MKV.</value>
   </data>
+  <data name="AppSettings_AttemptEvents" xml:space="preserve">
+    <value>Срывы и отрывы по видео</value>
+  </data>
+  <data name="AppSettings_RefineFall" xml:space="preserve">
+    <value>Уточнять конец срыва по видео</value>
+  </data>
+  <data name="AppSettings_RefineFallNote" xml:space="preserve">
+    <value>У областей трасс из FIT со статусом «Попытка» лиловая область начинается в момент срыва, найденный по видео (по скелету скалолаза; в фоне, только с видеокартой). Области, изменённые вручную, не трогаются.</value>
+  </data>
+  <data name="AppSettings_SnapLiftOff" xml:space="preserve">
+    <value>Притягивать начало трассы к отрыву</value>
+  </data>
+  <data name="AppSettings_SnapLiftOffNote" xml:space="preserve">
+    <value>Начало трассы T у областей из FIT сдвигается к найденному по видео отрыву ног от пола, если он не дальше 3 с; при перетаскивании конца оранжевой области — магнит к найденным отрывам. Находит отрыв не на каждой трассе — проверяйте начало.</value>
+  </data>
+  <data name="Activity_PeopleTracks" xml:space="preserve">
+    <value>Анализ людей (Follow)</value>
+  </data>
+  <data name="Activity_PeopleMasks" xml:space="preserve">
+    <value>Маски людей (окклюзия)</value>
+  </data>
+  <data name="Activity_AttemptEvents" xml:space="preserve">
+    <value>Поиск срывов и отрывов</value>
+  </data>
+  <data name="Activity_HoldTracking" xml:space="preserve">
+    <value>Трекинг зацепок</value>
+  </data>
+  <data name="Activity_Audio" xml:space="preserve">
+    <value>Обработка звука</value>
+  </data>
+  <data name="Activity_More" xml:space="preserve">
+    <value>+{0}</value>
+  </data>
+  <data name="Activity_Items" xml:space="preserve">
+    <value>видео в очереди: {0}</value>
+  </data>
+  <data name="Activity_Load" xml:space="preserve">
+    <value>ЦП {0} · ГП {1}</value>
+  </data>
+  <data name="Activity_LoadTip" xml:space="preserve">
+    <value>Общая загрузка процессора и видеокарты компьютера</value>
+  </data>
+  <data name="Activity_Queued" xml:space="preserve">
+    <value>в очереди</value>
+  </data>
+  <data name="Activity_Running" xml:space="preserve">
+    <value>идёт</value>
+  </data>
+  <data name="App_Version" xml:space="preserve">
+    <value>версия {0}</value>
+  </data>
+  <data name="Follow_Continuing" xml:space="preserve">
+    <value>Слежение продолжается отсюда — нажмите «Остановить слежение здесь», где оно должно закончиться.</value>
+  </data>
 </root>

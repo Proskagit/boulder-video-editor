@@ -26,7 +26,7 @@ public sealed class PeopleAnalysisCacheStore : IPeopleAnalysisCache
     /// <summary>The masks are the bulk (≈ 1–3 MB per minute); 2 GB keeps dozens of hours.</summary>
     public const long DefaultMaxBytes = 2L * 1024 * 1024 * 1024;
 
-    private static readonly byte[] TracksMagic = "AIVEPPT1"u8.ToArray();
+    private static readonly byte[] TracksMagic = "AIVEPPT2"u8.ToArray();
     private static readonly byte[] MasksMagic = "AIVEPPM1"u8.ToArray();
 
     private readonly string _folder;
@@ -87,7 +87,7 @@ public sealed class PeopleAnalysisCacheStore : IPeopleAnalysisCache
             Directory.CreateDirectory(_folder);
             File.WriteAllBytes(temp, bytes);
             File.Move(temp, path, overwrite: true);
-            Prune();
+            Prune(path);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -102,7 +102,7 @@ public sealed class PeopleAnalysisCacheStore : IPeopleAnalysisCache
     private string PathOf(string key, string extension) =>
         Path.Combine(_folder, Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key))).ToLowerInvariant() + extension);
 
-    /// <summary>Magic, key, model id, interval, the samples (time; per person: box, score, torso, appearance, track id), then
+    /// <summary>Magic, key, model id, interval, the samples (time; per person: box, score, torso, appearance, keypoints, track id), then
     /// the SHA-256 of everything before it.</summary>
     internal static byte[] EncodeTracks(PersonTracks tracks, string key) => Sealed(writer =>
     {
@@ -124,6 +124,8 @@ public sealed class PeopleAnalysisCacheStore : IPeopleAnalysisCache
                 if (p.Torso is { } t) { writer.Write(t.X); writer.Write(t.Y); }
                 writer.Write(p.Appearance.IsDefault ? 0 : p.Appearance.Length);
                 if (!p.Appearance.IsDefault) foreach (var v in p.Appearance) writer.Write(v);
+                writer.Write(p.Keypoints.IsDefault ? 0 : p.Keypoints.Length);   // D078 §3 (analysis v3)
+                if (!p.Keypoints.IsDefault) foreach (var v in p.Keypoints) writer.Write(v);
                 writer.Write(sample.TrackIdOf(i));
             }
         }
@@ -152,7 +154,11 @@ public sealed class PeopleAnalysisCacheStore : IPeopleAnalysisCache
                 if (n < 0 || n > 4096) return null;
                 var appearance = new float[n];
                 for (var k = 0; k < n; k++) appearance[k] = reader.ReadSingle();
-                list.Add(new PersonDetection(box, score, torso, ImmutableArray.Create(appearance)));
+                var m = reader.ReadInt32();
+                if (m < 0 || m > PersonDetection.KeypointCount * 3) return null;
+                var keypoints = new float[m];
+                for (var k = 0; k < m; k++) keypoints[k] = reader.ReadSingle();
+                list.Add(new PersonDetection(box, score, torso, ImmutableArray.Create(appearance)) { Keypoints = ImmutableArray.Create(keypoints) });
                 ids.Add(reader.ReadInt32());
             }
             samples.Add(new PersonSample(time, list.MoveToImmutable(), ids.MoveToImmutable()));
@@ -241,9 +247,13 @@ public sealed class PeopleAnalysisCacheStore : IPeopleAnalysisCache
         }
     }
 
-    private void Prune()
+    /// <summary>Keeps the folder under its limit, the least recently used first out — never <paramref name="saved"/>, the file
+    /// just written (files written within the clock's resolution share a write time: the order alone could drop it).</summary>
+    private void Prune(string saved)
     {
-        var files = new DirectoryInfo(_folder).GetFiles("*.pp?").OrderByDescending(f => f.LastWriteTimeUtc).ToList();
+        var files = new DirectoryInfo(_folder).GetFiles("*.pp?")
+            .OrderByDescending(f => string.Equals(f.FullName, Path.GetFullPath(saved), StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(f => f.LastWriteTimeUtc).ToList();
         long total = 0;
         foreach (var file in files)
         {

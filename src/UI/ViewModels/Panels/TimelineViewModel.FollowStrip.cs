@@ -66,8 +66,10 @@ public sealed partial class TimelineViewModel
         for (var i = 0; i < segments.Count; i++)
             foreach (var (start, x) in new[] { (true, segments[i].Left), (false, segments[i].Left + segments[i].Width) })
             {
+                // D078 amendment 6: anywhere on a part's strip grabs its nearer edge (the strip shows the resize cursor all along).
+                var inside = xInClip >= segments[i].Left && xInClip <= segments[i].Left + segments[i].Width;
                 var distance = Math.Abs(xInClip - x);
-                if (distance <= StripHandleReachPixels && (best is null || distance < best.Value.Distance)) best = (i, start, distance);
+                if ((inside || distance <= StripHandleReachPixels) && (best is null || distance < best.Value.Distance)) best = (i, start, distance);
             }
         if (best is not { } grab) return false;
         var segment = segments[grab.Position];
@@ -83,6 +85,12 @@ public sealed partial class TimelineViewModel
         var shortest = Math.Max(2, TimelineCoordinateMapper.TimeToX(InspectorViewModel.MinFollowPart, PixelsPerSecond));
         var delta = contentX - drag.PressX;
         var vm = drag.Clip;
+        // D078 amendment 6 (the owner): the dragged edge snaps like the timeline's edges (the playhead, cuts, markers, …).
+        var edgeX = (drag.Start ? drag.Left : drag.Right) + delta;
+        var edgeTime = vm.Clip.TimelineStart + TimelineCoordinateMapper.XToTime(edgeX, PixelsPerSecond);
+        var rawDelta = TimelineCoordinateMapper.XToTime(edgeX, PixelsPerSecond) - TimelineCoordinateMapper.XToTime(drag.Start ? drag.Left : drag.Right, PixelsPerSecond);
+        var snapped = ApplySnap(new[] { edgeTime }, Array.Empty<TimelineClipViewModel>(), rawDelta);
+        delta += TimelineCoordinateMapper.TimeToX(snapped - rawDelta, PixelsPerSecond);
         double left = drag.Left, right = drag.Right;
         if (drag.Start) left = Math.Clamp(drag.Left + delta, drag.Min, Math.Max(drag.Min, right - shortest));
         else right = Math.Clamp(drag.Right + delta, Math.Min(drag.Max, left + shortest), drag.Max);
@@ -99,6 +107,7 @@ public sealed partial class TimelineViewModel
     {
         if (_followDrag is not { } drag) return;
         _followDrag = null;
+        IsSnapIndicatorVisible = false;
         var vm = drag.Clip;
         vm.StripText = null;
         if (vm.Clip is not VideoClip { Follow: { } follow } clip || drag.Index >= vm.FollowSegments.Count)
@@ -131,6 +140,7 @@ public sealed partial class TimelineViewModel
     {
         if (_followDrag is not { } drag) return;
         _followDrag = null;
+        IsSnapIndicatorVisible = false;
         drag.Clip.StripText = null;
         ShowFollow(drag.Clip);
     }

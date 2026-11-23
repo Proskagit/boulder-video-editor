@@ -746,8 +746,10 @@ public class RouteTimingEditTests
     public void A_ripple_that_would_put_the_template_over_another_clip_of_its_track_is_refused()
     {
         var f = TwoClips(out var a, out var b, out var template);
-        Assert.True(f.Service.AddTemplateClip(TemplateKind.Boulder, Frame(300)).Success);    // unanchored [300, 500) on V2
-        var loose = Templates(f).Single(t => t.AnchorClipId is null);
+        var added = f.Service.AddTemplateClip(TemplateKind.Boulder, Frame(300));
+        Assert.True(added.Success);
+        var loose = Templates(f).Single(t => t.Id == added.ClipIds[0]);
+        (loose.AnchorClipId, loose.AnchorRouteId) = (null, null);    // D078 Q4 anchors it over a clip: a free one for this case
         var steps = f.UndoRedo.NextUndo;
 
         var result = f.Service.RippleDeleteClips(TimelineFixture.Ids(a));                    // would carry it to [75, 500)
@@ -765,7 +767,7 @@ public class RouteTimingEditTests
         var f = WithMarkedVideo(out _);
         Assert.True(f.Service.AddTemplateClip(TemplateKind.Boulder, MediaTime.Zero).Success);
         var template = f.Project.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<TemplateClip>().Single();
-        Assert.Null(template.AnchorClipId);
+        (template.AnchorClipId, template.AnchorRouteId) = (null, null);   // D078 Q4 anchors it over a clip: a free one for this case
 
         var result = f.Service.SetClipProperties(template.Id, new ClipPropertyChange
         {

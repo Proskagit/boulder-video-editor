@@ -65,6 +65,72 @@ public sealed class PeopleAnalysisCoordinatorTests : IDisposable
         return clip;
     }
 
+    // D078 amendment 1: the toolbar's badge reads what runs now.
+
+    [Fact]
+    public Task The_activity_names_the_running_analysis_and_its_share_and_ends_with_it() => _ui.Run(async () =>
+    {
+        var clip = AddClip(FollowSettings.Whole(), seconds: 6);
+        AddClip(FollowSettings.Whole(), seconds: 4);                                 // two videos: one is done before the other
+        using var coordinator = new PeopleAnalysisCoordinator(_projects, new Decoder(6), new Vision { Delay = TimeSpan.FromMilliseconds(5) });
+        var seen = new List<BackgroundActivity>();
+        var queues = new List<IReadOnlyList<BackgroundActivity>>();
+        coordinator.StatusChanged += (_, _) => { if (coordinator.Activity is { } a) seen.Add(a); queues.Add(coordinator.ActivityQueue); };
+        await coordinator.IdleAsync();
+        Assert.NotEmpty(seen);
+        Assert.All(seen, a => Assert.Equal(AiVideoEditor.UI.Localization.Strings.Activity_PeopleTracks, a.Label));
+        Assert.All(seen, a => Assert.InRange(a.Progress!.Value, 0, 1));
+        Assert.Contains(seen, a => a.Progress > 0);
+        // Amendment 3: each run's own share — it grows within a run and starts again at the next one.
+        // Amendment 4: the queue — the running video first with its file's name, the other one waiting after it.
+        Assert.Contains(queues, q => q.Count == 2 && q[0].Running && !q[1].Running && q[1].Progress == 0 && q[1].Detail is not null);
+        Assert.Empty(coordinator.ActivityQueue);
+        Assert.Null(coordinator.Activity);
+        var badge = new AiVideoEditor.UI.ViewModels.BackgroundActivityViewModel(coordinator);
+        Assert.False(badge.IsBusy);
+        Assert.Equal(PeopleAnalysisState.Ready, coordinator.StatusOf(clip.MediaAssetId, PeopleAnalysisKind.Tracks).State);
+    });
+
+    // D078 §3: the attempt's events' windows — tracks after the clips' own needs, on a GPU only, never in the export's wait.
+
+    [Fact]
+    public Task The_events_windows_are_analysed_after_the_clips_needs_and_are_not_the_exports() => _ui.Run(async () =>
+    {
+        var followed = AddClip(FollowSettings.Of(new FollowPart(MediaTime.FromSeconds(4), MediaTime.FromSeconds(5))), seconds: 20);
+        var other = AddClip(null, seconds: 20, routes: false);
+        var decoder = new Decoder(20);
+        using var coordinator = new PeopleAnalysisCoordinator(_projects, decoder, new Vision())
+        {
+            EventSpans = _ => new[] { (other.MediaAssetId, MediaTime.FromSeconds(10), MediaTime.FromSeconds(13)) }
+        };
+        coordinator.RefreshNeeds();
+        await coordinator.IdleAsync();
+        // The followed part's chunks first (from 2 s), then the window's [10, 14) of the other video.
+        Assert.Equal(new[] { MediaTime.FromSeconds(2), MediaTime.FromSeconds(10) }, decoder.Starts);
+        Assert.True(coordinator.HasTracks(other.MediaAssetId, MediaTime.FromSeconds(10), MediaTime.FromSeconds(13)));
+        Assert.False(coordinator.HasTracks(other.MediaAssetId, MediaTime.FromSeconds(0), MediaTime.FromSeconds(13)));
+        Assert.True(coordinator.Analyses.Tracks.ContainsKey(other.MediaAssetId));
+        Assert.Equal(PeopleAnalysisState.None, coordinator.StatusOf(other.MediaAssetId, PeopleAnalysisKind.Masks).State);
+        Assert.DoesNotContain(other.MediaAssetId, coordinator.ForExport().Pending);
+        Assert.False(coordinator.EventsNeedGpu);
+    });
+
+    [Fact]
+    public Task Without_a_GPU_the_events_windows_are_not_analysed_and_the_video_does_not_fail() => _ui.Run(async () =>
+    {
+        var other = AddClip(null, seconds: 20, routes: false);
+        var decoder = new Decoder(20);
+        using var coordinator = new PeopleAnalysisCoordinator(_projects, decoder, new Vision { DetectorOnCpu = true })
+        {
+            EventSpans = _ => new[] { (other.MediaAssetId, MediaTime.FromSeconds(10), MediaTime.FromSeconds(13)) }
+        };
+        coordinator.RefreshNeeds();
+        await coordinator.IdleAsync();
+        Assert.Empty(decoder.Starts);
+        Assert.True(coordinator.EventsNeedGpu);
+        Assert.NotEqual(PeopleAnalysisState.Failed, coordinator.StatusOf(other.MediaAssetId, PeopleAnalysisKind.Tracks).State);
+    });
+
     // D061 amendment 1: only what the clips need, in chunks of 2 s.
 
     [Fact]
@@ -372,7 +438,14 @@ public sealed class PeopleAnalysisCoordinatorTests : IDisposable
         public int Detections;
         public int Segmenters;
         public string ModelId => "fake";
-        public InferenceDevice DetectorDevice => InferenceDevice.Gpu;
+        public bool DetectorOnCpu { get; init; }
+        public InferenceDevice DetectorDevice => DetectorOnCpu ? InferenceDevice.Cpu : InferenceDevice.Gpu;
+
+        public InferenceDevice PrepareDetector(CancellationToken cancellationToken)
+        {
+            if (Missing is not null) throw new PeopleModelException(Missing);
+            return DetectorDevice;
+        }
 
         public IReadOnlyList<PersonDetection> Detect(DecodedFrame frame, CancellationToken cancellationToken)
         {

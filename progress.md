@@ -2,6 +2,68 @@
 
 ## Current phase
 
+**Phase 59 — the attempt's events from the video (D078, 2026-11-23) — on `feat/phase-59-attempt-events`** (from `origin/main`
+`e9ccdf1`). **Step 0:** Phase 58 accepted (PR #88 merged, check of 1.11.0 without remarks). **Research** (lab `C:\BoulderHighlightLab`,
+stages 0–2, `docs/ATTEMPT_EVENTS_RESEARCH.md`): fall within 1 s on 6 / 7 routes of the independent day; lift-off exact only when the
+right candidate is chosen (~half); top not detectable (often out of frame). **The owner's answers:** background, GPU only, lift-off
+3 s + magnet, manual «Боулдер» anchored; settings — fall on, lift-off off by default. **Done:** `PersonDetection.Keypoints`
+(17 COCO points, cache `tracks-v3` / `AIVEPPT2`), `IPeopleVision.PrepareDetector`; `Core/People/AttemptEvents` (the research's rules v3,
+ported and checked on the lab's 28 routes with the product's tracker) and `FitAreaEventWindows`; `PeopleAnalysisCoordinator.EventSpans`
+(the events' windows after the clips' needs, GPU only, `EventsNeedGpu` / `EventsStopped`, never the export's wait, `HasTracks`);
+`TimelineEditService.RefineFitAreasFromVideo` (lilac of «Попытка» ← fall ±8 s of the watch end − 3 s, after `T`; `T` ← lift-off ±3 s
+without an orange; untouched areas only; one step per video); `AttemptEventsService` (once per session, on analysis / timeline /
+project / settings changes, waits for the export lock); settings `refineFallFromVideo` (on) / `snapRouteStartToLiftOff` (off) in
+«FIT-тренировки»; the orange end's magnet (±30 s, with the timeline's snapping); a manual «Боулдер» over a video clip anchored to it.
+**Product path on real footage** (lab `tools/ProductPath`, 1024 px, ≈ 3× real time): fall ≤ 2 s on 6 / 6 and 7 / 8 routes, none > 3 s.
+**Tests:** `AttemptEventsTests` (5), `PersonKeypointsTests` (1), the cache round trip with keypoints, `AttemptEventsEditTests` (10),
+`AttemptEventsServiceTests` (5), two coordinator tests, `UserSettingsStoreTests` (old file → defaults); two `RouteTimingEditTests`
+unanchor their «Боулдер» (D078 Q4). Manual plan `docs/PHASE59_MANUAL_TEST_PLAN.md`.
+**Review (phase-reviewer): FAIL** — (1) refinement never ran when the windows were analysed already (reopened project, areas made
+again) → applied on timeline / project changes too, tested; (2) it could edit during an export → waits for the editing lock, tested;
+(3) gates / D078 refinements not recorded → recorded. Notes taken: events' failures never fail the video's analysis, the magnet's
+window, the magnet honours snapping, no lilac before `T`, guard tests (locked track, orange, moved lilac, Undo of `T`, settings file).
+**Re-review: FAIL** — the refinement ran synchronously inside the command whose Execute / Undo notified the timeline's change (its step
+recorded before the creation's) → posted to the UI context, its own step after the notifying command; test on the real edit service
+and undo stack (`Areas_made_again_over_analysed_windows_…`, fails without the fix); an unrequested cancellation of an events' run
+never marks the video failed.
+**CI (PR #89) red:** `PeopleAnalysisCacheStoreTests.The_folder_stays_under_its_limit` — the cache pruned by write time alone,
+and files written within the clock's resolution tie: the file just saved could be the one removed (surfaced by the larger files
+with keypoints) → the file just saved is never pruned; test `The_file_just_saved_is_kept_even_when_every_write_time_is_the_same`
+(fails on the old order). Video 439 (+2 skips), builds 0 / 0.
+**Amendment 1 (the owner, during the phase):** the toolbar shows the computer's load always («ЦП · ГП», `WindowsSystemLoadMonitor`:
+GetSystemTimes + the «GPU Engine» counters, checked here: GPU 51–59 % against nvidia-smi 63 %) and a badge with the running background
+analysis and its share (`BackgroundActivityViewModel` over the people, hold-tracking and sound coordinators' `Activity`); tests
+`BackgroundActivityViewModelTests` (2), the coordinator's activity test.
+**Gates with amendment 1 (2026-11-23):** Debug / Release `--no-incremental -warnaserror` 0 / 0, `git diff --check` clean; Release +
+`AIVE_HEAVY_TESTS=1`: Vision 38, Project 783, Core 2 016, Export 153, Rendering 288, UI 1 364, Timeline 1 272, Video 439 (+2 skips),
+ExportEndToEnd 191 = 6 544. Portable `artifacts/portable/BoulderVideoEditor-1.12.1-win-x64`.
+**Amendments 2–3 (the owner's checks of 1.12.1):** every route area analysed (the FIT's and a manual anchored «Боулдер», whose
+`FitLayout` is now kept and saved), an area without a status gets its lilac from the fall as «Попытка»; tops / flashes skipped while the
+lift-off is off; the badge shows each run's own share; clear names («Поиск срывов и отрывов»); the load text keeps its width; the first
+4K video of the canvas's shape gives an empty project its frame size (D041's offer never shrinks it back). Tests: Timeline 3 new,
+UI (4K canvas + its Undo, the lift-off filter), the settings file, the manual layout saved. **Gates:** builds 0 / 0, Vision 38,
+Project 783, Core 2 016, Export 153, Rendering 288, UI 1 367, Timeline 1 275, Video 439 (+2 skips), ExportEndToEnd 191 = 6 550.
+Portable `artifacts/portable/BoulderVideoEditor-1.12.2-win-x64`.
+**Amendment 4 (the owner's check of 1.12.2):** the Media Browser keeps a group (the list's `SelectedItem` reset it; checked on the
+real `ListBox`), Delete after a rubber band; removing files takes their anchored templates and the emptied video tracks; distinct new
+track names; FIT areas of close climbs end where the next begins (one track); a video whose tag and name disagree bound by the
+FIT's climbs (27.09's 103026); no fall search for a manual «Боулдер»; the badge's smooth share and the whole queue in its tooltip;
+the version in the window's title. **Gates:** builds 0 / 0, Vision 38, Project 783, Core 2 016, Export 153, Rendering 288, UI 1 370,
+Timeline 1 277, Video 439 (+2 skips), ExportEndToEnd 191 = 6 555. Portable `artifacts/portable/BoulderVideoEditor-1.12.3-win-x64`.
+**Amendment 5 (the owner):** an opened project's FIT areas are never refined — only areas made in the session (test
+`An_area_already_in_the_project_is_never_refined`). UI 1 371. Portable `artifacts/portable/BoulderVideoEditor-1.12.4-win-x64`.
+**Amendment 6 (the owner):** «Следить отсюда» inside a followed part continues it (same climber, new end at «Остановить»);
+the part's strip 8 px, the resize cursor along it, a press anywhere drags the nearer edge, the edge snaps (playhead, cuts, markers);
+the help updated. Tests `Follow_from_here_inside_a_part_continues_that_part_to_a_new_end`, `A_dragged_edge_snaps_to_the_playhead`.
+UI 1 373. Portable `artifacts/portable/BoulderVideoEditor-1.12.5-win-x64`.
+**Third review: PASS WITH NOTES** — notes kept as is (documented): a refinement landing between two merged steps of a slider or under
+an unfinished strip drag (rare: a window must finish exactly then), the service assumes the UI context (comment added), and the
+known items of D078 «Refined».
+**Gates (2026-11-23, after the fixes):** Debug / Release `--no-incremental -warnaserror` 0 / 0, ModelTests build 0, `git diff --check`
+clean; Release + `AIVE_HEAVY_TESTS=1`: Vision 38, Project 783, Core 2 016, Export 153, Rendering 288, UI 1 361 (after the re-review fix;
+the builds again 0 / 0), Timeline 1 272, Video 438 (+2 skips as before), ExportEndToEnd 191 = 6 540.
+**Not done:** the re-review, commit / PR, the portable build, the owner's manual check.
+
 **Phase 58 — a faster export without the graphics card (D077, FU-EX.2, 2026-11-23) — on `feat/phase-58-export-speed`** (from
 `origin/main` `274b529`). **Step 0:** Phase 57 accepted (PR #87 merged). **Research** (`docs/EXPORT_PERFORMANCE.md` §9): the export on
 the GPU — at most ×1.7 at 4K (NVENC itself 65–78 fps at p7 / p5), a second renderer; a hybrid 0–4 % → not made (the owner). **Done:**

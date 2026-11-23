@@ -40,6 +40,16 @@ public sealed record UserSettings
     [System.Text.Json.Serialization.JsonPropertyName("suggestRoute")]
     public bool RouteProposalsEnabled { get; init; }
 
+    /// <summary>D078 §4: «Уточнять конец срыва по видео» — the lilac of the FIT's «Попытка» areas starts at the fall found in the
+    /// video; on by default.</summary>
+    [System.Text.Json.Serialization.JsonPropertyName("refineFallFromVideo")]
+    public bool RefineFallFromVideo { get; init; } = true;
+
+    /// <summary>D078 §4: «Притягивать начало трассы к отрыву» — <c>T</c> of the FIT's areas snaps to a lift-off within 3 s, and the
+    /// orange's end sticks to the lift-offs while dragged; off by default (the owner: not reliable enough).</summary>
+    [System.Text.Json.Serialization.JsonPropertyName("snapRouteStartToLiftOff")]
+    public bool SnapRouteStartToLiftOff { get; init; }
+
     /// <summary>D061 amendment 1: the people's masks drawn over the Preview — a diagnostic of the segmentation, off by default;
     /// never exported.</summary>
     public bool ShowPeopleMasks { get; init; }

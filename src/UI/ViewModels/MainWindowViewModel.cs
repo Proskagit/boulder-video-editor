@@ -47,7 +47,20 @@ public sealed class MainWindowViewModel : ViewModelBase
     public ModelSetupService? ModelSetup { get; }
 
     /// <summary>"Name — Boulder Video Editor", with a "*" after the name while there are unsaved changes.</summary>
-    public string Title => $"{_projectService.Current.Name}{(_projectService.Current.IsDirty ? "*" : "")} — Boulder Video Editor";
+    public string Title => $"{_projectService.Current.Name}{(_projectService.Current.IsDirty ? "*" : "")} — Boulder Video Editor{VersionSuffix}";
+
+    /// <summary>D078 amendment 4 (the owner): the application's version after its name in the window's title — « · версия 1.12.3» —
+    /// from the build's stamped version (the release scripts set it); nothing for an unstamped development build (1.0.0).</summary>
+    public static string VersionSuffix { get; } = ComputeVersionSuffix();
+
+    private static string ComputeVersionSuffix()
+    {
+        var informational = typeof(MainWindowViewModel).Assembly
+            .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+            .OfType<System.Reflection.AssemblyInformationalVersionAttribute>().FirstOrDefault()?.InformationalVersion;
+        var version = informational?.Split('+')[0];
+        return string.IsNullOrEmpty(version) || version == "1.0.0" ? "" : " · " + string.Format(Strings.App_Version, version);
+    }
 
     public ToolbarViewModel Toolbar { get; }
 

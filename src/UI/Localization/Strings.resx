@@ -4259,4 +4259,58 @@ Everything else works without the models. They can also be installed later: «Se
 • NVENC: the export runs at the same speed with H.264 and AV1; HEVC at «Slow» is about 10 % slower.
 • The file type: MP4 — for everything; MOV — for Apple editors; MKV — for players and archives. AV1 only in MP4 or MKV.</value>
   </data>
+  <data name="AppSettings_AttemptEvents" xml:space="preserve">
+    <value>Falls and lift-offs from the video</value>
+  </data>
+  <data name="AppSettings_RefineFall" xml:space="preserve">
+    <value>Refine the end of a fall from the video</value>
+  </data>
+  <data name="AppSettings_RefineFallNote" xml:space="preserve">
+    <value>For route areas made from the FIT with the status «Attempt», the lilac starts at the fall found in the video (the climber's skeleton; in the background, with a graphics card only). Areas you changed by hand are not touched.</value>
+  </data>
+  <data name="AppSettings_SnapLiftOff" xml:space="preserve">
+    <value>Snap the route start to the lift-off</value>
+  </data>
+  <data name="AppSettings_SnapLiftOffNote" xml:space="preserve">
+    <value>The route start T of an area made from the FIT moves to the feet leaving the floor found in the video when it is within 3 s; dragging the orange's end, it sticks to the lift-offs found. It does not find the lift-off on every route — check the start.</value>
+  </data>
+  <data name="Activity_PeopleTracks" xml:space="preserve">
+    <value>People (Follow)</value>
+  </data>
+  <data name="Activity_PeopleMasks" xml:space="preserve">
+    <value>People masks (occlusion)</value>
+  </data>
+  <data name="Activity_AttemptEvents" xml:space="preserve">
+    <value>Finding falls and lift-offs</value>
+  </data>
+  <data name="Activity_HoldTracking" xml:space="preserve">
+    <value>Hold tracking</value>
+  </data>
+  <data name="Activity_Audio" xml:space="preserve">
+    <value>Sound processing</value>
+  </data>
+  <data name="Activity_More" xml:space="preserve">
+    <value>+{0}</value>
+  </data>
+  <data name="Activity_Items" xml:space="preserve">
+    <value>videos left: {0}</value>
+  </data>
+  <data name="Activity_Load" xml:space="preserve">
+    <value>CPU {0} · GPU {1}</value>
+  </data>
+  <data name="Activity_LoadTip" xml:space="preserve">
+    <value>The whole computer's processor and graphics card load</value>
+  </data>
+  <data name="Activity_Queued" xml:space="preserve">
+    <value>queued</value>
+  </data>
+  <data name="Activity_Running" xml:space="preserve">
+    <value>running</value>
+  </data>
+  <data name="App_Version" xml:space="preserve">
+    <value>version {0}</value>
+  </data>
+  <data name="Follow_Continuing" xml:space="preserve">
+    <value>Following continues from here — press «Stop following here» where it should end.</value>
+  </data>
 </root>

@@ -413,11 +413,17 @@ public sealed partial class TimelineEditService
         var plan = new EditPlan(Sequence, Settings);
         var clips = plan.AllTracks.SelectMany(t => t.Clips).Where(c => ids.Any(id => Uses(c, id))).ToList();
         foreach (var clip in clips) plan.Remove(clip);
+        // D078 amendment 4: the templates anchored to the removed clips go with them, as a deletion on the timeline takes them
+        // (D048 §3.10) — never an area left pointing at a clip that is gone.
+        if (ReconcileOverlays(plan) is { } overlayError) return TimelineEditResult.Fail(overlayError);
+        if (plan.AllTracks.FirstOrDefault(t => t.IsLocked && t.Clips.Any(plan.Removes)) is { } lockedTemplateTrack)
+            return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, lockedTemplateTrack.Name));
         if (CloseMainTrackGaps(plan) is { } magnetError) return TimelineEditResult.Fail(magnetError);   // D069 §6
         plan.ReconcileTransitions();   // the removed clips' dissolves go with them (D025 §5)
         plan.ReconcileLinks();         // and the links of their partners (D032 R5), never on a locked track (AQ12)
         if (plan.ClearedLinks.FirstOrDefault(c => plan.TrackOf(c).IsLocked) is { } lockedPartner)
             return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, plan.TrackOf(lockedPartner).Name));
+        RemoveEmptiedVideoTracks(plan);   // D078 amendment 4: as a deletion on the timeline does (D075 amendment 2)
 
         // The clips (and dissolves) first, then the assets: no clip ever refers to an asset that isn't in the project.
         var removeAssets = assets

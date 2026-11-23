@@ -58,6 +58,11 @@ public sealed class OnnxPeopleVision : IPeopleVision, IDisposable
         }
     }
 
+    public InferenceDevice PrepareDetector(CancellationToken cancellationToken)
+    {
+        lock (_gate) return Detector(cancellationToken).Device;
+    }
+
     private PersonDetectorSessions Detector(CancellationToken cancellationToken)
     {
         if (_detector is not null) return _detector;

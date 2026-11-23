@@ -21,7 +21,7 @@ public sealed record PersonTracks(MediaTime Interval, ImmutableArray<PersonSampl
 {
     /// <summary>Changes whenever the detection, the pose, the tracking or the stored data change their meaning: a cached
     /// analysis of another version is never used.</summary>
-    public const int AnalysisVersion = 2;   // 2: the weak-detection overlap rule (PersonTracker.WeakMinIoU)
+    public const int AnalysisVersion = 3;   // 2: the weak-detection overlap rule (PersonTracker.WeakMinIoU); 3: the 17 keypoints (D078)
 
     /// <summary>The model set the analysis was made with (<c>PeopleModel.Id</c>).</summary>
     public string ModelId { get; init; } = "";

@@ -12163,7 +12163,7 @@ apart from the export window; sharing presets between computers.
 **Status: approved by the owner on 2026-11-23** after the research of FU-EX.2 (`docs/EXPORT_PERFORMANCE.md` §9): «дешёвое
 улучшение на 4K» and «декод в размере вывода»; the export on the graphics card is **not** made. Implemented in Phase 58 on
 `feat/phase-58-export-speed` (from `main` `274b529`). Continues D059 (the pipeline), D060 §3 (the resolution) and D076. `project.json`
-unchanged (v29).
+unchanged (v29). **Accepted by the owner on 2026-11-23** (his check of 1.11.0, no remarks; PR #88 merged, `e9ccdf1`).
 
 ### 0. Step 0 — Phase 57 accepted
 
@@ -12223,3 +12223,194 @@ change of the bytes or of the Preview's path, beyond «дешёвое»).
 The export on the graphics card (§1); hardware decoding in the export; decoding still images smaller; the Preview's own decoding
 (D071's quality bound); a different scaler or interpolation in the painter (it is the Preview's); the GPU research's E6 items
 beyond §3.
+
+## D078 — Phase 59: the attempt's events from the video — the fall, the lift-off, the manual «Боулдер» anchored *(set by the owner on 2026-11-23)*
+
+**Status: the scope set by the product owner on 2026-11-23** after the research «Universal AI Highlight Detection», stages 0–2
+(the lab `C:\BoulderHighlightLab`, reports `STAGE0.md`, `STAGE1.md`, `STAGE2.md`; summary in `docs/ATTEMPT_EVENTS_RESEARCH.md`),
+with his answers of the same day (all the recommended options). Branch `feat/phase-59-attempt-events` from `main` `e9ccdf1`.
+**No `project.json` format change** (v29); the user's settings file gains two keys (§4).
+
+### 0. Step 0 — Phase 58 accepted
+
+PR #88 merged (`e9ccdf1`) after the owner's check of 1.11.0 (no remarks) — D077, DEVELOPMENT_PLAN, ROADMAP, progress.
+
+### 1. What the research found (28 routes of two days, the owner's marks; the lab's numbers)
+
+- **The fall** (the end of an attempt, the lilac's start on «Попытка»): the climber's skeleton (RF-DETR-M + RTMPose-m, the models of
+  D061) gives it within 1 s on 6 of 7 routes of the independent day (all within 2 s); the watch's automatic climb detection with the
+  best constant correction misses it by 2.7 s (median). Snapped to the nearest detected fall within 8 s of the FIT's end − 3 s:
+  6 / 6 and 7 / 8 routes within 2 s.
+- **The lift-off** (the route's start `T`): candidates are exact (0.1–0.4 s) when the right one is chosen, but the choice among
+  neighbouring events (feet re-placed at the wall, an earlier short try, another person) is wrong on about half the routes; a
+  learned floor / wall classifier did not carry over between days (28 routes are too few). So the lift-off is an aid, not an
+  automatic answer.
+- **The top** (two hands on the finishing hold) is often outside the frame; not detected — the user stretches the lilac by hand
+  (the owner).
+- Cost: ≈ 4× real time on the GPU (≈ 20 s per attempt's window).
+
+### 2. The owner's answers
+
+1. **Q1 — when: in the background (A).** The FIT's route areas appear at once as today; the analysis runs in the background with the
+   people analysis (D061 §5); when it is done, the areas the user has not changed are refined.
+2. **Q2 — only with a GPU (A).** Without a usable DirectML GPU no events are searched; the areas stay by the FIT, a short status
+   message says why (once per session).
+3. **Q3 — the lift-off: 3 s + a magnet (A).** `T` snaps to a lift-off only within 3 s of the FIT's `T` (rarely wrong); dragging the
+   orange's end by hand, it sticks to the lift-offs found nearby.
+4. **Q4 — the manual «Боулдер» anchored (A).** A «Боулдер» added from «Шаблон» over a video clip is anchored to that clip as a route
+   area of its own (green, lilac, the strip's handles, `T`'s mark, the heart rate); over no video clip it stays free (D056 §5).
+5. **Settings (the owner, the same day):** «Уточнять конец срыва по видео» — on by default; «Притягивать начало трассы к отрыву» —
+   **off** by default (it covers both the 3 s snap and the magnet). With both off no events are searched.
+
+### 3. The model
+
+- **The skeleton kept.** `PersonDetection.Keypoints`: the 17 COCO points of RTMPose (x, y normalized to the frame, score), empty
+  without a pose; the people analysis's cache keeps them (`PersonTracks.AnalysisVersion` 3 — an older cached analysis is analysed
+  again). Follow and Occlusion read them as before (torso only).
+- **`Core/People/AttemptEvents`** (pure): over a source time window of a video's `PersonTracks` — up to three climbers (the
+  tracks whose box top rises most, joined across a fast fall's break), each one's attempts around its highest points: the
+  **lift-off candidates** (a foot put on a hold — the higher ankle ≥ 0.2 body heights above the lower for ≥ 0.5 s — or a sit start —
+  both feet up ≥ 0.06 body heights while crouched — moved to where the lower foot leaves its floor level) and the **fall** (the
+  feet back at the floor level after the highest point; the fall is where the hip's descent into that landing begins). The rules
+  of the lab's `detect.py` v3, frozen before the independent check.
+- **The windows** the analysis needs: per route area made from the FIT (a «Боулдер» with `FitClimb` on a clip of the video), its FIT
+  `T` − 35 s to the climb's watch end + 20 s, in the video's source time; only while a setting of §2.5 is on, the training usable,
+  the area not refined yet in this session. They are tracks chunks of D061 amendment 1, shared with Follow (same cache, after
+  Follow's own chunks).
+- **The refinement** (`ITimelineEditService.RefineFitAreasFromVideo`, one Undo step «Уточнить области по видео» per video when
+  anything moves; a status message «Области уточнены по видео: N»): for every area whose bounds are still the laid-out ones
+  (`FitLayout`, D056 §2) —
+  - the fall: on «Попытка» (the watch's result or the user's status), the lilac's start `S` → the detected fall nearest to the
+    climb's watch end − 3 s within 8 s; the green's end grows to `S` + 5 s when shorter (within the clip);
+  - the lift-off (setting on): `T` (`RouteStart`) → the candidate nearest to it within 3 s; the green's start follows `T` as at
+    the layout (`T − min(7 s, …)`);
+  - `FitLayout` takes the new bounds (the area stays «untouched» for a new `Z`, D056 §2). Areas changed by hand, locked tracks, an
+    area whose new bounds would cover another clip — left as they are. An area is refined once per session (an Undo is not undone
+    again by the background).
+- **The magnet** (setting on): while the orange's end is dragged, a lift-off candidate of the clip's video within the snap
+  tolerance takes precedence over the timeline's snap targets (the snap indicator shows it).
+- **Without a GPU:** the detector's device is checked before the first window; on the processor the events' windows are skipped
+  (Follow's own analysis is unchanged) and the status bar says «Поиск событий попытки работает только с видеокартой».
+- **The manual «Боулдер»:** over a video clip (the topmost video picture below the playhead, `VideoClipBelow`), a new route area of
+  that clip — the clip's span from the playhead (default length, cut to the clip), a new route id, the status moment the last 5 s
+  (`LayoutFinal`), placed like the FIT's areas (`PlaceRouteTemplate`); a free template otherwise. Nothing else of D056 §5 changes.
+
+### 4. Settings
+
+`UserSettings.RefineFallFromVideo` (`refineFallFromVideo`, default true) and `UserSettings.SnapRouteStartToLiftOff`
+(`snapRouteStartToLiftOff`, default false); in the settings window's «FIT-тренировки» (a sub-heading «События попытки по видео»)
+with a note each.
+
+### Refined in the implementation (2026-11-23)
+
+- **The window's end** is the area's laid-out end + 20 s (`FitAreaEventWindows`) — the laid-out end is the watch's end − 4.6 s + 5 s,
+  so ≈ the watch's end + 20 s without reading the FIT again; its start `T` − 35 s (`RouteStart`, else the green's start + 7 s).
+- **`T` with an orange is the user's**: a route whose markup has a Duration animation (the orange) never has its `T` snapped.
+- **The fall only on an untouched lilac**: the status moment must still be the laid-out one (`FitLayout.StatusAt`), and the fall must
+  lie after `T` (never a lilac before the route's start) with room for the status before the clip's end.
+- **When the refinement runs**: a video's areas once all their windows are analysed (one Undo step per video) — on an analysis's
+  growth, on every timeline or project change (the windows may be analysed already: by Follow, from the cache, in memory from an
+  earlier opening) and on a settings change; **never while an export locks editing** — it waits for the lock's release (the export
+  lock's rule). Never inside the notification that asked for it: it is posted to the UI context and runs after the command (or
+  its Undo / Redo, or an edit gathered into one step) that notified the change is recorded — its own step above it. Once per
+  session per area (`_done`); a project opened again is looked at again.
+- **Without the events**: `EventsNeedGpu` when the detector is on the processor (the one status message); any other failure of an
+  events' run (a model, a decoding error) stops the events for the session (`EventsStopped`, logged) and never marks the video's own
+  analysis failed.
+- **The magnet** reads the lift-offs within ±30 s of the dragged end (the rules are made for an attempt's window, not a whole clip of
+  a training), only while the timeline's snapping is on.
+- **The manual «Боулдер»**: the topmost visible video clip at the playhead (`TopVideoClipAt`, templates and texts above skipped);
+  a remainder of the clip shorter than 2 frames → a free template as before; a locked topmost track refuses as before.
+- **Checked on the product's own path** (the lab's `tools/ProductPath`: `FfmpegVideoDecoder` + `PeopleAnalyzer` at 1024 px +
+  `OnnxPeopleVision` + `AttemptEvents`, the 28 routes' FIT windows; ≈ 3× real time on the RTX 4070 SUPER): the fall within 2 s on
+  6 / 6 (27.09) and 7 / 8 (08.08) routes, none off by more than 3 s; `T` snapped within 3 s exact (≤ 0.5 s) on 3 / 11 and 5 / 17,
+  worse than the FIT's `T` on 1 route of each day.
+
+### Out of scope
+
+The top's detection; the outcome (top / fall) from the video; an automatic recording zero `Z` from the events; the learned
+lift-off model (needs 100+ routes of several gyms — the lab's `stage2.py` is to be run again then); the universal highlighter
+(trips, ordinary video) and 360° video — deferred; a refinement of areas made by hand («Разложить вступление и финал»).
+
+### D078 amendment 1 — the background work made visible (the owner, 2026-11-23, during the phase)
+
+**Why (the owner):** a picture in the Preview may still lack an analysis's result (Follow, the occlusion's masks, the hold tracking,
+now the attempt's events) and nothing says that something runs in the background.
+**Decided:** at the toolbar's right end, beside the save state —
+- **the computer's load, always:** «ЦП 23 % · ГП 61 %» every 1.5 s (`ISystemLoadMonitor` / `WindowsSystemLoadMonitor`: the processor
+  from `GetSystemTimes`, the graphics card from the «GPU Engine» performance counters as Task Manager does — the busiest engine type,
+  any vendor; no new dependency; a dash where not measurable);
+- **left of it, a badge while a background analysis runs:** a small progress bar and the running analysis with its share done
+  («Анализ людей (Follow) 45 %»; the people's masks, the attempt's events, the sound by their share; the hold tracking without a
+  share — an indeterminate bar), «+N» for the others running or waiting, each one in the tooltip; hidden when nothing runs.
+  The sources: `PeopleAnalysisCoordinator.Activity`, `CameraMotionCoordinator.Activity`, `AudioProcessingCoordinator.Activity`
+  (`BackgroundActivity`), refreshed on their status changes (`BackgroundActivityViewModel`).
+**Not included:** the media import analysis, the thumbnails, waveforms and filmstrips (short, with their own feedback); the export
+(its own progress); the route analysis of the first hold (modal already).
+
+### D078 amendment 2 — the owner's check of 1.12.1 (2026-11-23)
+
+- **Only what is used is analysed:** with «Притягивать начало трассы к отрыву» off only the «Попытка» areas' windows are wanted (a top's
+  or a flash's fall is never used); a status changed to «Попытка» later brings its window in. About half the work on a training.
+- **The badge's share only grows:** the share is of everything that kind of work was asked for since it began (a video whose windows
+  are done and dropped from the needs stays counted); it was the share of what is still wanted and fell back when a video finished.
+  The videos still queued are in the tooltip, not on the badge.
+- **The names say what it is:** «Поиск срывов и отрывов» on the badge; «Срывы и отрывы по видео» in the settings (was «События
+  попытки»).
+- **The load keeps its width:** each number padded to three digit widths (figure spaces), a minimum width, right-aligned.
+- **Why the first occlusion is slower once:** the people analysis's cache moved to v3 (the keypoints): Follow's and Occlusion's tracks
+  and masks of older projects are analysed again once, then come from the cache as before.
+
+### D078 amendment 3 — the owner's check of 1.12.1, second round (2026-11-23)
+
+- **Every route area is analysed, and one without a lilac gets one:** the windows are wanted for the FIT's areas **and** a manual
+  «Боулдер» anchored over a clip (it now keeps the bounds it was laid out with — `FitLayout`, saved for an anchored area without a FIT
+  climb too); with the lift-off off, every area but a «Топ» / «Flash». The fall moves the status moment of «Попытка» **and of an area
+  with no status yet, which becomes «Попытка»** (the owner: an area without a lilac gets one; a top found as a fall is set back by
+  hand). A FIT area's fall: nearest to the watch end − 3 s within 8 s; a manual area's: the last fall within its green. Areas made
+  again by «Распознать прохождения из FIT» over analysed windows are refined at once (the cache).
+- **The badge: one run at a time:** its own share 0 → 100 %, then the next run's; «+N» for the other runs and analyses waiting
+  (amendment 2's grand total withdrawn by the owner).
+- **The first 4K video gives the project 4K:** an empty project takes the first video's frame size when the video has the canvas's
+  shape and is larger (`PlanFirstVideoCanvas`, in the add's Undo step, with a status note); a smaller source never shrinks it; another
+  shape stays D041's offer, which is never made when the canvas already has the video's shape.
+
+### D078 amendment 4 — the owner's check of 1.12.2 (2026-11-23)
+
+- **The Media Browser keeps a group:** removing through the menu on a file of a group, or after a rubber band, took one file — the
+  list's `SelectedItem` binding resets a multiple selection when the view model sets it inside the group. The group is now taken as
+  it is (never by setting the current file), the rubber band sets the primary file first; a rubber band focuses the list, so Delete
+  removes what it selected. Checked on the real `ListBox` (`MediaBrowserSelectionViewTests`).
+- **Removing files removes what goes with their clips:** the templates anchored to the removed clips (D048 §3.10, as a deletion on the
+  timeline does — before, an area was left pointing at a clip that is gone) and the video tracks that step leaves empty (D075
+  amendment 2).
+- **New tracks of one FIT import get distinct names** (several were all «V2»).
+- **Areas of climbs a few seconds apart do not overlap:** on one clip an area made from the FIT runs at most to the next climb's area's
+  start (its status moment kept inside it), so both stay on one track (27.09's 110133: climbs 10 and 11 were 12 s apart).
+- **A video whose tag and file name disagree is bound by the FIT:** the phone may write its tag (the file finished) minutes after the
+  stop (27.09's 103026: name 10:30:26, tag 10:35:07 for a 1:39 video). The time under which a climb lies inside the video while none
+  does under the other is used; both or neither → still unbound and said (`FitRouteBinding.ResolveByClimbs`).
+- **No fall search for a manual «Боулдер»** (the owner): it is placed at the route's start and rarely reaches the fall; amendment 3's
+  manual part withdrawn (a manual area keeps no `FitLayout`); it stays anchored to its clip.
+- **The badge's queue:** the running analysis's share is smooth within its run (the analyser's frame progress); the tooltip lists the
+  whole queue a line each — «1. Маски людей · file — 86 %», «2. … — в очереди» — the running ones first; «+N» is the number of lines
+  after the first.
+- **The version in the window's title:** «Проект — Boulder Video Editor · версия 1.12.3» (the build's stamped version; nothing on an
+  unstamped development build).
+
+### D078 amendment 5 — an opened project is never refined (the owner, 2026-11-23)
+
+The refinement applies only to the FIT's areas made in the session — the FIT's import, «Распознать прохождения из FIT» (new
+areas). The areas a project has when it opens (or when the service starts) count as looked at: opening a finished project changes
+none of its lilacs, starts or statuses, and no events are searched for it. (Before: every untouched FIT area of an opened project was
+refined once per session.)
+
+### D078 amendment 6 — extending a followed part (the owner, 2026-11-23)
+
+The owner: followed 0–5 s, back to 4 s, and the part could not be continued. **«Следить за скалолазом отсюда» inside a part now
+continues that part** — the same climber (its target kept), its end opened to the next part (or the clip's end), the timeline plays
+and «Остановить слежение здесь» sets its new end (one step each; before: «already followed here» and nothing). The part's strip on the
+timeline (its edges drag since D061 amendment 1) is 8 px high instead of 5 and shows the resize cursor all along (the timeline's
+hover sets it — the strip's own cursor was never seen); a press anywhere on it drags its nearer edge (before: only within 8 px of an
+edge, the middle was the clip's); the dragged edge snaps like the timeline's edges (the playhead, cuts, markers; the indicator shows
+it). The help says both.
