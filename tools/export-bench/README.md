@@ -27,6 +27,8 @@ $bench = "tools/export-bench/bin/Release/net8.0/ExportBench.exe"
 - `--encoding`: `default` (Balanced, libx264), `x264:QUALITY:PRESET` (Custom, the D028 names), `profile:Fast|Balanced|HighQuality[:nvenc]`,
   `custom:x264|nvenc:QUALITY:PRESET`, `bitrate:x264|nvenc:MBPS`; any of them with `@Uhd4K|FullHd|Hd|Sd` exports at that
   resolution preset (D060 §3), e.g. `default@FullHd`.
+- Research switches (FU-EX.2, `docs/EXPORT_PERFORMANCE.md` §9; never the app's behaviour): `AIVE_BENCH_HWDEC=1` decodes the export's
+  sources with `-hwaccel auto`; `AIVE_BENCH_DECODE_MAX=WxH` has the decoder scale them down to that bound.
 
 ## Calibration (D059 §5)
 

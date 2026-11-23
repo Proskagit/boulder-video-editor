@@ -1,4 +1,5 @@
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Export;
 using AiVideoEditor.Core.Playback;
 
@@ -19,6 +20,10 @@ public sealed record ExportDecodeSettings
     /// <summary>D059 E1: full-resolution frames travel by the decoder's high-throughput transport — the same frames and the
     /// same decoder command line apart from its output, so the MP4 is byte for byte the same.</summary>
     public DecodeTransport Transport { get; init; } = DecodeTransport.HighThroughput;
+
+    /// <summary>D077 §2: a video clip is decoded no larger than it is ever drawn on the output (<see cref="ExportDecodeSizes"/>);
+    /// false decodes every source at its full size (Phase 57's frames, byte for byte).</summary>
+    public bool DecodeAtDrawnSize { get; init; } = true;
 }
 
 /// <summary>
@@ -52,6 +57,7 @@ internal sealed class ExportPictureReader : IAsyncDisposable
     private readonly long _ownFirst;   // the clip's own frames [_ownFirst, _ownEnd): outside them only a zone's
     private readonly long _ownEnd;
     private readonly ZonesOf? _zones;
+    private readonly FrameSize? _decodeBound;
 
     private IVideoFrameStream? _stream;
     private DecodedFrame? _current;    // the frame chosen for the last request (never after its sample point unless it is the first)
@@ -61,8 +67,9 @@ internal sealed class ExportPictureReader : IAsyncDisposable
     private long _lastRequested = long.MinValue;
 
     public ExportPictureReader(PictureSpan span, PlaybackAsset asset, FrameRate rate, IVideoDecoder decoder, ExportDecodeSettings settings,
-        ZonesOf? zones = null)
+        ZonesOf? zones = null, FrameSize? decodeBound = null)
     {
+        _decodeBound = decodeBound;
         if (span.Status is not (SpanStatus.Video or SpanStatus.StillImage))
             throw new ArgumentException($"A {span.Status} span has no picture to decode.", nameof(span));
         Span = span;
@@ -111,8 +118,9 @@ internal sealed class ExportPictureReader : IAsyncDisposable
                     StartTime = _asset.StartTime,
                     FirstSamplePoint = IsStill ? SourceFrameSelector.StillImage : point,   // a still: from its file's start
                     NominalFrameRate = _asset.NominalFrameRate,
-                    MaxWidth = ExportDecodeSettings.FullResolutionBound,
-                    MaxHeight = ExportDecodeSettings.FullResolutionBound,
+                    // D077 §2: the clip's drawn size where it is always drawn smaller than its source, else the full size.
+                    MaxWidth = _decodeBound?.Width ?? ExportDecodeSettings.FullResolutionBound,
+                    MaxHeight = _decodeBound?.Height ?? ExportDecodeSettings.FullResolutionBound,
                     Hardware = _settings.Hardware,
                     Hdr = _asset.Hdr,   // D033: the same conversion as the Preview
                     StrictEnd = true,  // a decoder failing after some frames is an export error, never a held frame

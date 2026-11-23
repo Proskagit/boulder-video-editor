@@ -46,6 +46,8 @@ public sealed class ExportFrameSource : IAsyncDisposable
     private readonly Dictionary<Guid, ZonesOf> _zones;   // the clips a Dissolve or a Push extends (D025 §3–§4)
     private readonly long _firstFrame;
     private readonly FrameSize _target;
+    private readonly ExportOutput _output;
+    private IReadOnlyDictionary<Guid, FrameSize>? _decodeBounds;   // computed by the first frame's request (cancellable)
     private long _lastIndex = -1;
     private bool _disposed;
 
@@ -61,6 +63,7 @@ public sealed class ExportFrameSource : IAsyncDisposable
         _firstFrame = output.FirstFrame;
         _target = output.Size;
         _zones = ZonesByClip(snapshot);
+        _output = output;
     }
 
     /// <summary>For every picture span a Dissolve or a Push extends, its zones (the readers fail on a held zone frame).</summary>
@@ -87,6 +90,8 @@ public sealed class ExportFrameSource : IAsyncDisposable
         if (index <= _lastIndex)
             throw new InvalidOperationException($"Frames must be requested in ascending order ({index} after {_lastIndex}).");
         _lastIndex = index;
+        // D077 §2: the clips decoded smaller than their source, once, before any reader opens; cancelled with the export.
+        _decodeBounds ??= _settings.DecodeAtDrawnSize ? ExportDecodeSizes.For(_snapshot, _output, ct) : new Dictionary<Guid, FrameSize>();
 
         var timelineFrame = _firstFrame + index;
         var time = MediaTime.FromFrame(timelineFrame, _snapshot.FrameRate);
@@ -125,7 +130,8 @@ public sealed class ExportFrameSource : IAsyncDisposable
         if (span.Status is not (SpanStatus.Video or SpanStatus.StillImage) || !_snapshot.Assets.TryGetValue(span.AssetId, out var asset))
             throw new ExportException(ExportFailure.DecodeFailed,
                 $"A clip at {span.TimelineStart} can't be exported ({span.Status}{(span.Reason is null ? "" : ": " + span.Reason)}).");
-        reader = new ExportPictureReader(span, asset, _snapshot.FrameRate, _decoder, _settings, _zones.GetValueOrDefault(span.ClipId));
+        reader = new ExportPictureReader(span, asset, _snapshot.FrameRate, _decoder, _settings, _zones.GetValueOrDefault(span.ClipId),
+            _decodeBounds!.TryGetValue(span.ClipId, out var bound) ? bound : null);
         _readers[span.ClipId] = reader;
         return reader;
     }

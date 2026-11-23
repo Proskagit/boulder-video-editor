@@ -42,12 +42,16 @@ public sealed class ExportService : IExportService
     private readonly Func<ICompositionRasterizer> _rasterizerFactory;
     private readonly ILogger<ExportService> _logger;
     private readonly ExportPipelineSettings _pipeline;
+    private readonly ExportDecodeSettings _decode;
 
     /// <param name="pipeline">How many frames are worked on at once (D059 E2); null = chosen per export.</param>
+    /// <param name="decode">How the sources are decoded (D077 §2: at their drawn size by default); null = the defaults.</param>
     public ExportService(IFfmpegLocator locator, IVideoDecoder videoDecoder, IAudioDecoder audioDecoder, IExportEncoder encoder,
-        Func<ICompositionRasterizer> rasterizerFactory, ILogger<ExportService> logger, ExportPipelineSettings? pipeline = null)
+        Func<ICompositionRasterizer> rasterizerFactory, ILogger<ExportService> logger, ExportPipelineSettings? pipeline = null,
+        ExportDecodeSettings? decode = null)
     {
         _pipeline = pipeline ?? new ExportPipelineSettings();
+        _decode = decode ?? new ExportDecodeSettings();
         _locator = locator ?? throw new ArgumentNullException(nameof(locator));
         _videoDecoder = videoDecoder ?? throw new ArgumentNullException(nameof(videoDecoder));
         _audioDecoder = audioDecoder ?? throw new ArgumentNullException(nameof(audioDecoder));
@@ -82,7 +86,7 @@ public sealed class ExportService : IExportService
         try
         {
             progress?.Report(new ExportProgress(ExportStage.Preparing, 0, 1));
-            await ExportTransitionSourceCheck.RunAsync(job.Snapshot, output, _videoDecoder, new ExportDecodeSettings(), ct);
+            await ExportTransitionSourceCheck.RunAsync(job.Snapshot, output, _videoDecoder, _decode, ct);
 
             // D059 §3: a hardware encoder that fails (at its start or in the middle) never leaves a partial file — the
             // encoding is abandoned like any failure and the export starts again on the processor with the same codec and settings (D076). A second
@@ -186,7 +190,7 @@ public sealed class ExportService : IExportService
     {
         // D059 E2 (replaces D024 Step 9.7 "A", one frame fetched ahead): decoders → bounded queue → the rasterizers in
         // parallel → the encoder in frame order. The frame source is disposed only after every stage has ended.
-        await using var frames = new ExportFrameSource(job.Snapshot, _videoDecoder, output: job.Output);
+        await using var frames = new ExportFrameSource(job.Snapshot, _videoDecoder, _decode, job.Output);
         await new ExportVideoPipeline(frames, rasterizers, encoding, job.Output, queued, _logger).RunAsync(progress, ct);
     }
 }

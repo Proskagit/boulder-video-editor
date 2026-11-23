@@ -41,7 +41,7 @@ public sealed class ExportDissolveEndToEndTests
     private async Task<ExportRun> Export(ProjectBuilder p, string name)
     {
         Assert.Null(TransitionRules.ValidateTrack(p.Project.Timeline.VideoTracks[0], p.Rate));
-        var run = await ExportProject(p.Project, Path.Combine(_media.OutputFolder(), name + ".mp4"));
+        var run = await ExportProject(p.Project, Path.Combine(_media.OutputFolder(), name + ".mp4"), PainterParity);
         AssertValidMp4(run);
         return run;
     }

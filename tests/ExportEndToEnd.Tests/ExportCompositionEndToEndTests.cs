@@ -70,7 +70,7 @@ public sealed class ExportCompositionEndToEndTests
     public async Task Scene_exports_to_a_valid_mp4_that_matches_the_canvases_and_the_preview(string name)
     {
         var project = Scene(name);
-        var run = await ExportProject(project.Project, Path.Combine(_media.OutputFolder(), name + ".mp4"));
+        var run = await ExportProject(project.Project, Path.Combine(_media.OutputFolder(), name + ".mp4"), PainterParity);
 
         AssertValidMp4(run);
         var decoded = EncoderHarness.DecodeFrames(run.Path, run.Output.Size.Width, run.Output.Size.Height);

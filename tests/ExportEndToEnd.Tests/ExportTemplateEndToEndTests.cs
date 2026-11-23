@@ -21,7 +21,7 @@ public sealed class ExportTemplateEndToEndTests
     public ExportTemplateEndToEndTests(E2EMedia media) => _media = media;
 
     private Task<ExportRun> Export(ProjectBuilder p, string name) =>
-        ExportProject(p.Project, Path.Combine(_media.OutputFolder(), name + ".mp4"));
+        ExportProject(p.Project, Path.Combine(_media.OutputFolder(), name + ".mp4"), PainterParity);
 
     /// <summary>The pattern with its tone on V1, music on A1, the four templates one after another on V2 (and a text on V1's
     /// second half under them).</summary>

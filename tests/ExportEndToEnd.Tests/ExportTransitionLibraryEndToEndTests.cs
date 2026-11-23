@@ -50,7 +50,7 @@ public sealed class ExportTransitionLibraryEndToEndTests
         foreach (var track in p.Project.Timeline.VideoTracks)
             Assert.Null(TransitionRules.ValidateTrack(track, p.Rate));
         Assert.Null(TransitionRules.ValidateFillPeaks(p.Project.Timeline.VideoTracks));
-        var run = await ExportProject(p.Project, Path.Combine(_media.OutputFolder(), name + ".mp4"));
+        var run = await ExportProject(p.Project, Path.Combine(_media.OutputFolder(), name + ".mp4"), PainterParity);
         AssertValidMp4(run);
         return run;
     }

@@ -47,7 +47,18 @@ internal sealed class TimedDecoder(IVideoDecoder inner) : IVideoDecoder
     public long Frames => Interlocked.Read(ref _frames);
 
     public async Task<IVideoFrameStream> OpenAsync(VideoDecodeRequest request, CancellationToken ct = default) =>
-        new Stream(await inner.OpenAsync(request, ct), this);
+        new Stream(await inner.OpenAsync(Experiment(request), ct), this);
+
+    /// <summary>FU-EX.2 research only (never the app's behaviour): <c>AIVE_BENCH_HWDEC=1</c> decodes the export's sources with
+    /// <c>-hwaccel auto</c>; <c>AIVE_BENCH_DECODE_MAX=WxH</c> has the decoder scale the sources down to that bound (the
+    /// painter then draws the smaller frame onto the same rectangle).</summary>
+    private static VideoDecodeRequest Experiment(VideoDecodeRequest request)
+    {
+        if (Environment.GetEnvironmentVariable("AIVE_BENCH_HWDEC") == "1") request = request with { Hardware = HardwareDecoding.Auto };
+        if (Environment.GetEnvironmentVariable("AIVE_BENCH_DECODE_MAX") is { Length: > 0 } max && max.Split('x') is [var w, var h])
+            request = request with { MaxWidth = int.Parse(w), MaxHeight = int.Parse(h) };
+        return request;
+    }
 
     private sealed class Stream(IVideoFrameStream inner, TimedDecoder owner) : IVideoFrameStream
     {

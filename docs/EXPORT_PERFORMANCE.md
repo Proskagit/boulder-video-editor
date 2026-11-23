@@ -225,3 +225,108 @@ the rate scale as for H.264 (§6). The range stays 0.6–1.6× the median — «
 
 Limits: the same as §5 (climbing footage of one gym, a steady camera; one driver); the HEVC / AV1 values must be re-checked when the
 driver or FFmpeg changes (`calibrate`, the settings `x265:` / `svtav1:` / `hevcnvenc:` / `av1nvenc:`).
+
+## 9. FU-EX.2 research (2026-11-23): the export on the graphics card
+
+The owner's question after Phase 57: how hard is it to move the export to the graphics card, and does it give 2–3×? Measured
+2026-11-23 on the target machine (RTX 4070 SUPER, driver 621.24), the minimal FFmpeg 9.0.2 of 1.10.0 (the app's) and gyan.dev
+9.0.1 (CUDA filters, NVDEC — the ceilings only). Source `12x10\1014(2).mp4` / `1014.mp4` (4K60 H.264), 600 frames; the app's
+numbers by `tools/export-bench` (2 runs, median), scenario `4k`. No code of the app changed.
+
+### 9.1 The ceilings — what a pipeline entirely on the GPU could reach
+
+`ffmpeg -hwaccel cuda -hwaccel_output_format cuda` → NVENC with the export's exact options (`-tune hq`, spatial AQ, look-ahead 20,
+3 B-frames, `-multipass qres`): the frames never leave the card, nothing is drawn — the upper bound of any GPU export.
+
+| preset (the export's encoder) | the app today, fps | the ceiling on the GPU, fps | at most |
+|---|---|---|---|
+| «Максимальный» 4K, H.264 p7 multipass CQ 19 | 45.4 | 78.5 | ×1.7 |
+| «Высокий» 4K, H.264 p7 multipass CQ 20 | ~45 | 78.5 | ×1.7 |
+| «Высокое» by hand 4K, H.264 p5 CQ 22 | ~45 | 65.4 | ×1.45 |
+| 4K, AV1 p7 multipass | 46 (§8.3) | 74.8 | ×1.6 |
+| 4K, HEVC p7 multipass, High tier | 41.6 (§8.3) | 41.1 | ×1.0 — NVENC itself |
+| 4K, H.264 p2 («Очень быстро») | 46.6 | 166.6 | ×3.6 |
+| «Средний» 2K, AV1 p5 CQ 28 | 61.1 | 204 | ×3.3 |
+| «Быстрый» Full HD, H.264 p2 CQ 25 | 69.4 | 229 | ×3.3 |
+
+- **At the 4K quality presets the encoder is the wall:** NVENC encodes 4K at p7 / p5 at 65–78 fps however the frames arrive. Two or
+  three NVENC sessions at once give 61 / 63 / 65 fps in total (the card's encoders are already in use); `-split_encode_mode forced`
+  changes nothing (H.264 has none; HEVC / AV1 the same speed). So no GPU pipeline makes «Максимальный» / «Высокий» 2–3× faster:
+  **×1.7 at most**.
+- 2–3× is possible only where NVENC is fast: the downscaled presets («Средний», «Быстрый») and p1–p4 at 4K.
+
+### 9.2 Where the 4K export loses its time today
+
+- **The pipeline is capped at ~46 fps at 4K whatever the encoder:** p2 (NVENC ceiling 167) 46.6, p7 45.4; 2, 4, 8 rasterizers 43.7 /
+  47.5 / 46.5.
+- **A shared resource, not one slow stage:** two 4K exports at once make 23.2 + 23.2 = 46.4 fps in total (the system's CPU 14.9 of 16).
+- **CPU by process** (4K, «Максимальный», 46 fps): the app 3.8 cores (the frame into the bitmap, Skia, the read-back, the pipes), the
+  decoder's ffmpeg 4.6 (H.264 decoding, YUV → BGRA, the pipe), the encoder's ffmpeg 2.0 (the pipe, BGRA → YUV, NVENC).
+- **Decoding on the GPU (`-hwaccel auto`, D3D11VA) in the export:** the decoder 4.6 → 3.0 cores, the speed unchanged — 45.7 / 63.5 /
+  71.3 fps («Максимальный» / «Средний» / «Быстрый», +0.7–3 %). And its 4K BGRA frames are **not the bytes of the software decoder**
+  (the MP4's SHA-256 changed), so the export would no longer be deterministic. Not worth it.
+- **The encoder's colour conversion on the GPU** (NVENC fed BGRA, converting itself) in one ffmpeg: 75.0 fps against 75.6 with the CPU
+  conversion — no gain (the CPU conversion is multithreaded and cheap); CUDA `scale_cuda` cannot convert BGRA at all.
+- **The app's decoder alone** (the export's request, high-throughput pipe, frames dropped): 103 fps software, 108 hardware — 2.2× the
+  export's 46 fps; ffmpeg alone decodes the same file to BGRA at 157 fps.
+- So the limit is **the memory traffic of the 4K BGRA frames**: every 33 MB frame passes the memory about fifteen times (decode,
+  YUV → BGRA, the pipe both ways, the read into an array, the bitmap copy, the draw, the read-back, the encoder's pipe both ways, BGRA →
+  YUV) — fewer cores busy (hardware decoding) does not help, fewer passes would. `DOTNET_GCRetainVM=1` (memory kept instead of handed
+  back and re-committed for every 33 MB frame): 45.4 → 47.2 fps (+4 %), the same bytes.
+
+### 9.3 A finding: scaling the sources in the decoder (no GPU)
+
+A 4K source in a Full HD / 2K export is decoded, carried and copied at 4K and only the painter stretches it onto the smaller canvas
+(§7). Decoded at the size it is drawn at (the bench's `AIVE_BENCH_DECODE_MAX`, the decoder's own `scale`):
+
+| preset | today | decoded at the output size | × |
+|---|---|---|---|
+| «Быстрый» (Full HD, H.264 p2) | 69.4 | 151.7 (159.3 with hardware decoding) | **×2.2** |
+| «Средний» (2K, AV1 p5) | 61.1 | 98.8 | **×1.6** |
+
+The picture (lossless canvases, 180 frames, Full HD): PSNR 50.3 dB / VMAF 99.5 against today's canvases — the same to the eye — and
+slightly closer to a Lanczos downscale of the source (46.9 dB against today's 46.2). The canvases are not byte-identical to today's:
+these presets' files change. Not measured: crops, zooms, Motion Tracking Camera, picture in picture and the blurred background (the
+size a clip is decoded at must follow its largest drawn size over the whole clip, and `FrameSourceRect` its source pixels).
+
+### 9.4 What the GPU export would take
+
+The whole frame on the card: NVDEC, the composition, NVENC without a read-back. The composition is the Preview's painter
+(`CompositionPainter`, `TemplatePainter`, `SummaryPainter`, the text glyph cache, the treatment surface — about 3 300 lines on Avalonia /
+Skia, drawing frames with colour correction and transition effects, the HDR LUT graph, the blurred background, texts with outlines and
+shadows, templates (VHS, «Боулдер», «Итоги»…), hold outlines, the heart rate, people overlays): it would need **a second renderer**
+on the GPU (D3D11 / CUDA, with the decoder's and the encoder's surfaces shared in-process — libav in the app instead of ffmpeg
+processes, or a minimal FFmpeg rebuilt with CUDA filters), and Preview = export, built today by construction (one painter), would have
+to be measured instead. A large architectural change (D059 §8 rejected it for the same reasons) for ×1.7 at most on the 4K quality
+presets.
+
+### 9.5 The conclusion
+
+- **The «pure GPU» export is not a calm change and does not give 2–3× where it matters:** at 4K with the quality presets NVENC itself
+  stops at 65–78 fps (×1.45–1.7 at most), and the cost is a second renderer.
+- **A hybrid on the GPU (hardware decoding, the conversion on the card) gives 0–4 %** — the CPU cores were not the limit.
+- **Without the GPU (ROADMAP FU-EX.2):** (c) decoding at the drawn size — ×2.2 «Быстрый», ×1.6 «Средний» (and every export below the source's size);
+  (a) fewer passes of the 4K frames (D059 E6: a frame buffer pool / `GCRetainVM` +4 %, the decoded frame straight into the bitmap, the
+  canvas straight into the encoder's buffer) — estimated +10–25 % at 4K. Each a phase of its own, on the owner's word.
+
+## 10. Phase 58 (D077): decoding at the drawn size, the block copy
+
+Measured 2026-11-23 on the target machine, the minimal FFmpeg 9.0.2 of 1.10.0, `tools/export-bench`, 600 frames, median of 2
+(4K «Максимальный» of 3). «Before» = the same build with the decoder forced to full size (`AIVE_BENCH_DECODE_MAX=16384x16384`)
+or 1.10.0's numbers of §9; NVENC everywhere.
+
+| scenario | encoding | before, fps | after, fps | × | MP4 |
+|---|---|---|---|---|---|
+| `4k` | «Быстрый» (Full HD, H.264 p2) | 69.4 | 150.1 | **2.16** | changed |
+| `4k` | «Средний» (2K, AV1 p5) | 61.1 | 96.8 | **1.58** | changed |
+| `4k-1080` | «Максимальный» (H.264 p7) | 66.4 | 148.7 | **2.24** | changed |
+| `vert` (4K → 1080 × 1920) | «Максимальный» | 65.7 | 188.3 | **2.87** | changed |
+| `vert-blur` | «Максимальный» | 65.5 | 160.5 | **2.45** | changed |
+| `hevc-vert` (HDR HLG → 1080 × 1920) | «Максимальный» | 34.4 | 76.1 | **2.21** | changed |
+| `tracks2` (two 4K layers, picture in picture) | «Максимальный» | 30.0 | 39.6 | 1.32 | changed |
+| `4k` | «Максимальный» (4K, H.264 p7 multipass) | 45.4 | 48.6 | 1.07 | **identical** |
+
+The peak working set fell with the frames (vertical 1.8 → 0.6 GB). The picture: VMAF 99.5 / PSNR 50.3 dB against the full-size
+canvases at Full HD; against a Lanczos downscale of the source the new canvases are closer (Full HD 46.9 against 46.2 dB; vertical
+41.0 against 37.1 — the painter's 3.5× shrink of a 4K frame aliased the wall's texture, which also cost bits: 11.2 → 7.0 Mbit/s at
+the same CQ). 4K exports of 4K footage keep their bytes; the 4K limit stays the memory traffic of §9.2.
