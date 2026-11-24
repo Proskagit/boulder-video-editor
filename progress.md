@@ -14,7 +14,9 @@ box «Динамический масштаб». Manual plan `docs/PHASE61_MANUA
 `--no-incremental -warnaserror` 0 / 0, `git diff --check` clean; Debug and Release + `AIVE_HEAVY_TESTS=1`: Vision 38, Project 789,
 Core 2 033, Export 153, Rendering 290, UI 1 382, Timeline 1 277, Video 439 (+2 skips), ExportEndToEnd 191 = 6 592. Review
 `phase-reviewer`: FAIL (the gates not recorded; the height filled linearly through a long loss) → fixed (the anchor's glide / hold
-+ ease rule, the share kept while off, the Inspector's resolution cached, more tests) → re-review below.
++ ease rule, the share kept while off, the Inspector's resolution cached, more tests) → **PASS WITH NOTES** (notes: the corner drag
+tested only through the wheel's shared path, the automatic percentage in the Inspector only in the manual plan, the wheel below
+«Заполнить» shows no change). Portable `artifacts/portable/BoulderVideoEditor-1.14.0-win-x64` (from `5d9dc67`).
 
 **Before (2026-11-24):** Phase 60 accepted by the owner (check of 1.13.1, PR #90 merged `48bf90a`); the release
 **v1.13.1** built from `48bf90a` by `New-Release.ps1` (setup, web setup, portable zip, the FFmpeg sources tar, `SHA256SUMS`),
