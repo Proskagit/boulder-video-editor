@@ -115,9 +115,16 @@ internal sealed class FollowBlend
 public sealed record FollowFramingPart(int Index, FollowPath Path, MediaTime From, MediaTime To, double OffsetX = 0, double OffsetY = 0,
     TransformKeyframes? Keyframes = null)
 {
-    /// <summary>The part's framing at <paramref name="time"/> (<see cref="FollowPart.FramingAt"/>).</summary>
-    public TransformValue FramingAt(MediaTime time, double clipScale) =>
-        Keyframes is { } keys ? keys.At(time) : new TransformValue(OffsetX, OffsetY, clipScale);
+    /// <summary>D080: the part's dynamic scale per source time, or null (the scale of its keyframes, else the clip's).</summary>
+    public FollowZoomCurve? Zoom { get; init; }
+
+    /// <summary>The part's framing at <paramref name="time"/> (<see cref="FollowPart.FramingAt"/>); with the dynamic scale its
+    /// scale is the curve's.</summary>
+    public TransformValue FramingAt(MediaTime time, double clipScale)
+    {
+        var framing = Keyframes is { } keys ? keys.At(time) : new TransformValue(OffsetX, OffsetY, clipScale);
+        return Zoom is { } zoom ? framing with { Scale = zoom.At(time) } : framing;
+    }
 }
 
 /// <summary>
@@ -148,7 +155,7 @@ public sealed class FollowFraming
 
     /// <summary>D063: some part has its own scale (framing keyframes) — the picture drawn may then be smaller than the clip's
     /// own transform, so the layer never hides what is below it on that account (<see cref="Composition.PictureLayer.OccludesBelow"/>).</summary>
-    public bool HasPartScale => Parts.Any(p => p.Keyframes is not null);
+    public bool HasPartScale => Parts.Any(p => p.Keyframes is not null || p.Zoom is not null);
 
     /// <summary>The clip's static values (its rotation, opacity and crop are always these).</summary>
     public VisualProperties Visual { get; }

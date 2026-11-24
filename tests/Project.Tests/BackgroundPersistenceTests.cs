@@ -75,6 +75,6 @@ public class BackgroundPersistenceTests
     {
         // FU-PF.1 reads the version first: what a v18 build does with this file is «newer», never «damaged».
         var json = Save(Build());
-        Assert.True(ProjectSerializer.PeekNewerVersion(json.Replace("\"formatVersion\": 29", "\"formatVersion\": 30"), ProjectSerializer.FormatId));
+        Assert.True(ProjectSerializer.PeekNewerVersion(json.Replace("\"formatVersion\": 30", "\"formatVersion\": 31"), ProjectSerializer.FormatId));
     }
 }

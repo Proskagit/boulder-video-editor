@@ -193,6 +193,27 @@ public class PeopleCompositionTests
     }
 
     [Fact]
+    public void A_part_with_the_dynamic_scale_is_drawn_zoomed_and_the_export_takes_the_same_framing()
+    {
+        // D080: a climber walking away (his box 40 % → 20 % of the frame's height); the snapshot the Preview and the export draw
+        // from carries the zoomed framing — the picture is larger late than early, the canvas always covered.
+        Clip(new FollowSettings(ImmutableArray.Create(new FollowPart(DynamicScale: true, ScaleShare: 0.5))), scale: 1, routes: true);
+        var away = Tracks(Enumerable.Range(0, 101).Select(i => new[] { Person(0.5, 0.5, w: 0.2 - i * 0.001, h: 0.4 - i * 0.002) }).ToArray());
+        var people = With(away);
+        double Width(CompositionDrawPlan plan) => plan.Operations.OfType<FrameDraw>().Single().Transform is var m ? Math.Sqrt(m.A * m.A + m.B * m.B) : 0;
+        var early = PlanOn(1, people);
+        var late = PlanOn(9, people);
+        Assert.True(Width(late) > Width(early) * 1.5, $"{Width(early)} → {Width(late)}");
+        Assert.Equal(late.Operations.OfType<FrameDraw>().Single().Transform, late.Operations.OfType<OutlineDraw>().Single().Transform);
+
+        var job = Preflight(new ExportPeople(people, new HashSet<Guid>())).Job!;
+        var framing = job.Snapshot.VideoLayers[0].Spans[0].Follow!;
+        var preview = PlaybackSnapshotBuilder.Build(_project, 1, people: people).VideoLayers[0].Spans[0].Follow!;
+        foreach (var t in new[] { 1.0, 4.5, 9.0 })
+            Assert.Equal(preview.At(S(t)), framing.At(S(t)));
+    }
+
+    [Fact]
     public void A_followed_part_whose_keyframes_zoom_out_never_hides_the_track_below()
     {
         // D063 review: V2 at scale 3 covers the canvas, but its followed part zooms to 0.8 — the layer below must stay drawn.

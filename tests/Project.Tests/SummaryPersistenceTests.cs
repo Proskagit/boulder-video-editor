@@ -52,7 +52,7 @@ public class SummaryPersistenceTests
     {
         var first = Save(Build());
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(29, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(30, root["formatVersion"]!.GetValue<int>());
         Assert.Equal("Summary", Clip(root, 1)["template"]!.GetValue<string>());
         Assert.True(Clip(root, 1)["ownBackground"]!.GetValue<bool>());
         Assert.Equal("Flash", Clip(root, 0)["status"]!.GetValue<string>());
@@ -109,7 +109,7 @@ public class SummaryPersistenceTests
         Assert.Null(area.Attempts);
         Assert.Equal(TemplateLanguage.Russian, area.Language);
         Assert.False(loaded.Timeline.VideoTracks[0].Clips.OfType<TemplateClip>().Last().OwnBackground);
-        Assert.Equal(29, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(30, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
     }
 
     [Fact]

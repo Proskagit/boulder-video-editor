@@ -311,7 +311,7 @@ public class ExportEncodingPersistenceTests
 
         Assert.Equal(export, loaded.Settings.Export);
         Assert.Equal(json, ProjectSerializer.Serialize(loaded, Folder));
-        Assert.Equal(29, Json(loaded)["formatVersion"]!.GetValue<int>());   // D076: v29
+        Assert.Equal(30, Json(loaded)["formatVersion"]!.GetValue<int>());   // D076: v29
     }
 
     [Fact]

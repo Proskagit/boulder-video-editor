@@ -901,6 +901,32 @@ public sealed class PreviewTransformUiTests : IAsyncLifetime
     }
 
     [Fact]
+    public void On_a_part_with_the_dynamic_scale_the_wheel_changes_the_climbers_share_not_the_clips_scale()
+    {
+        // D080 (Q4): the picture 10 % bigger → the climber's share 10 % bigger; the clip's own scale stays; one undo step.
+        var clip = AddVideo();
+        Assert.True(_edit.SetClipFollow(clip.Id, FollowSettings.Whole(dynamicScale: true)).Success);
+        Tool.FollowAt = (c, t) => (0, VisualProperties.Of(c)!.Value with { Scale = 1.5 });
+        Tool.FollowShareAt = (c, t) => c.Follow!.Parts[0].ScaleShare ?? 0.3;        // automatic: 30 % (the analysis stubbed)
+        var steps = Steps();
+        Assert.True(Tool.ActivateFor(clip.Id));
+        Assert.Equal(0.3, Tool.Target!.FollowShare);
+        Assert.True(Tool.WheelScale(1.1));
+        Assert.Equal(0.33, clip.Follow!.Parts[0].ScaleShare!.Value, 4);
+        Assert.Equal(1, Visual(clip).Scale);
+        Assert.Equal(steps + 1, Steps());
+        _undo.Undo();
+        Assert.Null(clip.Follow!.Parts[0].ScaleShare);
+
+        // Without the dynamic scale the wheel scales the clip as before.
+        Assert.True(_edit.SetClipFollow(clip.Id, FollowSettings.Whole()).Success);
+        Tool.Refresh();
+        Assert.Null(Tool.Target!.FollowShare);
+        Assert.True(Tool.WheelScale(1.1));
+        Assert.Equal(1.65, Visual(clip).Scale, 9);             // the picture shown at 1.5 × 1.1, written to the clip (D063)
+    }
+
+    [Fact]
     public void On_a_followed_part_the_frame_is_where_Follow_puts_it_and_a_drag_moves_the_climber_in_one_undo_step()
     {
         var clip = AddVideo();

@@ -2,7 +2,23 @@
 
 ## Current phase
 
-**No phase in progress (2026-11-24).** Phase 60 accepted by the owner (check of 1.13.1, PR #90 merged `48bf90a`); the release
+**Phase 61 — Follow keeps the climber at a scale; the Inspector's order (D080, 2026-11-24) — implemented, the owner's manual
+check open** on `feat/phase-61-follow-zoom` (from `origin/main` `79bf086`; `project.json` **v30**). **Step 0:** PR #91 merged.
+**Step 1:** the Inspector's sections in the owner's order (a clip: Трансформация, the text sections, Слежение и люди, Зацепки, FIT,
+Цвет, Появление, Звук, Клип last; a group: Кадр, Зацепки, Цвет, Звук), the rail lit by the nearest section above the top.
+**Step 2:** «Динамический масштаб» / «Масштаб, %» per followed part (`FollowPart.DynamicScale` / `ScaleShare`, `FollowZoom`, the
+curve in `FollowFramingPart.Zoom` read by `FollowFraming` — Preview = export); the automatic share ≤ 1.2 × the starting frame within
+the source's reserve; a clip scaled by hand starts Follow with it off (the owner's Q3); Q4 — the Preview's corner scale / Ctrl + wheel
+change the share. Owner's answers: Q1 A, Q2 A (+ the ~20 % default, to calibrate), Q3 two independent scales, Q4 A, Q5 the check
+box «Динамический масштаб». Manual plan `docs/PHASE61_MANUAL_TEST_PLAN.md`. **Gates (2026-11-24):** Debug / Release
+`--no-incremental -warnaserror` 0 / 0, `git diff --check` clean; Debug and Release + `AIVE_HEAVY_TESTS=1`: Vision 38, Project 789,
+Core 2 033, Export 153, Rendering 290, UI 1 382, Timeline 1 277, Video 439 (+2 skips), ExportEndToEnd 191 = 6 592. Review
+`phase-reviewer`: FAIL (the gates not recorded; the height filled linearly through a long loss) → fixed (the anchor's glide / hold
++ ease rule, the share kept while off, the Inspector's resolution cached, more tests) → **PASS WITH NOTES** (notes: the corner drag
+tested only through the wheel's shared path, the automatic percentage in the Inspector only in the manual plan, the wheel below
+«Заполнить» shows no change). Portable `artifacts/portable/BoulderVideoEditor-1.14.0-win-x64` (from `5d9dc67`).
+
+**Before (2026-11-24):** Phase 60 accepted by the owner (check of 1.13.1, PR #90 merged `48bf90a`); the release
 **v1.13.1** built from `48bf90a` by `New-Release.ps1` (setup, web setup, portable zip, the FFmpeg sources tar, `SHA256SUMS`),
 `Test-Installer.ps1` 49 / 49 PASS, a GitHub draft release with its assets and Russian notes, published by the owner (Phases 59 and 60 since v1.11.0; 1.12.x were portable builds only). README
 gained Phase 59's falls / lift-off and the background badge. Next: Phase 61 (Follow keeps the climber at a scale) — not started.

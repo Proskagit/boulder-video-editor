@@ -826,6 +826,14 @@ internal sealed class FollowPartDto
     /// <summary>Format v24 (D063 §4): the part's framing keyframes (the offset and the scale); written only when it has some.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<KeyframeDto>? Keyframes { get; set; }
+
+    /// <summary>Format v30 (D080): «Динамический масштаб» (written only when on) and the user's share of the frame's height
+    /// (absent: automatic; kept while the scale is off, so turning it on again brings the user's share back).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? DynamicScale { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? ScaleShare { get; set; }
 }
 
 /// <summary>Format v24 (D063): one transform keyframe — its id, its source time (100 ns ticks), its values and the easing of

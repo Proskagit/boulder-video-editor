@@ -140,7 +140,7 @@ public class NewTextFontSizeTests
             var folder = Path.Combine(root, "Project");
             await f.Projects.SaveAsAsync(folder);
             var file = Path.Combine(folder, "project.json");
-            Assert.Contains("\"formatVersion\": 29", File.ReadAllText(file));
+            Assert.Contains("\"formatVersion\": 30", File.ReadAllText(file));
             var bytes = File.ReadAllBytes(file);
 
             var reopened = await f.Projects.OpenAsync(folder);

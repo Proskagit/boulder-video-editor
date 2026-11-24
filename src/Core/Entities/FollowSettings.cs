@@ -28,10 +28,17 @@ public enum FollowSmoothness
 /// so near the picture's edge the person can stand nearer the centre than asked.</para>
 /// <para><see cref="Keyframes"/> (format v24, D063 §4): the part's own transform keyframes — the offset and the scale per
 /// source time; independent of the clip's keyframes.</para>
+/// <para><see cref="DynamicScale"/> / <see cref="ScaleShare"/> (format v30, D080): «Динамический масштаб» — the picture's scale
+/// follows the climber so he keeps <see cref="ScaleShare"/> of the frame's height (null: the automatic share,
+/// <see cref="People.FollowZoom"/>); the part's own scale, independent of the clip's (the clip's scale and keyframes are not
+/// used for the picture inside the part, a part's keyframes keep their place X / Y). Off — the scale as before D080.</para>
 /// </summary>
 public sealed record FollowPart(MediaTime? From = null, MediaTime? To = null, MediaTime? TargetTime = null, NormalizedPoint? TargetPoint = null,
-    double OffsetX = 0, double OffsetY = 0, TransformKeyframes? Keyframes = null)
+    double OffsetX = 0, double OffsetY = 0, TransformKeyframes? Keyframes = null, bool DynamicScale = false, double? ScaleShare = null)
 {
+    /// <summary>Whether <see cref="ScaleShare"/> is within the limits (null — automatic).</summary>
+    public bool HasValidScaleShare => ScaleShare is not { } s || (double.IsFinite(s) && s >= People.FollowZoom.MinShare && s <= People.FollowZoom.MaxShare);
+
     /// <summary>D063 §4 (format v24): the part's framing per source time — the climber's place in the frame
     /// (<see cref="TransformValue.X"/> / <see cref="TransformValue.Y"/>, as <see cref="OffsetX"/> / <see cref="OffsetY"/>) and
     /// the picture's scale while the part follows; null — the static offset and the clip's own scale.</summary>
@@ -73,8 +80,8 @@ public sealed record FollowSettings
 
     /// <summary>Follow on the whole clip (one open part), optionally with the person picked.</summary>
     public static FollowSettings Whole(FollowSmoothness smoothness = FollowSmoothness.Normal, MediaTime? targetTime = null,
-        NormalizedPoint? targetPoint = null) =>
-        new(ImmutableArray.Create(new FollowPart(TargetTime: targetTime, TargetPoint: targetPoint)), smoothness);
+        NormalizedPoint? targetPoint = null, bool dynamicScale = false) =>
+        new(ImmutableArray.Create(new FollowPart(TargetTime: targetTime, TargetPoint: targetPoint, DynamicScale: dynamicScale)), smoothness);
 
     /// <summary>Follow made of one part.</summary>
     public static FollowSettings Of(FollowPart part, FollowSmoothness smoothness = FollowSmoothness.Normal) =>
@@ -119,6 +126,7 @@ public sealed record FollowSettings
         for (var i = 0; i < parts.Length; i++)
         {
             var p = parts[i];
+            if (!p.HasValidScaleShare) return false;
             if (p.From is { } f && p.To is { } t && f >= t) return false;
             if (i == 0) continue;
             var before = parts[i - 1];

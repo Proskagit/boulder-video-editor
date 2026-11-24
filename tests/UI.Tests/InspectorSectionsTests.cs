@@ -63,8 +63,9 @@ public sealed class InspectorSectionsTests : IDisposable
         // «Скорость» one; «Зацепки», «Тренировка», «Звук», «Клип» apart.
         // D068 amendment 1: in the rail's groups — Clip, Text / Template, People, Holds, FIT, Sound.
         // D069 amendment 2: the group's sections too, in the same groups.
-        Assert.Equal(new[] { "media", "media.tech", "group.frame", "group.color", "group.audio", "group.holds", "frame", "color", "timing", "clip", "template", "text", "text.animation", "people", "holds",
-            "training", "fit", "audio" }, ids);
+        // D080 §2 (the owner, 2026-11-24): Трансформация, Слежение, Зацепки, FIT, Цвет, Появление, Звук, Клип last.
+        Assert.Equal(new[] { "media", "media.tech", "group.frame", "group.holds", "group.color", "group.audio", "frame", "template", "text", "text.animation", "people", "holds",
+            "training", "fit", "color", "timing", "audio", "clip" }, ids);
         Assert.Equal(ids.Count, ids.Distinct().Count());
         Assert.Empty(view.GetLogicalDescendants().OfType<TabControl>());
     }
