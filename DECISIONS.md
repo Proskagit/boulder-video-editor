@@ -12475,7 +12475,7 @@ but still taking the list's 16 px spacing, one per hidden section. A category pa
 
 ## D080 — Phase 61: Follow keeps the climber at a scale; the Inspector's sections in the owner's order *(set by the owner on 2026-11-24)*
 
-**Status: proposed — waiting for the owner's answers to the product questions in §6** (nothing implemented yet). The scope set by
+**Status: implemented 2026-11-24 — waiting for the owner's manual check** (the answers to §6 below; `docs/PHASE61_MANUAL_TEST_PLAN.md`). The scope set by
 the product owner on 2026-11-24. Branch `feat/phase-61-follow-zoom` from `main` `79bf086`. `project.json` **v29 → v30** (one new
 field of a followed part, §3.4).
 
@@ -12594,11 +12594,38 @@ of a real project.
   the **automatic default zooms in by about 20 % over the part's starting frame** at most (`FollowZoom.AutoMaxZoom = 1.2`, to be
   calibrated on the owner's footage in the manual check) — replacing §3.4's «one source pixel» rule as the cap of the default;
   the user's own value is not capped by it.
-- **Q3 — B** in the owner's words: «if the user has already set the frame's scale, Follow takes that scale and centres the climber
-  at it» — the precise reading is being confirmed with the owner (step 2 waits for it; see the clarification below).
+- **Q3 — the owner's rule (his clarification of the same day): two independent scales, never linked.** The clip's own scale
+  (Трансформация и кадрирование, its keyframes) and the part's dynamic scale. When Follow is started on a clip **already scaled by
+  hand** (its scale neither «Вписать» nor «Заполнить», or its keyframes change the scale — `FollowZoom.IsHandScaled`), the new part
+  has «Динамический масштаб» **off**: Follow keeps that scale and only centres the climber, exactly as before D080. On a clip not
+  scaled the new part has it **on** and the part zooms by its own scale. The check box changes it on any part; with it on, the part's
+  scale is the curve's (the clip's scale and the part's keyframes' Scale are not used for the picture inside the part; the part's
+  keyframes keep the climber's place X / Y).
 - **Q4 — A.** A scale changed by hand inside a part with the dynamic scale changes the part's «Масштаб, %» proportionally (one undo
   step).
 - **Q5 — A**, the check box named **«Динамический масштаб»** (off — the scale as before Phase 61).
+
+**Step 2 done (2026-11-24): Follow at a scale (§3).** Core: `FollowPart.DynamicScale` / `ScaleShare` (v30, `FollowSettings.AreValid`
+checks the share 5–100 %), `FollowZoom` (heights through the clip's D018 geometry, losses filled, a running median over 2 s, the scale
+clamped to [fill, cap] before a log-Gaussian with σ of «Плавность»; cap = `MaxScale` for the user's share, `min(1.2 × max(own scale,
+fill), max(that, one source pixel per canvas pixel))` for the automatic one at the climber's 10th percentile of height in the part),
+`FollowResolution.For` feeds the curve to `FollowCamera.Solve` (positions clamped at that scale per frame) and to
+`FollowFramingPart.Zoom` (read by `FollowFraming.At` — the Preview, the export and the editor); `HasPartScale` covers it.
+`project.json` v30 (`dynamicScale` only when on, `scaleShare` only when set). UI: «Динамический масштаб» + «Масштаб, %» (the
+automatic value marked «авто», «Авто» returns to it) in the Follow block for the part under the playhead, one undo step each;
+`InspectorViewModel.NewPartsDynamic` on every new part (Follow on, «Следить отсюда», the pick). Q4: the Preview's corner scale and
+Ctrl + wheel on a part with the dynamic scale change its share by the same ratio (`PreviewTransformViewModel.WriteFollowShare`,
+`FollowShareAt` wired by the main window); the Transform section's Scale stays the clip's own (the owner: two independent scales).
+Tests: `FollowZoomTests` (13), `FollowScalePersistenceTests` (5), `FollowScaleUiTests` (3), a Preview wheel test, a snapshot /
+export parity test (`PeopleCompositionTests`); the tests pinning v29 now pin v30; `FollowRangeUiTests` use a hand-scaled clip (their
+parts without the dynamic scale).
+**Refined in Step 2 (after the review FAIL):** the climber's height is filled through a loss **with the anchor's own rule**
+(`FollowCamera.Filled`: a glide up to 1.5 s, a longer loss holds and eases over the last 1 s) — so the scale never zooms on a
+stale point while the position holds (test `A_long_loss_holds_the_height_like_the_position_then_eases_to_the_new_one`); the user's
+share is **kept while the scale is off** (written in v30 whenever set), so turning it on again brings it back after a reopen too; a
+clip's scale 1 counts as not scaled by hand at any rotation (the untouched default), as Fit and Fill do; the Inspector computes the
+automatic share once per state of the clip (the playhead's refresh no longer re-resolves Follow on every frame). The Preview's corner
+drag goes through the same `WriteFollowShare` as the wheel (tested by the wheel).
 
 **Step 1 done (2026-11-24): the Inspector's order (§2).** `InspectorView.axaml` reordered (a clip: frame, the text sections,
 people, holds, training, fit, color, timing, audio, clip; a group: frame, holds, color, audio); the rail's lit group is now the one

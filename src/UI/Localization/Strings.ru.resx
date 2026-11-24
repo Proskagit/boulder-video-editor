@@ -4317,4 +4317,22 @@
   <data name="Follow_Continuing" xml:space="preserve">
     <value>Слежение продолжается отсюда — нажмите «Остановить слежение здесь», где оно должно закончиться.</value>
   </data>
+  <data name="Inspector_FollowDynamicScale" xml:space="preserve">
+    <value>Динамический масштаб</value>
+  </data>
+  <data name="Inspector_FollowDynamicScaleTip" xml:space="preserve">
+    <value>Картинка приближается вслед за скалолазом, чтобы он занимал одну и ту же долю кадра, пока лезет вверх; не меньше «Заполнить» (без чёрных полей). Выключено — собственный масштаб клипа.</value>
+  </data>
+  <data name="Inspector_FollowScale" xml:space="preserve">
+    <value>Масштаб, %</value>
+  </data>
+  <data name="Inspector_FollowScaleTip" xml:space="preserve">
+    <value>Рост скалолаза в процентах высоты кадра — на участке слежения под курсором.</value>
+  </data>
+  <data name="Inspector_FollowScaleAuto" xml:space="preserve">
+    <value>Авто</value>
+  </data>
+  <data name="Inspector_FollowScaleAutoMark" xml:space="preserve">
+    <value>авто</value>
+  </data>
 </root>

@@ -46,6 +46,10 @@ public sealed record TransformTarget(Clip Clip, Track Track, VisualProperties Vi
     /// the frame is then where Follow puts the picture, and a drag moves the person in the frame; null otherwise.</summary>
     public int? FollowPart { get; init; }
 
+    /// <summary>D080: the share of the frame's height the climber keeps on <see cref="FollowPart"/> when its dynamic scale is
+    /// on (the user's or the automatic one) — a scale changed by hand there changes it proportionally (Q4); null otherwise.</summary>
+    public double? FollowShare { get; init; }
+
     /// <summary>D063: the timeline frame the target is shown on (the playhead's) — the frame its keyframes are edited on.</summary>
     public long TimelineFrame { get; init; }
 
@@ -124,6 +128,9 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
     /// <summary>D061 amendment 1: the followed part the camera follows on source time of a clip and where Follow puts the
     /// picture there (D063: its position and scale); null — no Follow there (set by the main window).</summary>
     public Func<VideoClip, MediaTime, (int Part, VisualProperties Visual)?>? FollowAt { get; set; }
+
+    /// <summary>D080: the share the climber keeps on the followed part with the dynamic scale shown at a source time, or null.</summary>
+    public Func<VideoClip, MediaTime, double?>? FollowShareAt { get; set; }
 
     /// <summary>D063 §B: the snap threshold in screen pixels (the user's setting).</summary>
     public Func<double> SnapThresholdPixels { get; set; } = () => CanvasSnap.DefaultThresholdPixels;
@@ -336,7 +343,7 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         var scale = Math.Clamp(Math.Round(visual.Scale * factor, PreviewTransformMath.ScaleDecimals, MidpointRounding.AwayFromZero),
             ClipPropertyLimits.MinScale, ClipPropertyLimits.MaxScale);
         if (scale == visual.Scale) return false;
-        var result = WriteScale(target, scale, _wheelUndo);
+        var result = target.FollowShare is not null ? WriteFollowShare(target, scale / visual.Scale, _wheelUndo) : WriteScale(target, scale, _wheelUndo);
         if (!result.Success)
         {
             _status.ReportWarning(result.Message ?? Strings.Inspector_ClipNotChanged);
@@ -379,6 +386,7 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         if (PlaybackSnapshotBuilder.DisplaySize(asset?.Metadata) is not { } size) { reason = UnknownSizeText; return null; }
         // D061 amendment 1: on a followed part the picture is where Follow puts it on the shown frame.
         int? followPart = null;
+        double? followShare = null;
         var placed = visual;
         if (clip is VideoClip { Follow: not null } video && FollowAt is { } followAt && !IsPlaying())
         {
@@ -388,12 +396,13 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
             {
                 followPart = follow.Part;
                 placed = follow.Visual;
+                if (video.Follow!.Parts[follow.Part].DynamicScale) followShare = FollowShareAt?.Invoke(video, source);
             }
         }
         var geometry = CompositionMath.Layout(canvas, size, placed);
         return new TransformTarget(clip, track, visual, PreviewTransformMath.PictureFrame(geometry), geometry)
         {
-            FollowPart = followPart, TimelineFrame = frame, Placed = placed, Source = size
+            FollowPart = followPart, FollowShare = followShare, TimelineFrame = frame, Placed = placed, Source = size
         };
     }
 
@@ -588,7 +597,9 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         next = Snap(g, next);
         if (g.Kind == TransformGestureKind.Scale && g.Target.FollowPart is not null)
         {
-            var result = WriteScale(g.Target, next.Scale, g.Undo);
+            var result = g.Target.FollowShare is not null && g.Start.Scale > 0
+                ? WriteFollowShare(g.Target, next.Scale / g.Start.Scale, g.Undo)
+                : WriteScale(g.Target, next.Scale, g.Undo);
             if (!result.Success)
             {
                 _status.ReportWarning(result.Message ?? Strings.Inspector_ClipNotChanged);
@@ -641,6 +652,18 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         }
         if (VisualProperties.Of(target.Clip) is not { } visual || visual.Scale == scale) return TimelineEditResult.Unchanged();
         return _edit.SetClipProperties(target.Clip.Id, new ClipPropertyChange { Visual = visual with { Scale = scale }, Gesture = gesture });
+    }
+
+    /// <summary>D080 (Q4): on a followed part with the dynamic scale a scale changed by hand changes the part's share of the
+    /// frame by the same <paramref name="ratio"/> (from the target's share at the gesture's start), within its limits.</summary>
+    private TimelineEditResult WriteFollowShare(TransformTarget target, double ratio, ClipPropertyGesture gesture)
+    {
+        if (target is not { Clip: VideoClip { Follow: { } follow } video, FollowPart: { } index, FollowShare: { } start } || index >= follow.Parts.Length)
+            return TimelineEditResult.Unchanged();
+        var share = Math.Round(Math.Clamp(start * ratio, Core.People.FollowZoom.MinShare, Core.People.FollowZoom.MaxShare), 4);
+        var part = follow.Parts[index];
+        if (part.ScaleShare == share) return TimelineEditResult.Unchanged();
+        return _edit.SetClipFollow(video.Id, follow.WithPart(index, part with { ScaleShare = share })!, gesture: gesture);
     }
 
     /// <summary>The person moves in the frame with the picture: the part's offset grows by the drag (canvas pixels).</summary>

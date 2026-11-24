@@ -63,7 +63,7 @@ public sealed class InspectorFieldStyleTests
         // D079 §2 (the owner): a field as wide as its number — no field sets its own width; a fraction (a format with
         // decimals other than the whole-value «0.####» fields, FU-25.2) or a longer number is `.wide`.
         var fields = Inspector().Descendants().Where(e => e.Name.LocalName == "CommitNumericUpDown").ToList();
-        Assert.Equal(62, fields.Count);
+        Assert.Equal(63, fields.Count);   // D080: + «Масштаб, %» of Follow
         Assert.All(fields, f => Assert.Null(f.Attribute("Width")));
         static bool Wide(XElement f) => ((string?)f.Attribute("Classes") ?? "").Split(' ').Contains("wide");
         foreach (var f in fields)
@@ -72,7 +72,7 @@ public sealed class InspectorFieldStyleTests
             if (format is "0.##" or "0.#" or "0.###" or "0.00") Assert.True(Wide(f), (string?)f.Attribute("Value"));
             if (format == "0") Assert.False(Wide(f), (string?)f.Attribute("Value"));
         }
-        Assert.Equal(26, fields.Count(Wide));
+        Assert.Equal(27, fields.Count(Wide));
     }
 
     [Fact]

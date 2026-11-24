@@ -49,7 +49,7 @@ public class TextStyle2PersistenceTests
     public void Every_member_survives_a_save_open_save_exactly()
     {
         var first = Save(Build(Styled));
-        Assert.Equal(29, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(30, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
         var loaded = Text(Load(first));
         Assert.True(loaded.Italic);
         Assert.Equal(new TextShadow(false, "#123456", 0.45, 0.137, -0.05, 0.11), loaded.Shadow);
@@ -63,7 +63,7 @@ public class TextStyle2PersistenceTests
         var plain = JsonNode.Parse(Save(Build()))!["timeline"]!["videoTracks"]![0]!["clips"]![0]!.AsObject();
         foreach (var member in new[] { "italic", "shadow", "lineSpacing", "boxWidth" }) Assert.False(plain.ContainsKey(member), member);
 
-        var v27 = Save(Build(Styled)).Replace("\"formatVersion\": 29", "\"formatVersion\": 27");
+        var v27 = Save(Build(Styled)).Replace("\"formatVersion\": 30", "\"formatVersion\": 27");
         var loaded = Text(Load(v27));
         Assert.False(loaded.Italic);
         Assert.Equal(TextShadow.Default, loaded.Shadow);

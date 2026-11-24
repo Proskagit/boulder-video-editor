@@ -27,6 +27,10 @@ public sealed record FollowPartResolution(int Index, MediaTime From, MediaTime T
     FollowUnavailable Unavailable)
 {
     public bool AutoChosen { get; init; }
+
+    /// <summary>D080: the part's dynamic scale (its share — the user's or the automatic one), or null when it is off.</summary>
+    public FollowZoomCurve? Zoom { get; init; }
+
     public double SeenFraction { get; init; } = 1;
     public ImmutableArray<FollowGap> Gaps { get; init; } = ImmutableArray<FollowGap>.Empty;
 }
@@ -102,20 +106,26 @@ public sealed record FollowResolution(FollowState State, FollowTrajectory? Traje
             }
             // D063 §4: with keyframes (the clip's or the part's) the framing is animated — the climber's place, the scale and
             // the clip's own position per analysed frame; without them exactly D061.
-            Func<MediaTime, (TransformValue, double, double)>? framingAt = clip.Keyframes is null && part.Keyframes is null ? null : t =>
+            // D080: the dynamic scale — the part's own scale per frame, so the climber keeps his share of the frame.
+            var zoom = part.DynamicScale
+                ? FollowZoom.Solve(trajectory, from, to, canvas, source, visual, TransformKeyframes.Apply(visual, clip.Keyframes, from).Scale,
+                    part.ScaleShare, follow.Smoothness)
+                : null;
+            Func<MediaTime, (TransformValue, double, double)>? framingAt = clip.Keyframes is null && part.Keyframes is null && zoom is null ? null : t =>
             {
                 var own = TransformKeyframes.Apply(visual, clip.Keyframes, t);
-                return (part.FramingAt(t, own.Scale), own.PositionX, own.PositionY);
+                var framing = part.FramingAt(t, own.Scale);
+                return (zoom is null ? framing : framing with { Scale = zoom.At(t) }, own.PositionX, own.PositionY);
             };
             var (path, reason) = FollowCamera.Solve(trajectory, canvas, source, visual, follow.Smoothness, part.OffsetX, part.OffsetY, framingAt);
             if (path is null) unavailable = reason;
             else
             {
                 paths.Add((path, from, to));
-                framed.Add(new FollowFramingPart(i, path, from, to, part.OffsetX, part.OffsetY, part.Keyframes));
+                framed.Add(new FollowFramingPart(i, path, from, to, part.OffsetX, part.OffsetY, part.Keyframes) { Zoom = zoom });
             }
             resolved.Add(new FollowPartResolution(i, from, to, path is null ? FollowState.Unavailable : FollowState.Following, trajectory, reason)
-                { SeenFraction = trajectory.SeenFraction(from, to), Gaps = gaps, AutoChosen = auto });
+                { SeenFraction = trajectory.SeenFraction(from, to), Gaps = gaps, AutoChosen = auto, Zoom = zoom });
         }
         var parts = resolved.ToImmutable();
         if (parts.IsEmpty)

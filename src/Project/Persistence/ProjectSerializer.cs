@@ -44,7 +44,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 29;
+    public const int CurrentFormatVersion = 30;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -150,6 +150,10 @@ public static class ProjectSerializer
 
     /// <summary>D075 amendment 1: a text's italic, shadow, line spacing and block width.</summary>
     private const int TextStyle2Version = 28;
+
+    /// <summary>The first version with a followed part's dynamic scale (D080): «Динамический масштаб» and the climber's share. A
+    /// v29 file's parts have it off (the scale as before) and are saved as v30; an older build refuses a v30 file as newer.</summary>
+    private const int FollowScaleVersion = 30;
 
     // D076 (v29): the export's codec and container, the quality «Очень высокое» and the speed «Очень быстро»; the profile is no
     // longer written (every field explicit). A v28 file's profile is read as its exact old output (Q7 A); an older build
@@ -505,7 +509,9 @@ public static class ProjectSerializer
             FromTicks = p.From?.Ticks, ToTicks = p.To?.Ticks,
             TargetTicks = p.TargetTime?.Ticks, TargetX = p.TargetPoint?.X, TargetY = p.TargetPoint?.Y,
             OffsetX = p.OffsetX == 0 ? null : p.OffsetX, OffsetY = p.OffsetY == 0 ? null : p.OffsetY,
-            Keyframes = p.Keyframes is { } keyframes ? ToDto(keyframes) : null
+            Keyframes = p.Keyframes is { } keyframes ? ToDto(keyframes) : null,
+            DynamicScale = p.DynamicScale ? true : null,
+            ScaleShare = p.ScaleShare
         }).ToList(),
         Smoothness = follow.Smoothness switch { FollowSmoothness.Soft => "soft", FollowSmoothness.Fast => "fast", _ => "normal" }
     };
@@ -526,7 +532,9 @@ public static class ProjectSerializer
                     with
                     {
                         OffsetX = Offset(p.OffsetX, formatVersion), OffsetY = Offset(p.OffsetY, formatVersion),
-                        Keyframes = formatVersion < KeyframesVersion || p.Keyframes is null ? null : FromDto(p.Keyframes)
+                        Keyframes = formatVersion < KeyframesVersion || p.Keyframes is null ? null : FromDto(p.Keyframes),
+                        DynamicScale = formatVersion >= FollowScaleVersion && p.DynamicScale == true,
+                        ScaleShare = formatVersion >= FollowScaleVersion ? p.ScaleShare : null
                     })
                 .ToImmutableArray();
             if (parts.IsEmpty || !FollowSettings.AreValid(parts)) throw Damaged("Follow parts that overlap or are out of order");

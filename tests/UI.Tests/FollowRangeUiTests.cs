@@ -43,7 +43,9 @@ public sealed class FollowRangeUiTests
         };
         _projects.Current.MediaAssets.Add(asset);
         Assert.True(_edit.AddClip(asset.Id).Success);
-        return (asset, (VideoClip)_projects.Current.Timeline.VideoTracks[0].Clips[0]);
+        var clip = (VideoClip)_projects.Current.Timeline.VideoTracks[0].Clips[0];
+        clip.Scale = 1.5;   // D080: scaled by hand — new parts only centre the climber (their dynamic scale: FollowScaleUiTests)
+        return (asset, clip);
     }
 
     private static MediaTime S(double seconds) => MediaTime.FromSeconds(seconds);

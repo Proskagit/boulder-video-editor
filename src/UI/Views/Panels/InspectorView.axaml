@@ -1004,6 +1004,22 @@
                     <ComboBox x:Name="FollowSmoothnessBox" ItemsSource="{Binding FollowSmoothnessNames}" SelectedIndex="{Binding FollowSmoothnessIndex, Mode=TwoWay}"
                               IsEnabled="{Binding IsEditingAllowed}"/>
                   </StackPanel>
+                  <!-- D080: the part's dynamic scale — the climber keeps his share of the frame («Масштаб, %», the automatic one by default). -->
+                  <StackPanel Spacing="4" IsVisible="{Binding HasFollowOffset}">
+                    <CheckBox x:Name="FollowDynamicScaleBox" Content="{x:Static l:Strings.Inspector_FollowDynamicScale}" IsChecked="{Binding FollowDynamicScale, Mode=TwoWay}"
+                              IsEnabled="{Binding IsEditingAllowed}" ToolTip.Tip="{x:Static l:Strings.Inspector_FollowDynamicScaleTip}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding FollowDynamicScale}" ToolTip.Tip="{x:Static l:Strings.Inspector_FollowScaleTip}">
+                      <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_FollowScale}" Classes="label" Target="{Binding #FollowScaleBox}" StepPerPixel="0.5"
+                                           ToolTip.Tip="{x:Static l:Strings.Inspector_ScrubTip}"/>
+                      <controls:CommitNumericUpDown Classes="wide" x:Name="FollowScaleBox" Value="{Binding FollowScalePercent, Mode=TwoWay}" Increment="1"
+                                                    Minimum="{Binding MinFollowScalePercent}" Maximum="{Binding MaxFollowScalePercent}" FormatString="0.#"
+                                                    IsEnabled="{Binding IsEditingAllowed}"/>
+                      <TextBlock x:Name="FollowScaleAutoMark" Text="{x:Static l:Strings.Inspector_FollowScaleAutoMark}" IsVisible="{Binding FollowScaleIsAuto}"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                      <Button x:Name="FollowScaleAutoButton" Content="{x:Static l:Strings.Inspector_FollowScaleAuto}" Command="{Binding FollowScaleAutoCommand}"
+                              IsVisible="{Binding !FollowScaleIsAuto}" FontSize="{DynamicResource FontSizeCaption}"/>
+                    </StackPanel>
+                  </StackPanel>
                   <!-- D061 amendment 1: where the climber stands in the frame (the part under the playhead); or drag the frame in the Preview. -->
                   <StackPanel Spacing="4" IsVisible="{Binding HasFollowOffset}" ToolTip.Tip="{x:Static l:Strings.Inspector_FollowOffsetTip}">
                     <TextBlock Text="{x:Static l:Strings.Inspector_FollowOffset}" Classes="label"/>

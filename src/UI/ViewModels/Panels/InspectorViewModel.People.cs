@@ -1,5 +1,6 @@
 using System.Globalization;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.People;
 using AiVideoEditor.Core.Playback;
@@ -122,12 +123,81 @@ public sealed partial class InspectorViewModel
             var shown = index >= 0 ? KeyframeEditor.ValueAt(clip!, new UI.Services.KeyframeOwner(clip!.Id, index), KeyframeFrame(clip!)) : default;
             FollowOffsetX = index >= 0 ? (decimal)shown.X : null;
             FollowOffsetY = index >= 0 ? (decimal)shown.Y : null;
+            var part = index >= 0 ? clip!.Follow!.Parts[index] : null;
+            FollowDynamicScale = part?.DynamicScale == true;
+            FollowScaleIsAuto = part?.ScaleShare is null;
+            FollowScalePercent = part is { DynamicScale: true } && ShownShare(clip!, index) is { } share ? Math.Round((decimal)share * 100, 1) : null;
         }
         finally
         {
             _syncing = wasSyncing;
         }
     }
+
+    // --- D080: «Динамический масштаб» and «Масштаб, %» of the part the offset fields show --------------------------------
+
+    /// <summary>D080: the part's dynamic scale is on.</summary>
+    [ObservableProperty] private bool _followDynamicScale;
+
+    /// <summary>D080 (Q1): the climber's height as % of the frame's height — the user's, else the automatic one (null while
+    /// the climber is not analysed yet).</summary>
+    [ObservableProperty] private decimal? _followScalePercent;
+
+    /// <summary>D080: the shown share is the automatic one («авто»).</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(FollowScaleAutoCommand))]
+    private bool _followScaleIsAuto = true;
+
+    public decimal MinFollowScalePercent => (decimal)FollowZoom.MinShare * 100;
+    public decimal MaxFollowScalePercent => (decimal)FollowZoom.MaxShare * 100;
+
+    partial void OnFollowDynamicScaleChanged(bool value) => EditFollowPart(p => p with { DynamicScale = value });
+
+    partial void OnFollowScalePercentChanged(decimal? value)
+    {
+        if (value is not { } v) return;
+        var share = Math.Clamp((double)v / 100, FollowZoom.MinShare, FollowZoom.MaxShare);
+        EditFollowPart(p => p with { DynamicScale = true, ScaleShare = Math.Round(share, 4) });
+    }
+
+    /// <summary>«Авто»: the automatic share again.</summary>
+    [RelayCommand(CanExecute = nameof(CanResetFollowScale))]
+    private void FollowScaleAuto() => EditFollowPart(p => p with { ScaleShare = null });
+
+    private bool CanResetFollowScale() => !FollowScaleIsAuto;
+
+    /// <summary>One change of the part the offset fields show (one undo step).</summary>
+    private void EditFollowPart(Func<FollowPart, FollowPart> change)
+    {
+        if (_syncing || PeopleClip is not VideoClip { Follow: { } follow } clip || RejectWhileLocked()) return;
+        var index = FollowOffsetPart(clip);
+        if (index < 0) return;
+        var part = change(follow.Parts[index]);
+        if (part == follow.Parts[index]) return;
+        Apply(_edit.SetClipFollow(clip.Id, follow.WithPart(index, part)));
+    }
+
+    /// <summary>D080 (the owner's answer to Q3): a new followed part has the dynamic scale on unless the clip was scaled by
+    /// hand — then Follow keeps that scale and only centres the climber.</summary>
+    private bool NewPartsDynamic(VideoClip clip) =>
+        !FollowZoom.IsHandScaled(clip, _canvas, _findAsset?.Invoke(clip.MediaAssetId) is { } asset ? PlaybackSnapshotBuilder.DisplaySize(asset.Metadata) : null);
+
+    /// <summary>The share shown for part <paramref name="index"/>: the user's, else the automatic one of the resolved part.</summary>
+    private double? ShownShare(VideoClip clip, int index)
+    {
+        var part = clip.Follow!.Parts[index];
+        if (part.ScaleShare is { } own) return own;
+        if (!part.DynamicScale || _people is null || !_people.Analyses.Tracks.TryGetValue(clip.MediaAssetId, out var tracks) ||
+            _findAsset?.Invoke(clip.MediaAssetId) is not { } asset || PlaybackSnapshotBuilder.DisplaySize(asset.Metadata) is not { } source)
+            return null;
+        // The playhead moves refresh the fields on every frame: the resolution is computed once per state of the clip.
+        var key = (clip.Follow, tracks, VisualProperties.Of(clip), clip.Keyframes, clip.SourceIn, clip.SourceOut, _canvas, source);
+        if (_shownShareCache is not { } cached || !Equals(cached.Key, key))
+            _shownShareCache = cached = (key, FollowResolution.For(clip, clip.Follow, tracks, _canvas, source));
+        return cached.Resolution.Parts.FirstOrDefault(p => p.Index == index)?.Zoom?.Share;
+    }
+
+    private ((FollowSettings, PersonTracks, VisualProperties?, TransformKeyframes?, MediaTime, MediaTime, FrameSize, FrameSize) Key, FollowResolution Resolution)? _shownShareCache;
 
     /// <summary>A followed part lies under the playhead («Удалить участок слежения»).</summary>
     [ObservableProperty]
@@ -161,7 +231,7 @@ public sealed partial class InspectorViewModel
     {
         if (_syncing || PeopleClip is not VideoClip clip || RejectWhileLocked()) return;
         if (value == clip.Follow is not null) return;
-        Apply(_edit.SetClipFollow(clip.Id, value ? FollowSettings.Whole(SmoothnessAt(FollowSmoothnessIndex)) : null,
+        Apply(_edit.SetClipFollow(clip.Id, value ? FollowSettings.Whole(SmoothnessAt(FollowSmoothnessIndex), dynamicScale: NewPartsDynamic(clip)) : null,
             hideOutlinesBehindPeople: value ? true : null));
     }
 
@@ -211,7 +281,7 @@ public sealed partial class InspectorViewModel
         FollowSettings follow;
         var existing = clip.Follow;
         if (existing is null || existing.IsWholeClip)
-            follow = FollowSettings.Of(new FollowPart(from), existing?.Smoothness ?? SmoothnessAt(FollowSmoothnessIndex));
+            follow = FollowSettings.Of(new FollowPart(from, DynamicScale: NewPartsDynamic(clip)), existing?.Smoothness ?? SmoothnessAt(FollowSmoothnessIndex));
         else if (existing.IndexAt(at) is var inside and >= 0)
         {
             // D078 amendment 6 (the owner): on a followed part the press continues it — the same climber, its end opened to the
@@ -237,7 +307,7 @@ public sealed partial class InspectorViewModel
             var next = existing.Parts.FirstOrDefault(p => p.From is { } f && f > at)?.From;
             // On the clip's first frame the part opens to the start — up to a part before it (beyond the clip's start).
             if (from is null) from = existing.Parts.LastOrDefault(p => p.To is { } t && t <= at)?.To;
-            follow = existing.WithAdded(new FollowPart(from, next));
+            follow = existing.WithAdded(new FollowPart(from, next, DynamicScale: NewPartsDynamic(clip)));
         }
         var result = _edit.SetClipFollow(clip.Id, follow, hideOutlinesBehindPeople: clip.Follow is null ? true : null);
         if (!result.Success)
@@ -332,7 +402,7 @@ public sealed partial class InspectorViewModel
         if (clip is null || clip.Id != clipId || RejectWhileLocked()) return;
         FollowSettings follow;
         if (clip.Follow is not { } existing)
-            follow = FollowSettings.Whole(SmoothnessAt(FollowSmoothnessIndex), sourceTime, point);
+            follow = FollowSettings.Whole(SmoothnessAt(FollowSmoothnessIndex), sourceTime, point, NewPartsDynamic(clip));
         else if (existing.IndexAt(sourceTime) is var index and >= 0)
             follow = existing.WithPart(index, existing.Parts[index] with { TargetTime = sourceTime, TargetPoint = point })!;
         else

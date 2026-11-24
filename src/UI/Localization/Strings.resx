@@ -4313,4 +4313,22 @@ Everything else works without the models. They can also be installed later: «Se
   <data name="Follow_Continuing" xml:space="preserve">
     <value>Following continues from here — press «Stop following here» where it should end.</value>
   </data>
+  <data name="Inspector_FollowDynamicScale" xml:space="preserve">
+    <value>Dynamic scale</value>
+  </data>
+  <data name="Inspector_FollowDynamicScaleTip" xml:space="preserve">
+    <value>The picture zooms with the climber so he keeps the same share of the frame while he climbs away; never below «Fill» (no black borders). Off — the clip's own scale.</value>
+  </data>
+  <data name="Inspector_FollowScale" xml:space="preserve">
+    <value>Scale, %</value>
+  </data>
+  <data name="Inspector_FollowScaleTip" xml:space="preserve">
+    <value>The climber's height as a share of the frame's height, on the followed part under the playhead.</value>
+  </data>
+  <data name="Inspector_FollowScaleAuto" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="Inspector_FollowScaleAutoMark" xml:space="preserve">
+    <value>auto</value>
+  </data>
 </root>

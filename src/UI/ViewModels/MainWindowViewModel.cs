@@ -328,6 +328,15 @@ public sealed class MainWindowViewModel : ViewModelBase
                 if (resolution.Framing is not { } framing || resolution.PartAt(sourceTime) is not { State: Core.People.FollowState.Following } part) return null;
                 return (part.Index, framing.At(sourceTime));
             };
+            transform.FollowShareAt = (clip, sourceTime) =>
+            {
+                var project = _projectService.Current;
+                if (clip.Follow is not { } follow || !people.Analyses.Tracks.TryGetValue(clip.MediaAssetId, out var tracks) ||
+                    Core.Playback.PlaybackSnapshotBuilder.DisplaySize(project.MediaAssets.FirstOrDefault(a => a.Id == clip.MediaAssetId)?.Metadata) is not { } source)
+                    return null;
+                var canvas = new Core.Composition.FrameSize(project.Settings.FrameWidth, project.Settings.FrameHeight);
+                return Core.People.FollowResolution.For(clip, follow, tracks, canvas, source).PartAt(sourceTime)?.Zoom?.Share;
+            };
             people.AnalysesChanged += (_, _) => transform.Refresh();
         }
         Inspector.FollowPlaybackRequested += (_, play) =>
